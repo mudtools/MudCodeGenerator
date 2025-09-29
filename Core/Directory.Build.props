@@ -10,7 +10,7 @@
 		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
 		<RepositoryUrl>https://gitee.com/mudtools/mud-code-generator</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
-		<PackageIcon>icon.png</PackageIcon>
+		<PackageIcon>Icon.png</PackageIcon>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<NoDefaultExcludes>true</NoDefaultExcludes>
 		<Copyright>© 2019-2025 Mud Studio Co.,Ltd.</Copyright>

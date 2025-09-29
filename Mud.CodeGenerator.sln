@@ -9,6 +9,12 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Mud.CodeGenerator", "Core\M
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mud.ServiceCodeGenerator", "Core\Mud.ServiceCodeGenerator\Mud.ServiceCodeGenerator.csproj", "{64FDD18A-1C5E-4744-AD17-1ECD25DE7E79}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Src", "Src", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test", "Test", "{691CCAAF-CBB6-4D50-B875-D25DFDAA69C3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mud.Common.CodeGenerator", "Test\Mud.Common.CodeGenerator\Mud.Common.CodeGenerator.csproj", "{6EAC6A06-4A83-BF7B-EF2B-022E5CCB9274}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -23,9 +29,22 @@ Global
 		{64FDD18A-1C5E-4744-AD17-1ECD25DE7E79}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{64FDD18A-1C5E-4744-AD17-1ECD25DE7E79}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{64FDD18A-1C5E-4744-AD17-1ECD25DE7E79}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6EAC6A06-4A83-BF7B-EF2B-022E5CCB9274}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6EAC6A06-4A83-BF7B-EF2B-022E5CCB9274}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6EAC6A06-4A83-BF7B-EF2B-022E5CCB9274}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6EAC6A06-4A83-BF7B-EF2B-022E5CCB9274}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{E973506F-8331-46C7-ACB9-A2ACC699F0BE} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{71B3856B-8735-4AFF-A20B-7CF2AB3A0213} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{64FDD18A-1C5E-4744-AD17-1ECD25DE7E79} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{6EAC6A06-4A83-BF7B-EF2B-022E5CCB9274} = {691CCAAF-CBB6-4D50-B875-D25DFDAA69C3}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {FC658F6D-5ED8-415B-9426-748C9118AFCB}
 	EndGlobalSection
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		Core\Mud.CodeGenerator\Mud.CodeGenerator.projitems*{64fdd18a-1c5e-4744-ad17-1ecd25de7e79}*SharedItemsImports = 5
