@@ -170,7 +170,6 @@ public partial class SysClientEntity
         voObj.id = this.Id;
         voObj.clientKey = this.ClientKey;
         voObj.delFlag = this.DelFlag;
-        ConverterUtils.RaiseMapAfter(voObj);
         return voObj;
     }
 }

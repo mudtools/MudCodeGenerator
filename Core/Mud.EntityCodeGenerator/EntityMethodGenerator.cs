@@ -167,11 +167,11 @@ namespace Mud.EntityCodeGenerator
                     {
                         orgPropertyName = GetFirstUpperPropertyName(field);
                     }
-                    
+
                     // 提高容错性，确保属性名不为空
                     if (string.IsNullOrEmpty(orgPropertyName))
                         continue;
-                        
+
                     propertyName = ToLowerFirstLetter(orgPropertyName);
                     sb.AppendLine($"            voObj.{propertyName}=this.{orgPropertyName};");
                 }
@@ -206,7 +206,7 @@ namespace Mud.EntityCodeGenerator
             if (sb == null)
                 return null;
 
-            sb.AppendLine("            ConverterUtils.RaiseMapAfter(voObj);");
+            //sb.AppendLine("            ConverterUtils.RaiseMapAfter(voObj);");
             sb.AppendLine("            return voObj;");
             sb.AppendLine("        }");
             sb.AppendLine("}");

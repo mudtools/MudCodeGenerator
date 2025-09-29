@@ -99,7 +99,7 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
         sb.AppendLine("/// </summary>");
         sb.AppendLine($"public Expression<Func<{orgClassName}, bool>> BuildQueryWhere()");
         sb.AppendLine("        {");
-        sb.AppendLine($"            var where = LinqExtensions.True<{orgClassName}>();");
+        sb.AppendLine($"            Expression<Func<SysClientEntity, bool>> where = x => true;");
         return sb;
     }
 
@@ -143,14 +143,16 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
 
         if (propertyType.StartsWith("string", StringComparison.OrdinalIgnoreCase))
         {
+            sb.AppendLine($"         if(!string.IsNullOrEmpty(this.{propertyName}?.Trim()))");
             if (!isLikeQuery)
-                sb.AppendLine($"            where = where.AndIF(!string.IsNullOrEmpty(this.{propertyName}), x => x.{orgPropertyName} == this.{propertyName});");
+                sb.AppendLine($"            where = where.And( x => x.{orgPropertyName} == this.{propertyName}.Trim());");
             else
-                sb.AppendLine($"            where = where.AndIF(!string.IsNullOrEmpty(this.{propertyName}), x => x.{orgPropertyName}.Contains(this.{propertyName}));");
+                sb.AppendLine($"            where = where.And( x => x.{orgPropertyName}.Contains(this.{propertyName}.Trim()));");
         }
         else
         {
-            sb.AppendLine($"            where = where.AndIF(this.{propertyName}!=null, x => x.{orgPropertyName} == this.{propertyName});");
+            sb.AppendLine($"         if(this.{propertyName}!=null)");
+            sb.AppendLine($"            where = where.And( x => x.{orgPropertyName} == this.{propertyName});");
         }
     }
 
