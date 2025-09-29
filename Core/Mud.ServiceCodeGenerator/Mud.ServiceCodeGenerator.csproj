@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<PackageId>Mud.ServiceCodeGenerator</PackageId>
+		<Description>Mud.ServiceCodeGenerator</Description>
+		<Product>Mud Service Code Generator</Product>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<GenerateDocumentationFile>False</GenerateDocumentationFile>
+	</PropertyGroup>
+	<ItemGroup>
+		<None Remove="bin\Debug\netstandard2.0\\netstandard2.0\Mud.ServiceCodeGenerator.dll" />
+	</ItemGroup>
+	<!--开发调试阶段-->
+	<ItemGroup>
+		<!-- Package the generator in the analyzer directory of the nuget package -->
+		<None Include="$(OutputPath)\netstandard2.0\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+		<None Include="README.md" Pack="true" PackagePath="\" />
+		<None Include="..\Icon.png" Pack="true" PackagePath="\" />
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Update="Microsoft.CodeAnalysis.Analyzers" Version="4.14.0" />
+		<PackageReference Update="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
+	</ItemGroup>
+	<Import Project="..\Mud.CodeGenerator\Mud.CodeGenerator.projitems" Label="Shared" />
+</Project>

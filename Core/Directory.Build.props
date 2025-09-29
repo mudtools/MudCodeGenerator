@@ -1,0 +1,44 @@
+<Project>
+	<PropertyGroup>
+		<TargetFrameworks>netstandard2.0</TargetFrameworks>
+		<Version>1.1.5</Version>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+		<CodeAnalysisTreatWarningsAsErrors>false</CodeAnalysisTreatWarningsAsErrors>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+		<RepositoryUrl>https://gitee.com/mudtools/mud-code-generator</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageIcon>icon.png</PackageIcon>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<NoDefaultExcludes>true</NoDefaultExcludes>
+		<Copyright>© 2019-2025 Mud Studio Co.,Ltd.</Copyright>
+		<Authors>Mud Studio</Authors>
+		<Company>Mud Studio</Company>
+		<LangVersion>latest</LangVersion>
+		<NoWarn>CS8618;CS8603;CS8602;CS8601;CS8600;CS8625;CS8604;CS8629;CA1707;CA1021;CA1822;RS1035</NoWarn>
+		<AnalyzerLanguage>cs</AnalyzerLanguage>
+		<InjectIsExternalInitOnLegacy>true</InjectIsExternalInitOnLegacy>
+		<IsRoslynComponent>true</IsRoslynComponent>
+		<PackageTags>Roslyn,SourceGenerator,Mud,MudTools</PackageTags>
+		<AnalysisLevel>6.0-all</AnalysisLevel>
+		<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+		<BaseOutputPath>..\..\bin</BaseOutputPath>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+		<DocumentationFile>bin\Debug\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
+	</PropertyGroup>
+
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+		<DocumentationFile>bin\Release\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
+	</PropertyGroup>
+</Project>

@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>	
+		<PackageId>Mud.EntityCodeGenerator</PackageId>
+		<Description>Mud.EntityCodeGenerator</Description>
+		<Product>Mud Entity Code Generator</Product>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<GenerateDocumentationFile>False</GenerateDocumentationFile>
+	</PropertyGroup>
+	<ItemGroup>
+	  <None Remove="bin\Debug\netstandard2.0\\netstandard2.0\Mud.EntityCodeGenerator.dll" />
+	</ItemGroup>
+	<!--开发调试阶段-->
+	<ItemGroup>
+		<!-- Package the generator in the analyzer directory of the nuget package -->
+		<None Include="$(OutputPath)\netstandard2.0\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+		<None Include="README.md" Pack="true" PackagePath="\" />
+		<None Include="..\Icon.png" Pack="true" PackagePath="\" />
+	</ItemGroup>
+	<Import Project="..\Mud.CodeGenerator\Mud.CodeGenerator.projitems" Label="Shared" />
+</Project>
