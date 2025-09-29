@@ -1,0 +1,12 @@
+﻿################################################################################
+# 此 .gitignore 文件已由 Microsoft(R) Visual Studio 自动创建。
+################################################################################
+
+/.vs/Mud.CodeGenerator/CopilotIndices/17.14.1231.31060
+/.vs/Mud.CodeGenerator/DesignTimeBuild
+/.vs/Mud.CodeGenerator/FileContentIndex
+/.vs/Mud.CodeGenerator/v17
+/.vs/ProjectEvaluation
+/bin/Debug/netstandard2.0
+/Core/Mud.EntityCodeGenerator/obj
+/Core/Mud.ServiceCodeGenerator/obj
