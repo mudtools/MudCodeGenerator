@@ -1,6 +1,5 @@
 ﻿using FreeSql;
 using Mapster;
-using System.Linq.Expressions;
 
 namespace CodeGeneratorTest.Services;
 
@@ -16,12 +15,6 @@ public partial class SysClientService
 
     public async Task<List<SysClientListOutput>> GetList(SysClientQueryInput input)
     {
-        Expression<Func<SysClientEntity, bool>> where = x => true;
-        where = where.And(x => x.Id == this.id);
-        where = where.AndIF(!string.IsNullOrEmpty(this.clientKey), x => x.ClientKey == this.clientKey);
-        where = where.AndIF(!string.IsNullOrEmpty(this.delFlag), x => x.DelFlag == this.delFlag);
-        return where;
-
         var where = input.BuildQueryWhere();
         var query = _baseRepository.Select.Where(where);
         var list = await query.ToListAsync();
