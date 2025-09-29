@@ -35,7 +35,7 @@ Mud 实体代码生成器是一个基于 Roslyn 的源代码生成器，用于�
 ```xml
 <ItemGroup>
   <!-- 引入的代码生成器程序集，注意后面的参数 -->
-  <PackageReference Include="Mud.Common.CodeGenerator" Version="1.0.1" PrivateAssets="all" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+  <PackageReference Include="Mud.EntityCodeGenerator" Version="1.0.5" PrivateAssets="all" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
 </ItemGroup>
 ```
 

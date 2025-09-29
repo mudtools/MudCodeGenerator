@@ -16,6 +16,13 @@ Mud 代码生成器是一套基于 Roslyn 的源代码生成器，用于根据�
    - 服务类代码生成 - 根据实体类自动生成服务接口和服务实现类
    - 依赖注入代码生成 - 自动为类生成构造函数注入代码，包括日志、缓存、用户管理等常用服务
 
+### 模块概览
+
+| 模块 | 当前版本 | 开源协议 | 
+|---|---|---|
+| [![Mud.EntityCodeGenerator](https://img.shields.io/badge/Mud.EntityCodeGenerator-success.svg)](https://gitee.com/mudtools/mud-code-generator) | [![Nuget](https://img.shields.io/nuget/v/Mud.EntityCodeGenerator.svg)](https://www.nuget.org/packages/Mud.EntityCodeGenerator/) | [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://gitee.com/mudtools/mud-code-generator/blob/master/LICENSE)
+| [![Mud.EntityCodeGenerator](https://img.shields.io/badge/Mud.EntityCodeGenerator-success.svg)](https://gitee.com/mudtools/mud-code-generator) | [![Nuget](https://img.shields.io/nuget/v/Mud.ServiceCodeGenerator.svg)](https://www.nuget.org/packages/Mud.ServiceCodeGenerator/) | [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://gitee.com/mudtools/mud-code-generator/blob/master/LICENSE)
+
 ## 项目参数配置
 
 在使用 Mud 代码生成器时，可以通过在项目文件中配置以下参数来自定义生成行为：
@@ -75,7 +82,8 @@ Mud 代码生成器是一套基于 Roslyn 的源代码生成器，用于根据�
 ```xml
 <ItemGroup>
   <!-- 引入的代码生成器程序集，注意后面的参数 -->
-  <PackageReference Include="Mud.Common.CodeGenerator" Version="1.0.5" PrivateAssets="all" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+  <PackageReference Include="Mud.EntityCodeGenerator" Version="1.0.5" PrivateAssets="all" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+  <PackageReference Include="Mud.ServiceCodeGenerator" Version="1.0.5" PrivateAssets="all" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
 </ItemGroup>
 ```
 
