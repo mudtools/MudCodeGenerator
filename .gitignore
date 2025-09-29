@@ -10,3 +10,6 @@
 /bin/Debug/netstandard2.0
 /Core/Mud.EntityCodeGenerator/obj
 /Core/Mud.ServiceCodeGenerator/obj
+/bin/Debug
+/Test/Mud.Common.CodeGenerator/bin/Debug
+/Test/Mud.Common.CodeGenerator/obj
