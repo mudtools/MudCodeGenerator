@@ -73,7 +73,7 @@ public abstract class TransitiveBoGenerator(bool generateNotPrimary, bool genera
             {
                 context.ReportDiagnostic(Diagnostic.Create(
                     new DiagnosticDescriptor(
-                        "BO001",
+                        "EG001",
                         "BO类生成失败",
                         $"无法为类 {orgClassName} 生成BO类",
                         "代码生成",

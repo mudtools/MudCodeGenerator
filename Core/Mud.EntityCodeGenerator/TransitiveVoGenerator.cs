@@ -40,13 +40,13 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
             localClass = GenLocalClassProperty<FieldDeclarationSyntax>(orgClassDeclaration, localClass,
                                                                m => GenAttributeFunc(m),
                                                                m => GenExtAttributeFunc(m));
-            
+
             // 提高容错性，检查生成的类是否为空
             if (localClass == null)
             {
                 context.ReportDiagnostic(Diagnostic.Create(
                     new DiagnosticDescriptor(
-                        "VO001",
+                        "EG003",
                         "VO类生成失败",
                         $"无法为类 {GetClassName(orgClassDeclaration)} 生成VO类",
                         "代码生成",
@@ -211,7 +211,7 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
         // 提高容错性，处理空对象情况
         if (attributeSyntax?.ArgumentList == null)
             return null;
-            
+
         if (!attributeSyntax.ArgumentList.Arguments.Any())
             return null;
 
@@ -231,10 +231,10 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
         // 提高容错性，处理空对象情况
         if (attributeSyntax?.ArgumentList == null)
             return defaultName;
-            
+
         if (!attributeSyntax.ArgumentList.Arguments.Any())
             return defaultName;
-            
+
         foreach (var item in attributeSyntax.ArgumentList.Arguments)
         {
             // 提高容错性，检查NameEquals和Identifier

@@ -51,11 +51,11 @@ public partial class CodeInjectGenerator : TransitiveCodeGenerator
         public string ClassName { get; }
         public ClassDeclarationSyntax ClassDeclaration { get; }
 
-        private readonly List<ParameterSyntax> _parameters = new();
-        private readonly List<StatementSyntax> _statements = new();
-        private readonly List<FieldDeclarationSyntax> _fields = new();
-        private readonly HashSet<string> _parameterNames = new();
-        private readonly HashSet<string> _fieldNames = new(); // 添加字段名去重
+        private readonly List<ParameterSyntax> _parameters = [];
+        private readonly List<StatementSyntax> _statements = [];
+        private readonly List<FieldDeclarationSyntax> _fields = [];
+        private readonly HashSet<string> _parameterNames = [];
+        private readonly HashSet<string> _fieldNames = []; // 添加字段名去重
 
         public InjectionContext(string className, ClassDeclarationSyntax classDeclaration)
         {

@@ -41,7 +41,7 @@ public partial class CodeInjectGenerator
                     // 记录生成错误但不要中断编译
                     sourceContext.ReportDiagnostic(Diagnostic.Create(
                         new DiagnosticDescriptor(
-                            "CODEGEN001",
+                            "SG001",
                             "Code generation failed",
                             $"Failed to generate code for {GetClassName(classDeclaration)}: {ex.Message}",
                             "CodeGeneration",

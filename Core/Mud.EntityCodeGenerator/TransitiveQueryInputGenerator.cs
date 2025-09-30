@@ -61,7 +61,7 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
             {
                 context.ReportDiagnostic(Diagnostic.Create(
                     new DiagnosticDescriptor(
-                        "QI001",
+                        "EG002",
                         "QueryInput类生成失败",
                         $"无法为类 {orgClassName} 生成QueryInput类",
                         "代码生成",
