@@ -169,13 +169,13 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
         if (declarationSyntax is PropertyDeclarationSyntax propertySyntax)
         {
             var propertyName = GetFirstLowerPropertyName(propertySyntax);
-            var propertyType = GetPropertyType(propertySyntax);
+            var propertyType = SyntaxHelper.GetPropertyType(propertySyntax);
             return (propertyName, propertyType);
         }
         else if (declarationSyntax is FieldDeclarationSyntax fieldSyntax)
         {
             var propertyName = GetFirstUpperPropertyName(fieldSyntax);
-            var propertyType = GetPropertyType(fieldSyntax);
+            var propertyType = SyntaxHelper.GetPropertyType(fieldSyntax);
             return (propertyName, propertyType);
         }
         return ("", "");
@@ -196,29 +196,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
         return (propertyName, propertyType);
     }
 
-    /// <summary>
-    /// 获取属性类型。
-    /// </summary>
-    /// <typeparam name="T">成员声明类型。</typeparam>
-    /// <param name="declarationSyntax">成员声明。</param>
-    /// <returns>属性类型。</returns>
-    private string GetPropertyType<T>(T declarationSyntax)
-         where T : MemberDeclarationSyntax
-    {
-        var propertyType = "";
-        if (declarationSyntax is PropertyDeclarationSyntax propertySyntax)
-        {
-            propertyType = propertySyntax.Type.ToString();
-        }
-        else if (declarationSyntax is FieldDeclarationSyntax fieldSyntax)
-        {
-            propertyType = fieldSyntax.Declaration.Type.ToString();
-        }
 
-        if (!propertyType.EndsWith("?", true, CultureInfo.CurrentCulture))
-            return propertyType + "?";
-        return propertyType;
-    }
 
     /// <summary>
     /// 获取首字母小写的属性名。

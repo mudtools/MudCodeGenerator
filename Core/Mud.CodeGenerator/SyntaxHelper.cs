@@ -1,9 +1,34 @@
 ﻿using System.Collections.ObjectModel;
+using System.Globalization;
 
 namespace Mud.CodeGenerator;
 
 internal static class SyntaxHelper
 {
+    /// <summary>
+    /// 获取属性类型。
+    /// </summary>
+    /// <typeparam name="T">成员声明类型。</typeparam>
+    /// <param name="declarationSyntax">成员声明。</param>
+    /// <returns>属性类型。</returns>
+    public static string GetPropertyType<T>(T declarationSyntax)
+         where T : MemberDeclarationSyntax
+    {
+        var propertyType = "";
+        if (declarationSyntax is PropertyDeclarationSyntax propertySyntax)
+        {
+            propertyType = propertySyntax.Type.ToString();
+        }
+        else if (declarationSyntax is FieldDeclarationSyntax fieldSyntax)
+        {
+            propertyType = fieldSyntax.Declaration.Type.ToString();
+        }
+
+        if (!propertyType.EndsWith("?", true, CultureInfo.CurrentCulture))
+            return propertyType + "?";
+        return propertyType;
+    }
+
     /// <summary>
     /// 获取类声明上的特性对象。
     /// </summary>
