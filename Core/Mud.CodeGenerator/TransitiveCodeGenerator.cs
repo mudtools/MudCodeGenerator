@@ -230,7 +230,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     /// <param name="memberDeclaration">成员声明。</param>
     /// <param name="attributeName">特性名称。</param>
     /// <returns>特性语法集合。</returns>
-    protected ReadOnlyCollection<AttributeSyntax> GetAttributeSyntaxes<T>(T memberDeclaration, string attributeName)
+    public static ReadOnlyCollection<AttributeSyntax> GetAttributeSyntaxes<T>(T memberDeclaration, string attributeName)
         where T : MemberDeclarationSyntax
     {
         if (string.IsNullOrEmpty(attributeName))
@@ -345,10 +345,10 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     /// </summary>
     /// <param name="classDeclaration">类声明。</param>
     /// <returns>字段声明集合。</returns>
-    protected ReadOnlyCollection<FieldDeclarationSyntax> GetClassMemberField(ClassDeclarationSyntax classDeclaration)
+    public static ReadOnlyCollection<FieldDeclarationSyntax> GetClassMemberField(ClassDeclarationSyntax classDeclaration)
     {
         if (classDeclaration == null)
-            return new ReadOnlyCollection<FieldDeclarationSyntax>(new List<FieldDeclarationSyntax>());
+            return new ReadOnlyCollection<FieldDeclarationSyntax>([]);
 
         var fields = classDeclaration.Members
             .OfType<FieldDeclarationSyntax>()
@@ -467,7 +467,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     /// </summary>
     /// <param name="declarationSyntax">变量声明。</param>
     /// <returns>字段变量名。</returns>
-    protected string GetFieldName(VariableDeclarationSyntax? declarationSyntax)
+    public static string GetFieldName(VariableDeclarationSyntax? declarationSyntax)
     {
         if (declarationSyntax == null)
             return "";
@@ -537,7 +537,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     /// </summary>
     /// <param name="typeSyntax">类型语法。</param>
     /// <returns>类型名称。</returns>
-    protected string GetTypeSyntaxName(TypeSyntax typeSyntax)
+    public static string GetTypeSyntaxName(TypeSyntax typeSyntax)
     {
         if (typeSyntax is IdentifierNameSyntax identifierName)
         {
@@ -545,7 +545,10 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
         }
         else if (typeSyntax is GenericNameSyntax genericName)
         {
-            return genericName.Identifier.Text;
+            var typeName = genericName.Identifier.ValueText;
+            var typeArguments = genericName.TypeArgumentList.Arguments;
+            var argumentNames = string.Join(", ", typeArguments.Select(GetTypeSyntaxName));
+            return $"{typeName}<{argumentNames}>";
         }
         else if (typeSyntax is QualifiedNameSyntax qualifiedName)
         {
@@ -570,6 +573,10 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
         else if (typeSyntax is TupleTypeSyntax tupleType)
         {
             return $"({string.Join(", ", tupleType.Elements.Select(e => GetTypeSyntaxName(e.Type)))})";
+        }
+        else if (typeSyntax is AliasQualifiedNameSyntax aliasQualifiedName)
+        {
+            return $"{aliasQualifiedName.Alias}.{GetTypeSyntaxName(aliasQualifiedName.Name)}";
         }
         else
         {
