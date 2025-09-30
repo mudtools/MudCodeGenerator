@@ -73,8 +73,8 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
                 var (compiler, analyzer) = provider.Right;
 
                 InitEntityPrefixValue(analyzer.GlobalOptions);
-                // 优化配置读取，提供默认值支持
-                ReadProjectOptions(analyzer.GlobalOptions, "build_property.EntityAttachAttributes", val => EntityAttachAttributes = val.Split(','), "");
+
+                ProjectConfigHelper.ReadProjectOptions(analyzer.GlobalOptions, "build_property.EntityAttachAttributes", val => EntityAttachAttributes = val.Split(','), "");
 
                 var classes = provider.Left;
                 foreach (var classNode in classes)

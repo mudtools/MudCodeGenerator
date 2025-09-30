@@ -35,12 +35,12 @@ public abstract class ServiceCodeGenerator : TransitiveCodeGenerator
         context.RegisterSourceOutput(providers, (spcontext, provider) =>
         {
             var (compiler, analyzer) = provider.Right;
-            ReadProjectOptions(analyzer.GlobalOptions, "build_property.ServiceGenerator",
-              val =>
-              {
-                  if (bool.TryParse(val, out var b))
-                      IsServiceGenerator = b;
-              });
+            ProjectConfigHelper.ReadProjectOptions(analyzer.GlobalOptions, "build_property.ServiceGenerator",
+                  val =>
+                  {
+                      if (bool.TryParse(val, out var b))
+                          IsServiceGenerator = b;
+                  });
             if (!IsServiceGenerator)
                 return;
 

@@ -37,7 +37,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     /// <returns></returns>
     protected virtual Collection<string> GetFileUsingNameSpaces()
     {
-        return new Collection<string> { "System", "System.ComponentModel.DataAnnotations", "System.Runtime.CompilerServices", "System.Linq.Expressions" };
+        return ["System", "System.ComponentModel.DataAnnotations", "System.Runtime.CompilerServices", "System.Linq.Expressions"];
     }
 
     /// <summary>
@@ -109,30 +109,10 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     /// <param name="options">分析器配置选项。</param>
     protected void InitEntityPrefixValue(AnalyzerConfigOptions options)
     {
-        ReadProjectOptions(options, "build_property.EntitySuffix", val => EntitySuffix = val, "Entity");
+        ProjectConfigHelper.ReadProjectOptions(options, "build_property.EntitySuffix", val => EntitySuffix = val, "Entity");
     }
 
-    /// <summary>
-    /// 从项目配置中读取指定的配置信息。
-    /// </summary>
-    /// <param name="options">分析器配置选项。</param>
-    /// <param name="optionItem">选项键。</param>
-    /// <param name="action">处理选项值的操作。</param>
-    /// <param name="defaultValue">默认值，当配置中未指定时使用。</param>
-    protected void ReadProjectOptions(AnalyzerConfigOptions options, string optionItem, Action<string> action, string defaultValue = null)
-    {
-        if (options == null)
-            return;
 
-        if (options.TryGetValue(optionItem, out var val))
-        {
-            action?.Invoke(val);
-        }
-        else if (defaultValue != null)
-        {
-            action?.Invoke(defaultValue);
-        }
-    }
 
     /// <summary>
     /// 获取项目文件所在路径及项目文件内容。
