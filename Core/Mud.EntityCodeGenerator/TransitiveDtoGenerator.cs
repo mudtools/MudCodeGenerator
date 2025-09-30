@@ -296,8 +296,9 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     /// <summary>
     /// 获取属性上注解内容。
     /// </summary>
-    /// <param name="propertyDeclaration"></param>
-    /// <param name="attributes"></param>
+    /// <param name="propertyDeclaration">属性声明语法节点</param>
+    /// <param name="attributes">要查找的特性名称数组</param>
+    /// <returns>匹配的特性语法节点只读集合</returns>
     protected ReadOnlyCollection<AttributeSyntax> GetAttributes<T>(T propertyDeclaration, string[] attributes)
         where T : MemberDeclarationSyntax
     {
@@ -316,17 +317,31 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
         if (!attrs.Any())
             return new ReadOnlyCollection<AttributeSyntax>(list);
 
-        // 过滤出名称以 "property" 开头的特性
-        var propertyAttributes = attrs
-            .Where(attr => IsRequiredAttribute(attr, attributes))
-            .ToList();
+        // 过滤出匹配的特性
+        List<AttributeSyntax>? propertyAttributes = null;
 
-        if (!propertyAttributes.Any())
+        if (propertyDeclaration is FieldDeclarationSyntax)//获取字段上的注解。
+        {
+            propertyAttributes = attrs
+                                .Where(attr => IsRequiredAttribute(attr, attributes))
+                                .ToList();
+        }
+        else//获取属性上的注解。
+        {
+            propertyAttributes = attrs
+                                .Where(attr => IsPropertyAttribute(attr, attributes))
+                                .ToList();
+        }
+
+        if (propertyAttributes == null || !propertyAttributes.Any())
             return new ReadOnlyCollection<AttributeSyntax>(list);
 
         return new ReadOnlyCollection<AttributeSyntax>(propertyAttributes);
     }
 
+    /// <summary>
+    /// 检查是否为所需的字段特性（带有property目标的特性）
+    /// </summary>
     private bool IsRequiredAttribute(AttributeSyntax attribute, string[] attributes)
     {
         // 提高容错性，添加空值检查
@@ -337,10 +352,49 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
         {
             var x = parent.Target?.ToString();
             return parent.Target?.ToString()?.StartsWith("property", StringComparison.OrdinalIgnoreCase) == true &&
-                   attribute.Name is IdentifierNameSyntax identifierName &&
-                   attributes.Contains(identifierName.Identifier.Text, StringComparer.OrdinalIgnoreCase);
+                   IsAttributeNameMatch(attribute, attributes);
         }
         return false;
+    }
+
+    /// <summary>
+    /// 检查是否为所需的属性特性
+    /// </summary>
+    private bool IsPropertyAttribute(AttributeSyntax attribute, string[] attributes)
+    {
+        if (attribute?.Name == null || attributes == null)
+            return false;
+
+        return IsAttributeNameMatch(attribute, attributes);
+    }
+
+    /// <summary>
+    /// 检查特性名称是否匹配给定的特性名称数组
+    /// </summary>
+    private bool IsAttributeNameMatch(AttributeSyntax attribute, string[] attributes)
+    {
+        if (attribute.Name == null || attributes == null)
+            return false;
+
+        string attributeName;
+
+        // 处理不同类型的特性名称语法
+        if (attribute.Name is IdentifierNameSyntax identifierName)
+        {
+            attributeName = identifierName.Identifier.Text;
+        }
+        else if (attribute.Name is QualifiedNameSyntax qualifiedName)
+        {
+            // 对于限定名称，取最后的标识符
+            attributeName = qualifiedName.Right.Identifier.Text;
+        }
+        else
+        {
+            // 其他情况，使用字符串表示
+            attributeName = attribute.Name.ToString();
+        }
+
+        return attributes.Contains(attributeName, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>

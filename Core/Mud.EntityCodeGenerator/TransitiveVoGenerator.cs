@@ -18,12 +18,13 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
 
     private const string PropertyValueConvertAttributeName = "PropertyValueConvertAttribute";
 
-    private readonly string[] ViewPropertyConvertAttributes = new[] { "DictFormat", "Translation", "Sensitive" };
+    private readonly string[] ViewPropertyConvertAttributes = ["DictFormat", "Translation", "Sensitive"];
 
     /// <inheritdoc/>
     protected override string[] GetPropertyAttributes()
     {
-        return (new[] { "DictFormat", "Translation", "Sensitive" }).Concat(new[] { "ExportProperty" }).ToArray();
+        return (new[] { "DictFormat", "Translation", "Sensitive" })
+                .Concat(["ExportProperty"]).ToArray();
     }
 
     /// <inheritdoc/>

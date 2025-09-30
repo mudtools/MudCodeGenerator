@@ -11,6 +11,7 @@ public class MarketProjectEntity
     /// 父项目ID
     /// </summary>
     [Column(Name = "F_PARENTID", StringLength = 150)]
+    [Required(ErrorMessage = "父项目ID不能为空。")]
     public string ParentId { get; set; }
 
 
@@ -31,5 +32,12 @@ public class MarketProjectEntity
     /// 获取或设置ERP编码
     /// </summary>
     [Column(Name = "F_ERPNUM", StringLength = 50)]
+    [MinLength(10)]
     public string ErpNum { get; set; }
+
+    /// <summary>
+    /// 获取或设置子项数量。
+    /// </summary>
+    [Column(Name = "F_Items")]
+    public int? Items { get; set; }
 }

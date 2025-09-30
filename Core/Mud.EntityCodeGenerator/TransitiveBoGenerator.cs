@@ -30,7 +30,8 @@ public abstract class TransitiveBoGenerator : TransitiveDtoGenerator
     /// <inheritdoc/>
     protected override string[] GetPropertyAttributes()
     {
-        return ["Required", "Xss", "StringLength", "MaxLength", "MinLength", "EmailAddress", "DataValidation", "RegularExpression"];
+        return ["Required", "Xss", "StringLength", "MaxLength", "MinLength",
+                "EmailAddress", "DataValidation", "RegularExpression"];
     }
 
     /// <inheritdoc/>
