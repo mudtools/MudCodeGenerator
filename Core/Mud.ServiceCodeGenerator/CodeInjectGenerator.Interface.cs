@@ -92,7 +92,7 @@ public partial class CodeInjectGenerator
             if (!requirements.ConstructorInject.Any())
                 return;
 
-            var fields = GetClassMemberField(context.ClassDeclaration);
+            var fields = SyntaxHelper.GetClassMemberField(context.ClassDeclaration);
             foreach (var field in fields)
             {
                 if (ShouldIgnoreField(field))
@@ -114,8 +114,8 @@ public partial class CodeInjectGenerator
             foreach (var variable in field.Declaration.Variables)
             {
                 var fieldName = variable.Identifier.ValueText;
-                var fieldTypeSyntax = field.Declaration.Type; // 保留原始的TypeSyntax
-                var fieldTypeName = GetTypeSyntaxName(fieldTypeSyntax);
+                var fieldTypeSyntax = field.Declaration.Type;
+                var fieldTypeName = SyntaxHelper.GetTypeSyntaxName(fieldTypeSyntax);
                 var parameterName = GenerateParameterName(fieldName);
 
                 if (IsLoggerType(fieldTypeName))

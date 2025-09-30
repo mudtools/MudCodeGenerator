@@ -1,4 +1,6 @@
-﻿namespace Mud.CodeGenerator;
+using System.Globalization;
+
+namespace Mud.CodeGenerator;
 
 /// <summary>
 /// Attribute 参数提取选项
@@ -29,7 +31,7 @@ internal class AttributeExtractionOptions
 /// <summary>
 /// 扩展性强的 Attribute 参数提取器
 /// </summary>
-internal static class AttributeArgumentExtractor
+internal static class AttributeSyntaxHelper
 {
     /// <summary>
     /// 从 AttributeSyntax 中获取指定属性的值
@@ -210,7 +212,7 @@ internal static class AttributeArgumentExtractor
         }
 
         // 回退到语法分析
-        return ExtractValueFromSyntax(expression, options);
+        return ExtractValueFromSyntax(expression);
     }
 
     private static object ExtractValueWithSemanticModel(
@@ -313,15 +315,39 @@ internal static class AttributeArgumentExtractor
 
         return typeOfExpression.Type.ToString();
     }
-
-    private static object ExtractValueFromSyntax(
-        ExpressionSyntax expression,
-        AttributeExtractionOptions options)
+    /// <summary>
+    /// 从表达式语法中提取值。
+    /// </summary>
+    /// <param name="expression">表达式语法。</param>
+    /// <returns>表达式的值。</returns>
+    public static object ExtractValueFromSyntax(ExpressionSyntax expression)
     {
-        // 处理字符串字面量
+        if (expression == null)
+            return null;
+
+        // 处理字面量表达式
         if (expression is LiteralExpressionSyntax literal)
         {
-            return literal.Token.ValueText;
+            var kind = literal.Kind();
+            switch (kind)
+            {
+                case SyntaxKind.StringLiteralExpression:
+                    return literal.Token.ValueText;
+                case SyntaxKind.NumericLiteralExpression:
+                    // 更安全的数值类型处理
+                    return HandleNumericLiteral(literal.Token);
+                case SyntaxKind.FalseLiteralExpression:
+                    return false;
+                case SyntaxKind.TrueLiteralExpression:
+                    return true;
+                case SyntaxKind.NullLiteralExpression:
+                    return null;
+                case SyntaxKind.CharacterLiteralExpression:
+                    return literal.Token.ValueText;
+                default:
+                    // 对于其他未处理的字面量类型，返回原始值
+                    return literal.Token.Value ?? literal.ToString();
+            }
         }
 
         // 处理 nameof 表达式
@@ -339,8 +365,79 @@ internal static class AttributeArgumentExtractor
             return typeOfExpression.Type.ToString();
         }
 
+        // 处理其他调用表达式（非nameof）
+        if (expression is InvocationExpressionSyntax otherInvocation)
+        {
+            var arguments = otherInvocation.ArgumentList.Arguments
+                .Select(arg => ExtractValueFromSyntax(arg.Expression))
+                .Where(arg => arg != null)
+                .ToList();
+
+            return arguments.Any() ? string.Join(",", arguments) : string.Empty;
+        }
+
         // 默认返回表达式的字符串表示
         return expression.ToString();
+    }
+
+    /// <summary>
+    /// 处理数值字面量，支持多种数值类型
+    /// </summary>
+    private static object HandleNumericLiteral(SyntaxToken token)
+    {
+        try
+        {
+            var valueText = token.ValueText;
+            var value = token.Value;
+
+            if (value == null)
+                return 0;
+
+            // 根据后缀判断类型
+            if (valueText.EndsWith("f", StringComparison.OrdinalIgnoreCase) ||
+                valueText.EndsWith("F", StringComparison.OrdinalIgnoreCase))
+            {
+                return Convert.ToSingle(value, CultureInfo.InvariantCulture);
+            }
+            else if (valueText.EndsWith("d", StringComparison.OrdinalIgnoreCase) ||
+                     valueText.EndsWith("D", StringComparison.OrdinalIgnoreCase))
+            {
+                return Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            }
+            else if (valueText.EndsWith("m", StringComparison.OrdinalIgnoreCase) ||
+                     valueText.EndsWith("M", StringComparison.OrdinalIgnoreCase))
+            {
+                return Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+            }
+            else if (valueText.EndsWith("l", StringComparison.OrdinalIgnoreCase) ||
+                     valueText.EndsWith("L", StringComparison.OrdinalIgnoreCase))
+            {
+                return Convert.ToInt64(value, CultureInfo.InvariantCulture);
+            }
+            else if (valueText.EndsWith("u", StringComparison.OrdinalIgnoreCase) ||
+                     valueText.EndsWith("U", StringComparison.OrdinalIgnoreCase))
+            {
+                if (valueText.EndsWith("ul", StringComparison.OrdinalIgnoreCase) ||
+                    valueText.EndsWith("UL", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Convert.ToUInt64(value, CultureInfo.InvariantCulture);
+                }
+                return Convert.ToUInt32(value, CultureInfo.InvariantCulture);
+            }
+            else
+            {
+                // 默认返回int，但如果值超出int范围则返回long
+                var numericValue = Convert.ToInt64(value, CultureInfo.InvariantCulture);
+                return numericValue <= int.MaxValue && numericValue >= int.MinValue
+                    ? (int)numericValue
+                    : numericValue;
+            }
+        }
+        catch
+        {
+            // 转换失败时返回0
+            return 0;
+        }
     }
 
     #endregion

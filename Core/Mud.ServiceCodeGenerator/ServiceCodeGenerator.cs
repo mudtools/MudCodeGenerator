@@ -1,9 +1,9 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Mud.ServiceCodeGenerator;
 
 /// <summary>
-/// 服务类代码生成器。
+/// 服务类代码生成器基类。
 /// </summary>
 public abstract class ServiceCodeGenerator : TransitiveCodeGenerator
 {
@@ -14,12 +14,6 @@ public abstract class ServiceCodeGenerator : TransitiveCodeGenerator
 
     private const string IgnoreQueryAttributeName = "IgnoreQueryAttribute";
     private const string OrderByAttributeName = "OrderByAttribute";
-
-
-    /// <summary>
-    /// 需要生成代码的接口实现程序集。
-    /// </summary>
-    private string ImpAssembly = "Mud.System";
 
     /// <summary>
     /// 是否生成服务端代码。
@@ -63,13 +57,11 @@ public abstract class ServiceCodeGenerator : TransitiveCodeGenerator
             filePath = paths[0];
 
             InitEntityPrefixValue(analyzer.GlobalOptions);
-            //ReadProjectOptions(analyzer.GlobalOptions, "build_property.InterfaceAssembly", val => InterfaceAssembly = val);
-            ReadProjectOptions(analyzer.GlobalOptions, "build_property.ImpAssembly", val => ImpAssembly = val);
-
+            var impAssembly = ProjectConfigHelper.ReadConfigValue(analyzer.GlobalOptions, "build_property.ImpAssembly", "Mud.System");
 
             var projectFiles = provider.Right;
             var fullPath = "";
-            var referenceFilePath = Path.GetFullPath(Path.Combine(filePath, ImpAssembly));
+            var referenceFilePath = Path.GetFullPath(Path.Combine(filePath, impAssembly));
             try
             {
                 fullPath = Path.GetFullPath(referenceFilePath);
@@ -91,7 +83,12 @@ public abstract class ServiceCodeGenerator : TransitiveCodeGenerator
     /// </summary>
     protected abstract (CompilationUnitSyntax? unitSyntax, string? className) GenerateCode(ClassDeclarationSyntax classNode);
 
-
+    /// <summary>
+    /// 写入生成的代码到文件
+    /// </summary>
+    /// <param name="rootPath">根路径</param>
+    /// <param name="className">类名</param>
+    /// <param name="compilationUnit">编译单元</param>
     private void WriteFile(string rootPath, string className, CompilationUnitSyntax compilationUnit)
     {
         var classFileName = Path.Combine(rootPath, "AutoGenerator\\" + className + ".g.cs");
@@ -180,5 +177,15 @@ public abstract class ServiceCodeGenerator : TransitiveCodeGenerator
         sb.AppendLine("using System;");
         sb.AppendLine($"namespace {namespaceName}");
 
+    }
+
+    /// <summary>
+    /// 获取属性名称
+    /// </summary>
+    /// <param name="propertyDeclaration">属性声明</param>
+    /// <returns>属性名称</returns>
+    protected string GetPropertyName(PropertyDeclarationSyntax propertyDeclaration)
+    {
+        return propertyDeclaration?.Identifier.Text ?? "";
     }
 }

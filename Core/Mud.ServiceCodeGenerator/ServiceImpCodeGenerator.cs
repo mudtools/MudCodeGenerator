@@ -1,9 +1,9 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Mud.ServiceCodeGenerator;
 
 /// <summary>
-/// 数据仓库实现代码生成
+/// 数据仓库实现代码生成器
 /// </summary>
 public class ServiceImpCodeGenerator : ServiceCodeGenerator
 {
@@ -36,8 +36,6 @@ public class ServiceImpCodeGenerator : ServiceCodeGenerator
         return (compilationUnit, serviceClassName);
     }
 
-
-
     /// <summary>
     /// 生成BuildQuerySelect函数。
     /// </summary>
@@ -61,9 +59,7 @@ public class ServiceImpCodeGenerator : ServiceCodeGenerator
 
             if (IsIgnoreGenerator(member))
                 continue;
-            var isLikeQuery = false;
-            if (IsLikeGenerator(member))
-                isLikeQuery = true;
+            var isLikeQuery = IsLikeGenerator(member);
 
             var (propertyName, propertyType) = GetGeneratorProperty(member);
             var orgPropertyName = GetPropertyName(member);
@@ -78,29 +74,42 @@ public class ServiceImpCodeGenerator : ServiceCodeGenerator
             else
                 sb.AppendLine($"            lqw = lqw.WhereIf(bo.{propertyName}!=null, x => x.{orgPropertyName} == bo.{propertyName});");
         }
-        if (orders != null && orders.Count > 0)
+
+        if (orders.Count > 0)
         {
-            var orderList = orders.Select(o => o)
-                                  .OrderBy(o => o.OrderNum)
-                                  .OrderBy(o => o.IsAsc)
+            var orderList = orders.OrderBy(o => o.OrderNum)
+                                  .ThenBy(o => !o.IsAsc) // 先排升序再排降序
                                   .ToList();
             foreach (var order in orderList)
             {
                 if (order.IsAsc)
                     sb.AppendLine($"            lqw = lqw.OrderBy(x => x.{order.PropertyName});");
                 else
-                    sb.AppendLine($"            lqw = lqw.OrderByDescending( x=> x.{order.PropertyName});");
+                    sb.AppendLine($"            lqw = lqw.OrderByDescending(x => x.{order.PropertyName});");
             }
         }
         sb.AppendLine("            return lqw;");
         sb.AppendLine("        }");
     }
 
+    /// <summary>
+    /// 检查属性是否为模糊查询
+    /// </summary>
+    /// <param name="propertyDeclaration">属性声明</param>
+    /// <returns>是否为模糊查询</returns>
+    private bool IsLikeGenerator(PropertyDeclarationSyntax propertyDeclaration)
+    {
+        if (propertyDeclaration == null)
+            return false;
+
+        var attributes = GetAttributeSyntaxes(propertyDeclaration, "LikeQueryAttribute");
+        return attributes != null && attributes.Any();
+    }
+
     /// <inheritdoc/>
     protected override string GetNamespaceName(ClassDeclarationSyntax classNode)
     {
         var cNamespace = base.GetNamespaceName(classNode);
-
         return cNamespace.Replace(EntitySuffix, "Services");
     }
 }

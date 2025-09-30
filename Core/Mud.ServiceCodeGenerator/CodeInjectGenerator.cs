@@ -63,7 +63,7 @@ public partial class CodeInjectGenerator : TransitiveCodeGenerator
             ClassDeclaration = classDeclaration ?? throw new ArgumentNullException(nameof(classDeclaration));
 
             // 预先收集原始类中已有的字段名
-            var existingFields = GetClassMemberField(classDeclaration);
+            var existingFields = SyntaxHelper.GetClassMemberField(classDeclaration);
             foreach (var field in existingFields)
             {
                 foreach (var variable in field.Declaration.Variables)

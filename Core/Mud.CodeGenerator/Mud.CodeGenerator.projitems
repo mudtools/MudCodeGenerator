@@ -9,10 +9,11 @@
     <Import_RootNamespace>Mud.CodeGenerator</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="$(MSBuildThisFileDirectory)AttributeArgumentExtractor.cs" />
+    <Compile Include="..\Mud.CodeGenerator\AttributeSyntaxHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PrivateFieldNamingHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ProjectConfigHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SourceProductionContextExtensions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)SyntaxNodeHelper.cs" />
+    <Compile Include="..\Mud.CodeGenerator\SyntaxHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)TransitiveCodeGenerator.cs" />
   </ItemGroup>
 </Project>

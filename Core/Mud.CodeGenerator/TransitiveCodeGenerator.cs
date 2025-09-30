@@ -160,11 +160,11 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     /// <returns>命名空间名称。</returns>
     protected virtual string GetNamespaceName(ClassDeclarationSyntax classNode)
     {
-        if (SyntaxNodeHelper.TryGetParentSyntax(classNode, out NamespaceDeclarationSyntax namespaceDeclarationSyntax))
+        if (SyntaxHelper.TryGetParentSyntax(classNode, out NamespaceDeclarationSyntax namespaceDeclarationSyntax))
         {
             return namespaceDeclarationSyntax.Name.ToString();
         }
-        else if (SyntaxNodeHelper.TryGetParentSyntax(classNode, out FileScopedNamespaceDeclarationSyntax fileScopedNamespaceDeclaration))
+        else if (SyntaxHelper.TryGetParentSyntax(classNode, out FileScopedNamespaceDeclarationSyntax fileScopedNamespaceDeclaration))
         {
             return fileScopedNamespaceDeclaration.Name.ToString();
         }
@@ -208,7 +208,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     /// <param name="paramName">参数名。</param>
     /// <param name="defaultVal">参数默认值。</param>
     /// <returns>返回创建的特性对象。</returns>
-    protected T GetPropertyAttributeValues<T>(PropertyDeclarationSyntax classDeclaration, string attributeName, string paramName, T defaultVal)
+    public static T GetPropertyAttributeValues<T>(PropertyDeclarationSyntax classDeclaration, string attributeName, string paramName, T defaultVal)
        where T : notnull
     {
         if (string.IsNullOrEmpty(attributeName))
@@ -281,7 +281,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     /// <param name="paramName">参数名。</param>
     /// <param name="defaultVal">参数默认值。</param>
     /// <returns>特性参数值。</returns>
-    protected T GetAttributeValue<T>(ReadOnlyCollection<AttributeSyntax> attributes, string paramName, T defaultVal)
+    public static T GetAttributeValue<T>(ReadOnlyCollection<AttributeSyntax> attributes, string paramName, T defaultVal)
          where T : notnull
     {
         if (!attributes.Any())
@@ -298,7 +298,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
 
             var paramValue = argumentList.Arguments
                 .Where(arg => paramName.Equals(arg.NameEquals?.Name?.Identifier.ValueText, StringComparison.OrdinalIgnoreCase))
-                .Select(arg => ParseAttributeValue(arg.Expression))
+                .Select(arg => AttributeSyntaxHelper.ExtractValueFromSyntax(arg.Expression))
                 .FirstOrDefault();
 
             if (paramValue != null && paramValue is T pv)
@@ -306,58 +306,6 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
             return defaultVal;
         }
         return defaultVal;
-    }
-
-    /// <summary>
-    /// 获取表达式的值。
-    /// </summary>
-    /// <param name="expression">表达式语法。</param>
-    /// <returns>表达式的值。</returns>
-    protected object ParseAttributeValue(ExpressionSyntax expression)
-    {
-        if (expression == null)
-            return null;
-
-        var kind = expression.Kind();
-        switch (kind)
-        {
-            case SyntaxKind.StringLiteralExpression:
-                return ((LiteralExpressionSyntax)expression).Token.ValueText;
-            case SyntaxKind.NumericLiteralExpression:
-                return Convert.ChangeType(((LiteralExpressionSyntax)expression).Token.Value, typeof(int));
-            case SyntaxKind.InvocationExpression:
-                var invocation = (InvocationExpressionSyntax)expression;
-                var arguments = invocation.ArgumentList.Arguments.Select(arg => arg.ToString()).ToList();
-                return arguments.Any() ? string.Join(",", arguments) : "";
-            case SyntaxKind.FalseLiteralExpression:
-                return false;
-            case SyntaxKind.TrueLiteralExpression:
-                return true;
-            case SyntaxKind.NullLiteralExpression:
-                return null;
-            default:
-                return null;
-        }
-    }
-
-    /// <summary>
-    /// 获取类的所有成员字段（含私有、保护、公开）。
-    /// </summary>
-    /// <param name="classDeclaration">类声明。</param>
-    /// <returns>字段声明集合。</returns>
-    public static ReadOnlyCollection<FieldDeclarationSyntax> GetClassMemberField(ClassDeclarationSyntax classDeclaration)
-    {
-        if (classDeclaration == null)
-            return new ReadOnlyCollection<FieldDeclarationSyntax>([]);
-
-        var fields = classDeclaration.Members
-            .OfType<FieldDeclarationSyntax>()
-            .Where(f => f.Modifiers.Any(m => m.IsKind(SyntaxKind.PrivateKeyword) ||
-                                             m.IsKind(SyntaxKind.ProtectedKeyword) ||
-                                             m.IsKind(SyntaxKind.PublicKeyword)))
-            .ToList();
-
-        return new ReadOnlyCollection<FieldDeclarationSyntax>(fields);
     }
 
     #region GetGeneratorProperty
@@ -530,59 +478,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
         }
         return ToUpperFirstLetter(propertyName);
     }
-    #endregion   
-
-    /// <summary>
-    /// 获取类型名。
-    /// </summary>
-    /// <param name="typeSyntax">类型语法。</param>
-    /// <returns>类型名称。</returns>
-    public static string GetTypeSyntaxName(TypeSyntax typeSyntax)
-    {
-        if (typeSyntax is IdentifierNameSyntax identifierName)
-        {
-            return identifierName.Identifier.Text;
-        }
-        else if (typeSyntax is GenericNameSyntax genericName)
-        {
-            var typeName = genericName.Identifier.ValueText;
-            var typeArguments = genericName.TypeArgumentList.Arguments;
-            var argumentNames = string.Join(", ", typeArguments.Select(GetTypeSyntaxName));
-            return $"{typeName}<{argumentNames}>";
-        }
-        else if (typeSyntax is QualifiedNameSyntax qualifiedName)
-        {
-            return $"{GetTypeSyntaxName(qualifiedName.Left)}.{GetTypeSyntaxName(qualifiedName.Right)}";
-        }
-        else if (typeSyntax is PredefinedTypeSyntax predefinedType)
-        {
-            return predefinedType.Keyword.Text;
-        }
-        else if (typeSyntax is ArrayTypeSyntax arrayType)
-        {
-            return $"{GetTypeSyntaxName(arrayType.ElementType)}[]";
-        }
-        else if (typeSyntax is PointerTypeSyntax pointerType)
-        {
-            return $"{GetTypeSyntaxName(pointerType.ElementType)}*";
-        }
-        else if (typeSyntax is NullableTypeSyntax nullableType)
-        {
-            return $"{GetTypeSyntaxName(nullableType.ElementType)}?";
-        }
-        else if (typeSyntax is TupleTypeSyntax tupleType)
-        {
-            return $"({string.Join(", ", tupleType.Elements.Select(e => GetTypeSyntaxName(e.Type)))})";
-        }
-        else if (typeSyntax is AliasQualifiedNameSyntax aliasQualifiedName)
-        {
-            return $"{aliasQualifiedName.Alias}.{GetTypeSyntaxName(aliasQualifiedName.Name)}";
-        }
-        else
-        {
-            return typeSyntax?.ToString() ?? string.Empty;
-        }
-    }
+    #endregion
 
     /// <summary>
     /// 是否为模糊查询属性。

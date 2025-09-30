@@ -1,9 +1,9 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Mud.ServiceCodeGenerator;
 
 /// <summary>
-/// 数据仓库接口代码生成。
+/// 数据仓库接口代码生成器。
 /// </summary>
 public class ServiceInterfaceCodeGenerator : ServiceCodeGenerator
 {
@@ -39,7 +39,6 @@ public class ServiceInterfaceCodeGenerator : ServiceCodeGenerator
     protected override string GetNamespaceName(ClassDeclarationSyntax classNode)
     {
         var cNamespace = base.GetNamespaceName(classNode);
-
         return cNamespace.Replace(EntitySuffix, "Interface");
     }
 }

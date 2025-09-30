@@ -1,0 +1,139 @@
+﻿using System.Collections.ObjectModel;
+
+namespace Mud.CodeGenerator;
+
+internal static class SyntaxHelper
+{
+    /// <summary>
+    /// 获取类型名。
+    /// </summary>
+    /// <param name="typeSyntax">类型语法。</param>
+    /// <returns>类型名称。</returns>
+    public static string GetTypeSyntaxName(TypeSyntax typeSyntax)
+    {
+        if (typeSyntax is IdentifierNameSyntax identifierName)
+        {
+            return identifierName.Identifier.Text;
+        }
+        else if (typeSyntax is GenericNameSyntax genericName)
+        {
+            var typeName = genericName.Identifier.ValueText;
+            var typeArguments = genericName.TypeArgumentList.Arguments;
+            var argumentNames = string.Join(", ", typeArguments.Select(GetTypeSyntaxName));
+            return $"{typeName}<{argumentNames}>";
+        }
+        else if (typeSyntax is QualifiedNameSyntax qualifiedName)
+        {
+            return $"{GetTypeSyntaxName(qualifiedName.Left)}.{GetTypeSyntaxName(qualifiedName.Right)}";
+        }
+        else if (typeSyntax is PredefinedTypeSyntax predefinedType)
+        {
+            return predefinedType.Keyword.Text;
+        }
+        else if (typeSyntax is ArrayTypeSyntax arrayType)
+        {
+            return $"{GetTypeSyntaxName(arrayType.ElementType)}[]";
+        }
+        else if (typeSyntax is PointerTypeSyntax pointerType)
+        {
+            return $"{GetTypeSyntaxName(pointerType.ElementType)}*";
+        }
+        else if (typeSyntax is NullableTypeSyntax nullableType)
+        {
+            return $"{GetTypeSyntaxName(nullableType.ElementType)}?";
+        }
+        else if (typeSyntax is TupleTypeSyntax tupleType)
+        {
+            return $"({string.Join(", ", tupleType.Elements.Select(e => GetTypeSyntaxName(e.Type)))})";
+        }
+        else if (typeSyntax is AliasQualifiedNameSyntax aliasQualifiedName)
+        {
+            return $"{aliasQualifiedName.Alias}.{GetTypeSyntaxName(aliasQualifiedName.Name)}";
+        }
+        else
+        {
+            return typeSyntax?.ToString() ?? string.Empty;
+        }
+    }
+
+    /// <summary>
+    /// 获取类的所有成员字段（含私有、保护、公开）。
+    /// </summary>
+    /// <param name="classDeclaration">类声明。</param>
+    /// <returns>字段声明集合。</returns>
+    public static ReadOnlyCollection<FieldDeclarationSyntax> GetClassMemberField(ClassDeclarationSyntax classDeclaration)
+    {
+        if (classDeclaration == null)
+            return new ReadOnlyCollection<FieldDeclarationSyntax>([]);
+
+        var fields = classDeclaration.Members
+            .OfType<FieldDeclarationSyntax>()
+            .Where(f => f.Modifiers.Any(m => m.IsKind(SyntaxKind.PrivateKeyword) ||
+                                             m.IsKind(SyntaxKind.ProtectedKeyword) ||
+                                             m.IsKind(SyntaxKind.PublicKeyword)))
+            .ToList();
+
+        return new ReadOnlyCollection<FieldDeclarationSyntax>(fields);
+    }
+
+    /// <summary>
+    /// 获取指定的路径节点名。
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="syntaxNode"></param>
+    /// <param name="result"></param>
+    /// <returns></returns>
+    public static bool TryGetParentSyntax<T>(SyntaxNode syntaxNode, out T result)
+        where T : SyntaxNode
+    {
+        result = null;
+        if (syntaxNode == null)
+        {
+            return false;
+        }
+
+        syntaxNode = syntaxNode.Parent;
+        if (syntaxNode == null)
+        {
+            return false;
+        }
+
+        if (syntaxNode.GetType() == typeof(T))
+        {
+            result = syntaxNode as T;
+            return true;
+        }
+        return TryGetParentSyntax(syntaxNode, out result);
+    }
+
+    /// <summary>
+    /// 获取类的全路径名。
+    /// </summary>
+    /// <param name="varClassDec"></param>
+    /// <returns></returns>
+    public static string ClassFullName(this ClassDeclarationSyntax varClassDec)
+    {
+        SyntaxNode tempCurCls = varClassDec;
+        var tempFullName = new Stack<string>();
+
+        do
+        {
+            if (tempCurCls.IsKind(SyntaxKind.ClassDeclaration))
+            {
+                tempFullName.Push(((ClassDeclarationSyntax)tempCurCls).Identifier.ToString());
+            }
+            else if (tempCurCls.IsKind(SyntaxKind.NamespaceDeclaration))
+            {
+                tempFullName.Push(((NamespaceDeclarationSyntax)tempCurCls).Name.ToString());
+            }
+            else if (tempCurCls.IsKind(SyntaxKind.FileScopedNamespaceDeclaration))
+            {
+                tempFullName.Push(((FileScopedNamespaceDeclarationSyntax)tempCurCls).Name.ToString());
+            }
+
+            tempCurCls = tempCurCls.Parent;
+        } while (tempCurCls != null);
+
+        return string.Join(".", tempFullName);
+    }
+}

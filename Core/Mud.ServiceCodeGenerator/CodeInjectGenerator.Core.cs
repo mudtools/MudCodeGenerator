@@ -57,19 +57,12 @@ public partial class CodeInjectGenerator
     private ProjectConfiguration ReadProjectConfiguration(AnalyzerConfigOptions globalOptions)
     {
         return new ProjectConfiguration(
-            DefaultCacheManagerType: ReadConfigValue(globalOptions, ConfigKeys.DefaultCacheManagerType, DefaultValues.CacheManagerType),
-            DefaultUserManagerType: ReadConfigValue(globalOptions, ConfigKeys.DefaultUserManagerType, DefaultValues.UserManagerType),
-            DefaultLoggerVariable: ReadConfigValue(globalOptions, ConfigKeys.DefaultLoggerVariable, DefaultValues.LoggerVariable),
-            DefaultCacheManagerVariable: ReadConfigValue(globalOptions, ConfigKeys.DefaultCacheManagerVariable, DefaultValues.CacheManagerVariable),
-            DefaultUserManagerVariable: ReadConfigValue(globalOptions, ConfigKeys.DefaultUserManagerVariable, DefaultValues.UserManagerVariable)
+            DefaultCacheManagerType: ProjectConfigHelper.ReadConfigValue(globalOptions, ConfigKeys.DefaultCacheManagerType, DefaultValues.CacheManagerType),
+            DefaultUserManagerType: ProjectConfigHelper.ReadConfigValue(globalOptions, ConfigKeys.DefaultUserManagerType, DefaultValues.UserManagerType),
+            DefaultLoggerVariable: ProjectConfigHelper.ReadConfigValue(globalOptions, ConfigKeys.DefaultLoggerVariable, DefaultValues.LoggerVariable),
+            DefaultCacheManagerVariable: ProjectConfigHelper.ReadConfigValue(globalOptions, ConfigKeys.DefaultCacheManagerVariable, DefaultValues.CacheManagerVariable),
+            DefaultUserManagerVariable: ProjectConfigHelper.ReadConfigValue(globalOptions, ConfigKeys.DefaultUserManagerVariable, DefaultValues.UserManagerVariable)
         );
-    }
-
-    private string ReadConfigValue(AnalyzerConfigOptions options, string key, string defaultValue)
-    {
-        return options.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value)
-            ? value
-            : defaultValue;
     }
     #endregion
 
