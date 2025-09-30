@@ -43,7 +43,9 @@ namespace Mud.EntityCodeGenerator
 
                 var localClass = BuildLocalClass(orgClassDeclaration, orgClassName, false);
 
-                localClass = GenProperty(localClass, orgClassDeclaration);
+                (localClass, var success) = BuildProperty(localClass, orgClassDeclaration);
+                if (!success)//如果没有任何属性生成，则不生成类
+                    return;
 
                 var methodDeclaration = GenMapMethod(orgClassDeclaration, voClassName);
                 if (methodDeclaration != null)
@@ -73,11 +75,13 @@ namespace Mud.EntityCodeGenerator
         /// <param name="localClass">需要生成的类。</param>
         /// <param name="orgClassDeclaration">原始列。</param>
         /// <returns></returns>
-        private ClassDeclarationSyntax GenProperty(ClassDeclarationSyntax localClass, ClassDeclarationSyntax orgClassDeclaration)
+        private (ClassDeclarationSyntax classDeclaration, bool success) BuildProperty(ClassDeclarationSyntax localClass, ClassDeclarationSyntax orgClassDeclaration)
         {
             // 提高容错性，处理空对象情况
             if (localClass == null || orgClassDeclaration == null)
-                return localClass;
+                return (localClass, false);
+
+            bool success = false;
 
             foreach (var member in orgClassDeclaration.Members.OfType<FieldDeclarationSyntax>())
             {
@@ -105,6 +109,7 @@ namespace Mud.EntityCodeGenerator
                     }
 
                     localClass = localClass.AddMembers(propertyDeclaration);
+                    success = true;
                 }
                 catch (Exception ex)
                 {
@@ -112,7 +117,7 @@ namespace Mud.EntityCodeGenerator
                     System.Diagnostics.Debug.WriteLine($"生成实体属性时发生错误: {ex.Message}");
                 }
             }
-            return localClass;
+            return (localClass, success);
         }
 
         #region 实体映射至VO对象方法
