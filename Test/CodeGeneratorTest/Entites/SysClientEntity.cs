@@ -19,6 +19,8 @@ public partial class SysClientEntity
     /// </summary>
     [property: Column(Name = "client_key", Position = 3)]
     [property: Required(ErrorMessage = "客户端key不能为空")]
+    [property: CustomVo1, CustomVo2]
+    [property: CustomBo1, CustomBo2]
     private string _clientKey;
 
     /// <summary>

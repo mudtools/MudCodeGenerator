@@ -1,4 +1,3 @@
-using Mud.CodeGenerator;
 using Mud.EntityCodeGenerator.Diagnostics;
 using System.Text;
 
@@ -30,8 +29,19 @@ public abstract class TransitiveBoGenerator : TransitiveDtoGenerator
     /// <inheritdoc/>
     protected override string[] GetPropertyAttributes()
     {
-        return ["Required", "Xss", "StringLength", "MaxLength", "MinLength",
-                "EmailAddress", "DataValidation", "RegularExpression"];
+        var defaultAttributes = new[] { "Required", "Xss", "StringLength", "MaxLength", "MinLength",
+                "EmailAddress", "DataValidation", "RegularExpression" };
+        var extraAttributes = GetBoPropertyAttributes();
+
+        if (extraAttributes != null && extraAttributes.Length > 0)
+        {
+            // 合并默认属性和额外属性，并去重
+            return defaultAttributes.Concat(extraAttributes)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        }
+
+        return defaultAttributes;
     }
 
     /// <inheritdoc/>

@@ -5,9 +5,16 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+		<!-- 在obj目录下保存生成的代码 -->
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+		<!-- 默认的实体类后缀名 -->
 		<EntitySuffix>Entity</EntitySuffix>
+		<!-- 生成的VO、BO类加上Attribute特性配置，多个特性时使用','分隔 -->
 		<EntityAttachAttributes>TestCustom,CompilerGenerated</EntityAttachAttributes>
+		<!-- 需要添加至VO类的自定义特性，多个特性时使用','分隔 -->
+		<VoAttributes>CustomVo1Attribute,CustomVo2Attribute</VoAttributes>
+		<!-- 需要添加至BO类的自定义特性，多个特性时使用','分隔 -->
+		<BoAttributes>CustomBo1Attribute,CustomBo2Attribute</BoAttributes>
 		<InterfaceAssembly>CodeGeneratorTest.Entites.Interface</InterfaceAssembly>
 		<ImpAssembly>CodeGeneratorTest.Entites</ImpAssembly>
 		<ServiceGenerator>false</ServiceGenerator>
@@ -19,6 +26,8 @@
 		<CompilerVisibleProperty Include="InterfaceAssembly" />
 		<CompilerVisibleProperty Include="ImpAssembly" />
 		<CompilerVisibleProperty Include="ServiceGenerator" />
+		<CompilerVisibleProperty Include="VoAttributes" />
+		<CompilerVisibleProperty Include="BoAttributes" />
 	</ItemGroup>
 
 	<ItemGroup>

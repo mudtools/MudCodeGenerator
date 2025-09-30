@@ -102,61 +102,210 @@ public partial class SysUserService
 }
 ```
 
-生成的代码示例：
+#### 2.1 构造函数注入详解
 
+##### ConstructorInjectAttribute 字段注入
+使用 [ConstructorInject] 特性可以将类中已存在的字段通过构造函数注入初始化。该注入方式会扫描类中的所有私有只读字段，并为其生成相应的构造函数参数和赋值语句。
+
+示例：
 ```cs
-public partial class SysUserService
+[ConstructorInject]
+public partial class UserService
 {
-    private readonly ILogger<SysUserService> _logger;
-    private readonly ICacheManager _cacheManager;
-    private readonly IUserManager _userManager;
-    private readonly IRepository<SysUser> _userRepository;
-
-    public SysUserService(
-        ILogger<SysUserService> logger,
-        ICacheManager cacheManager,
-        IUserManager userManager,
-        IRepository<SysUser> userRepository)
-    {
-        _logger = logger;
-        _cacheManager = cacheManager;
-        _userManager = userManager;
-        _userRepository = userRepository;
-    }
+    private readonly IUserRepository _userRepository;
+    private readonly IRoleRepository _roleRepository;
+    
+    // 生成的代码将包含:
+    // public UserService(IUserRepository userRepository, IRoleRepository roleRepository)
+    // {
+    //     _userRepository = userRepository;
+    //     _roleRepository = roleRepository;
+    // }
 }
 ```
 
-### 3. DTO代码生成
+##### LoggerInjectAttribute 日志注入
+使用 [LoggerInject] 特性可以为类注入 ILogger<T> 类型的日志记录器。该注入会自动生成 ILoggerFactory 参数，并在构造函数中创建对应类的 Logger 实例。
 
-在实体程序项目中添加DTO代码生成配置：
+示例：
+```cs
+[LoggerInject]
+public partial class UserService
+{
+    // 生成的代码将包含:
+    // private readonly ILogger<UserService> _logger;
+    //
+    // public UserService(ILoggerFactory loggerFactory)
+    // {
+    //     _logger = loggerFactory.CreateLogger<UserService>();
+    // }
+}
+```
+
+##### CacheInjectAttribute 缓存管理器注入
+使用 [CacheInject] 特性可以注入缓存管理器实例。默认类型为 ICacheManager，默认字段名为 _cacheManager，可通过项目配置修改。
+
+示例：
+```cs
+[CacheInject]
+public partial class UserService
+{
+    // 生成的代码将包含:
+    // private readonly ICacheManager _cacheManager;
+    //
+    // public UserService(ICacheManager cacheManager)
+    // {
+    //     _cacheManager = cacheManager;
+    // }
+}
+```
+
+项目配置示例：
+```xml
+<PropertyGroup>
+  <DefaultCacheManagerType>MyCustomCacheManager</DefaultCacheManagerType>
+  <DefaultCacheManagerVariable>_myCacheManager</DefaultCacheManagerVariable>
+</PropertyGroup>
+```
+
+##### UserInjectAttribute 用户管理器注入
+使用 [UserInject] 特性可以注入用户管理器实例。默认类型为 IUserManager，默认字段名为 _userManager，可通过项目配置修改。
+
+示例：
+```cs
+[UserInject]
+public partial class UserService
+{
+    // 生成的代码将包含:
+    // private readonly IUserManager _userManager;
+    //
+    // public UserService(IUserManager userManager)
+    // {
+    //     _userManager = userManager;
+    // }
+}
+```
+
+项目配置示例：
+```xml
+<PropertyGroup>
+  <DefaultUserManagerType>MyCustomUserManager</DefaultUserManagerType>
+  <DefaultUserManagerVariable>_myUserManager</DefaultUserManagerVariable>
+</PropertyGroup>
+```
+
+##### OptionsInjectAttribute 配置项注入
+使用 [OptionsInject] 特性可以根据指定的配置项类型注入配置实例。
+
+示例：
+```cs
+[OptionsInject(OptionType = "TenantOptions")]
+public partial class UserService
+{
+    // 生成的代码将包含:
+    // private readonly TenantOptions _tenantOptions;
+    //
+    // public UserService(IOptions<TenantOptions> tenantOptions)
+    // {
+    //     _tenantOptions = tenantOptions.Value;
+    // }
+}
+```
+
+##### CustomInjectAttribute 自定义注入
+使用 [CustomInject] 特性可以注入任意类型的依赖项。需要指定注入类型(VarType)和字段名(VarName)。
+
+示例：
+```cs
+[CustomInject(VarType = "IRepository<SysUser>", VarName = "_userRepository")]
+[CustomInject(VarType = "INotificationService", VarName = "_notificationService")]
+public partial class UserService
+{
+    // 生成的代码将包含:
+    // private readonly IRepository<SysUser> _userRepository;
+    // private readonly INotificationService _notificationService;
+    //
+    // public UserService(IRepository<SysUser> userRepository, INotificationService notificationService)
+    // {
+    //     _userRepository = userRepository;
+    //     _notificationService = notificationService;
+    // }
+}
+```
+
+#### 2.2 组合注入示例
+
+多种注入特性可以组合使用，生成器会自动合并所有注入需求：
+
+```cs
+[ConstructorInject]
+[LoggerInject]
+[CacheInject]
+[UserInject]
+[OptionsInject(OptionType = "TenantOptions")]
+[CustomInject(VarType = "IRepository<SysUser>", VarName = "_userRepository")]
+public partial class UserService
+{
+    private readonly IRoleRepository _roleRepository;
+    private readonly IPermissionRepository _permissionRepository;
+    
+    // 生成的代码将包含所有注入项:
+    // private readonly ILogger<UserService> _logger;
+    // private readonly ICacheManager _cacheManager;
+    // private readonly IUserManager _userManager;
+    // private readonly TenantOptions _tenantOptions;
+    // private readonly IRepository<SysUser> _userRepository;
+    // private readonly IRoleRepository _roleRepository;
+    // private readonly IPermissionRepository _permissionRepository;
+    //
+    // public UserService(
+    //     ILoggerFactory loggerFactory,
+    //     ICacheManager cacheManager,
+    //     IUserManager userManager,
+    //     IOptions<TenantOptions> tenantOptions,
+    //     IRepository<SysUser> userRepository,
+    //     IRoleRepository roleRepository,
+    //     IPermissionRepository permissionRepository)
+    // {
+    //     _logger = loggerFactory.CreateLogger<UserService>();
+    //     _cacheManager = cacheManager;
+    //     _userManager = userManager;
+    //     _tenantOptions = tenantOptions.Value;
+    //     _userRepository = userRepository;
+    //     _roleRepository = roleRepository;
+    //     _permissionRepository = permissionRepository;
+    // }
+}
+```
+
+### 3. 忽略字段注入
+
+对于某些不需要通过构造函数注入的字段，可以使用 [IgnoreGenerator] 特性标记：
+
+```cs
+[ConstructorInject]
+public partial class UserService
+{
+    private readonly IUserRepository _userRepository;
+    
+    [IgnoreGenerator]
+    private readonly string _connectionString = "default_connection_string"; // 不会被注入
+    
+    // 只有_userRepository会被构造函数注入
+}
+```
+
+## 生成代码查看
+
+要查看生成的代码，可以在项目文件中添加以下配置：
 
 ```xml
 <PropertyGroup>
   <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
-  <EntitySuffix>Entity</EntitySuffix>  <!-- 实体类前缀配置 -->
-  <EntityAttachAttributes>SuppressSniffer</EntityAttachAttributes>  <!-- 实体类加上Attribute特性配置，多个特性时使用','分隔 -->
 </PropertyGroup>
-<ItemGroup>
-  <CompilerVisibleProperty Include="EntitySuffix" />
-  <CompilerVisibleProperty Include="EntityAttachAttributes"/>
-</ItemGroup>
 ```
 
-在实体中添加DTO代码生成DtoGenerator特性：
-
-```cs
-[DtoGenerator]
-public class SysClientEntity : BaseEntity
-{
-    // 无需生成DTO代码
-    [IgnoreGenerator]
-    public string DelFlag { get; set; }
-    
-    // 其他属性将自动生成到DTO类中
-    public string Name { get; set; }
-    public string Code { get; set; }
-}
-```
+生成的代码将位于 `obj/[Configuration]/[TargetFramework]/generated/` 目录下，文件名以 `.g.cs` 结尾。
 
 ## 维护者
 

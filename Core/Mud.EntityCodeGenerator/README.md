@@ -21,7 +21,7 @@ Mud 实体代码生成器是一个基于 Roslyn 的源代码生成器，用于�
 <PropertyGroup>
   <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>  <!-- 在obj目录下保存生成的代码 -->
   <EntitySuffix>Entity</EntitySuffix>  <!-- 实体类后缀配置 -->
-  <EntityAttachAttributes>SuppressSniffer</EntityAttachAttributes>  <!-- 实体类加上Attribute特性配置，多个特性时使用','分隔 -->
+  <EntityAttachAttributes>SuppressSniffer</EntityAttachAttributes>  <!-- 生成的VO、BO类加上Attribute特性配置，多个特性时使用','分隔 -->
 </PropertyGroup>
 
 <ItemGroup>
@@ -30,12 +30,30 @@ Mud 实体代码生成器是一个基于 Roslyn 的源代码生成器，用于�
 </ItemGroup>
 ```
 
+### VO/BO 属性配置参数
+
+现在支持为 VO 和 BO 类的属性分别配置额外的特性，为 VO 和 BO 类的属性生成的的特性提供更精细的控制：
+
+```xml
+<PropertyGroup>
+  <!-- 需要添加至VO类的自定义特性，多个特性时使用','分隔 -->
+  <VoAttributes>CustomVo1Attribute,CustomVo2Attribute</VoAttributes>
+  <!-- 需要添加至BO类的自定义特性，多个特性时使用','分隔 -->
+  <BoAttributes>CustomBo1Attribute,CustomBo2Attribute</BoAttributes>
+</ItemGroup>
+
+<ItemGroup>
+  <CompilerVisibleProperty Include="VoAttributes" />
+  <CompilerVisibleProperty Include="BoAttributes" />
+</ItemGroup>
+```
+
 ### 依赖项配置
 
 ```xml
 <ItemGroup>
   <!-- 引入的代码生成器程序集，注意后面的参数 -->
-  <PackageReference Include="Mud.EntityCodeGenerator" Version="1.0.5" PrivateAssets="all" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+  <PackageReference Include="Mud.EntityCodeGenerator" Version="1.1.6" PrivateAssets="all" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
 </ItemGroup>
 ```
 
@@ -45,7 +63,9 @@ Mud 实体代码生成器是一个基于 Roslyn 的源代码生成器，用于�
 |--------|--------|------|
 | EmitCompilerGeneratedFiles | false | 是否在obj目录下保存生成的代码，设为true便于调试 |
 | EntitySuffix | Entity | 实体类后缀，用于识别实体类 |
-| EntityAttachAttributes | (空) | 实体类上需要附加的特性，多个特性用逗号分隔 |
+| EntityAttachAttributes | (空) | 生成的VO、BO类加上Attribute特性配置，多个特性时使用','分隔 |
+| VoAttributes | (空) | 需要添加至BO类的自定义特性，多个特性用逗号分隔 |
+| BoAttributes | (空) | 需要添加至BO类的自定义特性，多个特性用逗号分隔 |
 
 ## 代码生成功能及样例
 
@@ -89,6 +109,8 @@ public partial class SysClientEntity
     [property: Column(Name = "client_key", Position = 3)]
     [property: Required(ErrorMessage = "客户端key不能为空")]
     [property: ExportProperty("客户端key")]
+    [property: CustomVo1, CustomVo2]
+    [property: CustomBo1, CustomBo2]
     private string _clientKey;
 
     /// <summary>
@@ -192,6 +214,7 @@ public partial class SysClientListOutput
     /// 客户端key
     /// </summary>
     [ExportProperty("客户端key")]
+    [CustomVo1, CustomVo2]
     public string? clientKey { get; set; }
 
     /// <summary>
@@ -250,7 +273,7 @@ public partial class SysClientCrInput
     /// <summary>
     /// 客户端key
     /// </summary>
-    [Required(ErrorMessage = "客户端key不能为空")]
+    [Required(ErrorMessage = "客户端key不能为空"), CustomBo1, CustomBo2]
     public string? clientKey { get; set; }
     /// <summary>
     /// 删除标志（0代表存在 2代表删除）
@@ -295,6 +318,25 @@ public partial class SysClientUpInput : SysClientCrInput
     }
 }
 ```
+
+### 2. 代码生成器增强功能
+
+#### TransitiveBoGenerator 增强
+- 支持通过 `ExtraBoPropertyAttributes` 单独配置BO类属性特性
+- BO类属性默认包含以下验证特性: `Required`, `Xss`, `StringLength`, `MaxLength`, `MinLength`, `EmailAddress`, `DataValidation`, `RegularExpression`
+- 支持通过 `BoAttributes` 配置额外特性
+- 自动生成的BO类包含 `MapTo()` 方法，用于将BO对象映射到实体对象
+
+#### TransitiveQueryInputGenerator 增强
+- 支持通过 `ExtraVoPropertyAttributes` 单独配置VO类属性特性
+- 自动生成 `BuildQueryWhere()` 方法，用于构建查询条件
+- 支持 `LikeQueryAttribute` 特性，用于生成包含查询条件
+- 支持 `OrderByAttribute` 特性，用于生成排序条件
+
+#### EntityMethodGenerator 增强
+- 自动生成实体类属性（基于私有字段）
+- 自动生成 `MapTo()` 方法，用于将实体对象映射到VO对象
+- 支持通过 `ExtraPropertyAttributes` 配置实体属性特性
 
 ### 3. 特性控制参数
 

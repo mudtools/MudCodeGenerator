@@ -26,6 +26,8 @@ public class MarketProjectEntity
     /// 项目编号
     /// </summary>
     [Column(Name = "F_PRONUM", StringLength = 150)]
+    [CustomVo1]
+    [CustomBo1]
     public string ProNum { get; set; }
 
     /// <summary>
@@ -33,6 +35,8 @@ public class MarketProjectEntity
     /// </summary>
     [Column(Name = "F_ERPNUM", StringLength = 50)]
     [MinLength(10)]
+    [CustomVo2]
+    [CustomBo2]
     public string ErpNum { get; set; }
 
     /// <summary>

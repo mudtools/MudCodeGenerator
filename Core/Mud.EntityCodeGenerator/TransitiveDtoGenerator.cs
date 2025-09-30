@@ -1,4 +1,3 @@
-using Mud.CodeGenerator;
 using Mud.EntityCodeGenerator.Diagnostics;
 using System.Collections.ObjectModel;
 
@@ -18,6 +17,16 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     /// 在实体类上绑定的特性。
     /// </summary>
     private string[] EntityAttachAttributes = [];
+
+    /// <summary>
+    /// VO类属性配置。
+    /// </summary>
+    private string[] VoAttributes = [];
+
+    /// <summary>
+    /// BO类属性配置。
+    /// </summary>
+    private string[] BoAttributes = [];
 
     /// <summary>
     /// 是否生成实体类映射方法属性。
@@ -61,11 +70,23 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     /// <returns></returns>
     protected virtual string[] GetPropertyAttributes() => [];
 
+    /// <summary>
+    /// 获取VO类属性配置。
+    /// </summary>
+    /// <returns></returns>
+    protected string[] GetVoPropertyAttributes() => VoAttributes;
+
+    /// <summary>
+    /// 获取BO类属性配置。
+    /// </summary>
+    /// <returns></returns>
+    protected string[] GetBoPropertyAttributes() => BoAttributes;
+
     /// <inheritdoc/>
     public override void Initialize(IncrementalGeneratorInitializationContext context)
     {
         // 获取所有带有DtoGeneratorAttribute的类
-        var classDeclarationProvider = GetClassDeclarationProvider(context, new[] { DtoGeneratorAttributeName });
+        var classDeclarationProvider = GetClassDeclarationProvider(context, [DtoGeneratorAttributeName]);
         var compilationAndOptionsProvider = context.CompilationProvider
                                           .Combine(context.AnalyzerConfigOptionsProvider)
                                           .Select((s, _) => s);
@@ -79,8 +100,11 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
                 var (compiler, analyzer) = provider.Right;
 
                 InitEntityPrefixValue(analyzer.GlobalOptions);
-
+                //Debugger.Launch();
                 ProjectConfigHelper.ReadProjectOptions(analyzer.GlobalOptions, "build_property.EntityAttachAttributes", val => EntityAttachAttributes = val.Split(','), "");
+
+                ProjectConfigHelper.ReadProjectOptions(analyzer.GlobalOptions, "build_property.VoAttributes", val => VoAttributes = val.SplitString(',', s => s.RemoveSuffix("Attribute", false)), "");
+                ProjectConfigHelper.ReadProjectOptions(analyzer.GlobalOptions, "build_property.BoAttributes", val => BoAttributes = val.SplitString(',', s => s.RemoveSuffix("Attribute", false)), "");
 
                 var classes = provider.Left;
                 foreach (var classNode in classes)

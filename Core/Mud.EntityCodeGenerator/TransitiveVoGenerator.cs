@@ -23,8 +23,18 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
     /// <inheritdoc/>
     protected override string[] GetPropertyAttributes()
     {
-        return (new[] { "DictFormat", "Translation", "Sensitive" })
-                .Concat(["ExportProperty"]).ToArray();
+        var defaultAttributes = new[] { "DictFormat", "Translation", "Sensitive" };
+        var extraAttributes = GetVoPropertyAttributes();
+        
+        if (extraAttributes != null && extraAttributes.Length > 0)
+        {
+            // 合并默认属性和额外属性，并去重
+            return defaultAttributes.Concat(extraAttributes).Concat(["ExportProperty"])
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        }
+        
+        return defaultAttributes.Concat(["ExportProperty"]).ToArray();
     }
 
     /// <inheritdoc/>
