@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Globalization;
 
 namespace Mud.CodeGenerator;
@@ -33,6 +34,94 @@ internal class AttributeExtractionOptions
 /// </summary>
 internal static class AttributeSyntaxHelper
 {
+
+    /// <summary>
+    /// 获取属性声明上的特性对象。
+    /// </summary>
+    /// <typeparam name="T">需创建的特性类型。</typeparam>
+    /// <param name="classDeclaration">类声明<see cref="PropertyDeclarationSyntax"/>对象。</param>
+    /// <param name="attributeName">注解名。</param>
+    /// <param name="paramName">参数名。</param>
+    /// <param name="defaultVal">参数默认值。</param>
+    /// <returns>返回创建的特性对象。</returns>
+    public static T GetPropertyAttributeValues<T>(PropertyDeclarationSyntax classDeclaration, string attributeName, string paramName, T defaultVal)
+       where T : notnull
+    {
+        if (string.IsNullOrEmpty(attributeName))
+            return default;
+
+        var attriShortName = attributeName.Replace("Attribute", "");
+        if (classDeclaration == null)
+            return defaultVal;
+
+        // 获取类上的特性
+        var attributes = GetAttributeSyntaxes(classDeclaration, attriShortName);
+        return GetAttributeValue(attributes, paramName, defaultVal);
+    }
+
+    /// <summary>
+    /// 获取属性上标注的注解。
+    /// </summary>
+    /// <typeparam name="T">成员声明类型。</typeparam>
+    /// <param name="memberDeclaration">成员声明。</param>
+    /// <param name="attributeName">特性名称。</param>
+    /// <returns>特性语法集合。</returns>
+    public static ReadOnlyCollection<AttributeSyntax> GetAttributeSyntaxes<T>(T memberDeclaration, string attributeName)
+        where T : MemberDeclarationSyntax
+    {
+        if (string.IsNullOrEmpty(attributeName))
+            return null;
+
+        if (memberDeclaration == null)
+            return null;
+
+        var attriShortName = attributeName.Replace("Attribute", "");
+
+        // 获取成员上的特性
+        var attributes = memberDeclaration.AttributeLists
+                                .SelectMany(al => al.Attributes)
+                                .Where(a => a.Name.ToString() == attributeName || a.Name.ToString() == attriShortName)
+                                .ToList();
+        return new ReadOnlyCollection<AttributeSyntax>(attributes);
+    }
+
+    /// <summary>
+    /// 根据<see cref="AttributeSyntax"/>对象获取指定的属性值，必须给定默认值（防止用户未设置）。
+    /// </summary>
+    /// <typeparam name="T">值类型。</typeparam>
+    /// <param name="attributes">特性集合。</param>
+    /// <param name="paramName">参数名。</param>
+    /// <param name="defaultVal">参数默认值。</param>
+    /// <returns>特性参数值。</returns>
+    public static T GetAttributeValue<T>(
+        ReadOnlyCollection<AttributeSyntax> attributes,
+        string paramName, T defaultVal)
+         where T : notnull
+    {
+        if (!attributes.Any())
+            return defaultVal;
+
+        var attribute = attributes.FirstOrDefault();
+        var argumentList = attribute.ArgumentList;
+        if (argumentList != null)
+        {
+            // 检查参数是否存在
+            if (!argumentList.Arguments
+                  .Any(arg => paramName.Equals(arg.NameEquals?.Name?.Identifier.ValueText, StringComparison.OrdinalIgnoreCase)))
+                return defaultVal;
+
+            var paramValue = argumentList.Arguments
+                .Where(arg => paramName.Equals(arg.NameEquals?.Name?.Identifier.ValueText, StringComparison.OrdinalIgnoreCase))
+                .Select(arg => ExtractValueFromSyntax(arg.Expression))
+                .FirstOrDefault();
+
+            if (paramValue != null && paramValue is T pv)
+                return pv;
+            return defaultVal;
+        }
+        return defaultVal;
+    }
+
     /// <summary>
     /// 从 AttributeSyntax 中获取指定属性的值
     /// </summary>
@@ -185,6 +274,61 @@ internal static class AttributeSyntaxHelper
         return FindArgumentByName(attributeSyntax, propertyName) != null;
     }
 
+
+    /// <summary>
+    /// 从表达式语法中提取值。
+    /// </summary>
+    /// <param name="expression">表达式语法。</param>
+    /// <returns>表达式的值。</returns>
+    public static object ExtractValueFromSyntax(ExpressionSyntax expression)
+    {
+        if (expression == null)
+            return null;
+
+        // 处理字面量表达式
+        if (expression is LiteralExpressionSyntax literal)
+        {
+            var kind = literal.Kind();
+            return kind switch
+            {
+                SyntaxKind.StringLiteralExpression => literal.Token.ValueText,
+                SyntaxKind.NumericLiteralExpression => HandleNumericLiteral(literal.Token),// 更安全的数值类型处理
+                SyntaxKind.FalseLiteralExpression => false,
+                SyntaxKind.TrueLiteralExpression => true,
+                SyntaxKind.NullLiteralExpression => null,
+                SyntaxKind.CharacterLiteralExpression => literal.Token.ValueText,
+                _ => literal.Token.Value ?? literal.ToString(),// 对于其他未处理的字面量类型，返回原始值
+            };
+        }
+
+        // 处理 nameof 表达式
+        if (expression is InvocationExpressionSyntax invocation &&
+            invocation.Expression is IdentifierNameSyntax identifier &&
+            identifier.Identifier.ValueText == "nameof" &&
+            invocation.ArgumentList.Arguments.Count > 0)
+        {
+            return invocation.ArgumentList.Arguments[0].Expression.ToString();
+        }
+
+        // 处理 typeof 表达式
+        if (expression is TypeOfExpressionSyntax typeOfExpression)
+        {
+            return typeOfExpression.Type.ToString();
+        }
+
+        // 处理其他调用表达式（非nameof）
+        if (expression is InvocationExpressionSyntax otherInvocation)
+        {
+            var arguments = otherInvocation.ArgumentList.Arguments
+                .Select(arg => ExtractValueFromSyntax(arg.Expression))
+                .Where(arg => arg != null)
+                .ToList();
+
+            return arguments.Any() ? string.Join(",", arguments) : string.Empty;
+        }
+        return expression.ToString();
+    }
+
     #region 私有辅助方法
 
     private static AttributeArgumentSyntax FindArgumentByName(AttributeSyntax attribute, string propertyName)
@@ -314,70 +458,6 @@ internal static class AttributeSyntaxHelper
         }
 
         return typeOfExpression.Type.ToString();
-    }
-    /// <summary>
-    /// 从表达式语法中提取值。
-    /// </summary>
-    /// <param name="expression">表达式语法。</param>
-    /// <returns>表达式的值。</returns>
-    public static object ExtractValueFromSyntax(ExpressionSyntax expression)
-    {
-        if (expression == null)
-            return null;
-
-        // 处理字面量表达式
-        if (expression is LiteralExpressionSyntax literal)
-        {
-            var kind = literal.Kind();
-            switch (kind)
-            {
-                case SyntaxKind.StringLiteralExpression:
-                    return literal.Token.ValueText;
-                case SyntaxKind.NumericLiteralExpression:
-                    // 更安全的数值类型处理
-                    return HandleNumericLiteral(literal.Token);
-                case SyntaxKind.FalseLiteralExpression:
-                    return false;
-                case SyntaxKind.TrueLiteralExpression:
-                    return true;
-                case SyntaxKind.NullLiteralExpression:
-                    return null;
-                case SyntaxKind.CharacterLiteralExpression:
-                    return literal.Token.ValueText;
-                default:
-                    // 对于其他未处理的字面量类型，返回原始值
-                    return literal.Token.Value ?? literal.ToString();
-            }
-        }
-
-        // 处理 nameof 表达式
-        if (expression is InvocationExpressionSyntax invocation &&
-            invocation.Expression is IdentifierNameSyntax identifier &&
-            identifier.Identifier.ValueText == "nameof" &&
-            invocation.ArgumentList.Arguments.Count > 0)
-        {
-            return invocation.ArgumentList.Arguments[0].Expression.ToString();
-        }
-
-        // 处理 typeof 表达式
-        if (expression is TypeOfExpressionSyntax typeOfExpression)
-        {
-            return typeOfExpression.Type.ToString();
-        }
-
-        // 处理其他调用表达式（非nameof）
-        if (expression is InvocationExpressionSyntax otherInvocation)
-        {
-            var arguments = otherInvocation.ArgumentList.Arguments
-                .Select(arg => ExtractValueFromSyntax(arg.Expression))
-                .Where(arg => arg != null)
-                .ToList();
-
-            return arguments.Any() ? string.Join(",", arguments) : string.Empty;
-        }
-
-        // 默认返回表达式的字符串表示
-        return expression.ToString();
     }
 
     /// <summary>

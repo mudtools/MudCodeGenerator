@@ -4,6 +4,48 @@ namespace Mud.CodeGenerator;
 
 internal static class SyntaxHelper
 {
+
+    /// <summary>
+    /// 获取类声明上的特性对象。
+    /// </summary>
+    /// <typeparam name="T">需创建的特性类型。</typeparam>
+    /// <param name="classDeclaration">类声明<see cref="ClassDeclarationSyntax"/>对象。</param>
+    /// <param name="attributeName">注解名。</param>
+    /// <param name="paramName">参数名。</param>
+    /// <param name="defaultVal">参数默认值。</param>
+    /// <returns>返回创建的特性对象。</returns>
+    public static T GetClassAttributeValues<T>(ClassDeclarationSyntax classDeclaration, string attributeName, string paramName, T defaultVal)
+        where T : notnull
+    {
+        var attributes = GetAttributeSyntaxes(classDeclaration, attributeName);
+        return AttributeSyntaxHelper.GetAttributeValue(attributes, paramName, defaultVal);
+    }
+
+
+    /// <summary>
+    /// 获取类上的注解。
+    /// </summary>
+    /// <param name="classDeclaration">类声明<see cref="ClassDeclarationSyntax"/>对象。</param>
+    /// <param name="attributeName">注解名。</param>
+    /// <returns>特性语法集合。</returns>
+    public static ReadOnlyCollection<AttributeSyntax> GetAttributeSyntaxes(ClassDeclarationSyntax classDeclaration, string attributeName)
+    {
+        if (string.IsNullOrEmpty(attributeName))
+            return new ReadOnlyCollection<AttributeSyntax>([]);
+
+        if (classDeclaration == null)
+            return new ReadOnlyCollection<AttributeSyntax>([]);
+
+        var attriShortName = attributeName.Replace("Attribute", "");
+
+        // 获取类上的特性
+        var attributes = classDeclaration.AttributeLists
+                        .SelectMany(al => al.Attributes)
+                        .Where(a => a.Name.ToString() == attributeName || a.Name.ToString() == attriShortName)
+                        .ToList();
+        return new ReadOnlyCollection<AttributeSyntax>(attributes);
+    }
+
     /// <summary>
     /// 获取类型名。
     /// </summary>

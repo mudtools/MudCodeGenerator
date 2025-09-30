@@ -183,130 +183,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
         return classNode.Identifier.Text;
     }
 
-    /// <summary>
-    /// 获取类声明上的特性对象。
-    /// </summary>
-    /// <typeparam name="T">需创建的特性类型。</typeparam>
-    /// <param name="classDeclaration">类声明<see cref="ClassDeclarationSyntax"/>对象。</param>
-    /// <param name="attributeName">注解名。</param>
-    /// <param name="paramName">参数名。</param>
-    /// <param name="defaultVal">参数默认值。</param>
-    /// <returns>返回创建的特性对象。</returns>
-    protected T GetClassAttributeValues<T>(ClassDeclarationSyntax classDeclaration, string attributeName, string paramName, T defaultVal)
-        where T : notnull
-    {
-        var attributes = GetAttributeSyntaxes(classDeclaration, attributeName);
-        return GetAttributeValue(attributes, paramName, defaultVal);
-    }
 
-    /// <summary>
-    /// 获取属性声明上的特性对象。
-    /// </summary>
-    /// <typeparam name="T">需创建的特性类型。</typeparam>
-    /// <param name="classDeclaration">类声明<see cref="PropertyDeclarationSyntax"/>对象。</param>
-    /// <param name="attributeName">注解名。</param>
-    /// <param name="paramName">参数名。</param>
-    /// <param name="defaultVal">参数默认值。</param>
-    /// <returns>返回创建的特性对象。</returns>
-    public static T GetPropertyAttributeValues<T>(PropertyDeclarationSyntax classDeclaration, string attributeName, string paramName, T defaultVal)
-       where T : notnull
-    {
-        if (string.IsNullOrEmpty(attributeName))
-            return default;
-
-        var attriShortName = attributeName.Replace("Attribute", "");
-        if (classDeclaration == null)
-            return defaultVal;
-
-        // 获取类上的特性
-        var attributes = GetAttributeSyntaxes(classDeclaration, attriShortName);
-        return GetAttributeValue(attributes, paramName, defaultVal);
-    }
-
-    /// <summary>
-    /// 获取属性上标注的注解。
-    /// </summary>
-    /// <typeparam name="T">成员声明类型。</typeparam>
-    /// <param name="memberDeclaration">成员声明。</param>
-    /// <param name="attributeName">特性名称。</param>
-    /// <returns>特性语法集合。</returns>
-    public static ReadOnlyCollection<AttributeSyntax> GetAttributeSyntaxes<T>(T memberDeclaration, string attributeName)
-        where T : MemberDeclarationSyntax
-    {
-        if (string.IsNullOrEmpty(attributeName))
-            return null;
-
-        if (memberDeclaration == null)
-            return null;
-
-        var attriShortName = attributeName.Replace("Attribute", "");
-
-        // 获取成员上的特性
-        var attributes = memberDeclaration.AttributeLists
-                                .SelectMany(al => al.Attributes)
-                                .Where(a => a.Name.ToString() == attributeName || a.Name.ToString() == attriShortName)
-                                .ToList();
-        return new ReadOnlyCollection<AttributeSyntax>(attributes);
-    }
-
-    /// <summary>
-    /// 获取类上的注解。
-    /// </summary>
-    /// <param name="classDeclaration">类声明<see cref="ClassDeclarationSyntax"/>对象。</param>
-    /// <param name="attributeName">注解名。</param>
-    /// <returns>特性语法集合。</returns>
-    protected ReadOnlyCollection<AttributeSyntax> GetAttributeSyntaxes(ClassDeclarationSyntax classDeclaration, string attributeName)
-    {
-        if (string.IsNullOrEmpty(attributeName))
-            return new ReadOnlyCollection<AttributeSyntax>([]);
-
-        if (classDeclaration == null)
-            return new ReadOnlyCollection<AttributeSyntax>([]);
-
-        var attriShortName = attributeName.Replace("Attribute", "");
-
-        // 获取类上的特性
-        var attributes = classDeclaration.AttributeLists
-                        .SelectMany(al => al.Attributes)
-                        .Where(a => a.Name.ToString() == attributeName || a.Name.ToString() == attriShortName)
-                        .ToList();
-        return new ReadOnlyCollection<AttributeSyntax>(attributes);
-    }
-
-    /// <summary>
-    /// 根据<see cref="AttributeSyntax"/>对象获取指定的属性值，必须给定默认值（防止用户未设置）。
-    /// </summary>
-    /// <typeparam name="T">值类型。</typeparam>
-    /// <param name="attributes">特性集合。</param>
-    /// <param name="paramName">参数名。</param>
-    /// <param name="defaultVal">参数默认值。</param>
-    /// <returns>特性参数值。</returns>
-    public static T GetAttributeValue<T>(ReadOnlyCollection<AttributeSyntax> attributes, string paramName, T defaultVal)
-         where T : notnull
-    {
-        if (!attributes.Any())
-            return defaultVal;
-
-        var attribute = attributes.FirstOrDefault();
-        var argumentList = attribute.ArgumentList;
-        if (argumentList != null)
-        {
-            // 检查参数是否存在
-            if (!argumentList.Arguments
-                  .Any(arg => paramName.Equals(arg.NameEquals?.Name?.Identifier.ValueText, StringComparison.OrdinalIgnoreCase)))
-                return defaultVal;
-
-            var paramValue = argumentList.Arguments
-                .Where(arg => paramName.Equals(arg.NameEquals?.Name?.Identifier.ValueText, StringComparison.OrdinalIgnoreCase))
-                .Select(arg => AttributeSyntaxHelper.ExtractValueFromSyntax(arg.Expression))
-                .FirstOrDefault();
-
-            if (paramValue != null && paramValue is T pv)
-                return pv;
-            return defaultVal;
-        }
-        return defaultVal;
-    }
 
     #region GetGeneratorProperty
 
@@ -492,7 +369,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
         if (memberDeclaration == null)
             return false;
 
-        var attributes = GetAttributeSyntaxes(memberDeclaration, LikeQueryAttributeName);
+        var attributes = AttributeSyntaxHelper.GetAttributeSyntaxes(memberDeclaration, LikeQueryAttributeName);
         return attributes != null && attributes.Any();
     }
 

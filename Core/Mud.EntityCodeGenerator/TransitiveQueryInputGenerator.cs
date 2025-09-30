@@ -22,7 +22,7 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
     {
         try
         {
-            var genClass = GetClassAttributeValues(orgClassDeclaration, DtoGeneratorAttributeName, DtoGeneratorAttributeGenQueryInputClass, true);
+            var genClass = SyntaxHelper.GetClassAttributeValues(orgClassDeclaration, DtoGeneratorAttributeName, DtoGeneratorAttributeGenQueryInputClass, true);
             if (!genClass)
                 return;
 

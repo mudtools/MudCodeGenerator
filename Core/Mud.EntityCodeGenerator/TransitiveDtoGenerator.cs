@@ -133,7 +133,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
             return "Dto";
 
         var cNamespace = GetNamespaceName(orgClassDeclaration);
-        var dtoNamespace = GetClassAttributeValues(orgClassDeclaration, DtoGeneratorAttributeName, DtoGeneratorAttributeDtoNamespace, "Dto");
+        var dtoNamespace = SyntaxHelper.GetClassAttributeValues(orgClassDeclaration, DtoGeneratorAttributeName, DtoGeneratorAttributeDtoNamespace, "Dto");
         if (dtoNamespace.StartsWith(".", StringComparison.OrdinalIgnoreCase))
         {
             dtoNamespace = cNamespace + dtoNamespace;
@@ -357,7 +357,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
         if (memberDeclaration == null)
             return true; // 空对象默认忽略生成
 
-        var attributes = GetAttributeSyntaxes(memberDeclaration, IgnoreGeneratorAttribute);
+        var attributes = AttributeSyntaxHelper.GetAttributeSyntaxes(memberDeclaration, IgnoreGeneratorAttribute);
         return attributes != null && attributes.Any();
     }
 
@@ -391,10 +391,10 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
             var ps = attr.Split('|');
             if (ps == null || ps.Length < 1)
                 continue;
-            var attributes = GetAttributeSyntaxes(memberDeclaration, ps[0]);
+            var attributes = AttributeSyntaxHelper.GetAttributeSyntaxes(memberDeclaration, ps[0]);
             if (ps.Length > 1)
             {
-                isPrimary = GetAttributeValue(attributes, ps[1], false);
+                isPrimary = AttributeSyntaxHelper.GetAttributeValue(attributes, ps[1], false);
             }
             else
             {

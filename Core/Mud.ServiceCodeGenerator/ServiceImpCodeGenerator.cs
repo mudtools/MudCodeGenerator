@@ -102,7 +102,7 @@ public class ServiceImpCodeGenerator : ServiceCodeGenerator
         if (propertyDeclaration == null)
             return false;
 
-        var attributes = GetAttributeSyntaxes(propertyDeclaration, "LikeQueryAttribute");
+        var attributes = AttributeSyntaxHelper.GetAttributeSyntaxes(propertyDeclaration, "LikeQueryAttribute");
         return attributes != null && attributes.Any();
     }
 

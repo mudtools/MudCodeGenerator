@@ -29,7 +29,7 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
         try
         {
             //Debugger.Launch();
-            var genVoClass = GetClassAttributeValues<bool>(orgClassDeclaration, DtoGeneratorAttributeName, DtoGeneratorAttributeGenVoClass, true);
+            var genVoClass = SyntaxHelper.GetClassAttributeValues<bool>(orgClassDeclaration, DtoGeneratorAttributeName, DtoGeneratorAttributeGenVoClass, true);
             if (!genVoClass)
                 return;
 
@@ -240,7 +240,7 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
             // 提高容错性，检查NameEquals和Identifier
             if (item.NameEquals?.Name?.Identifier.Text?.Equals("propertyname", StringComparison.OrdinalIgnoreCase) == true)
             {
-                var propertyValue = ParseAttributeValue(item.Expression);
+                var propertyValue = AttributeSyntaxHelper.ExtractValueFromSyntax(item.Expression);
                 return propertyValue != null ? ToLowerFirstLetter(propertyValue.ToString()) : defaultName;
             }
         }

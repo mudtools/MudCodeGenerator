@@ -30,7 +30,7 @@ public abstract class TransitiveBoGenerator(bool generateNotPrimary, bool genera
     {
         try
         {
-            var genBoClass = GetClassAttributeValues(orgClassDeclaration, DtoGeneratorAttributeName, DtoGeneratorAttributeGenBoClass, true);
+            var genBoClass = SyntaxHelper.GetClassAttributeValues(orgClassDeclaration, DtoGeneratorAttributeName, DtoGeneratorAttributeGenBoClass, true);
             if (!genBoClass)
                 return;
             //Debugger.Launch();

@@ -28,7 +28,7 @@ namespace Mud.EntityCodeGenerator
             try
             {
                 //Debugger.Launch();
-                var genMapMethod = GetClassAttributeValues(orgClassDeclaration, DtoGeneratorAttributeName, DtoGeneratorAttributeGenMapMethod, true);
+                var genMapMethod = SyntaxHelper.GetClassAttributeValues(orgClassDeclaration, DtoGeneratorAttributeName, DtoGeneratorAttributeGenMapMethod, true);
                 if (!genMapMethod)
                     return;
 

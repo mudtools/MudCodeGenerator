@@ -104,7 +104,7 @@ public partial class CodeInjectGenerator
 
         private bool ShouldIgnoreField(FieldDeclarationSyntax field)
         {
-            var ignoreAttributes = GetAttributeSyntaxes(field, IgnoreGeneratorAttribute);
+            var ignoreAttributes = AttributeSyntaxHelper.GetAttributeSyntaxes(field, IgnoreGeneratorAttribute);
             return ignoreAttributes?.Any() == true;
         }
 

@@ -98,12 +98,12 @@ public partial class CodeInjectGenerator
     {
         return new InjectionRequirements
         {
-            ConstructorInject = GetAttributeSyntaxes(classDeclaration, AttributeNames.ConstructorInject) ?? Enumerable.Empty<AttributeSyntax>(),
-            LoggerInject = GetAttributeSyntaxes(classDeclaration, AttributeNames.LoggerInject) ?? Enumerable.Empty<AttributeSyntax>(),
-            OptionsInject = GetAttributeSyntaxes(classDeclaration, AttributeNames.OptionsInject) ?? Enumerable.Empty<AttributeSyntax>(),
-            CacheManagerInject = GetAttributeSyntaxes(classDeclaration, AttributeNames.CacheManagerInject) ?? Enumerable.Empty<AttributeSyntax>(),
-            UserManagerInject = GetAttributeSyntaxes(classDeclaration, AttributeNames.UserManagerInject) ?? Enumerable.Empty<AttributeSyntax>(),
-            CustomInject = GetAttributeSyntaxes(classDeclaration, AttributeNames.CustomInject) ?? Enumerable.Empty<AttributeSyntax>()
+            ConstructorInject = AttributeSyntaxHelper.GetAttributeSyntaxes(classDeclaration, AttributeNames.ConstructorInject) ?? Enumerable.Empty<AttributeSyntax>(),
+            LoggerInject = AttributeSyntaxHelper.GetAttributeSyntaxes(classDeclaration, AttributeNames.LoggerInject) ?? Enumerable.Empty<AttributeSyntax>(),
+            OptionsInject = AttributeSyntaxHelper.GetAttributeSyntaxes(classDeclaration, AttributeNames.OptionsInject) ?? Enumerable.Empty<AttributeSyntax>(),
+            CacheManagerInject = AttributeSyntaxHelper.GetAttributeSyntaxes(classDeclaration, AttributeNames.CacheManagerInject) ?? Enumerable.Empty<AttributeSyntax>(),
+            UserManagerInject = AttributeSyntaxHelper.GetAttributeSyntaxes(classDeclaration, AttributeNames.UserManagerInject) ?? Enumerable.Empty<AttributeSyntax>(),
+            CustomInject = AttributeSyntaxHelper.GetAttributeSyntaxes(classDeclaration, AttributeNames.CustomInject) ?? Enumerable.Empty<AttributeSyntax>()
         };
     }
 

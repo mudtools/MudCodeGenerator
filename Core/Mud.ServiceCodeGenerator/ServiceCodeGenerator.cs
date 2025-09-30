@@ -114,7 +114,7 @@ public abstract class ServiceCodeGenerator : TransitiveCodeGenerator
         if (propertyDeclaration == null)
             return false;
 
-        var attributes = GetAttributeSyntaxes(propertyDeclaration, IgnoreQueryAttributeName);
+        var attributes = AttributeSyntaxHelper.GetAttributeSyntaxes(propertyDeclaration, IgnoreQueryAttributeName);
         return attributes != null && attributes.Any();
     }
 
@@ -128,15 +128,15 @@ public abstract class ServiceCodeGenerator : TransitiveCodeGenerator
         if (propertyDeclaration == null)
             return null;
 
-        var attributes = GetAttributeSyntaxes(propertyDeclaration, OrderByAttributeName);
+        var attributes = AttributeSyntaxHelper.GetAttributeSyntaxes(propertyDeclaration, OrderByAttributeName);
         if (!attributes.Any())
             return null;
 
         var orderBy = new OrderBy
         {
             PropertyName = GetPropertyName(propertyDeclaration),
-            IsAsc = GetPropertyAttributeValues(propertyDeclaration, OrderByAttributeName, "IsAsc", true),
-            OrderNum = GetPropertyAttributeValues(propertyDeclaration, OrderByAttributeName, "OrderNum", 0)
+            IsAsc = AttributeSyntaxHelper.GetPropertyAttributeValues(propertyDeclaration, OrderByAttributeName, "IsAsc", true),
+            OrderNum = AttributeSyntaxHelper.GetPropertyAttributeValues(propertyDeclaration, OrderByAttributeName, "OrderNum", 0)
         };
         return orderBy;
     }
