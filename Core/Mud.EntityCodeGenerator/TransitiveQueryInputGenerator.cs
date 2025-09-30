@@ -100,7 +100,7 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
         sb.AppendLine("/// </summary>");
         sb.AppendLine($"public Expression<Func<{orgClassName}, bool>> BuildQueryWhere()");
         sb.AppendLine("        {");
-        sb.AppendLine($"            Expression<Func<SysClientEntity, bool>> where = x => true;");
+        sb.AppendLine($"            Expression<Func<{orgClassName}, bool>> where = x => true;");
         return sb;
     }
 
