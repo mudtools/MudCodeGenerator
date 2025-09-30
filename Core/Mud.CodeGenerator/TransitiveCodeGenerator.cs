@@ -151,19 +151,6 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
         return "";
     }
 
-    /// <summary>
-    /// 获取原始的类名。
-    /// </summary>
-    /// <param name="classNode"><see cref="ClassDeclarationSyntax"/>对象。</param>
-    /// <returns>类名。</returns>
-    protected string GetClassName(ClassDeclarationSyntax classNode)
-    {
-        if (classNode == null)
-            return "";
-        return classNode.Identifier.Text;
-    }
-
-
 
     #region GetGeneratorProperty
 

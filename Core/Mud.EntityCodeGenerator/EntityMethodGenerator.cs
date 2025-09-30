@@ -35,7 +35,7 @@ namespace Mud.EntityCodeGenerator
                 var cNamespace = GetNamespaceName(orgClassDeclaration);
                 _dtoNameSpace = GetDtoNamespaceName(orgClassDeclaration);
 
-                var orgClassName = GetClassName(orgClassDeclaration);
+                var orgClassName = SyntaxHelper.GetClassName(orgClassDeclaration);
                 var voClassName = orgClassName.Replace(EntitySuffix, "") + TransitiveVoGenerator.VoSuffix;
 
                 var localClass = GenLocalClass(orgClassDeclaration, orgClassName, false);
@@ -67,7 +67,7 @@ namespace Mud.EntityCodeGenerator
             catch (Exception ex)
             {
                 // 提高容错性，报告生成错误
-                var className = orgClassDeclaration != null ? GetClassName(orgClassDeclaration) : "Unknown";
+                var className = orgClassDeclaration != null ? SyntaxHelper.GetClassName(orgClassDeclaration) : "Unknown";
                 context.ReportDiagnostic(Diagnostic.Create(
                     new DiagnosticDescriptor(
                         "EM002",

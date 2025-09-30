@@ -11,7 +11,7 @@ public class ServiceInterfaceCodeGenerator : ServiceCodeGenerator
     protected override (CompilationUnitSyntax? unitSyntax, string? className) GenerateCode(ClassDeclarationSyntax classNode)
     {
         var cNamespace = GetNamespaceName(classNode);
-        var orgClassName = GetClassName(classNode);
+        var orgClassName = SyntaxHelper.GetClassName(classNode);
         var className = orgClassName.Replace(EntitySuffix, "");
         var interfaceClassName = $"I{className}Repository";
 

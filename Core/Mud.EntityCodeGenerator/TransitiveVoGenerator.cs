@@ -48,7 +48,7 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
                     new DiagnosticDescriptor(
                         "EG003",
                         "VO类生成失败",
-                        $"无法为类 {GetClassName(orgClassDeclaration)} 生成VO类",
+                        $"无法为类 {SyntaxHelper.GetClassName(orgClassDeclaration)} 生成VO类",
                         "代码生成",
                         DiagnosticSeverity.Warning,
                         true),
@@ -66,7 +66,7 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
                 new DiagnosticDescriptor(
                     "VO002",
                     "VO类生成错误",
-                    $"生成类 {GetClassName(orgClassDeclaration)} 的VO类时发生错误: {ex.Message}",
+                    $"生成类 {SyntaxHelper.GetClassName(orgClassDeclaration)} 的VO类时发生错误: {ex.Message}",
                     "代码生成",
                     DiagnosticSeverity.Error,
                     true),

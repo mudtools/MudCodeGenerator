@@ -90,7 +90,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
                             new DiagnosticDescriptor(
                                 "DTO001",
                                 "DTO代码生成错误",
-                                $"生成类 {GetClassName(classNode)} 时发生错误: {ex.Message}",
+                                $"生成类 {SyntaxHelper.GetClassName(classNode)} 时发生错误: {ex.Message}",
                                 "代码生成",
                                 DiagnosticSeverity.Error,
                                 true),
@@ -422,7 +422,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
         if (string.IsNullOrEmpty(classSuffix))
             classSuffix = ClassSuffix ?? ""; // 提高容错性，处理ClassSuffix为空的情况
 
-        var className = GetClassName(classNode).Replace(EntitySuffix ?? "", ""); // 提高容错性，处理EntitySuffix为空的情况
+        var className = SyntaxHelper.GetClassName(classNode).Replace(EntitySuffix ?? "", ""); // 提高容错性，处理EntitySuffix为空的情况
         var dtoClassName = $"{className}{classSuffix}";
         return dtoClassName;
     }

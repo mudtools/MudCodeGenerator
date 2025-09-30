@@ -35,7 +35,7 @@ public abstract class TransitiveBoGenerator(bool generateNotPrimary, bool genera
                 return;
             //Debugger.Launch();
 
-            var orgClassName = GetClassName(orgClassDeclaration);
+            var orgClassName = SyntaxHelper.GetClassName(orgClassDeclaration);
             var sb = GenMethodStart(orgClassName);
             var (localClass, dtoNameSpace, dtoClassName) = GenLocalClass(orgClassDeclaration);
 
@@ -89,7 +89,7 @@ public abstract class TransitiveBoGenerator(bool generateNotPrimary, bool genera
         catch (Exception ex)
         {
             // 提高容错性，报告生成错误
-            var className = orgClassDeclaration != null ? GetClassName(orgClassDeclaration) : "Unknown";
+            var className = orgClassDeclaration != null ? SyntaxHelper.GetClassName(orgClassDeclaration) : "Unknown";
             context.ReportDiagnostic(Diagnostic.Create(
                 new DiagnosticDescriptor(
                     "BO002",

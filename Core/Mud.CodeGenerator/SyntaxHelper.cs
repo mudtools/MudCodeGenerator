@@ -4,7 +4,6 @@ namespace Mud.CodeGenerator;
 
 internal static class SyntaxHelper
 {
-
     /// <summary>
     /// 获取类声明上的特性对象。
     /// </summary>
@@ -147,6 +146,19 @@ internal static class SyntaxHelper
         }
         return TryGetParentSyntax(syntaxNode, out result);
     }
+
+    /// <summary>
+    /// 获取原始的类名。
+    /// </summary>
+    /// <param name="classNode"><see cref="ClassDeclarationSyntax"/>对象。</param>
+    /// <returns>类名。</returns>
+    public static string GetClassName(ClassDeclarationSyntax classNode)
+    {
+        if (classNode == null)
+            return "";
+        return classNode.Identifier.Text;
+    }
+
 
     /// <summary>
     /// 获取类的全路径名。

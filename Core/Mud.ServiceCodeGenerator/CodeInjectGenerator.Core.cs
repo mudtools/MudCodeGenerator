@@ -43,7 +43,7 @@ public partial class CodeInjectGenerator
                         new DiagnosticDescriptor(
                             "SG001",
                             "Code generation failed",
-                            $"Failed to generate code for {GetClassName(classDeclaration)}: {ex.Message}",
+                            $"Failed to generate code for {SyntaxHelper.GetClassName(classDeclaration)}: {ex.Message}",
                             "CodeGeneration",
                             DiagnosticSeverity.Warning,
                             true),
@@ -69,7 +69,7 @@ public partial class CodeInjectGenerator
     #region 代码生成主流程
     private void GenerateClassCode(SourceProductionContext context, ClassDeclarationSyntax classDeclaration, ProjectConfiguration config)
     {
-        var className = GetClassName(classDeclaration);
+        var className = SyntaxHelper.GetClassName(classDeclaration);
         if (string.IsNullOrEmpty(className))
             return;
 

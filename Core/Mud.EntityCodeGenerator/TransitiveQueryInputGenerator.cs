@@ -26,7 +26,7 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
             if (!genClass)
                 return;
 
-            var orgClassName = GetClassName(orgClassDeclaration);
+            var orgClassName = SyntaxHelper.GetClassName(orgClassDeclaration);
             var sb = GetStartWherePart(orgClassName);
 
             var (localClass, dtoNameSpace, dtoClassName) = GenLocalClass(orgClassDeclaration);
@@ -77,7 +77,7 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
         catch (Exception ex)
         {
             // 提高容错性，报告生成错误
-            var className = orgClassDeclaration != null ? GetClassName(orgClassDeclaration) : "Unknown";
+            var className = orgClassDeclaration != null ? SyntaxHelper.GetClassName(orgClassDeclaration) : "Unknown";
             context.ReportDiagnostic(Diagnostic.Create(
                 new DiagnosticDescriptor(
                     "QI002",
