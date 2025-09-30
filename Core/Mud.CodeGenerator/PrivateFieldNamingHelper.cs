@@ -52,6 +52,9 @@ internal static class PrivateFieldNamingHelper
         // 清理类型名
         string cleanedName = CleanTypeName(typeName);
 
+        // 移除接口前缀"I"
+        cleanedName = RemoveInterfacePrefix(cleanedName);
+
         // 根据不同的命名风格生成字段名
         return style switch
         {
@@ -94,7 +97,33 @@ internal static class PrivateFieldNamingHelper
             return GeneratePrivateFieldName(typeName, style);
         }
 
-        return GeneratePrivateFieldName(type.Name, style);
+        // 对于接口类型，移除接口前缀"I"
+        string processedTypeName = type.Name;
+        if (type.IsInterface)
+        {
+            processedTypeName = RemoveInterfacePrefix(processedTypeName);
+        }
+
+        return GeneratePrivateFieldName(processedTypeName, style);
+    }
+
+    /// <summary>
+    /// 移除接口前缀"I"
+    /// </summary>
+    /// <param name="typeName">类型名称</param>
+    /// <returns>移除前缀后的类型名称</returns>
+    private static string RemoveInterfacePrefix(string typeName)
+    {
+        if (string.IsNullOrEmpty(typeName))
+            return typeName;
+
+        // 如果类型名以"I"开头，且第二个字符是大写字母（符合接口命名规范），则移除"I"前缀
+        if (typeName.Length > 1 && typeName[0] == 'I' && char.IsUpper(typeName[1]))
+        {
+            return typeName.Substring(1);
+        }
+
+        return typeName;
     }
 
     /// <summary>
@@ -301,11 +330,8 @@ internal static class PrivateFieldNamingHelper
             .Replace("[]", "")
             .Replace("?", "");
 
-        // 如果类型名以"I"开头且第二个字母是大写（很可能是接口），去掉"I"
-        if (typeName.Length > 1 && typeName[0] == 'I' && char.IsUpper(typeName[1]))
-        {
-            typeName = typeName.Substring(1);
-        }
+        // 移除接口前缀"I"
+        typeName = RemoveInterfacePrefix(typeName);
 
         // 根据不同的命名风格生成字段名
         if (typeName.Length == 0)

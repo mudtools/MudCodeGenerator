@@ -113,7 +113,7 @@ public class CodeInjectGenerator : TransitiveCodeGenerator
 
                 (parameterListSyntax, constructorBody) = GeneratorOptionsInject(classDeclaration, variableType, varName, parameterListSyntax, constructorBody);
 
-                var fieldCode = $"private readonly IOptions<{variableType}> {varName};";
+                var fieldCode = $"private readonly {variableType} {varName};";
                 var fieldDeclaration = GeneratorPrivateField(fieldCode);
                 fieldDeclarationSyntaxs.Add(fieldDeclaration);
             }
