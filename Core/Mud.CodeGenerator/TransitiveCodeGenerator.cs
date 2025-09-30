@@ -223,7 +223,14 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     /// </summary>
     /// <param name="declarationSyntax">属性声明。</param>
     /// <returns>属性名。</returns>
-    protected string GetPropertyName(PropertyDeclarationSyntax declarationSyntax) => declarationSyntax?.Identifier.Text;
+    protected string GetPropertyName(PropertyDeclarationSyntax declarationSyntax)
+    {
+        if (declarationSyntax == null)
+            return string.Empty;
+        if (declarationSyntax.Identifier == null)
+            return string.Empty;
+        return declarationSyntax.Identifier.Text;
+    }
 
     /// <summary>
     /// 获取字段的变量名。
