@@ -6,8 +6,10 @@ namespace Mud.EntityCodeGenerator;
 /// 生成业务数据更新操作UpInput类。
 /// </summary>
 [Generator(LanguageNames.CSharp)]
-public class TransitiveUpInputGenerator() : TransitiveBoGenerator(false, true)
+public class TransitiveUpInputGenerator : TransitiveBoGenerator
 {
+    public TransitiveUpInputGenerator() : base(false, true) { }
+
     /// <inheritdoc/>
     protected override string ClassSuffix => "UpInput";
 
@@ -54,11 +56,11 @@ public class TransitiveUpInputGenerator() : TransitiveBoGenerator(false, true)
         {
             orgPropertyName = GetFirstUpperPropertyName(field);
         }
-        
+
         // 提高容错性，确保属性名不为空
         if (string.IsNullOrEmpty(orgPropertyName))
             return;
-            
+
         var propertyName = ToLowerFirstLetter(orgPropertyName);
         sb.AppendLine($"            entity.{orgPropertyName}=this.{propertyName};");
     }

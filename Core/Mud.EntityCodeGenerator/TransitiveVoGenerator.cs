@@ -1,3 +1,6 @@
+using Mud.CodeGenerator;
+using Mud.EntityCodeGenerator.Diagnostics;
+
 namespace Mud.EntityCodeGenerator;
 
 /// <summary>
@@ -15,12 +18,12 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
 
     private const string PropertyValueConvertAttributeName = "PropertyValueConvertAttribute";
 
-    private readonly string[] ViewPropertyConvertAttributes = ["DictFormat", "Translation", "Sensitive"];
+    private readonly string[] ViewPropertyConvertAttributes = new[] { "DictFormat", "Translation", "Sensitive" };
 
     /// <inheritdoc/>
     protected override string[] GetPropertyAttributes()
     {
-        return [.. ViewPropertyConvertAttributes, "ExportProperty"];
+        return (new[] { "DictFormat", "Translation", "Sensitive" }).Concat(new[] { "ExportProperty" }).ToArray();
     }
 
     /// <inheritdoc/>
@@ -33,26 +36,19 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
             if (!genVoClass)
                 return;
 
-            var (localClass, dtoNameSpace, dtoClassName) = GenLocalClass(orgClassDeclaration);
-            localClass = GenLocalClassProperty<PropertyDeclarationSyntax>(orgClassDeclaration, localClass,
+            var (localClass, dtoNameSpace, dtoClassName) = BuildLocalClass(orgClassDeclaration);
+            localClass = BuildLocalClassProperty<PropertyDeclarationSyntax>(orgClassDeclaration, localClass,
                                                                 m => GenAttributeFunc(m),
                                                                 m => GenExtAttributeFunc(m));
-            localClass = GenLocalClassProperty<FieldDeclarationSyntax>(orgClassDeclaration, localClass,
+            localClass = BuildLocalClassProperty<FieldDeclarationSyntax>(orgClassDeclaration, localClass,
                                                                m => GenAttributeFunc(m),
                                                                m => GenExtAttributeFunc(m));
 
             // 提高容错性，检查生成的类是否为空
             if (localClass == null)
             {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    new DiagnosticDescriptor(
-                        "EG003",
-                        "VO类生成失败",
-                        $"无法为类 {SyntaxHelper.GetClassName(orgClassDeclaration)} 生成VO类",
-                        "代码生成",
-                        DiagnosticSeverity.Warning,
-                        true),
-                    Location.None));
+                var className = SyntaxHelper.GetClassName(orgClassDeclaration);
+                ReportFailureDiagnostic(context, DiagnosticDescriptors.VoGenerationFailure, className);
                 return;
             }
 
@@ -62,15 +58,8 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
         catch (Exception ex)
         {
             // 提高容错性，报告生成错误
-            context.ReportDiagnostic(Diagnostic.Create(
-                new DiagnosticDescriptor(
-                    "VO002",
-                    "VO类生成错误",
-                    $"生成类 {SyntaxHelper.GetClassName(orgClassDeclaration)} 的VO类时发生错误: {ex.Message}",
-                    "代码生成",
-                    DiagnosticSeverity.Error,
-                    true),
-                Location.None));
+            var className = SyntaxHelper.GetClassName(orgClassDeclaration);
+            ReportErrorDiagnostic(context, DiagnosticDescriptors.VoGenerationError, className, ex);
         }
     }
 
@@ -79,11 +68,11 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
     /// </summary>
     /// <param name="member"></param>
     /// <returns></returns>
-    private PropertyDeclarationSyntax GenAttributeFunc(PropertyDeclarationSyntax member)
+    private PropertyDeclarationSyntax? GenAttributeFunc(PropertyDeclarationSyntax member)
     {
         if (IsIgnoreGenerator(member))
             return null;
-        return GeneratorProperty(member);
+        return BuildProperty(member);
     }
 
     /// <summary>
@@ -91,11 +80,11 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
     /// </summary>
     /// <param name="member"></param>
     /// <returns></returns>
-    private PropertyDeclarationSyntax GenAttributeFunc(FieldDeclarationSyntax member)
+    private PropertyDeclarationSyntax? GenAttributeFunc(FieldDeclarationSyntax member)
     {
         if (IsIgnoreGenerator(member))
             return null;
-        return GeneratorProperty(member, false);
+        return BuildProperty(member, false);
     }
 
     /// <summary>
@@ -103,12 +92,11 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
     /// </summary>
     /// <param name="member"></param>
     /// <returns></returns>
-    private PropertyDeclarationSyntax GenExtAttributeFunc(PropertyDeclarationSyntax member)
+    private PropertyDeclarationSyntax? GenExtAttributeFunc(PropertyDeclarationSyntax member)
     {
         if (IsIgnoreGenerator(member))
             return null;
-
-        var viewAttributes = GetAttributes(member, [ViewPropertyAttribute]);
+        var viewAttributes = GetAttributes(member, new[] { ViewPropertyAttribute });
         if (!viewAttributes.Any())
             return null;
 
@@ -122,10 +110,7 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
                     null,
                     SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression,
                         SyntaxFactory.Literal(propertyName)));
-        var argsList = SyntaxFactory.SeparatedList(
-            [
-                linkPropertyName,
-            ]);
+        var argsList = SyntaxFactory.SeparatedList(new[] { linkPropertyName });
         //加入转换类型属性
         if (convertType != null)
             argsList = argsList.Add(convertType);
@@ -136,7 +121,7 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
         var argumentList = SyntaxFactory.AttributeArgumentList(argsList);
         attributeSyntax = attributeSyntax.WithArgumentList(argumentList);
         //新的属性
-        var propertyAttributes = SyntaxFactory.SeparatedList([attributeSyntax]);
+        var propertyAttributes = SyntaxFactory.SeparatedList(new[] { attributeSyntax });
 
         //获取原属性上需要迁移到新属性上特性。
         var attributeList = GetAttributes(member, ViewPropertyConvertAttributes);
@@ -147,7 +132,7 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
         }
         var attributeListSyntax = SyntaxFactory.AttributeList(propertyAttributes);
 
-        var property = GeneratorProperty(extPropertyName, "string");
+        var property = BuildProperty(extPropertyName, "string");
         property = property.AddAttributeLists(attributeListSyntax);
         return property;
     }
@@ -157,12 +142,12 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
     /// </summary>
     /// <param name="member"></param>
     /// <returns></returns>
-    private PropertyDeclarationSyntax GenExtAttributeFunc(FieldDeclarationSyntax member)
+    private PropertyDeclarationSyntax? GenExtAttributeFunc(FieldDeclarationSyntax member)
     {
         if (IsIgnoreGenerator(member))
             return null;
 
-        var viewAttributes = GetAttributes(member, [ViewPropertyAttribute]);
+        var viewAttributes = GetAttributes(member, new[] { ViewPropertyAttribute });
         if (!viewAttributes.Any())
             return null;
 
@@ -176,10 +161,7 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
                     null,
                     SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression,
                         SyntaxFactory.Literal(propertyName)));
-        var argsList = SyntaxFactory.SeparatedList(
-            [
-                linkPropertyName,
-            ]);
+        var argsList = SyntaxFactory.SeparatedList([linkPropertyName]);
         //加入转换类型属性
         if (convertType != null)
             argsList = argsList.Add(convertType);
@@ -201,12 +183,12 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
         }
         var attributeListSyntax = SyntaxFactory.AttributeList(propertyAttributes);
 
-        var property = GeneratorProperty(extPropertyName, "string");
+        var property = BuildProperty(extPropertyName, "string");
         property = property.AddAttributeLists(attributeListSyntax);
         return property;
     }
 
-    private AttributeArgumentSyntax GetConvertPropety(AttributeSyntax attributeSyntax)
+    private AttributeArgumentSyntax? GetConvertPropety(AttributeSyntax attributeSyntax)
     {
         // 提高容错性，处理空对象情况
         if (attributeSyntax?.ArgumentList == null)

@@ -1,3 +1,5 @@
+using Mud.CodeGenerator;
+using Mud.EntityCodeGenerator.Diagnostics;
 using System.Collections.ObjectModel;
 using System.Text;
 
@@ -39,7 +41,7 @@ namespace Mud.EntityCodeGenerator
                 var orgClassName = SyntaxHelper.GetClassName(orgClassDeclaration);
                 var voClassName = orgClassName.Replace(EntitySuffix, "") + TransitiveVoGenerator.VoSuffix;
 
-                var localClass = GenLocalClass(orgClassDeclaration, orgClassName, false);
+                var localClass = BuildLocalClass(orgClassDeclaration, orgClassName, false);
 
                 localClass = GenProperty(localClass, orgClassDeclaration);
 
@@ -50,15 +52,7 @@ namespace Mud.EntityCodeGenerator
                 // 提高容错性，检查生成的类是否为空
                 if (localClass == null)
                 {
-                    context.ReportDiagnostic(Diagnostic.Create(
-                        new DiagnosticDescriptor(
-                            "EM001",
-                            "实体映射方法生成失败",
-                            $"无法为类 {orgClassName} 生成实体映射方法",
-                            "代码生成",
-                            DiagnosticSeverity.Warning,
-                            true),
-                        Location.None));
+                    ReportFailureDiagnostic(context, DiagnosticDescriptors.EntityMethodGenerationFailure, orgClassName);
                     return;
                 }
 
@@ -69,15 +63,7 @@ namespace Mud.EntityCodeGenerator
             {
                 // 提高容错性，报告生成错误
                 var className = orgClassDeclaration != null ? SyntaxHelper.GetClassName(orgClassDeclaration) : "Unknown";
-                context.ReportDiagnostic(Diagnostic.Create(
-                    new DiagnosticDescriptor(
-                        "EM002",
-                        "实体映射方法生成错误",
-                        $"生成类 {className} 的实体映射方法时发生错误: {ex.Message}",
-                        "代码生成",
-                        DiagnosticSeverity.Error,
-                        true),
-                    Location.None));
+                ReportErrorDiagnostic(context, DiagnosticDescriptors.EntityMethodGenerationError, className, ex);
             }
         }
 
@@ -104,7 +90,7 @@ namespace Mud.EntityCodeGenerator
                     var attributeListyntax = SyntaxFactory.SeparatedList(attributeList);
 
                     //生成属性注解。
-                    var propertyDeclaration = GeneratorProperty(member);
+                    var propertyDeclaration = BuildProperty(member);
                     // 提高容错性，检查生成的属性是否为空
                     if (propertyDeclaration == null)
                         continue;

@@ -1,3 +1,5 @@
+using Mud.CodeGenerator;
+using Mud.EntityCodeGenerator.Diagnostics;
 using System.Collections.ObjectModel;
 
 namespace Mud.EntityCodeGenerator;
@@ -41,7 +43,12 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     /// <summary>
     /// 识别实体主键特性。
     /// </summary>
-    protected readonly string[] PrimaryAttributes = ["KeyAttribute", "Column|IsPrimary"];
+    protected readonly string[] PrimaryAttributes = new[] { "KeyAttribute", "Column|IsPrimary" };
+
+    /// <summary>
+    /// 获取类后缀
+    /// </summary>
+    protected override string ClassSuffix => "";
 
     /// <summary>
     /// 获取生成类的继承类。
@@ -57,9 +64,8 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     /// <inheritdoc/>
     public override void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        //Debugger.Launch();
         // 获取所有带有DtoGeneratorAttribute的类
-        var classDeclarationProvider = GetClassDeclarationProvider(context, [DtoGeneratorAttributeName]);
+        var classDeclarationProvider = GetClassDeclarationProvider(context, new[] { DtoGeneratorAttributeName });
         var compilationAndOptionsProvider = context.CompilationProvider
                                           .Combine(context.AnalyzerConfigOptionsProvider)
                                           .Select((s, _) => s);
@@ -86,15 +92,12 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
                     catch (Exception ex)
                     {
                         // 提高容错性，即使单个类生成失败也不影响其他类
+                        var className = SyntaxHelper.GetClassName(classNode);
                         context.ReportDiagnostic(Diagnostic.Create(
-                            new DiagnosticDescriptor(
-                                "DTO001",
-                                "DTO代码生成错误",
-                                $"生成类 {SyntaxHelper.GetClassName(classNode)} 时发生错误: {ex.Message}",
-                                "代码生成",
-                                DiagnosticSeverity.Error,
-                                true),
-                            Location.None));
+                            DiagnosticDescriptors.DtoGenerationError,
+                            Location.None,
+                            className,
+                            ex.Message));
                     }
                 }
             }
@@ -102,14 +105,9 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
             {
                 // 提高容错性，报告初始化错误
                 context.ReportDiagnostic(Diagnostic.Create(
-                    new DiagnosticDescriptor(
-                        "DTO002",
-                        "DTO代码生成初始化错误",
-                        $"初始化DTO代码生成器时发生错误: {ex.Message}",
-                        "代码生成",
-                        DiagnosticSeverity.Error,
-                        true),
-                    Location.None));
+                    DiagnosticDescriptors.DtoInitializationError,
+                    Location.None,
+                    ex.Message));
             }
         });
     }
@@ -150,14 +148,14 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     /// </summary>
     /// <param name="orgClassDeclaration">原始类的语法对象。</param>
     /// <returns></returns>
-    protected (ClassDeclarationSyntax? classDeclaration, string namespaceName, string className) GenLocalClass(ClassDeclarationSyntax orgClassDeclaration)
+    protected (ClassDeclarationSyntax? classDeclaration, string namespaceName, string className) BuildLocalClass(ClassDeclarationSyntax orgClassDeclaration)
     {
         // 提高容错性，处理空对象情况
         if (orgClassDeclaration == null)
             return (null, "", "");
         var dtoNamespace = GetDtoNamespaceName(orgClassDeclaration);
         var dtoClassName = GetGeneratorClassName(orgClassDeclaration);
-        var localClass = GenLocalClass(orgClassDeclaration, dtoClassName);
+        var localClass = BuildLocalClass(orgClassDeclaration, dtoClassName);
         return (localClass, dtoNamespace, dtoClassName);
     }
 
@@ -168,7 +166,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     /// <param name="localClass">本地类的语法对象。</param>
     /// <param name="genAttributeFunc">属性生成委托函数。</param>
     /// <param name="genExtAttributeFunc">扩展属性生成委托函数。</param>
-    protected ClassDeclarationSyntax? GenLocalClassProperty<T>(
+    protected ClassDeclarationSyntax? BuildLocalClassProperty<T>(
         ClassDeclarationSyntax orgClassDeclaration,
          ClassDeclarationSyntax localClass,
         Func<T, PropertyDeclarationSyntax?> genAttributeFunc,
@@ -245,7 +243,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     /// <param name="orgClassDeclaration">原始类的语法<see cref="ClassDeclarationSyntax"/>对象。</param>
     /// <param name="isAttachAttribute">类上是否绑定默认注解</param>
     /// <returns></returns>
-    protected ClassDeclarationSyntax GenLocalClass(ClassDeclarationSyntax orgClassDeclaration, string localClassName, bool isAttachAttribute = true)
+    protected ClassDeclarationSyntax BuildLocalClass(ClassDeclarationSyntax orgClassDeclaration, string localClassName, bool isAttachAttribute = true)
     {
         // 提高容错性，确保类名不为空
         if (string.IsNullOrEmpty(localClassName))
@@ -261,7 +259,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
         //在类上加入自定义注解。
         if (isAttachAttribute && EntityAttachAttributes != null && EntityAttachAttributes.Any())
         {
-            List<AttributeSyntax> attributeSyntaxs = [];
+            List<AttributeSyntax> attributeSyntaxs = new List<AttributeSyntax>();
             foreach (var attribute in EntityAttachAttributes)
             {
                 // 提高容错性，跳过空的特性名称
@@ -303,7 +301,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     protected ReadOnlyCollection<AttributeSyntax> GetAttributes<T>(T propertyDeclaration, string[] attributes)
         where T : MemberDeclarationSyntax
     {
-        List<AttributeSyntax> list = [];
+        var list = new List<AttributeSyntax>();
         if (propertyDeclaration == null)
             return new ReadOnlyCollection<AttributeSyntax>(list);
 
@@ -433,7 +431,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     /// <param name="member"></param>
     /// <param name="methBody">是否生成set、get方法体</param>
     /// <returns></returns>
-    protected PropertyDeclarationSyntax? GeneratorProperty(FieldDeclarationSyntax member, bool methBody = true)
+    protected PropertyDeclarationSyntax? BuildProperty(FieldDeclarationSyntax member, bool methBody = true)
     {
         // 提高容错性，处理空对象情况
         if (member == null)
@@ -447,10 +445,10 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
         var varName = GetFieldName(member);
         if (methBody)
         {
-            return GeneratorProperty(propertyName, propertyType, varName);
+            return BuildProperty(propertyName, propertyType, varName);
         }
         propertyName = ToLowerFirstLetter(propertyName);
-        return GeneratorProperty(propertyName, propertyType);
+        return BuildProperty(propertyName, propertyType);
     }
 
 
@@ -459,7 +457,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     /// </summary>
     /// <param name="member"></param>
     /// <returns></returns>
-    protected PropertyDeclarationSyntax? GeneratorProperty(PropertyDeclarationSyntax member)
+    protected PropertyDeclarationSyntax? BuildProperty(PropertyDeclarationSyntax member)
     {
         // 提高容错性，处理空对象情况
         if (member == null)
@@ -470,7 +468,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
         if (string.IsNullOrEmpty(propertyName) || string.IsNullOrEmpty(propertyType))
             return null;
 
-        return GeneratorProperty(propertyName, propertyType);
+        return BuildProperty(propertyName, propertyType);
     }
 
     /// <summary>
@@ -479,7 +477,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     /// <param name="propertyName">属性名。</param>
     /// <param name="propertyType">属性类型。</param>
     /// <returns></returns>
-    protected PropertyDeclarationSyntax GeneratorProperty(string propertyName, string propertyType)
+    protected PropertyDeclarationSyntax BuildProperty(string propertyName, string propertyType)
     {
         // 提高容错性，确保参数不为空
         if (string.IsNullOrEmpty(propertyName))
@@ -490,13 +488,13 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
         var propertyDeclaration = SyntaxFactory.PropertyDeclaration(
                    SyntaxFactory.ParseTypeName(propertyType), propertyName)
                    .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword))) // 设置访问修饰符为 public
-                   .WithAccessorList(SyntaxFactory.AccessorList(SyntaxFactory.List(
-                    [
-                        SyntaxFactory.AccessorDeclaration(SyntaxKind.GetAccessorDeclaration) // 添加 get 访问器
-                                .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken)),
-                            SyntaxFactory.AccessorDeclaration(SyntaxKind.SetAccessorDeclaration) // 添加 set 访问器
-                                .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-                    ])));
+                   .WithAccessorList(SyntaxFactory.AccessorList(SyntaxFactory.List(new[]
+                   {
+                       SyntaxFactory.AccessorDeclaration(SyntaxKind.GetAccessorDeclaration) // 添加 get 访问器
+                               .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken)),
+                           SyntaxFactory.AccessorDeclaration(SyntaxKind.SetAccessorDeclaration) // 添加 set 访问器
+                               .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
+                   })));
         return propertyDeclaration;
     }
 
@@ -507,7 +505,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     /// <param name="propertyType">属性类型。</param>
     /// <param name="priFieldName">私有字段</param>
     /// <returns></returns>
-    protected PropertyDeclarationSyntax GeneratorProperty(string propertyName, string propertyType, string priFieldName)
+    protected PropertyDeclarationSyntax BuildProperty(string propertyName, string propertyType, string priFieldName)
     {
         // 提高容错性，确保参数不为空
         if (string.IsNullOrEmpty(propertyName))
@@ -550,11 +548,34 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
         var propertyDeclaration = SyntaxFactory.PropertyDeclaration(
                    SyntaxFactory.ParseTypeName(propertyType), propertyName)
                    .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword))) // 设置访问修饰符为 public
-                   .WithAccessorList(SyntaxFactory.AccessorList(SyntaxFactory.List(
-                    [
+                   .WithAccessorList(SyntaxFactory.AccessorList(SyntaxFactory.List(new[]
+                   {
                        getAccessor,
                        setAccessor
-                    ])));
+                   })));
         return propertyDeclaration;
+    }
+
+    /// <summary>
+    /// 报告生成失败的诊断信息
+    /// </summary>
+    /// <param name="context">源码生成上下文</param>
+    /// <param name="descriptor">诊断描述符</param>
+    /// <param name="className">类名</param>
+    protected void ReportFailureDiagnostic(SourceProductionContext context, DiagnosticDescriptor descriptor, string className)
+    {
+        context.ReportDiagnostic(Diagnostic.Create(descriptor, Location.None, className));
+    }
+
+    /// <summary>
+    /// 报告生成错误的诊断信息
+    /// </summary>
+    /// <param name="context">源码生成上下文</param>
+    /// <param name="descriptor">诊断描述符</param>
+    /// <param name="className">类名</param>
+    /// <param name="exception">异常信息</param>
+    protected void ReportErrorDiagnostic(SourceProductionContext context, DiagnosticDescriptor descriptor, string className, Exception exception)
+    {
+        context.ReportDiagnostic(Diagnostic.Create(descriptor, Location.None, className, exception.Message));
     }
 }

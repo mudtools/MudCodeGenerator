@@ -1,3 +1,4 @@
+using Mud.CodeGenerator;
 using System.Text;
 
 namespace Mud.EntityCodeGenerator;
@@ -29,9 +30,9 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
             var orgClassName = SyntaxHelper.GetClassName(orgClassDeclaration);
             var sb = GetStartWherePart(orgClassName);
 
-            var (localClass, dtoNameSpace, dtoClassName) = GenLocalClass(orgClassDeclaration);
+            var (localClass, dtoNameSpace, dtoClassName) = BuildLocalClass(orgClassDeclaration);
 
-            localClass = GenLocalClassProperty<PropertyDeclarationSyntax>(orgClassDeclaration, localClass,
+            localClass = BuildLocalClassProperty<PropertyDeclarationSyntax>(orgClassDeclaration, localClass,
                             member =>
                             {
                                 if (IsIgnoreGenerator(member))
@@ -39,9 +40,9 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
 
                                 GeneratorWhereContent(member, sb);
 
-                                return GeneratorProperty(member);
+                                return BuildProperty(member);
                             }, null);
-            localClass = GenLocalClassProperty<FieldDeclarationSyntax>(orgClassDeclaration, localClass,
+            localClass = BuildLocalClassProperty<FieldDeclarationSyntax>(orgClassDeclaration, localClass,
                              member =>
                              {
                                  if (IsIgnoreGenerator(member))
@@ -49,7 +50,7 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
 
                                  GeneratorWhereContent(member, sb);
 
-                                 return GeneratorProperty(member, false);
+                                 return BuildProperty(member, false);
                              }, null);
 
             var methodDeclaration = GetMethodDeclaration(sb);

@@ -1,3 +1,5 @@
+using Mud.CodeGenerator;
+using Mud.EntityCodeGenerator.Diagnostics;
 using System.Text;
 
 namespace Mud.EntityCodeGenerator;
@@ -7,17 +9,23 @@ namespace Mud.EntityCodeGenerator;
 /// </summary>
 /// <param name="generateNotPrimary">是否生成非主键属性</param>
 /// <param name="generatePrimary">是否生成主键属性</param>
-public abstract class TransitiveBoGenerator(bool generateNotPrimary, bool generatePrimary) : TransitiveDtoGenerator
+public abstract class TransitiveBoGenerator : TransitiveDtoGenerator
 {
     /// <summary>
     /// 是否生成主键属性。
     /// </summary>
-    private bool _generatePrimary { get; } = generatePrimary;
+    private readonly bool _generatePrimary;
 
     /// <summary>
     /// 是否生成非主键属性。
     /// </summary>
-    private bool _generateNotPrimary { get; } = generateNotPrimary;
+    private readonly bool _generateNotPrimary;
+
+    protected TransitiveBoGenerator(bool generateNotPrimary, bool generatePrimary)
+    {
+        _generatePrimary = generatePrimary;
+        _generateNotPrimary = generateNotPrimary;
+    }
 
     /// <inheritdoc/>
     protected override string[] GetPropertyAttributes()
@@ -37,9 +45,9 @@ public abstract class TransitiveBoGenerator(bool generateNotPrimary, bool genera
 
             var orgClassName = SyntaxHelper.GetClassName(orgClassDeclaration);
             var sb = GenMethodStart(orgClassName);
-            var (localClass, dtoNameSpace, dtoClassName) = GenLocalClass(orgClassDeclaration);
+            var (localClass, dtoNameSpace, dtoClassName) = BuildLocalClass(orgClassDeclaration);
 
-            localClass = GenLocalClassProperty<PropertyDeclarationSyntax>(orgClassDeclaration, localClass, member =>
+            localClass = BuildLocalClassProperty<PropertyDeclarationSyntax>(orgClassDeclaration, localClass, member =>
             {
                 if (IsIgnoreGenerator(member))
                     return null;
@@ -49,9 +57,9 @@ public abstract class TransitiveBoGenerator(bool generateNotPrimary, bool genera
                     return null;
                 if (!isPrimary && !_generateNotPrimary)
                     return null;
-                return GeneratorProperty(member);
+                return BuildProperty(member);
             }, null);
-            localClass = GenLocalClassProperty<FieldDeclarationSyntax>(orgClassDeclaration, localClass, member =>
+            localClass = BuildLocalClassProperty<FieldDeclarationSyntax>(orgClassDeclaration, localClass, member =>
             {
                 if (IsIgnoreGenerator(member))
                     return null;
@@ -61,7 +69,7 @@ public abstract class TransitiveBoGenerator(bool generateNotPrimary, bool genera
                     return null;
                 if (!isPrimary && !_generateNotPrimary)
                     return null;
-                return GeneratorProperty(member, false);
+                return BuildProperty(member, false);
             }, null);
 
             var methodDeclaration = GenMethodEnd(sb);
@@ -71,15 +79,7 @@ public abstract class TransitiveBoGenerator(bool generateNotPrimary, bool genera
             // 提高容错性，检查生成的类是否为空
             if (localClass == null)
             {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    new DiagnosticDescriptor(
-                        "EG001",
-                        "BO类生成失败",
-                        $"无法为类 {orgClassName} 生成BO类",
-                        "代码生成",
-                        DiagnosticSeverity.Warning,
-                        true),
-                    Location.None));
+                ReportFailureDiagnostic(context, DiagnosticDescriptors.BoGenerationFailure, orgClassName);
                 return;
             }
 
@@ -90,15 +90,7 @@ public abstract class TransitiveBoGenerator(bool generateNotPrimary, bool genera
         {
             // 提高容错性，报告生成错误
             var className = orgClassDeclaration != null ? SyntaxHelper.GetClassName(orgClassDeclaration) : "Unknown";
-            context.ReportDiagnostic(Diagnostic.Create(
-                new DiagnosticDescriptor(
-                    "BO002",
-                    "BO类生成错误",
-                    $"生成类 {className} 的BO类时发生错误: {ex.Message}",
-                    "代码生成",
-                    DiagnosticSeverity.Error,
-                    true),
-                Location.None));
+            ReportErrorDiagnostic(context, DiagnosticDescriptors.BoGenerationError, className, ex);
         }
     }
 
