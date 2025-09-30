@@ -8,6 +8,7 @@ public class CodeInjectGenerator : TransitiveCodeGenerator
 {
     private const string ConstructorInjectAttributeName = "ConstructorInjectAttribute";
     private const string LoggerInjectAttributeName = "LoggerInjectAttribute";
+    private const string OptionsInjectAttributeName = "OptionsInjectAttribute";
     private const string CacheManagerInjectAttributeName = "CacheInjectAttribute";
     private const string UserManagerInjectAttributeName = "UserInjectAttribute";
     private const string CustomInjectAttributeName = "CustomInjectAttribute";
@@ -63,6 +64,7 @@ public class CodeInjectGenerator : TransitiveCodeGenerator
         List<FieldDeclarationSyntax> fieldDeclarationSyntaxs = [];
         var constructInject = GetAttributeSyntaxes(classDeclaration, ConstructorInjectAttributeName);
         var loggerInject = GetAttributeSyntaxes(classDeclaration, LoggerInjectAttributeName);
+        var optionsInject = GetAttributeSyntaxes(classDeclaration, OptionsInjectAttributeName);
         var cacheManagerInject = GetAttributeSyntaxes(classDeclaration, CacheManagerInjectAttributeName);
         var userManagerInject = GetAttributeSyntaxes(classDeclaration, UserManagerInjectAttributeName);
         var customInject = GetAttributeSyntaxes(classDeclaration, CustomInjectAttributeName);
@@ -82,6 +84,7 @@ public class CodeInjectGenerator : TransitiveCodeGenerator
             var fieldDeclaration = GeneratorPrivateField(fieldCode);
             fieldDeclarationSyntaxs.Add(fieldDeclaration);
         }
+
         //注入缓存管理对象。
         if (cacheManagerInject.Any())
         {
@@ -96,18 +99,37 @@ public class CodeInjectGenerator : TransitiveCodeGenerator
             var fieldDeclaration = GeneratorPrivateField(defaultUserManagerType, defaultUserManagerVariable);
             fieldDeclarationSyntaxs.Add(fieldDeclaration);
         }
+        //注入配置项对象。
+        if (optionsInject.Any())
+        {
+            foreach (var option in optionsInject)
+            {
+                var variableType = option.GetPropertyValue("OptionType")?.ToString();
+                if (string.IsNullOrWhiteSpace(variableType))
+                    continue;
+                var varName = option.GetPropertyValue("VarName")?.ToString();
+                if (string.IsNullOrWhiteSpace(varName))
+                    varName = PrivateFieldNamingHelper.GeneratePrivateFieldName(variableType, FieldNamingStyle.UnderscoreCamel);
+
+                (parameterListSyntax, constructorBody) = GeneratorOptionsInject(classDeclaration, variableType, varName, parameterListSyntax, constructorBody);
+
+                var fieldCode = $"private readonly IOptions<{variableType}> {varName};";
+                var fieldDeclaration = GeneratorPrivateField(fieldCode);
+                fieldDeclarationSyntaxs.Add(fieldDeclaration);
+            }
+        }
 
         if (customInject.Any())
         {
-            foreach (var custom in customInject)
+            foreach (var customType in customInject)
             {
-                var variableType = custom.GetPropertyValue("VarType")?.ToString();
-                var varName = custom.GetPropertyValue("VarName")?.ToString();
-                //var (variableType, varName) = GetAttributeArguments(custom);
+                var variableType = customType.GetPropertyValue("VarType")?.ToString();
+                var varName = customType.GetPropertyValue("VarName")?.ToString();
                 if (string.IsNullOrWhiteSpace(variableType))
                     continue;
                 if (string.IsNullOrWhiteSpace(varName))
                     varName = PrivateFieldNamingHelper.GeneratePrivateFieldName(variableType, FieldNamingStyle.UnderscoreCamel);
+
                 (parameterListSyntax, constructorBody) = GeneratorStandardInject(classDeclaration, className, variableType, varName, parameterListSyntax, constructorBody);
                 var fieldDeclaration = GeneratorPrivateField(variableType, varName);
                 fieldDeclarationSyntaxs.Add(fieldDeclaration);
@@ -213,7 +235,8 @@ public class CodeInjectGenerator : TransitiveCodeGenerator
     /// <param name="parameterListSyntax"></param>
     /// <param name="constructorBody"></param>
     /// <returns></returns>
-    private (ParameterListSyntax parameterListSyntax, BlockSyntax constructorBody) GeneratorLoggerInject(ClassDeclarationSyntax classDeclaration, string className, ParameterListSyntax parameterListSyntax, BlockSyntax constructorBody)
+    private (ParameterListSyntax parameterListSyntax, BlockSyntax constructorBody)
+        GeneratorLoggerInject(ClassDeclarationSyntax classDeclaration, string className, ParameterListSyntax parameterListSyntax, BlockSyntax constructorBody)
     {
         var parameter = SyntaxFactory.Parameter(
                                SyntaxFactory.List<AttributeListSyntax>(),
@@ -240,7 +263,45 @@ public class CodeInjectGenerator : TransitiveCodeGenerator
     }
 
     /// <summary>
-    /// 生成日志注入代码。
+    /// 生成配置项注入代码。
+    /// </summary>
+    /// <param name="classDeclaration"></param>
+    /// <param name="optionClassName"></param>
+    /// <param name="parameterListSyntax"></param>
+    /// <param name="constructorBody"></param>
+    /// <returns></returns>
+    private (ParameterListSyntax parameterListSyntax, BlockSyntax constructorBody)
+        GeneratorOptionsInject(ClassDeclarationSyntax classDeclaration,
+        string optionClassName, string optionFieldVariable, ParameterListSyntax parameterListSyntax,
+        BlockSyntax constructorBody)
+    {
+        var optionVariable = PrivateFieldNamingHelper.GeneratePrivateFieldName(optionClassName, FieldNamingStyle.PureCamel);
+        var parameter = SyntaxFactory.Parameter(
+                               SyntaxFactory.List<AttributeListSyntax>(),
+                               SyntaxFactory.TokenList(),
+                               SyntaxFactory.ParseTypeName($"IOptions<{optionClassName}>"),
+                               SyntaxFactory.Identifier(optionVariable),
+                               null);
+        if (parameterListSyntax == null)
+            parameterListSyntax = SyntaxFactory.ParameterList(SyntaxFactory.SingletonSeparatedList(parameter));
+        else
+            parameterListSyntax = parameterListSyntax.AddParameters(parameter);
+
+        var block = CreateOptionCode(optionVariable, optionFieldVariable);
+        if (constructorBody == null)
+        {
+            constructorBody = SyntaxFactory.Block(block);
+        }
+        else
+        {
+            constructorBody = constructorBody.AddStatements(block);
+        }
+
+        return (parameterListSyntax, constructorBody);
+    }
+
+    /// <summary>
+    /// 生成构造函数注入代码。
     /// </summary>
     /// <returns></returns>
     private (ParameterListSyntax parameterListSyntax, BlockSyntax constructorBody) GeneratorStandardInject(ClassDeclarationSyntax classDeclaration,
@@ -381,6 +442,19 @@ public class CodeInjectGenerator : TransitiveCodeGenerator
     private ExpressionStatementSyntax CreateLogCode(string className, string loggerVarName)
     {
         var statementText = $"{loggerVarName} = loggerFactory.CreateLogger<{className}>();";
+        var newStatement = SyntaxFactory.ParseStatement(statementText) as ExpressionStatementSyntax;
+        return newStatement;
+    }
+
+    /// <summary>
+    /// 创建日志代码块。
+    /// </summary>
+    /// <param name="optionFiledVarName"></param>
+    /// <param name="optionVarName"></param>
+    /// <returns></returns>
+    private ExpressionStatementSyntax CreateOptionCode(string optionVarName, string optionFiledVarName)
+    {
+        var statementText = $"{optionFiledVarName} = {optionVarName}.Value;";
         var newStatement = SyntaxFactory.ParseStatement(statementText) as ExpressionStatementSyntax;
         return newStatement;
     }
