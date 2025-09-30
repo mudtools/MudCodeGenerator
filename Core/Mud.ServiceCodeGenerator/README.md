@@ -6,11 +6,10 @@ Mud 服务代码生成器是一个基于 Roslyn 的源代码生成器，用于�
 
 1. **服务类代码生成** - 根据实体类自动生成服务接口和服务实现类
 2. **依赖注入代码生成** - 自动为类生成构造函数注入代码，包括日志、缓存、用户管理等常用服务
-3. **DTO代码生成** - 根据实体类自动生成数据传输对象
 
 ## 项目参数配置
 
-在使用 Mud 服务代码生成器时，可以通过在项目文件中配置以下参数来自定义生成行为：
+在使用 Mud 服务代码生成器时，可以通过在项目文件中配置以下参数自定义生成行为：
 
 ### 通用配置参数
 
@@ -58,36 +57,11 @@ Mud 服务代码生成器是一个基于 Roslyn 的源代码生成器，用于�
 
 ## 代码生成功能及样例
 
-### 1. 服务类代码生成
-
-在服务类程序项目中添加服务代码生成配置：
-
-```xml
-<PropertyGroup>
-  <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
-  <EntityAssemblyPrefix>TestClassLibrary</EntityAssemblyPrefix>  <!-- 实体程序集前缀配置，用于业务代码生成时搜索对应的实体类型 -->
-</PropertyGroup>
-<ItemGroup>
-  <CompilerVisibleProperty Include="EntityAssemblyPrefix" />
-</ItemGroup>
-```
-
-在服务中添加服务代码生成特性：
-
-```cs
-[ServiceGenerator(EntityType = nameof(SysDeptEntity))]
-public partial class SysDeptService
-{
-}
-```
-
-生成的代码将包含基于实体的完整服务接口和实现类。
-
-### 2. 依赖注入代码生成
+### 依赖注入代码生成
 
 使用各种注入特性为类自动生成构造函数注入代码：
 
-```cs
+```CSharp
 [ConstructorInject]  // 字段构造函数注入
 [LoggerInject]       // 日志注入
 [CacheInject]        // 缓存管理器注入
@@ -102,13 +76,13 @@ public partial class SysUserService
 }
 ```
 
-#### 2.1 构造函数注入详解
+#### 构造函数注入详解
 
 ##### ConstructorInjectAttribute 字段注入
 使用 [ConstructorInject] 特性可以将类中已存在的字段通过构造函数注入初始化。该注入方式会扫描类中的所有私有只读字段，并为其生成相应的构造函数参数和赋值语句。
 
 示例：
-```cs
+```CSharp
 [ConstructorInject]
 public partial class UserService
 {
@@ -116,29 +90,29 @@ public partial class UserService
     private readonly IRoleRepository _roleRepository;
     
     // 生成的代码将包含:
-    // public UserService(IUserRepository userRepository, IRoleRepository roleRepository)
-    // {
-    //     _userRepository = userRepository;
-    //     _roleRepository = roleRepository;
-    // }
+    public UserService(IUserRepository userRepository, IRoleRepository roleRepository)
+    {
+        _userRepository = userRepository;
+        _roleRepository = roleRepository;
+    }
 }
 ```
 
 ##### LoggerInjectAttribute 日志注入
-使用 [LoggerInject] 特性可以为类注入 ILogger<T> 类型的日志记录器。该注入会自动生成 ILoggerFactory 参数，并在构造函数中创建对应类的 Logger 实例。
+使用 [LoggerInject] 特性可以为类注入 ILogger<> 类型的日志记录器。该注入会自动生成 ILoggerFactory 参数，并在构造函数中创建对应类的 Logger 实例。
 
 示例：
-```cs
+```CSharp
 [LoggerInject]
 public partial class UserService
 {
     // 生成的代码将包含:
-    // private readonly ILogger<UserService> _logger;
-    //
-    // public UserService(ILoggerFactory loggerFactory)
-    // {
-    //     _logger = loggerFactory.CreateLogger<UserService>();
-    // }
+    private readonly ILogger<UserService> _logger;
+    
+    public UserService(ILoggerFactory loggerFactory)
+    {
+        _logger = loggerFactory.CreateLogger<UserService>();
+    }
 }
 ```
 
@@ -146,17 +120,17 @@ public partial class UserService
 使用 [CacheInject] 特性可以注入缓存管理器实例。默认类型为 ICacheManager，默认字段名为 _cacheManager，可通过项目配置修改。
 
 示例：
-```cs
+```CSharp
 [CacheInject]
 public partial class UserService
 {
     // 生成的代码将包含:
-    // private readonly ICacheManager _cacheManager;
-    //
-    // public UserService(ICacheManager cacheManager)
-    // {
-    //     _cacheManager = cacheManager;
-    // }
+    private readonly ICacheManager _cacheManager;
+    
+    public UserService(ICacheManager cacheManager)
+    {
+        _cacheManager = cacheManager;
+    }
 }
 ```
 
@@ -172,17 +146,17 @@ public partial class UserService
 使用 [UserInject] 特性可以注入用户管理器实例。默认类型为 IUserManager，默认字段名为 _userManager，可通过项目配置修改。
 
 示例：
-```cs
+```CSharp
 [UserInject]
 public partial class UserService
 {
     // 生成的代码将包含:
-    // private readonly IUserManager _userManager;
-    //
-    // public UserService(IUserManager userManager)
-    // {
-    //     _userManager = userManager;
-    // }
+    private readonly IUserManager _userManager;
+    
+    public UserService(IUserManager userManager)
+    {
+        _userManager = userManager;
+    }
 }
 ```
 
@@ -198,17 +172,17 @@ public partial class UserService
 使用 [OptionsInject] 特性可以根据指定的配置项类型注入配置实例。
 
 示例：
-```cs
+```CSharp
 [OptionsInject(OptionType = "TenantOptions")]
 public partial class UserService
 {
     // 生成的代码将包含:
-    // private readonly TenantOptions _tenantOptions;
-    //
-    // public UserService(IOptions<TenantOptions> tenantOptions)
-    // {
-    //     _tenantOptions = tenantOptions.Value;
-    // }
+    private readonly TenantOptions _tenantOptions;
+    
+    public UserService(IOptions<TenantOptions> tenantOptions)
+    {
+        _tenantOptions = tenantOptions.Value;
+    }
 }
 ```
 
@@ -216,28 +190,28 @@ public partial class UserService
 使用 [CustomInject] 特性可以注入任意类型的依赖项。需要指定注入类型(VarType)和字段名(VarName)。
 
 示例：
-```cs
+```CSharp
 [CustomInject(VarType = "IRepository<SysUser>", VarName = "_userRepository")]
 [CustomInject(VarType = "INotificationService", VarName = "_notificationService")]
 public partial class UserService
 {
     // 生成的代码将包含:
-    // private readonly IRepository<SysUser> _userRepository;
-    // private readonly INotificationService _notificationService;
-    //
-    // public UserService(IRepository<SysUser> userRepository, INotificationService notificationService)
-    // {
-    //     _userRepository = userRepository;
-    //     _notificationService = notificationService;
-    // }
+    private readonly IRepository<SysUser> _userRepository;
+    private readonly INotificationService _notificationService;
+    
+    public UserService(IRepository<SysUser> userRepository, INotificationService notificationService)
+    {
+        _userRepository = userRepository;
+        _notificationService = notificationService;
+    }
 }
 ```
 
-#### 2.2 组合注入示例
+#### 组合注入示例
 
 多种注入特性可以组合使用，生成器会自动合并所有注入需求：
 
-```cs
+```CSharp
 [ConstructorInject]
 [LoggerInject]
 [CacheInject]
@@ -250,39 +224,39 @@ public partial class UserService
     private readonly IPermissionRepository _permissionRepository;
     
     // 生成的代码将包含所有注入项:
-    // private readonly ILogger<UserService> _logger;
-    // private readonly ICacheManager _cacheManager;
-    // private readonly IUserManager _userManager;
-    // private readonly TenantOptions _tenantOptions;
-    // private readonly IRepository<SysUser> _userRepository;
-    // private readonly IRoleRepository _roleRepository;
-    // private readonly IPermissionRepository _permissionRepository;
-    //
-    // public UserService(
-    //     ILoggerFactory loggerFactory,
-    //     ICacheManager cacheManager,
-    //     IUserManager userManager,
-    //     IOptions<TenantOptions> tenantOptions,
-    //     IRepository<SysUser> userRepository,
-    //     IRoleRepository roleRepository,
-    //     IPermissionRepository permissionRepository)
-    // {
-    //     _logger = loggerFactory.CreateLogger<UserService>();
-    //     _cacheManager = cacheManager;
-    //     _userManager = userManager;
-    //     _tenantOptions = tenantOptions.Value;
-    //     _userRepository = userRepository;
-    //     _roleRepository = roleRepository;
-    //     _permissionRepository = permissionRepository;
-    // }
+    private readonly ILogger<UserService> _logger;
+    private readonly ICacheManager _cacheManager;
+    private readonly IUserManager _userManager;
+    private readonly TenantOptions _tenantOptions;
+    private readonly IRepository<SysUser> _userRepository;
+    private readonly IRoleRepository _roleRepository;
+    private readonly IPermissionRepository _permissionRepository;
+    
+    public UserService(
+        ILoggerFactory loggerFactory,
+        ICacheManager cacheManager,
+        IUserManager userManager,
+        IOptions<TenantOptions> tenantOptions,
+        IRepository<SysUser> userRepository,
+        IRoleRepository roleRepository,
+        IPermissionRepository permissionRepository)
+    {
+        _logger = loggerFactory.CreateLogger<UserService>();
+        _cacheManager = cacheManager;
+        _userManager = userManager;
+        _tenantOptions = tenantOptions.Value;
+        _userRepository = userRepository;
+        _roleRepository = roleRepository;
+        _permissionRepository = permissionRepository;
+    }
 }
 ```
 
-### 3. 忽略字段注入
+### 忽略字段注入
 
 对于某些不需要通过构造函数注入的字段，可以使用 [IgnoreGenerator] 特性标记：
 
-```cs
+```CSharp
 [ConstructorInject]
 public partial class UserService
 {
@@ -312,13 +286,13 @@ public partial class UserService
 [倔强的泥巴](https://gitee.com/mudtools)
 
 
-## 许可证
+### 许可证
 
 本项目采用MIT许可证模式：
 
-- [MIT 许可证](../../LICENSE-MIT)
+- [MIT 许可证](https://gitee.com/mudtools/mud-code-generator/blob/master/LICENSE)
 
-## 免责声明
+### 免责声明
 
 本项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
 

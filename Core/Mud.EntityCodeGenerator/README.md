@@ -370,13 +370,13 @@ public class SysClientEntity : BaseEntity
 [倔强的泥巴](https://gitee.com/mudtools)
 
 
-## 许可证
+### 许可证
 
 本项目采用MIT许可证模式：
 
-- [MIT 许可证](../../LICENSE-MIT)
+- [MIT 许可证](https://gitee.com/mudtools/mud-code-generator/blob/master/LICENSE)
 
-## 免责声明
+### 免责声明
 
 本项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
 
