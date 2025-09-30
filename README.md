@@ -87,9 +87,9 @@ Mud 代码生成器是一套基于 Roslyn 的源代码生成器，用于根据�
 
 ```xml
 <ItemGroup>
-  <!-- 引入的代码生成器程序集，注意后面的参数 -->
-  <PackageReference Include="Mud.EntityCodeGenerator" Version="1.1.6" PrivateAssets="all" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
-  <PackageReference Include="Mud.ServiceCodeGenerator" Version="1.0.1" PrivateAssets="all" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+  <!-- 引入的代码生成器程序集 -->
+  <PackageReference Include="Mud.EntityCodeGenerator" Version="1.1.6" />
+  <PackageReference Include="Mud.ServiceCodeGenerator" Version="1.1.6" />
 </ItemGroup>
 ```
 
