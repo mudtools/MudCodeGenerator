@@ -11,7 +11,7 @@ Mud 代码生成器是一个基于Roslyn的源代码生成器，专为.NET开发
 5. **更新输入类生成** - 根据实体类自动生成更新输入类（UpInput）
 6. **实体映射方法生成** - 自动生成实体与DTO之间的映射方法
 
-通过这些功能，开发者可以专注于业务逻辑的实现，而无需花费大量时间在重复性的代码编写上。
+通过这些功能，开发者可以专注于业务逻辑的实现，而无需花费大量时间在重复性的代码编写上.
 ## 代码生成项目参数配置
 
 在使用Mud 代码生成器时，可以通过在项目文件中配置以下参数来自定义生成行为：
@@ -23,11 +23,13 @@ Mud 代码生成器是一个基于Roslyn的源代码生成器，专为.NET开发
   <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>  <!-- 在obj目录下保存生成的代码 -->
   <EntitySuffix>Entity</EntitySuffix>  <!-- 实体类后缀配置 -->
   <EntityAttachAttributes>SuppressSniffer</EntityAttachAttributes>  <!-- 实体类加上Attribute特性配置，多个特性时使用','分隔 -->
+  <PropertyNameLowerCaseFirstLetter>true</PropertyNameLowerCaseFirstLetter>  <!-- 是否将生成的属性名首字母小写 -->
 </PropertyGroup>
 
 <ItemGroup>
   <CompilerVisibleProperty Include="EntitySuffix" />
   <CompilerVisibleProperty Include="EntityAttachAttributes" />
+  <CompilerVisibleProperty Include="PropertyNameLowerCaseFirstLetter" />
 </ItemGroup>
 ```
 
@@ -47,6 +49,7 @@ Mud 代码生成器是一个基于Roslyn的源代码生成器，专为.NET开发
 | EmitCompilerGeneratedFiles | false | 是否在obj目录下保存生成的代码，设为true便于调试 |
 | EntitySuffix | Entity | 实体类后缀，用于识别实体类 |
 | EntityAttachAttributes | (空) | 实体类上需要附加的特性，多个特性用逗号分隔 |
+| PropertyNameLowerCaseFirstLetter | true | 是否将生成的属性名首字母小写，设为false保持原有大小写 |
 
 ## 代码生成功能及样例
 

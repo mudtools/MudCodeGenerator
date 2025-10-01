@@ -32,6 +32,11 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     protected virtual string EntitySuffix { get; set; } = "Entity";
 
     /// <summary>
+    /// 是否将生成的属性名首字母小写，默认为 true
+    /// </summary>
+    protected virtual bool PropertyNameLowerCaseFirstLetter { get; set; } = true;
+
+    /// <summary>
     /// 获取生成代码的默认引入的命名空间。
     /// </summary>
     /// <returns></returns>
@@ -110,6 +115,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     protected void InitEntityPrefixValue(AnalyzerConfigOptions options)
     {
         ProjectConfigHelper.ReadProjectOptions(options, "build_property.EntitySuffix", val => EntitySuffix = val, "Entity");
+        ProjectConfigHelper.ReadProjectOptions(options, "build_property.PropertyNameLowerCaseFirstLetter", val => PropertyNameLowerCaseFirstLetter = bool.Parse(val), "true");
     }
 
 
@@ -168,13 +174,23 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
 
         if (declarationSyntax is PropertyDeclarationSyntax propertySyntax)
         {
-            var propertyName = GetFirstLowerPropertyName(propertySyntax);
+            var propertyName = GetPropertyName(propertySyntax);
+            // 根据配置决定是否将属性名首字母小写
+            if (PropertyNameLowerCaseFirstLetter)
+            {
+                propertyName = ToLowerFirstLetter(propertyName);
+            }
             var propertyType = SyntaxHelper.GetPropertyType(propertySyntax);
             return (propertyName, propertyType);
         }
         else if (declarationSyntax is FieldDeclarationSyntax fieldSyntax)
         {
             var propertyName = GetFirstUpperPropertyName(fieldSyntax);
+            // 根据配置决定是否将属性名首字母小写
+            if (PropertyNameLowerCaseFirstLetter)
+            {
+                propertyName = ToLowerFirstLetter(propertyName);
+            }
             var propertyType = SyntaxHelper.GetPropertyType(fieldSyntax);
             return (propertyName, propertyType);
         }
@@ -191,7 +207,12 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
         if (propertySymbol == null)
             return ("", "");
 
-        var propertyName = ToLowerFirstLetter(propertySymbol.Name);
+        var propertyName = propertySymbol.Name;
+        // 根据配置决定是否将属性名首字母小写
+        if (PropertyNameLowerCaseFirstLetter)
+        {
+            propertyName = ToLowerFirstLetter(propertyName);
+        }
         var propertyType = propertySymbol.Type.OriginalDefinition.Name;
         return (propertyName, propertyType);
     }
@@ -199,23 +220,25 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
 
 
     /// <summary>
-    /// 获取首字母小写的属性名。
+    /// 获取首字母小写的属性名（根据配置）。
     /// </summary>
     /// <param name="declarationSyntax">属性声明。</param>
     /// <returns>首字母小写的属性名。</returns>
     protected string GetFirstLowerPropertyName(PropertyDeclarationSyntax declarationSyntax)
     {
-        return ToLowerFirstLetter(GetPropertyName(declarationSyntax));
+        var propertyName = GetPropertyName(declarationSyntax);
+        return PropertyNameLowerCaseFirstLetter ? ToLowerFirstLetter(propertyName) : propertyName;
     }
 
     /// <summary>
     /// 获取首字母大写的属性名（基于字段声明）。
     /// </summary>
     /// <param name="declarationSyntax">字段声明。</param>
-    /// <returns>首字母大写的属性名。</returns>
+    /// <returns>首字母大写的字符串。</returns>
     protected string GetFirstUpperPropertyName(FieldDeclarationSyntax declarationSyntax)
     {
-        return ToPropertyName(GetFieldName(declarationSyntax));
+        var propertyName = ToPropertyName(GetFieldName(declarationSyntax));
+        return PropertyNameLowerCaseFirstLetter ? ToLowerFirstLetter(propertyName) : propertyName;
     }
 
     /// <summary>
@@ -261,12 +284,18 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     }
 
     /// <summary>
-    /// 将首字母小写。
+    /// 将首字母小写（根据配置）。
     /// </summary>
     /// <param name="input">输入字符串。</param>
     /// <returns>首字母小写的字符串。</returns>
     protected string ToLowerFirstLetter(string input)
     {
+        // 如果不启用首字母小写，则直接返回原字符串
+        if (!PropertyNameLowerCaseFirstLetter)
+        {
+            return input;
+        }
+
         if (string.IsNullOrEmpty(input) || input.Length <= 2)
         {
             return input?.ToLower(CultureInfo.CurrentCulture) ?? string.Empty;
@@ -275,12 +304,18 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     }
 
     /// <summary>
-    /// 将首字母大写。
+    /// 将首字母大写（根据配置）。
     /// </summary>
     /// <param name="input">输入字符串。</param>
     /// <returns>首字母大写的字符串。</returns>
     protected string ToUpperFirstLetter(string input)
     {
+        // 如果启用了首字母小写，则将首字母小写
+        if (PropertyNameLowerCaseFirstLetter)
+        {
+            return ToLowerFirstLetter(input);
+        }
+
         if (string.IsNullOrEmpty(input) || input.Length < 2)
         {
             return input?.ToUpper(CultureInfo.CurrentCulture) ?? string.Empty;

@@ -35,6 +35,9 @@ Mud 代码生成器是一套基于 Roslyn 的源代码生成器，用于根据�
   <EntitySuffix>Entity</EntitySuffix>  <!-- 实体类后缀配置 -->
   <EntityAttachAttributes>SuppressSniffer</EntityAttachAttributes>  <!-- 生成的VO、BO类加上Attribute特性配置，多个特性时使用','分隔 -->
   
+  <!-- 属性名配置 -->
+  <PropertyNameLowerCaseFirstLetter>true</PropertyNameLowerCaseFirstLetter>  <!-- 是否将生成的属性名首字母小写，默认为true -->
+  
   <!-- VO/BO 属性配置参数 -->
   <VoAttributes>CustomVo1Attribute,CustomVo2Attribute</VoAttributes>  <!-- 需要添加至VO类的自定义特性，多个特性时使用','分隔 -->
   <BoAttributes>CustomBo1Attribute,CustomBo2Attribute</BoAttributes>  <!-- 需要添加至BO类的自定义特性，多个特性时使用','分隔 -->
@@ -43,6 +46,7 @@ Mud 代码生成器是一套基于 Roslyn 的源代码生成器，用于根据�
 <ItemGroup>
   <CompilerVisibleProperty Include="EntitySuffix" />
   <CompilerVisibleProperty Include="EntityAttachAttributes" />
+  <CompilerVisibleProperty Include="PropertyNameLowerCaseFirstLetter" />
   <CompilerVisibleProperty Include="VoAttributes" />
   <CompilerVisibleProperty Include="BoAttributes" />
 </ItemGroup>
@@ -168,7 +172,7 @@ public partial class SysClientEntity
 基于以上实体，将自动生成以下几类代码：
 
 #### 实体类属性
-```csharp
+```
 /// <summary>
 /// 客户端信息实体类
 /// </summary>
@@ -240,7 +244,7 @@ public partial class SysClientEntity
 ```
 
 #### VO类 (视图对象)
-```csharp
+```
 /// <summary>
 /// 客户端信息实体类
 /// </summary>
@@ -268,7 +272,7 @@ public partial class SysClientListOutput
 ```
 
 #### QueryInput类 (查询输入对象)
-```csharp
+```
 // SysClientQueryInput.g.cs
 /// <summary>
 /// 客户端信息实体类
@@ -304,7 +308,7 @@ public partial class SysClientQueryInput : DataQueryInput
 ```
 
 #### CrInput类 (创建输入对象)
-```csharp
+```
 // SysClientCrInput.g.cs
 /// <summary>
 /// 客户端信息实体类
@@ -336,7 +340,7 @@ public partial class SysClientCrInput
 ```
 
 #### UpInput类 (更新输入对象)
-```csharp
+```
 /// <summary>
 /// 客户端信息实体类
 /// </summary>
@@ -365,7 +369,7 @@ public partial class SysClientUpInput : SysClientCrInput
 
 在服务类程序项目中添加服务代码生成配置：
 
-```xml
+```
 <PropertyGroup>
   <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
   <EntityAssemblyPrefix>TestClassLibrary</EntityAssemblyPrefix>  <!-- 实体程序集前缀配置，用于业务代码生成时搜索对应的实体类型 -->
@@ -377,7 +381,7 @@ public partial class SysClientUpInput : SysClientCrInput
 
 在服务中添加服务代码生成特性：
 
-```csharp
+```
 [ServiceGenerator(EntityType = nameof(SysDeptEntity))]
 public partial class SysDeptService
 {
@@ -390,7 +394,7 @@ public partial class SysDeptService
 
 使用各种注入特性为类自动生成构造函数注入代码：
 
-```csharp
+```
 [ConstructorInject]  // 字段构造函数注入
 [LoggerInject]       // 日志注入
 [CacheInject]        // 缓存管理器注入
@@ -407,7 +411,7 @@ public partial class SysUserService
 
 生成的代码示例：
 
-```csharp
+```
 public partial class SysUserService
 {
     private readonly ILogger<SysUserService> _logger;
@@ -453,7 +457,7 @@ public partial class SysUserService
 
 多种注入特性可以组合使用，生成器会自动合并所有注入需求：
 
-```csharp
+```
 [ConstructorInject]
 [LoggerInject]
 [CacheInject]
@@ -498,7 +502,7 @@ public partial class UserService
 
 对于某些不需要通过构造函数注入的字段，可以使用 [IgnoreGenerator] 特性标记：
 
-```csharp
+```
 [ConstructorInject]
 public partial class UserService
 {
@@ -543,7 +547,7 @@ Mud.CodeGenerator
 
 要查看生成的代码，可以在项目文件中添加以下配置：
 
-```xml
+```
 <PropertyGroup>
   <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 </PropertyGroup>

@@ -1,5 +1,6 @@
 using Mud.EntityCodeGenerator.Diagnostics;
 using System.Collections.ObjectModel;
+using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Mud.EntityCodeGenerator;
 
@@ -101,10 +102,9 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
 
                 InitEntityPrefixValue(analyzer.GlobalOptions);
                 //Debugger.Launch();
-                ProjectConfigHelper.ReadProjectOptions(analyzer.GlobalOptions, "build_property.EntityAttachAttributes", val => EntityAttachAttributes = val.Split(','), "");
 
-                ProjectConfigHelper.ReadProjectOptions(analyzer.GlobalOptions, "build_property.VoAttributes", val => VoAttributes = val.SplitString(',', s => s.RemoveSuffix("Attribute", false)), "");
-                ProjectConfigHelper.ReadProjectOptions(analyzer.GlobalOptions, "build_property.BoAttributes", val => BoAttributes = val.SplitString(',', s => s.RemoveSuffix("Attribute", false)), "");
+                // 读取并初始化所有配置项
+                ReadConfigurationOptions(analyzer.GlobalOptions);
 
                 var classes = provider.Left;
                 foreach (var classNode in classes)
@@ -142,6 +142,21 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     /// <param name="context"><see cref="SourceProductionContext"/>对象</param>
     /// <param name="orgClassDeclaration">原始的类声明语法<see cref="ClassDeclarationSyntax"/>对象。</param>
     protected abstract void GenerateCode(SourceProductionContext context, ClassDeclarationSyntax orgClassDeclaration);
+
+    /// <summary>
+    /// 读取项目配置选项并初始化内部字段。
+    /// </summary>
+    /// <param name="options">分析器配置选项</param>
+    private void ReadConfigurationOptions(AnalyzerConfigOptions options)
+    {
+        ProjectConfigHelper.ReadProjectOptions(options, "build_property.EntityAttachAttributes", val => EntityAttachAttributes = val.Split(','), "");
+
+        ProjectConfigHelper.ReadProjectOptions(options, "build_property.VoAttributes", val => VoAttributes = val.SplitString(',', s => s.RemoveSuffix("Attribute", false)), "");
+        ProjectConfigHelper.ReadProjectOptions(options, "build_property.BoAttributes", val => BoAttributes = val.SplitString(',', s => s.RemoveSuffix("Attribute", false)), "");
+
+        // 在此处添加对新配置项的读取，例如：
+        // ProjectConfigHelper.ReadProjectOptions(options, "build_property.NewAttributes", val => NewAttributes = val.Split(','), "");
+    }
 
     /// <summary>
     /// 获取生成DTO类所在的命名空间。
