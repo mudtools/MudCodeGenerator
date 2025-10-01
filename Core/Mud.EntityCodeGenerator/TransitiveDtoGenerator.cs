@@ -227,11 +227,25 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
                         }
                     }
                     //生成属性注释。
-                    var leadingTrivia = member.GetLeadingTrivia();
-                    if (leadingTrivia != null)
+                    var orgClassName = SyntaxHelper.GetClassName(orgClassDeclaration);
+                    string propertyName;
+                    if (member is PropertyDeclarationSyntax propertyMember)
                     {
-                        propertyDeclaration = propertyDeclaration.WithLeadingTrivia(leadingTrivia);
+                        propertyName = GetPropertyName(propertyMember);
                     }
+                    else if (member is FieldDeclarationSyntax fieldMember)
+                    {
+                        propertyName = GetFirstUpperPropertyName(fieldMember);
+                    }
+                    else
+                    {
+                        propertyName = GetGeneratorProperty(member).propertyName;
+                    }
+
+                    // 为每个属性添加带有额外换行的注释，确保属性之间有空行
+                    var inheritdoc = SyntaxFactory.ParseLeadingTrivia($"\n\n///<inheritdoc cref=\"{orgClassName}.{propertyName}\"/>\n");
+                    propertyDeclaration = propertyDeclaration.WithLeadingTrivia(inheritdoc);
+
                     localClass = localClass.AddMembers(propertyDeclaration);
 
                     //生成附加属性的方法
@@ -241,12 +255,10 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
                         if (extPropertyDeclaration == null)
                             continue;
 
-                        if (leadingTrivia != null)
-                        {
-                            extPropertyDeclaration = extPropertyDeclaration.WithLeadingTrivia(leadingTrivia);
-                        }
+                        // 为扩展属性也添加注释，同样添加额外换行
+                        var extInheritdoc = SyntaxFactory.ParseLeadingTrivia($"\n\n///<inheritdoc cref=\"{orgClassName}.{propertyName}\"/>\n");
+                        extPropertyDeclaration = extPropertyDeclaration.WithLeadingTrivia(extInheritdoc);
 
-                        //代码待补充。
                         localClass = localClass.AddMembers(extPropertyDeclaration);
                     }
                 }
@@ -257,7 +269,9 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
                 System.Diagnostics.Debug.WriteLine($"生成属性时发生错误: {ex.Message}");
             }
         }
-        return localClass;
+
+        // 统一格式化所有成员，确保属性之间有适当的空行
+        return localClass.NormalizeWhitespace();
     }
 
     /// <summary>
