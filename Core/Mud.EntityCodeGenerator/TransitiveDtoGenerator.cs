@@ -583,7 +583,10 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     /// <param name="propertyType">属性类型。</param>
     /// <param name="priFieldName">私有字段</param>
     /// <returns></returns>
-    protected PropertyDeclarationSyntax BuildProperty(string propertyName, string propertyType, string priFieldName)
+    protected PropertyDeclarationSyntax BuildProperty(
+        string propertyName,
+        string propertyType,
+        string priFieldName)
     {
         // 提高容错性，确保参数不为空
         if (string.IsNullOrEmpty(propertyName))
@@ -626,11 +629,11 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
         var propertyDeclaration = SyntaxFactory.PropertyDeclaration(
                    SyntaxFactory.ParseTypeName(propertyType), propertyName)
                    .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword))) // 设置访问修饰符为 public
-                   .WithAccessorList(SyntaxFactory.AccessorList(SyntaxFactory.List(new[]
-                   {
+                   .WithAccessorList(SyntaxFactory.AccessorList(SyntaxFactory.List(
+                   [
                        getAccessor,
                        setAccessor
-                   })));
+                   ])));
         return propertyDeclaration;
     }
 
@@ -640,7 +643,10 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     /// <param name="context">源码生成上下文</param>
     /// <param name="descriptor">诊断描述符</param>
     /// <param name="className">类名</param>
-    protected void ReportFailureDiagnostic(SourceProductionContext context, DiagnosticDescriptor descriptor, string className)
+    protected void ReportFailureDiagnostic(
+        SourceProductionContext context,
+        DiagnosticDescriptor descriptor,
+        string className)
     {
         context.ReportDiagnostic(Diagnostic.Create(descriptor, Location.None, className));
     }
@@ -652,8 +658,12 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     /// <param name="descriptor">诊断描述符</param>
     /// <param name="className">类名</param>
     /// <param name="exception">异常信息</param>
-    protected void ReportErrorDiagnostic(SourceProductionContext context, DiagnosticDescriptor descriptor, string className, Exception exception)
+    protected void ReportErrorDiagnostic(
+        SourceProductionContext context,
+        DiagnosticDescriptor descriptor,
+        string className,
+        Exception exception)
     {
-        context.ReportDiagnostic(Diagnostic.Create(descriptor, Location.None, className, exception.Message));
+        context.ReportDiagnostic(Diagnostic.Create(descriptor, Location.None, className, exception?.Message));
     }
 }

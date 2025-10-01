@@ -1,20 +1,16 @@
 ﻿using System.Collections.ObjectModel;
-using System.Globalization;
 
 namespace Mud.CodeGenerator;
 
 internal static class SyntaxHelper
 {
     /// <summary>
-    /// 获取属性类型。
+    /// 获取属性或字段的类型，并确保返回可空类型。
     /// </summary>
-    /// <typeparam name="T">成员声明类型。</typeparam>
-    /// <param name="declarationSyntax">成员声明。</param>
-    /// <returns>属性类型。</returns>
-    public static string GetPropertyType<T>(T declarationSyntax)
-         where T : MemberDeclarationSyntax
+    public static string GetPropertyType<T>(T declarationSyntax) where T : MemberDeclarationSyntax
     {
         var propertyType = "";
+
         if (declarationSyntax is PropertyDeclarationSyntax propertySyntax)
         {
             propertyType = propertySyntax.Type.ToString();
@@ -23,10 +19,54 @@ internal static class SyntaxHelper
         {
             propertyType = fieldSyntax.Declaration.Type.ToString();
         }
+        else
+        {
+            propertyType = "";
+        }
 
-        if (!propertyType.EndsWith("?", true, CultureInfo.CurrentCulture))
-            return propertyType + "?";
         return propertyType;
+
+        //// 如果已经是空字符串，直接返回
+        //if (string.IsNullOrEmpty(propertyType))
+        //    return propertyType;
+
+        //// 改进的可空类型检测
+        //if (IsNullableType(propertyType))
+        //{
+        //    return propertyType;
+        //}
+        //else
+        //{
+        //    return propertyType;
+        //}
+    }
+
+    /// <summary>
+    /// 判断类型字符串是否表示可空类型
+    /// </summary>
+    private static bool IsNullableType(string typeName)
+    {
+        if (string.IsNullOrEmpty(typeName))
+            return false;
+
+        // 去除前后空格
+        typeName = typeName.Trim();
+
+        // 检查后缀问号（可空值类型）
+        if (typeName.EndsWith("?", StringComparison.CurrentCulture))
+            return true;
+
+        // 检查 Nullable<T> 泛型形式
+        if (typeName.StartsWith("Nullable<", StringComparison.OrdinalIgnoreCase) ||
+            typeName.StartsWith("System.Nullable<", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        // 检查常见的引用类型（默认就是可空的）
+        var referenceTypes = new[] { "string", "object", "System.String", "System.Object" };
+        if (referenceTypes.Contains(typeName, StringComparer.OrdinalIgnoreCase))
+            return true;
+
+        return false;
     }
 
     /// <summary>
