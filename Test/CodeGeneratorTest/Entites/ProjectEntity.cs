@@ -1,12 +1,18 @@
 ﻿namespace CodeGeneratorTest.Entites;
 
 /// <summary>
-/// 经营项目管理
+/// 项目管理
 /// </summary>
-[Table(Name = "PRJ_MARKETPROJECT")]
-[DtoGenerator]
-public class MarketProjectEntity
+[Table(Name = "PROJECT")]
+[DtoGenerator(GenMapMethod = false)]
+public class ProjectEntity
 {
+    /// <summary>
+    /// 项目ID
+    /// </summary>
+    [Column(Name = "id", IsPrimary = true, Position = 1)]
+    public long Id { get; set; }
+
     /// <summary>
     /// 父项目ID
     /// </summary>
