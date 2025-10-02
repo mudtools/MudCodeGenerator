@@ -136,6 +136,13 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
             extensionClass = extensionClass.AddMembers(mapToListOutputMethod);
         }
 
+        // 添加MapToListOutputCollection方法（从实体集合映射到ListOutput集合）
+        var mapToListOutputCollectionMethod = GenerateMapToListOutputCollectionMethod(orgClassDeclaration, orgClassName);
+        if (mapToListOutputCollectionMethod != null)
+        {
+            extensionClass = extensionClass.AddMembers(mapToListOutputCollectionMethod);
+        }
+
         // 添加BuildQueryWhere方法（从QueryInput构建查询条件）
         var buildQueryWhereMethod = GenerateBuildQueryWhereMethod(orgClassDeclaration, orgClassName);
         if (buildQueryWhereMethod != null)
@@ -390,6 +397,45 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
             null); // 处理所有属性
 
         sb.AppendLine("    return output;");
+        sb.AppendLine("}");
+
+        return SyntaxHelper.GetMethodDeclarationSyntax(sb);
+    }
+
+    /// <summary>
+    /// 生成从实体集合映射到ListOutput集合的扩展方法
+    /// </summary>
+    private MethodDeclarationSyntax GenerateMapToListOutputCollectionMethod(
+        ClassDeclarationSyntax orgClassDeclaration,
+        string orgClassName)
+    {
+        var voClassName = orgClassName.Replace(EntitySuffix, "") + TransitiveVoGenerator.VoSuffix;
+        System.Diagnostics.Debug.WriteLine($"VO_CLASS_NAME: {voClassName}");
+
+        // 添加命名空间前缀
+        var fullVoClassName = $"{voClassName}";
+
+        var sb = new StringBuilder();
+
+        sb.AppendLine($"/// <summary>");
+        sb.AppendLine($"/// 将 <see cref=\"{orgClassName}\"/> 集合映射到 <see cref=\"{voClassName}\"/> 集合。");
+        sb.AppendLine($"/// </summary>");
+        sb.AppendLine($"/// <param name=\"entities\">输入的 <see cref=\"{orgClassName}\"/> 集合。</param>");
+        sb.AppendLine($"/// <returns>映射后的 <see cref=\"{voClassName}\"/> 集合。</returns>");
+        sb.AppendLine($"public static List<{fullVoClassName}> MapToList(this IEnumerable<{orgClassName}> entities, Action<{fullVoClassName}>? action=null)");
+        sb.AppendLine("{");
+        sb.AppendLine($"    if (entities == null)");
+        sb.AppendLine($"        return [];");
+        sb.AppendLine();
+        sb.AppendLine($"    var listOutputs = new List<{fullVoClassName}>();");
+        sb.AppendLine($"    foreach (var entity in entities)");
+        sb.AppendLine($"    {{");
+        sb.AppendLine($"        var listOutput = entity.MapToListOutput();");
+        sb.AppendLine($"        if(action!=null)");
+        sb.AppendLine($"            action(listOutput);");
+        sb.AppendLine($"        listOutputs.Add(listOutput);");
+        sb.AppendLine($"    }}");
+        sb.AppendLine($"    return listOutputs;");
         sb.AppendLine("}");
 
         return SyntaxHelper.GetMethodDeclarationSyntax(sb);

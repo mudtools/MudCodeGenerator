@@ -19,12 +19,7 @@ public partial class SysClientService
         var query = _baseRepository.Select.Where(where);
         var list = await query.ToListAsync();
 
-        List<SysClientListOutput> listOutputs = [];
-        foreach (var output in list)
-        {
-            var listOutput = output.MapToListOutput();
-            listOutputs.Add(listOutput);
-        }
+        List<SysClientListOutput> listOutputs = list.MapToList(a => a.clientKey = "");
         return listOutputs;
     }
 }
