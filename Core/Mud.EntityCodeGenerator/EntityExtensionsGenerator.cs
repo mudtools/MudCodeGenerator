@@ -6,7 +6,7 @@ namespace Mud.EntityCodeGenerator;
 /// <summary>
 /// 实体扩展类生成器，用于生成实体与其他DTO类型之间的映射扩展方法。
 /// </summary>
-[Generator]
+[Generator(LanguageNames.CSharp)]
 public class EntityExtensionsGenerator : TransitiveDtoGenerator
 {
     /// <summary>

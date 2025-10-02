@@ -4,7 +4,6 @@ using System.Text;
 
 namespace Mud.EntityCodeGenerator
 {
-
     /// <summary>
     /// 生成实体映射方法
     /// </summary>
