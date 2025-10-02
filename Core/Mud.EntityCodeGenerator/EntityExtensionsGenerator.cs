@@ -489,7 +489,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
                 {
                     continue;
                 }
-
+                orgPropertyName = StringExtensions.ToUpperFirstLetter(orgPropertyName);
                 var propertyName = ToLowerFirstLetter(orgPropertyName);
                 var mappingLine = generateMappingLine(orgPropertyName, propertyName);
                 sb.AppendLine(mappingLine);
@@ -538,6 +538,8 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
 
                 if (string.IsNullOrEmpty(orgPropertyName))
                     orgPropertyName = propertyName;
+
+                orgPropertyName = StringExtensions.ToUpperFirstLetter(orgPropertyName);
 
                 if (propertyType.StartsWith("string", StringComparison.OrdinalIgnoreCase))
                 {

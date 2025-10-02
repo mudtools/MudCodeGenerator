@@ -45,9 +45,9 @@ namespace Mud.EntityCodeGenerator
                 if (!success)//如果没有任何属性生成，则不生成类
                     return;
 
-                var methodDeclaration = GenMapMethod(orgClassDeclaration, voClassName);
-                if (methodDeclaration != null)
-                    localClass = localClass.AddMembers(methodDeclaration);
+                //var methodDeclaration = GenMapMethod(orgClassDeclaration, voClassName);
+                //if (methodDeclaration != null)
+                //    localClass = localClass.AddMembers(methodDeclaration);
 
                 // 提高容错性，检查生成的类是否为空
                 if (localClass == null)
