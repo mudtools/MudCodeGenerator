@@ -4,7 +4,7 @@
 /// 项目管理
 /// </summary>
 [Table(Name = "PROJECT")]
-[DtoGenerator(GenMapMethod = false)]
+[DtoGenerator(GenMapMethod = true)]
 public class ProjectEntity
 {
     /// <summary>

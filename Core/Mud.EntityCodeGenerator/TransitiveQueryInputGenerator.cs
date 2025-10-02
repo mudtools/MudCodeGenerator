@@ -28,7 +28,6 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
                 return;
 
             var orgClassName = SyntaxHelper.GetClassName(orgClassDeclaration);
-            var sb = GetStartWherePart(orgClassName);
 
             var (localClass, dtoNameSpace, dtoClassName) = BuildLocalClass(orgClassDeclaration);
 
@@ -38,8 +37,6 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
                                 if (IsIgnoreGenerator(member))
                                     return null;
 
-                                GeneratorWhereContent(member, sb);
-
                                 return BuildProperty(member);
                             }, null);
             localClass = BuildLocalClassProperty<FieldDeclarationSyntax>(orgClassDeclaration, localClass,
@@ -48,14 +45,8 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
                                  if (IsIgnoreGenerator(member))
                                      return null;
 
-                                 GeneratorWhereContent(member, sb);
-
                                  return BuildProperty(member, false);
                              }, null);
-
-            var methodDeclaration = GetMethodDeclaration(sb);
-            if (methodDeclaration != null)
-                localClass = localClass.AddMembers(methodDeclaration);
 
             // 提高容错性，检查生成的类是否为空
             if (localClass == null)
@@ -91,83 +82,4 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
         }
     }
 
-    private StringBuilder GetStartWherePart(string orgClassName)
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine("class TestProgram{");
-        sb.AppendLine("/// <summary>");
-        sb.AppendLine("/// 构建通用的查询条件。");
-        sb.AppendLine("/// </summary>");
-        sb.AppendLine($"public Expression<Func<{orgClassName}, bool>> BuildQueryWhere()");
-        sb.AppendLine("        {");
-        sb.AppendLine($"            Expression<Func<{orgClassName}, bool>> where = x => true;");
-        return sb;
-    }
-
-    //生成条件方法逻辑
-    private void GeneratorWhereContent<T>(T member, StringBuilder sb)
-         where T : MemberDeclarationSyntax
-    {
-        // 提高容错性，处理空对象情况
-        if (member == null || sb == null)
-            return;
-
-        var isLikeQuery = false;
-        if (IsLikeGenerator(member))
-            isLikeQuery = true;
-        var (propertyName, propertyType) = GetGeneratorProperty(member);
-        var orgPropertyName = "";
-        if (member is PropertyDeclarationSyntax property)
-            orgPropertyName = GetPropertyName(property);
-        else if (member is FieldDeclarationSyntax field)
-        {
-            orgPropertyName = propertyName;
-            propertyName = ToLowerFirstLetter(orgPropertyName);
-        }
-
-        GeneratorWhereContent(sb, isLikeQuery, propertyName, propertyType, orgPropertyName);
-    }
-
-    private void GeneratorWhereContent(StringBuilder sb, bool isLikeQuery, string propertyName, string propertyType, string orgPropertyName)
-    {
-        // 提高容错性，处理空对象情况
-        if (sb == null)
-            return;
-
-        // 提高容错性，确保参数不为空
-        if (string.IsNullOrEmpty(propertyName))
-            propertyName = "Property";
-        if (string.IsNullOrEmpty(propertyType))
-            propertyType = "object";
-        if (string.IsNullOrEmpty(orgPropertyName))
-            orgPropertyName = propertyName;
-
-        if (propertyType.StartsWith("string", StringComparison.OrdinalIgnoreCase))
-        {
-            sb.AppendLine($"         if(!string.IsNullOrEmpty(this.{propertyName}?.Trim()))");
-            if (!isLikeQuery)
-                sb.AppendLine($"            where = where.And( x => x.{orgPropertyName} == this.{propertyName}.Trim());");
-            else
-                sb.AppendLine($"            where = where.And( x => x.{orgPropertyName}.Contains(this.{propertyName}.Trim()));");
-        }
-        else
-        {
-            sb.AppendLine($"         if(this.{propertyName}!=null)");
-            sb.AppendLine($"            where = where.And( x => x.{orgPropertyName} == this.{propertyName});");
-        }
-    }
-
-
-    private MethodDeclarationSyntax GetMethodDeclaration(StringBuilder sb)
-    {
-        // 提高容错性，处理空对象情况
-        if (sb == null)
-            return null;
-
-        sb.AppendLine("            return where;");
-        sb.AppendLine("        }");
-        sb.AppendLine("}");
-
-        return GetMethodDeclarationSyntax(sb);
-    }
 }

@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Mud.EntityCodeGenerator;
 
@@ -17,35 +18,18 @@ public class TransitiveCrInputGenerator : TransitiveBoGenerator
     protected override string ClassSuffix => Suffix;
 
     /// <inheritdoc/>
-    protected override void GeneratorMethodContent<T>(T member, StringBuilder sb, bool isPrimary)
+    protected override StringBuilder GenMethodStart(string orgClassName)
     {
-        // 基础验证
-        if (sb == null || member == null || isPrimary)
-            return;
-
-        // 获取原始属性名
-        string orgPropertyName = member switch
-        {
-            PropertyDeclarationSyntax property => GetPropertyName(property),
-            FieldDeclarationSyntax field => GetFirstUpperPropertyName(field),
-            _ => ""
-        };
-
-        if (string.IsNullOrEmpty(orgPropertyName))
-            return;
-
-        // 生成赋值语句
-        GenerateAssignmentStatement(orgPropertyName, sb);
+        // 不生成MapTo方法，只创建测试类结构
+        var sb = new StringBuilder();
+        sb.AppendLine("class TestProgram{");
+        return sb;
     }
 
-    /// <summary>
-    /// 生成属性赋值语句
-    /// </summary>
-    /// <param name="orgPropertyName">原始属性名</param>
-    /// <param name="sb">字符串构建器</param>
-    private void GenerateAssignmentStatement(string orgPropertyName, StringBuilder sb)
+    /// <inheritdoc/>
+    protected override void GeneratorMethodContent<T>(T member, StringBuilder sb, bool isPrimary)
     {
-        string lowerCasePropertyName = ToLowerFirstLetter(orgPropertyName);
-        sb.AppendLine($"            entity.{orgPropertyName}=this.{lowerCasePropertyName};");
+        // 不生成MapTo方法中的属性赋值逻辑
+        return;
     }
 }

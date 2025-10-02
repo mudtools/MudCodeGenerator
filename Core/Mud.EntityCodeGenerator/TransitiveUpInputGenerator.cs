@@ -28,12 +28,6 @@ public class TransitiveUpInputGenerator : TransitiveBoGenerator
 
         var sb = new StringBuilder();
         sb.AppendLine("class TestProgram{");
-        sb.AppendLine("/// <summary>");
-        sb.AppendLine("/// 通用的BO对象映射至实体方法。");
-        sb.AppendLine("/// </summary>");
-        sb.AppendLine($"public override {orgClassName} MapTo()");
-        sb.AppendLine("        {");
-        sb.AppendLine($"           var entity=base.MapTo();");
         return sb;
     }
 
