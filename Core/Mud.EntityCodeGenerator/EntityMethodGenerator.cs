@@ -1,4 +1,3 @@
-using Mud.CodeGenerator;
 using Mud.EntityCodeGenerator.Diagnostics;
 using System.Collections.ObjectModel;
 using System.Text;
@@ -202,7 +201,7 @@ namespace Mud.EntityCodeGenerator
             sb.AppendLine("            return voObj;");
             sb.AppendLine("        }");
             sb.AppendLine("}");
-            return GetMethodDeclarationSyntax(sb);
+            return SyntaxHelper.GetMethodDeclarationSyntax(sb);
         }
         #endregion
     }

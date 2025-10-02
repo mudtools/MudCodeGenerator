@@ -115,13 +115,6 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
             extensionClass = extensionClass.AddMembers(mapFromUpInputMethod);
         }
 
-        // 添加BuildQueryWhere方法（从QueryInput构建查询条件）
-        var buildQueryWhereMethod = GenerateBuildQueryWhereMethod(orgClassDeclaration, orgClassName);
-        if (buildQueryWhereMethod != null)
-        {
-            extensionClass = extensionClass.AddMembers(buildQueryWhereMethod);
-        }
-
         // 添加MapToCrInput方法（从实体映射到CrInput）
         var mapToCrInputMethod = GenerateMapToCrInputMethod(orgClassDeclaration, orgClassName);
         if (mapToCrInputMethod != null)
@@ -143,6 +136,13 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
             extensionClass = extensionClass.AddMembers(mapToListOutputMethod);
         }
 
+        // 添加BuildQueryWhere方法（从QueryInput构建查询条件）
+        var buildQueryWhereMethod = GenerateBuildQueryWhereMethod(orgClassDeclaration, orgClassName);
+        if (buildQueryWhereMethod != null)
+        {
+            extensionClass = extensionClass.AddMembers(buildQueryWhereMethod);
+        }
+
         return extensionClass;
     }
 
@@ -154,13 +154,18 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         string orgClassName)
     {
         var crInputClassName = GetGeneratorClassName(orgClassDeclaration, TransitiveCrInputGenerator.Suffix);
-        Debug.WriteLine($"CRINPUT_CLASS_NAME: {crInputClassName}");
+        System.Diagnostics.Debug.WriteLine($"CRINPUT_CLASS_NAME: {crInputClassName}");
 
         // 添加命名空间前缀
         var fullCrInputClassName = $"{crInputClassName}";
 
         var sb = new StringBuilder();
 
+        sb.AppendLine($"/// <summary>");
+        sb.AppendLine($"/// 将 <see cref=\"{crInputClassName}\"/> 映射到 <see cref=\"{orgClassName}\"/> 实例。");
+        sb.AppendLine($"/// </summary>");
+        sb.AppendLine($"/// <param name=\"input\">输入的 <see cref=\"{crInputClassName}\"/> 实例。</param>");
+        sb.AppendLine($"/// <returns>映射后的 <see cref=\"{orgClassName}\"/> 实例。</returns>");
         sb.AppendLine($"public static {orgClassName} MapToEntity(this {fullCrInputClassName} input)");
         sb.AppendLine("{");
         sb.AppendLine($"    var entity = new {orgClassName}();");
@@ -181,7 +186,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         sb.AppendLine("    return entity;");
         sb.AppendLine("}");
 
-        return GetMethodDeclarationSyntax(sb);
+        return SyntaxHelper.GetMethodDeclarationSyntax(sb);
     }
 
     /// <summary>
@@ -199,6 +204,11 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
 
         var sb = new StringBuilder();
 
+        sb.AppendLine($"/// <summary>");
+        sb.AppendLine($"/// 将 <see cref=\"{upInputClassName}\"/> 映射到 <see cref=\"{orgClassName}\"/> 实例。");
+        sb.AppendLine($"/// </summary>");
+        sb.AppendLine($"/// <param name=\"input\">输入的 <see cref=\"{upInputClassName}\"/> 实例。</param>");
+        sb.AppendLine($"/// <returns>映射后的 <see cref=\"{orgClassName}\"/> 实例。</returns>");
         sb.AppendLine($"public static {orgClassName} MapToEntity(this {fullUpInputClassName} input)");
         sb.AppendLine("{");
         sb.AppendLine($"    var entity = new {orgClassName}();");
@@ -219,7 +229,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         sb.AppendLine("    return entity;");
         sb.AppendLine("}");
 
-        return GetMethodDeclarationSyntax(sb);
+        return SyntaxHelper.GetMethodDeclarationSyntax(sb);
     }
 
     /// <summary>
@@ -237,6 +247,11 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
 
         var sb = new StringBuilder();
 
+        sb.AppendLine($"/// <summary>");
+        sb.AppendLine($"/// 根据 <see cref=\"{queryInputClassName}\"/> 构建查询条件表达式。");
+        sb.AppendLine($"/// </summary>");
+        sb.AppendLine($"/// <param name=\"input\">输入的 <see cref=\"{queryInputClassName}\"/> 实例。</param>");
+        sb.AppendLine($"/// <returns>查询条件表达式。</returns>");
         sb.AppendLine($"public static Expression<Func<{orgClassName}, bool>> BuildQueryWhere(this {fullQueryInputClassName} input)");
         sb.AppendLine("{");
         sb.AppendLine($"    Expression<Func<{orgClassName}, bool>> where = x => true;");
@@ -248,7 +263,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         sb.AppendLine("    return where;");
         sb.AppendLine("}");
 
-        return GetMethodDeclarationSyntax(sb);
+        return SyntaxHelper.GetMethodDeclarationSyntax(sb);
     }
 
     /// <summary>
@@ -266,6 +281,11 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
 
         var sb = new StringBuilder();
 
+        sb.AppendLine($"/// <summary>");
+        sb.AppendLine($"/// 将 <see cref=\"{orgClassName}\"/> 映射到 <see cref=\"{crInputClassName}\"/> 实例。");
+        sb.AppendLine($"/// </summary>");
+        sb.AppendLine($"/// <param name=\"entity\">输入的 <see cref=\"{orgClassName}\"/> 实例。</param>");
+        sb.AppendLine($"/// <returns>映射后的 <see cref=\"{crInputClassName}\"/> 实例。</returns>");
         sb.AppendLine($"public static {fullCrInputClassName} MapToCrInput(this {orgClassName} entity)");
         sb.AppendLine("{");
         sb.AppendLine($"    var input = new {fullCrInputClassName}();");
@@ -286,7 +306,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         sb.AppendLine("    return input;");
         sb.AppendLine("}");
 
-        return GetMethodDeclarationSyntax(sb);
+        return SyntaxHelper.GetMethodDeclarationSyntax(sb);
     }
 
     /// <summary>
@@ -304,6 +324,11 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
 
         var sb = new StringBuilder();
 
+        sb.AppendLine($"/// <summary>");
+        sb.AppendLine($"/// 将 <see cref=\"{orgClassName}\"/> 映射到 <see cref=\"{upInputClassName}\"/> 实例。");
+        sb.AppendLine($"/// </summary>");
+        sb.AppendLine($"/// <param name=\"entity\">输入的 <see cref=\"{orgClassName}\"/> 实例。</param>");
+        sb.AppendLine($"/// <returns>映射后的 <see cref=\"{upInputClassName}\"/> 实例。</returns>");
         sb.AppendLine($"public static {fullUpInputClassName} MapToUpInput(this {orgClassName} entity)");
         sb.AppendLine("{");
         sb.AppendLine($"    var input = new {fullUpInputClassName}();");
@@ -324,7 +349,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         sb.AppendLine("    return input;");
         sb.AppendLine("}");
 
-        return GetMethodDeclarationSyntax(sb);
+        return SyntaxHelper.GetMethodDeclarationSyntax(sb);
     }
 
     /// <summary>
@@ -342,6 +367,11 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
 
         var sb = new StringBuilder();
 
+        sb.AppendLine($"/// <summary>");
+        sb.AppendLine($"/// 将 <see cref=\"{orgClassName}\"/> 映射到 <see cref=\"{voClassName}\"/> 实例。");
+        sb.AppendLine($"/// </summary>");
+        sb.AppendLine($"/// <param name=\"entity\">输入的 <see cref=\"{orgClassName}\"/> 实例。</param>");
+        sb.AppendLine($"/// <returns>映射后的 <see cref=\"{voClassName}\"/> 实例。</returns>");
         sb.AppendLine($"public static {fullVoClassName} MapToListOutput(this {orgClassName} entity)");
         sb.AppendLine("{");
         sb.AppendLine($"    var output = new {fullVoClassName}();");
@@ -362,7 +392,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         sb.AppendLine("    return output;");
         sb.AppendLine("}");
 
-        return GetMethodDeclarationSyntax(sb);
+        return SyntaxHelper.GetMethodDeclarationSyntax(sb);
     }
 
     /// <summary>

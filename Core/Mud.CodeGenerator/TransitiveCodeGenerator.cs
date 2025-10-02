@@ -2,7 +2,6 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Globalization;
-using System.Text;
 
 namespace Mud.CodeGenerator;
 
@@ -358,56 +357,5 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
 
         var attributes = AttributeSyntaxHelper.GetAttributeSyntaxes(memberDeclaration, LikeQueryAttributeName);
         return attributes != null && attributes.Any();
-    }
-
-    /// <summary>
-    /// 将字符串解释为<see cref="MethodDeclarationSyntax"/>对象。
-    /// </summary>
-    /// <param name="sb">字符串构建器。</param>
-    /// <returns>方法声明语法。</returns>
-    protected MethodDeclarationSyntax GetMethodDeclarationSyntax(StringBuilder sb)
-    {
-        if (sb == null || string.IsNullOrWhiteSpace(sb.ToString()))
-            return null;
-
-        try
-        {
-            var methodCode = sb.ToString().Trim();
-
-            // 包装方法到完整的类中
-            string completeCode = $@"
-using System;
-namespace TemporaryNamespace
-{{
-    public static class TemporaryClass
-    {{
-        {methodCode}
-    }}
-}}";
-
-            var tree = CSharpSyntaxTree.ParseText(completeCode);
-            var root = tree.GetRoot();
-
-            // 检查解析错误
-            var errors = tree.GetDiagnostics()
-                .Where(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
-                .ToList();
-
-            if (errors.Any())
-            {
-                foreach (var error in errors)
-                {
-                    Console.WriteLine($"解析错误: {error}");
-                }
-                return null;
-            }
-
-            return root.DescendantNodes().OfType<MethodDeclarationSyntax>().FirstOrDefault();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"解析异常: {ex.Message}");
-            return null;
-        }
     }
 }

@@ -143,6 +143,6 @@ public abstract class TransitiveBoGenerator : TransitiveDtoGenerator
         sb.AppendLine("            return entity;");
         sb.AppendLine("        }");
         sb.AppendLine("}");
-        return GetMethodDeclarationSyntax(sb);
+        return SyntaxHelper.GetMethodDeclarationSyntax(sb);
     }
 }
