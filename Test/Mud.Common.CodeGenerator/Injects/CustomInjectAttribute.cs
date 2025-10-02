@@ -9,10 +9,20 @@ public class CustomInjectAttribute : Attribute
     /// <summary>
     /// 获取或设置变量类型
     /// </summary>
-    public required string VarType { get; set; }
+    public string VarType { get; set; }
 
     /// <summary>
     /// 获取或设置变量名称
     /// </summary>
     public string VarName { get; set; }
+
+    public CustomInjectAttribute(string varType) : this(varType, null)
+    {
+    }
+
+    public CustomInjectAttribute(string varType, string varName = null)
+    {
+        VarType = varType;
+        VarName = varName;
+    }
 }

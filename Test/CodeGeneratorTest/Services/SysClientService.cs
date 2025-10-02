@@ -1,5 +1,4 @@
 ﻿using FreeSql;
-using Mapster;
 
 namespace CodeGeneratorTest.Services;
 
@@ -7,9 +6,9 @@ namespace CodeGeneratorTest.Services;
 /// 服务端代码生成测试。
 /// </summary>
 [ConstructorInject, UserInject, CacheInject]
-[OptionsInject(OptionType = nameof(TenantOptions))]
-[CustomInject(VarType = nameof(IMenuRepository))]
-[CustomInject(VarType = nameof(IRoleRepository))]
+[OptionsInject(nameof(TenantOptions))]
+[CustomInject(nameof(IMenuRepository))]
+[CustomInject(nameof(IRoleRepository))]
 public partial class SysClientService
 {
     private readonly IBaseRepository<SysClientEntity> _baseRepository;
@@ -20,6 +19,12 @@ public partial class SysClientService
         var query = _baseRepository.Select.Where(where);
         var list = await query.ToListAsync();
 
-        return list.Adapt<List<SysClientListOutput>>();
+        List<SysClientListOutput> listOutputs = [];
+        foreach (var output in list)
+        {
+            var listOutput = output.MapToListOutput();
+            listOutputs.Add(listOutput);
+        }
+        return listOutputs;
     }
 }
