@@ -1,6 +1,5 @@
 using Mud.EntityCodeGenerator.Diagnostics;
 using System.Collections.ObjectModel;
-using System.Text;
 
 namespace Mud.EntityCodeGenerator
 {
@@ -117,91 +116,5 @@ namespace Mud.EntityCodeGenerator
             }
             return (localClass, success);
         }
-
-        #region 实体映射至VO对象方法
-        private MethodDeclarationSyntax GenMapMethod(ClassDeclarationSyntax orgClassDeclaration, string voClassName)
-        {
-            // 提高容错性，处理空对象情况
-            if (orgClassDeclaration == null)
-                return null;
-
-            var sb = GenMapMethodStart(voClassName);
-            GenMapMethodBody<PropertyDeclarationSyntax>(orgClassDeclaration, sb);
-            GenMapMethodBody<FieldDeclarationSyntax>(orgClassDeclaration, sb);
-            var methodDeclaration = GenMapMethodEnd(sb);
-            return methodDeclaration;
-
-        }
-
-        private void GenMapMethodBody<T>(ClassDeclarationSyntax orgClassDeclaration, StringBuilder sb)
-            where T : MemberDeclarationSyntax
-        {
-            // 提高容错性，处理空对象情况
-            if (orgClassDeclaration == null || sb == null)
-                return;
-
-            foreach (var member in orgClassDeclaration.Members.OfType<T>())
-            {
-                try
-                {
-                    if (IsIgnoreGenerator(member))
-                        continue;
-
-                    var orgPropertyName = "";
-                    var propertyName = "";
-                    if (member is PropertyDeclarationSyntax property)
-                    {
-                        orgPropertyName = GetPropertyName(property);
-                    }
-                    else if (member is FieldDeclarationSyntax field)
-                    {
-                        orgPropertyName = GetFirstUpperPropertyName(field);
-                    }
-
-                    // 提高容错性，确保属性名不为空
-                    if (string.IsNullOrEmpty(orgPropertyName))
-                        continue;
-
-                    propertyName = ToLowerFirstLetter(orgPropertyName);
-                    sb.AppendLine($"            voObj.{propertyName}=this.{orgPropertyName};");
-                }
-                catch (Exception ex)
-                {
-                    // 提高容错性，即使单个属性生成失败也不影响其他属性
-                    System.Diagnostics.Debug.WriteLine($"生成映射方法体时发生错误: {ex.Message}");
-                }
-            }
-        }
-
-        private StringBuilder GenMapMethodStart(string voClassName)
-        {
-            // 提高容错性，确保参数不为空
-            if (string.IsNullOrEmpty(voClassName))
-                voClassName = "Object";
-
-            var sb = new StringBuilder();
-            sb.AppendLine("class TestProgram{");
-            sb.AppendLine("/// <summary>");
-            sb.AppendLine("/// 通用的实体映射至VO对象方法。");
-            sb.AppendLine("/// </summary>");
-            sb.AppendLine($"public virtual {voClassName} MapTo()");
-            sb.AppendLine("        {");
-            sb.AppendLine($"           var voObj=new {voClassName}();");
-            return sb;
-        }
-
-        private MethodDeclarationSyntax GenMapMethodEnd(StringBuilder sb)
-        {
-            // 提高容错性，处理空对象情况
-            if (sb == null)
-                return null;
-
-            //sb.AppendLine("            ConverterUtils.RaiseMapAfter(voObj);");
-            sb.AppendLine("            return voObj;");
-            sb.AppendLine("        }");
-            sb.AppendLine("}");
-            return SyntaxHelper.GetMethodDeclarationSyntax(sb);
-        }
-        #endregion
     }
 }
