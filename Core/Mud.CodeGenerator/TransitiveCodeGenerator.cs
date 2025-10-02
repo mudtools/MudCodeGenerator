@@ -294,12 +294,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
         {
             return input;
         }
-
-        if (string.IsNullOrEmpty(input) || input.Length <= 2)
-        {
-            return input?.ToLower(CultureInfo.CurrentCulture) ?? string.Empty;
-        }
-        return char.ToLower(input[0], CultureInfo.CurrentCulture) + input.Substring(1);
+        return StringExtensions.ToLowerFirstLetter(input);
     }
 
     /// <summary>
@@ -315,11 +310,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
             return ToLowerFirstLetter(input);
         }
 
-        if (string.IsNullOrEmpty(input) || input.Length < 2)
-        {
-            return input?.ToUpper(CultureInfo.CurrentCulture) ?? string.Empty;
-        }
-        return char.ToUpper(input[0], CultureInfo.CurrentCulture) + input.Substring(1);
+        return StringExtensions.ToUpperFirstLetter(input);
     }
 
     /// <summary>

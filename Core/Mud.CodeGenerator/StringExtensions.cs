@@ -1,7 +1,37 @@
-﻿namespace Mud.CodeGenerator;
+﻿using System.Globalization;
+
+namespace Mud.CodeGenerator;
 
 internal static class StringExtensions
 {
+    /// <summary>
+    /// 将首字母小写（根据配置）。
+    /// </summary>
+    /// <param name="input">输入字符串。</param>
+    /// <returns>首字母小写的字符串。</returns>
+    public static string ToLowerFirstLetter(string input)
+    {
+        if (string.IsNullOrEmpty(input) || input.Length <= 2)
+        {
+            return input?.ToLower(CultureInfo.CurrentCulture) ?? string.Empty;
+        }
+        return char.ToLower(input[0], CultureInfo.CurrentCulture) + input.Substring(1);
+    }
+
+    /// <summary>
+    /// 将首字母大写（根据配置）。
+    /// </summary>
+    /// <param name="input">输入字符串。</param>
+    /// <returns>首字母大写的字符串。</returns>
+    public static string ToUpperFirstLetter(string input)
+    {
+        if (string.IsNullOrEmpty(input) || input.Length < 2)
+        {
+            return input?.ToUpper(CultureInfo.CurrentCulture) ?? string.Empty;
+        }
+        return char.ToUpper(input[0], CultureInfo.CurrentCulture) + input.Substring(1);
+    }
+
     /// <summary>
     /// 使用指定分隔符分割字符串，并可对每个分割结果进行处理
     /// </summary>

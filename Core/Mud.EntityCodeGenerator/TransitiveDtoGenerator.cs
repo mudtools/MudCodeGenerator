@@ -1,6 +1,6 @@
+using Microsoft.CodeAnalysis.Diagnostics;
 using Mud.EntityCodeGenerator.Diagnostics;
 using System.Collections.ObjectModel;
-using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Mud.EntityCodeGenerator;
 
@@ -552,6 +552,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
         var varName = GetFieldName(member);
         if (methBody)
         {
+            propertyName = StringExtensions.ToUpperFirstLetter(propertyName);
             return BuildProperty(propertyName, propertyType, varName);
         }
         propertyName = ToLowerFirstLetter(propertyName);
