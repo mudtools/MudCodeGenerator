@@ -17,7 +17,7 @@
 		<!-- 需要添加至BO类的自定义特性，多个特性时使用','分隔 -->
 		<BoAttributes>CustomBo1Attribute,CustomBo2Attribute</BoAttributes>
 		<!-- 是否将生成的属性名首字母小写，默认为true -->
-		<PropertyNameLowerCaseFirstLetter>true</PropertyNameLowerCaseFirstLetter> 
+		<PropertyNameLowerCaseFirstLetter>false</PropertyNameLowerCaseFirstLetter> 
 		<InterfaceAssembly>CodeGeneratorTest.Entites.Interface</InterfaceAssembly>
 		<ImpAssembly>CodeGeneratorTest.Entites</ImpAssembly>
 		<ServiceGenerator>false</ServiceGenerator>

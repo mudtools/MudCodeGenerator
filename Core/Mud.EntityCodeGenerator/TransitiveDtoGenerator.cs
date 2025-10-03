@@ -109,20 +109,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
                 var classes = provider.Left;
                 foreach (var classNode in classes)
                 {
-                    try
-                    {
-                        GenerateCode(context, classNode);
-                    }
-                    catch (Exception ex)
-                    {
-                        // 提高容错性，即使单个类生成失败也不影响其他类
-                        var className = SyntaxHelper.GetClassName(classNode);
-                        context.ReportDiagnostic(Diagnostic.Create(
-                            DiagnosticDescriptors.DtoGenerationError,
-                            Location.None,
-                            className,
-                            ex.Message));
-                    }
+                    GenerateCode(context, classNode);
                 }
             }
             catch (Exception ex)

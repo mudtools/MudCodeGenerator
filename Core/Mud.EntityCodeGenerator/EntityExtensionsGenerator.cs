@@ -22,39 +22,6 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
     }
 
     /// <inheritdoc/>
-    public override void Initialize(IncrementalGeneratorInitializationContext context)
-    {
-        // 获取所有带有DtoGeneratorAttribute的类
-        var classDeclarationProvider = GetClassDeclarationProvider(context, [DtoGeneratorAttributeName]);
-
-        // 生成扩展类
-        context.RegisterSourceOutput(classDeclarationProvider, (context, classNodes) =>
-        {
-            foreach (var classNode in classNodes)
-            {
-                //Debugger.Launch();
-                if (classNode != null)
-                {
-                    try
-                    {
-                        GenerateCode(context, classNode);
-                    }
-                    catch (Exception ex)
-                    {
-                        // 提高容错性，即使单个类生成失败也不影响其他类
-                        var className = SyntaxHelper.GetClassName(classNode);
-                        context.ReportDiagnostic(Diagnostic.Create(
-                            DiagnosticDescriptors.DtoGenerationError,
-                            Location.None,
-                            className,
-                            ex.Message));
-                    }
-                }
-            }
-        });
-    }
-
-    /// <inheritdoc/>
     protected override void GenerateCode(SourceProductionContext context, ClassDeclarationSyntax orgClassDeclaration)
     {
         try
@@ -490,7 +457,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
                     continue;
                 }
                 orgPropertyName = StringExtensions.ToUpperFirstLetter(orgPropertyName);
-                var propertyName = ToLowerFirstLetter(orgPropertyName);
+                var propertyName = ToUpperFirstLetter(orgPropertyName);
                 var mappingLine = generateMappingLine(orgPropertyName, propertyName);
                 sb.AppendLine(mappingLine);
             }

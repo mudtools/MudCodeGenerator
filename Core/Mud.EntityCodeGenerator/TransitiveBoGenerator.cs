@@ -1,5 +1,4 @@
 using Mud.EntityCodeGenerator.Diagnostics;
-using System.Text;
 
 namespace Mud.EntityCodeGenerator;
 
@@ -55,7 +54,6 @@ public abstract class TransitiveBoGenerator : TransitiveDtoGenerator
             //Debugger.Launch();
 
             var orgClassName = SyntaxHelper.GetClassName(orgClassDeclaration);
-            var sb = GenMethodStart(orgClassName);
             var (localClass, dtoNameSpace, dtoClassName) = BuildLocalClass(orgClassDeclaration);
 
             localClass = BuildLocalClassProperty<PropertyDeclarationSyntax>(orgClassDeclaration, localClass, member =>
@@ -63,7 +61,6 @@ public abstract class TransitiveBoGenerator : TransitiveDtoGenerator
                 if (IsIgnoreGenerator(member))
                     return null;
                 var isPrimary = IsPrimary(member);
-                GeneratorMethodContent(member, sb, isPrimary);
                 if (isPrimary && !_generatePrimary)
                     return null;
                 if (!isPrimary && !_generateNotPrimary)
@@ -75,17 +72,12 @@ public abstract class TransitiveBoGenerator : TransitiveDtoGenerator
                 if (IsIgnoreGenerator(member))
                     return null;
                 var isPrimary = IsPrimary(member);
-                GeneratorMethodContent(member, sb, isPrimary);
                 if (isPrimary && !_generatePrimary)
                     return null;
                 if (!isPrimary && !_generateNotPrimary)
                     return null;
                 return BuildProperty(member, false);
             }, null);
-
-            var methodDeclaration = GenMethodEnd(sb);
-            if (methodDeclaration != null)
-                localClass = localClass.AddMembers(methodDeclaration);
 
             // 提高容错性，检查生成的类是否为空
             if (localClass == null)
@@ -103,46 +95,5 @@ public abstract class TransitiveBoGenerator : TransitiveDtoGenerator
             var className = orgClassDeclaration != null ? SyntaxHelper.GetClassName(orgClassDeclaration) : "Unknown";
             ReportErrorDiagnostic(context, DiagnosticDescriptors.BoGenerationError, className, ex);
         }
-    }
-
-    /// <summary>
-    /// 根据属性<see cref="PropertyDeclarationSyntax"/>生成方法内容
-    /// </summary>
-    protected abstract void GeneratorMethodContent<T>(T member, StringBuilder sb, bool isPrimary)
-        where T : MemberDeclarationSyntax;
-
-
-    /// <summary>
-    /// 生成方法起始部分
-    /// </summary>
-    /// <param name="orgClassName"></param>
-    /// <returns></returns>
-    protected virtual StringBuilder GenMethodStart(string orgClassName)
-    {
-        // 提高容错性，确保参数不为空
-        if (string.IsNullOrEmpty(orgClassName))
-            orgClassName = "Object";
-
-        var sb = new StringBuilder();
-        sb.AppendLine("class TestProgram{");
-        sb.AppendLine("/// <summary>");
-        sb.AppendLine("/// 通用的BO对象映射至实体方法。");
-        sb.AppendLine("/// </summary>");
-        sb.AppendLine($"public virtual {orgClassName} MapTo()");
-        sb.AppendLine("        {");
-        sb.AppendLine($"           var entity=new {orgClassName}();");
-        return sb;
-    }
-
-    private MethodDeclarationSyntax GenMethodEnd(StringBuilder sb)
-    {
-        // 提高容错性，处理空对象情况
-        if (sb == null)
-            return null;
-
-        sb.AppendLine("            return entity;");
-        sb.AppendLine("        }");
-        sb.AppendLine("}");
-        return SyntaxHelper.GetMethodDeclarationSyntax(sb);
     }
 }

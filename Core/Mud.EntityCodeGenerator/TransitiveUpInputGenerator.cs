@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace Mud.EntityCodeGenerator;
 
 /// <summary>
@@ -17,45 +15,5 @@ public class TransitiveUpInputGenerator : TransitiveBoGenerator
     protected override string GetInheritClass(ClassDeclarationSyntax classNode)
     {
         return GetGeneratorClassName(classNode, TransitiveCrInputGenerator.Suffix);
-    }
-
-    /// <inheritdoc/>
-    protected override StringBuilder GenMethodStart(string orgClassName)
-    {
-        // 提高容错性，确保参数不为空
-        if (string.IsNullOrEmpty(orgClassName))
-            orgClassName = "Object";
-
-        var sb = new StringBuilder();
-        sb.AppendLine("class TestProgram{");
-        return sb;
-    }
-
-    /// <inheritdoc/>
-    protected override void GeneratorMethodContent<T>(T member, StringBuilder sb, bool isPrimary)
-    {
-        // 提高容错性，处理空对象情况
-        if (sb == null || member == null)
-            return;
-
-        if (!isPrimary)
-            return;
-
-        var orgPropertyName = "";
-        if (member is PropertyDeclarationSyntax property)
-        {
-            orgPropertyName = GetPropertyName(property);
-        }
-        else if (member is FieldDeclarationSyntax field)
-        {
-            orgPropertyName = GetFirstUpperPropertyName(field);
-        }
-
-        // 提高容错性，确保属性名不为空
-        if (string.IsNullOrEmpty(orgPropertyName))
-            return;
-
-        var propertyName = ToLowerFirstLetter(orgPropertyName);
-        sb.AppendLine($"            entity.{orgPropertyName}=this.{propertyName};");
     }
 }

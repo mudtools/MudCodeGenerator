@@ -1,6 +1,3 @@
-using System.Text;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-
 namespace Mud.EntityCodeGenerator;
 
 /// <summary>
@@ -16,20 +13,4 @@ public class TransitiveCrInputGenerator : TransitiveBoGenerator
 
     /// <inheritdoc/>
     protected override string ClassSuffix => Suffix;
-
-    /// <inheritdoc/>
-    protected override StringBuilder GenMethodStart(string orgClassName)
-    {
-        // 不生成MapTo方法，只创建测试类结构
-        var sb = new StringBuilder();
-        sb.AppendLine("class TestProgram{");
-        return sb;
-    }
-
-    /// <inheritdoc/>
-    protected override void GeneratorMethodContent<T>(T member, StringBuilder sb, bool isPrimary)
-    {
-        // 不生成MapTo方法中的属性赋值逻辑
-        return;
-    }
 }
