@@ -64,6 +64,8 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
             }
 
             var compilationUnit = GenCompilationUnitSyntax(localClass, dtoNameSpace, dtoClassName);
+            // 在最后统一格式化整个编译单元，确保代码格式正确
+            compilationUnit = compilationUnit.NormalizeWhitespace();
             context.AddSource($"{dtoClassName}.g.cs", compilationUnit);
         }
         catch (Exception ex)

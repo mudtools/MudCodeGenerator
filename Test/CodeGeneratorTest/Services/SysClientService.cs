@@ -6,9 +6,9 @@ namespace CodeGeneratorTest.Services;
 /// 服务端代码生成测试。
 /// </summary>
 [ConstructorInject, UserInject, CacheInject]
-[OptionsInject(nameof(TenantOptions))]
-[CustomInject(nameof(IMenuRepository))]
-[CustomInject(nameof(IRoleRepository))]
+[OptionsInject(OptionType = nameof(TenantOptions))]
+[CustomInject(VarType = nameof(IMenuRepository))]
+[CustomInject(VarType = nameof(IRoleRepository))]
 public partial class SysClientService
 {
     private readonly IBaseRepository<SysClientEntity> _baseRepository;

@@ -64,6 +64,8 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
             }
 
             var compilationUnit = GenCompilationUnitSyntax(localClass, dtoNameSpace, dtoClassName);
+            // 在最后统一格式化整个编译单元，确保代码格式正确
+            compilationUnit = compilationUnit.NormalizeWhitespace();
             context.AddSource($"{dtoClassName}.g.cs", compilationUnit);
         }
         catch (Exception ex)
@@ -145,6 +147,9 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
 
         var property = BuildProperty(extPropertyName, "string");
         property = property.AddAttributeLists(attributeListSyntax);
+        // 为扩展属性添加换行注释
+        var extInheritdoc = SyntaxFactory.ParseLeadingTrivia($"\n\n///<inheritdoc cref=\"{propertyName}\"/>\n");
+        property = property.WithLeadingTrivia(extInheritdoc);
         return property;
     }
 
@@ -196,6 +201,9 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
 
         var property = BuildProperty(extPropertyName, "string");
         property = property.AddAttributeLists(attributeListSyntax);
+        // 为扩展属性添加换行注释
+        var extInheritdoc = SyntaxFactory.ParseLeadingTrivia($"\n\n///<inheritdoc cref=\"{propertyName}\"/>\n");
+        property = property.WithLeadingTrivia(extInheritdoc);
         return property;
     }
 

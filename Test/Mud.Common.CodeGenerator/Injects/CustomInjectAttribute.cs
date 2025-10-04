@@ -6,16 +6,34 @@ namespace Mud.Common.CodeGenerator;
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
 public class CustomInjectAttribute : Attribute
 {
+#if NET7_0_OR_GREATER
+    /// <summary>
+    /// 获取或设置变量类型
+    /// </summary>
+    public required string VarType { get; set; }
+#else
     /// <summary>
     /// 获取或设置变量类型
     /// </summary>
     public string VarType { get; set; }
+#endif
 
     /// <summary>
     /// 获取或设置变量名称
     /// </summary>
     public string VarName { get; set; }
 
+    public CustomInjectAttribute()
+    {
+    }
+
+#if NET7_0_OR_GREATER
+  
+    public CustomInjectAttribute(string varType)
+    {
+        VarType = varType;
+    }
+#else
     public CustomInjectAttribute(string varType) : this(varType, null)
     {
     }
@@ -25,4 +43,5 @@ public class CustomInjectAttribute : Attribute
         VarType = varType;
         VarName = varName;
     }
+#endif
 }

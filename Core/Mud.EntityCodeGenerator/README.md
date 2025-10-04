@@ -21,12 +21,14 @@ Mud 实体代码生成器是一个基于 Roslyn 的源代码生成器，用于�
 <PropertyGroup>
   <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>  <!-- 在obj目录下保存生成的代码 -->
   <EntitySuffix>Entity</EntitySuffix>  <!-- 实体类后缀配置 -->
-  <EntityAttachAttributes>SuppressSniffer</EntityAttachAttributes>  <!-- 生成的VO、BO类加上Attribute特性配置，多个特性时使用','分隔 -->
+  <EntityAttachAttributes>SuppressSniffer</EntityAttachAttributes>  <!-- 实体类加上Attribute特性配置，多个特性时使用','分隔 -->
+  <PropertyNameLowerCaseFirstLetter>true</PropertyNameLowerCaseFirstLetter>  <!-- 是否将生成的属性名首字母小写 -->
 </PropertyGroup>
 
 <ItemGroup>
   <CompilerVisibleProperty Include="EntitySuffix" />
   <CompilerVisibleProperty Include="EntityAttachAttributes" />
+  <CompilerVisibleProperty Include="PropertyNameLowerCaseFirstLetter" />
 </ItemGroup>
 ```
 
@@ -66,6 +68,7 @@ Mud 实体代码生成器是一个基于 Roslyn 的源代码生成器，用于�
 | EntityAttachAttributes | (空) | 生成的VO、BO类加上Attribute特性配置，多个特性时使用','分隔 |
 | VoAttributes | (空) | 需要添加至BO类的自定义特性，多个特性用逗号分隔 |
 | BoAttributes | (空) | 需要添加至BO类的自定义特性，多个特性用逗号分隔 |
+| PropertyNameLowerCaseFirstLetter | true | 是否将生成的属性名首字母小写，设为false保持原有大小写 |
 
 ## 代码生成功能及样例
 

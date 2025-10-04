@@ -244,8 +244,8 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
                         propertyName = GetGeneratorProperty(member).propertyName;
                     }
 
-                    // 为每个属性添加带有额外换行的注释，确保属性之间有空行
-                    var inheritdoc = SyntaxFactory.ParseLeadingTrivia($"\n\n///<inheritdoc cref=\"{orgClassName}.{propertyName}\"/>\n");
+                    // 为每个属性添加注释
+                    var inheritdoc = SyntaxFactory.ParseLeadingTrivia($"/// <inheritdoc cref=\"{orgClassName}.{propertyName}\"/>\n");
                     propertyDeclaration = propertyDeclaration.WithLeadingTrivia(inheritdoc);
 
                     localClass = localClass.AddMembers(propertyDeclaration);
@@ -257,8 +257,8 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
                         if (extPropertyDeclaration == null)
                             continue;
 
-                        // 为扩展属性也添加注释，同样添加额外换行
-                        var extInheritdoc = SyntaxFactory.ParseLeadingTrivia($"\n\n///<inheritdoc cref=\"{orgClassName}.{propertyName}\"/>\n");
+                        // 为扩展属性也添加注释
+                        var extInheritdoc = SyntaxFactory.ParseLeadingTrivia($"/// <inheritdoc cref=\"{orgClassName}.{propertyName}\"/>\n");
                         extPropertyDeclaration = extPropertyDeclaration.WithLeadingTrivia(extInheritdoc);
 
                         localClass = localClass.AddMembers(extPropertyDeclaration);
@@ -272,8 +272,8 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
             }
         }
 
-        // 统一格式化所有成员，确保属性之间有适当的空行
-        return localClass.NormalizeWhitespace();
+        // 不再在这里调用NormalizeWhitespace，避免覆盖手动添加的换行
+        return localClass;
     }
 
     /// <summary>
