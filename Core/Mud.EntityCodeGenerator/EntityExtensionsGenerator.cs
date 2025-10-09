@@ -138,6 +138,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         sb.AppendLine($"/// <returns>映射后的 <see cref=\"{orgClassName}\"/> 实例。</returns>");
         sb.AppendLine($"public static {orgClassName} MapToEntity(this {fullCrInputClassName} input)");
         sb.AppendLine("{");
+        sb.AppendLine($"    if(input==null)return null;");
         sb.AppendLine($"    var entity = new {orgClassName}();");
 
         // 生成属性映射
@@ -181,6 +182,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         sb.AppendLine($"/// <returns>映射后的 <see cref=\"{orgClassName}\"/> 实例。</returns>");
         sb.AppendLine($"public static {orgClassName} MapToEntity(this {fullUpInputClassName} input)");
         sb.AppendLine("{");
+        sb.AppendLine($"    if(input==null)return null;");
         sb.AppendLine($"    var entity = new {orgClassName}();");
 
         // 生成属性映射（所有属性）
@@ -224,6 +226,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         sb.AppendLine($"/// <returns>查询条件表达式。</returns>");
         sb.AppendLine($"public static Expression<Func<{orgClassName}, bool>> BuildQueryWhere(this {fullQueryInputClassName} input)");
         sb.AppendLine("{");
+        sb.AppendLine($"    if(input==null) return x => true;");
         sb.AppendLine($"    Expression<Func<{orgClassName}, bool>> where = x => true;");
 
         // 生成查询条件
@@ -258,6 +261,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         sb.AppendLine($"/// <returns>映射后的 <see cref=\"{crInputClassName}\"/> 实例。</returns>");
         sb.AppendLine($"public static {fullCrInputClassName} MapToCrInput(this {orgClassName} entity)");
         sb.AppendLine("{");
+        sb.AppendLine($"    if(entity==null)return null;");
         sb.AppendLine($"    var input = new {fullCrInputClassName}();");
 
         // 生成属性映射（只处理非主键属性）
@@ -301,6 +305,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         sb.AppendLine($"/// <returns>映射后的 <see cref=\"{upInputClassName}\"/> 实例。</returns>");
         sb.AppendLine($"public static {fullUpInputClassName} MapToUpInput(this {orgClassName} entity)");
         sb.AppendLine("{");
+        sb.AppendLine($"    if(entity==null)return null;");
         sb.AppendLine($"    var input = new {fullUpInputClassName}();");
 
         // 生成属性映射（所有属性）
@@ -344,6 +349,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         sb.AppendLine($"/// <returns>映射后的 <see cref=\"{voClassName}\"/> 实例。</returns>");
         sb.AppendLine($"public static {fullVoClassName} MapToListOutput(this {orgClassName} entity)");
         sb.AppendLine("{");
+        sb.AppendLine($"    if(entity==null)return null;");
         sb.AppendLine($"    var output = new {fullVoClassName}();");
 
         // 生成属性映射（所有属性）
