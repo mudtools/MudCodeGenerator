@@ -11,6 +11,7 @@ Mud 代码生成器是一套基于 Roslyn 的源代码生成器，用于根据�
    - 创建输入类生成 - 根据实体类自动生成创建输入类（CrInput）
    - 更新输入类生成 - 根据实体类自动生成更新输入类（UpInput）
    - 实体映射方法生成 - 自动生成实体与DTO之间的映射方法
+   - Builder模式代码生成 - 根据实体类自动生成Builder构建器模式代码
 
 2. **Mud.ServiceCodeGenerator** - 服务代码生成器，用于自动生成服务层相关代码
    - 服务类代码生成 - 根据实体类自动生成服务接口和服务实现类
@@ -89,7 +90,7 @@ Mud 代码生成器是一套基于 Roslyn 的源代码生成器，用于根据�
 
 ### 依赖项配置
 
-```xml
+```
 <ItemGroup>
   <!-- 引入的代码生成器程序集 -->
   <PackageReference Include="Mud.EntityCodeGenerator" Version="1.1.6" />
@@ -134,7 +135,7 @@ Mud 代码生成器是一套基于 Roslyn 的源代码生成器，用于根据�
 
 在实体中添加DtoGenerator特性：
 
-```csharp
+```CSharp
 /// <summary>
 /// 客户端信息实体类
 /// </summary>
@@ -172,7 +173,7 @@ public partial class SysClientEntity
 基于以上实体，将自动生成以下几类代码：
 
 #### 实体类属性
-```
+```CSharp
 /// <summary>
 /// 客户端信息实体类
 /// </summary>
@@ -244,7 +245,7 @@ public partial class SysClientEntity
 ```
 
 #### VO类 (视图对象)
-```
+```CSharp
 /// <summary>
 /// 客户端信息实体类
 /// </summary>
@@ -272,7 +273,7 @@ public partial class SysClientListOutput
 ```
 
 #### QueryInput类 (查询输入对象)
-```
+```CSharp
 // SysClientQueryInput.g.cs
 /// <summary>
 /// 客户端信息实体类
@@ -308,7 +309,7 @@ public partial class SysClientQueryInput : DataQueryInput
 ```
 
 #### CrInput类 (创建输入对象)
-```
+```CSharp
 // SysClientCrInput.g.cs
 /// <summary>
 /// 客户端信息实体类
@@ -340,7 +341,7 @@ public partial class SysClientCrInput
 ```
 
 #### UpInput类 (更新输入对象)
-```
+```CSharp
 /// <summary>
 /// 客户端信息实体类
 /// </summary>
@@ -365,11 +366,108 @@ public partial class SysClientUpInput : SysClientCrInput
 }
 ```
 
+### Builder模式代码生成
+
+除了上述代码生成外，Mud.EntityCodeGenerator还支持Builder构建器模式代码生成。只需在实体类上添加[Builder]特性：
+
+```CSharp
+/// <summary>
+/// 客户端信息实体类
+/// </summary>
+[DtoGenerator]
+[Builder]
+[Table(Name = "sys_client"),SuppressSniffer]
+public partial class SysClientEntity
+{
+    /// <summary>
+    /// id
+    /// </summary>
+    [property: Column(Name = "id", IsPrimary = true, Position = 1)]
+    [property: Required(ErrorMessage = "id不能为空")]
+    private long? _id;
+
+    /// <summary>
+    /// 客户端key
+    /// </summary>
+    [property: Column(Name = "client_key", Position = 3)]
+    [property: Required(ErrorMessage = "客户端key不能为空")]
+    private string _clientKey;
+
+    /// <summary>
+    /// 删除标志（0代表存在 2代表删除）
+    /// </summary>
+    [property: Column(Name = "del_flag", Position = 10)]
+    private string _delFlag;
+}
+```
+
+基于以上实体，将自动生成Builder构建器类：
+
+```CSharp
+/// <summary>
+/// <see cref="SysClientEntity"/> 的构建者。
+/// </summary>
+public class SysClientEntityBuilder
+{
+    private SysClientEntity _sysClientEntity = new SysClientEntity();
+
+    /// <summary>
+    /// 设置 <see cref="SysClientEntity.Id"/> 属性值。
+    /// </summary>
+    /// <param name="id">属性值</param>
+    /// <returns>返回 <see cref="SysClientEntityBuilder"/> 实例</returns>
+    public SysClientEntityBuilder SetId(long? id)
+    {
+        this._sysClientEntity.Id = id;
+        return this;
+    }
+
+    /// <summary>
+    /// 设置 <see cref="SysClientEntity.ClientKey"/> 属性值。
+    /// </summary>
+    /// <param name="clientKey">属性值</param>
+    /// <returns>返回 <see cref="SysClientEntityBuilder"/> 实例</returns>
+    public SysClientEntityBuilder SetClientKey(string clientKey)
+    {
+        this._sysClientEntity.ClientKey = clientKey;
+        return this;
+    }
+
+    /// <summary>
+    /// 设置 <see cref="SysClientEntity.DelFlag"/> 属性值。
+    /// </summary>
+    /// <param name="delFlag">属性值</param>
+    /// <returns>返回 <see cref="SysClientEntityBuilder"/> 实例</returns>
+    public SysClientEntityBuilder SetDelFlag(string delFlag)
+    {
+        this._sysClientEntity.DelFlag = delFlag;
+        return this;
+    }
+
+    /// <summary>
+    /// 构建 <see cref="SysClientEntity"/> 类的实例。
+    /// </summary>
+    public SysClientEntity Build()
+    {
+        return this._sysClientEntity;
+    }
+}
+```
+
+使用Builder模式可以链式设置实体属性，创建实体对象更加方便：
+
+```csharp
+var client = new SysClientEntityBuilder()
+    .SetClientKey("client123")
+    .SetDelFlag("0")
+    .Build();
+```
+
 ### 2. 服务类代码生成
 
 在服务类程序项目中添加服务代码生成配置：
 
-```
+```xml
 <PropertyGroup>
   <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
   <EntityAssemblyPrefix>TestClassLibrary</EntityAssemblyPrefix>  <!-- 实体程序集前缀配置，用于业务代码生成时搜索对应的实体类型 -->
@@ -381,7 +479,7 @@ public partial class SysClientUpInput : SysClientCrInput
 
 在服务中添加服务代码生成特性：
 
-```
+```CSharp
 [ServiceGenerator(EntityType = nameof(SysDeptEntity))]
 public partial class SysDeptService
 {
@@ -394,7 +492,7 @@ public partial class SysDeptService
 
 使用各种注入特性为类自动生成构造函数注入代码：
 
-```
+```CSharp
 [ConstructorInject]  // 字段构造函数注入
 [LoggerInject]       // 日志注入
 [CacheInject]        // 缓存管理器注入
@@ -411,7 +509,7 @@ public partial class SysUserService
 
 生成的代码示例：
 
-```
+```CSharp
 public partial class SysUserService
 {
     private readonly ILogger<SysUserService> _logger;
@@ -457,7 +555,7 @@ public partial class SysUserService
 
 多种注入特性可以组合使用，生成器会自动合并所有注入需求：
 
-```
+```CSharp
 [ConstructorInject]
 [LoggerInject]
 [CacheInject]
@@ -502,7 +600,7 @@ public partial class UserService
 
 对于某些不需要通过构造函数注入的字段，可以使用 [IgnoreGenerator] 特性标记：
 
-```
+```CSharp
 [ConstructorInject]
 public partial class UserService
 {
@@ -517,7 +615,7 @@ public partial class UserService
 
 ## 项目结构
 
-```
+```text
 Mud.CodeGenerator
 ├── Core
 │   ├── Mud.CodeGenerator                // 代码生成器核心基类库
@@ -547,7 +645,7 @@ Mud.CodeGenerator
 
 要查看生成的代码，可以在项目文件中添加以下配置：
 
-```
+```xml
 <PropertyGroup>
   <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 </PropertyGroup>
