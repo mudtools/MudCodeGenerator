@@ -22,4 +22,12 @@ public partial class SysClientService
         List<SysClientListOutput> listOutputs = list.MapToList(a => a.ClientKey = "");
         return listOutputs;
     }
+
+    public void TestBuilder()
+    {
+        var pro = ProjectEntity.Builder()
+                        .SetParentId("1")
+                        .SetProNum("2")
+                        .Build();
+    }
 }

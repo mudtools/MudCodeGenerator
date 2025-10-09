@@ -4,7 +4,7 @@
 /// 客户端信息实体类
 /// </summary>
 [Table(Name = "sys_client")]
-[DtoGenerator]
+[DtoGenerator, Builder]
 public partial class SysClientEntity
 {
     /// <summary>

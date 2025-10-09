@@ -10,11 +10,6 @@ namespace Mud.EntityCodeGenerator;
 public class EntityExtensionsGenerator : TransitiveDtoGenerator
 {
     /// <summary>
-    /// DTO生成特性。
-    /// </summary>
-    protected new const string DtoGeneratorAttributeName = "DtoGeneratorAttribute";
-
-    /// <summary>
     /// EntityExtensionsGenerator构造函数
     /// </summary>
     public EntityExtensionsGenerator() : base()
@@ -120,6 +115,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         return extensionClass;
     }
 
+
     /// <summary>
     /// 生成从CrInput映射到实体的扩展方法
     /// </summary>
@@ -128,7 +124,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         string orgClassName)
     {
         var crInputClassName = GetGeneratorClassName(orgClassDeclaration, TransitiveCrInputGenerator.Suffix);
-        System.Diagnostics.Debug.WriteLine($"CRINPUT_CLASS_NAME: {crInputClassName}");
+        Debug.WriteLine($"CRINPUT_CLASS_NAME: {crInputClassName}");
 
         // 添加命名空间前缀
         var fullCrInputClassName = $"{crInputClassName}";

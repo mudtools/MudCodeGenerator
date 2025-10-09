@@ -4,8 +4,8 @@
 /// 项目管理
 /// </summary>
 [Table(Name = "PROJECT")]
-[DtoGenerator(GenMapMethod = true)]
-public class ProjectEntity
+[DtoGenerator(GenMapMethod = true), Builder]
+public partial class ProjectEntity
 {
     /// <summary>
     /// 项目ID

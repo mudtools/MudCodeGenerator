@@ -184,41 +184,6 @@ internal static class PrivateFieldNamingHelper
     }
 
     /// <summary>
-    /// 转换为PascalCase命名
-    /// </summary>
-    private static string ToPascalCase(string input)
-    {
-        if (string.IsNullOrEmpty(input))
-            return input;
-
-        var sb = new StringBuilder();
-        bool makeUpper = true;
-
-        foreach (char c in input)
-        {
-            if (char.IsLetterOrDigit(c))
-            {
-                if (makeUpper)
-                {
-                    sb.Append(char.ToUpper(c));
-                    makeUpper = false;
-                }
-                else
-                {
-                    sb.Append(char.ToLower(c));
-                }
-            }
-            else
-            {
-                // 遇到分隔符，下一个字符要大写
-                makeUpper = true;
-            }
-        }
-
-        return sb.ToString();
-    }
-
-    /// <summary>
     /// 转换为camelCase命名
     /// </summary>
     private static string ToCamelCase(string input)
@@ -358,5 +323,187 @@ internal static class PrivateFieldNamingHelper
             FieldNamingStyle.PureCamel => "value",
             _ => "_value"
         };
+    }
+
+    /// <summary>
+    /// 根据私有字段名生成属性名（支持多种命名风格）
+    /// </summary>
+    /// <param name="fieldName">私有字段名</param>
+    /// <returns>生成的属性名（PascalCase风格）</returns>
+    public static string GeneratePropertyName(string fieldName)
+    {
+        if (string.IsNullOrWhiteSpace(fieldName))
+            throw new ArgumentException("字段名不能为空", nameof(fieldName));
+
+        // 移除常见的私有字段前缀
+        string cleanedName = RemovePrivateFieldPrefixes(fieldName);
+
+        // 转换为PascalCase命名
+        return ToPascalCase(cleanedName);
+    }
+
+    /// <summary>
+    /// 根据私有字段名生成属性名（支持指定原始字段的命名风格）
+    /// </summary>
+    /// <param name="fieldName">私有字段名</param>
+    /// <param name="originalFieldStyle">原始字段的命名风格</param>
+    /// <returns>生成的属性名（PascalCase风格）</returns>
+    public static string GeneratePropertyName(string fieldName, FieldNamingStyle originalFieldStyle)
+    {
+        if (string.IsNullOrWhiteSpace(fieldName))
+            throw new ArgumentException("字段名不能为空", nameof(fieldName));
+
+        // 根据原始命名风格进行相应的处理
+        string cleanedName = originalFieldStyle switch
+        {
+            FieldNamingStyle.MPrefixPascal => RemoveMPrefix(fieldName),
+            FieldNamingStyle.UnderscoreCamel => RemoveUnderscorePrefix(fieldName),
+            FieldNamingStyle.PureCamel => fieldName, // 纯camelCase不需要移除前缀
+            _ => RemovePrivateFieldPrefixes(fieldName) // 默认处理所有前缀
+        };
+
+        // 转换为PascalCase命名
+        return ToPascalCase(cleanedName);
+    }
+
+    /// <summary>
+    /// 尝试根据私有字段名生成属性名（不会抛出异常）
+    /// </summary>
+    /// <param name="fieldName">私有字段名</param>
+    /// <param name="propertyName">生成的属性名</param>
+    /// <returns>是否成功生成属性名</returns>
+    public static bool TryGeneratePropertyNameFromPrivateField(string fieldName, out string propertyName)
+    {
+        propertyName = null;
+
+        if (string.IsNullOrWhiteSpace(fieldName))
+            return false;
+
+        try
+        {
+            propertyName = GeneratePropertyName(fieldName);
+            return !string.IsNullOrEmpty(propertyName);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 检测字段的命名风格
+    /// </summary>
+    /// <param name="fieldName">字段名</param>
+    /// <returns>检测到的命名风格</returns>
+    public static FieldNamingStyle DetectFieldNamingStyle(string fieldName)
+    {
+        if (string.IsNullOrWhiteSpace(fieldName))
+            return FieldNamingStyle.UnderscoreCamel;
+
+        if (fieldName.StartsWith("m_", StringComparison.CurrentCulture))
+            return FieldNamingStyle.MPrefixPascal;
+
+        if (fieldName.StartsWith("s_", StringComparison.CurrentCulture))
+            return FieldNamingStyle.MPrefixPascal; // s_前缀也视为MPrefix风格
+
+        if (fieldName.StartsWith("_", StringComparison.CurrentCulture))
+            return FieldNamingStyle.UnderscoreCamel;
+
+        // 检查是否为camelCase（首字母小写）
+        if (fieldName.Length > 0 && char.IsLower(fieldName[0]))
+            return FieldNamingStyle.PureCamel;
+
+        return FieldNamingStyle.UnderscoreCamel; // 默认
+    }
+
+    /// <summary>
+    /// 移除常见的私有字段前缀
+    /// </summary>
+    private static string RemovePrivateFieldPrefixes(string fieldName)
+    {
+        if (string.IsNullOrEmpty(fieldName))
+            return fieldName;
+
+        // 按优先级移除前缀
+        if (fieldName.StartsWith("m_", StringComparison.CurrentCulture) && fieldName.Length > 2)
+            return fieldName.Substring(2);
+
+        if (fieldName.StartsWith("s_", StringComparison.CurrentCulture) && fieldName.Length > 2)
+            return fieldName.Substring(2);
+
+        if (fieldName.StartsWith("_", StringComparison.CurrentCulture) && fieldName.Length > 1)
+            return fieldName.Substring(1);
+
+        return fieldName; // 没有前缀，直接返回
+    }
+
+    /// <summary>
+    /// 移除m_前缀
+    /// </summary>
+    private static string RemoveMPrefix(string fieldName)
+    {
+        if (!string.IsNullOrEmpty(fieldName) && fieldName.StartsWith("m_", StringComparison.CurrentCulture) && fieldName.Length > 2)
+            return fieldName.Substring(2);
+
+        return fieldName;
+    }
+
+    /// <summary>
+    /// 移除_前缀
+    /// </summary>
+    private static string RemoveUnderscorePrefix(string fieldName)
+    {
+        if (!string.IsNullOrEmpty(fieldName) && fieldName.StartsWith("_", StringComparison.CurrentCulture) && fieldName.Length > 1)
+            return fieldName.Substring(1);
+
+        return fieldName;
+    }
+
+    /// <summary>
+    /// 转换为PascalCase命名
+    /// </summary>
+    private static string ToPascalCase(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return input;
+
+        // 如果已经是PascalCase，直接返回
+        if (input.Length > 0 && char.IsUpper(input[0]))
+            return input;
+
+        // 将camelCase转换为PascalCase
+        var sb = new StringBuilder();
+        bool makeUpper = true;
+
+        foreach (char c in input)
+        {
+            if (char.IsLetterOrDigit(c))
+            {
+                if (makeUpper)
+                {
+                    sb.Append(char.ToUpper(c));
+                    makeUpper = false;
+                }
+                else
+                {
+                    sb.Append(c);
+                }
+            }
+            else
+            {
+                // 遇到分隔符，下一个字符要大写
+                makeUpper = true;
+            }
+        }
+
+        string result = sb.ToString();
+
+        // 确保不以数字开头
+        if (result.Length > 0 && char.IsDigit(result[0]))
+        {
+            result = "Value" + result;
+        }
+
+        return result;
     }
 }

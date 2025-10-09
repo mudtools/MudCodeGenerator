@@ -1,5 +1,3 @@
-using Microsoft.CodeAnalysis;
-
 namespace Mud.EntityCodeGenerator.Diagnostics
 {
     /// <summary>
@@ -82,6 +80,16 @@ namespace Mud.EntityCodeGenerator.Diagnostics
             id: "EM002",
             title: "实体映射方法生成错误",
             messageFormat: "生成类 {0} 的实体映射方法时发生错误: {1}",
+            category: "代码生成",
+            DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+        #endregion
+
+        #region 实体建造者模式代码生成器诊断信息
+        public static readonly DiagnosticDescriptor EntityBuilderGenerationError = new(
+            id: "BE001",
+            title: "实体建造者模式代码生成错误",
+            messageFormat: "生成类 {0} 的建造者模式代码时发生错误: {1}",
             category: "代码生成",
             DiagnosticSeverity.Error,
             isEnabledByDefault: true);

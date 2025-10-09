@@ -1,5 +1,6 @@
 using Mud.EntityCodeGenerator.Diagnostics;
 using System.Collections.ObjectModel;
+using System.Text;
 
 namespace Mud.EntityCodeGenerator
 {
@@ -40,13 +41,19 @@ namespace Mud.EntityCodeGenerator
 
                 var localClass = BuildLocalClass(orgClassDeclaration, orgClassName, false);
 
+                var methodDeclaration = GenerateBuildMethod(orgClassDeclaration, orgClassName);
+                if (methodDeclaration != null)
+                    localClass = localClass.AddMembers(methodDeclaration);
+
                 (localClass, var success) = BuildProperty(localClass, orgClassDeclaration);
-                if (!success)//如果没有任何属性生成，则不生成类
+                if (!success && methodDeclaration == null)//如果没有任何属性生成，则不生成类
                     return;
 
                 //var methodDeclaration = GenMapMethod(orgClassDeclaration, voClassName);
                 //if (methodDeclaration != null)
                 //    localClass = localClass.AddMembers(methodDeclaration);
+
+
 
                 // 提高容错性，检查生成的类是否为空
                 if (localClass == null)
@@ -115,6 +122,29 @@ namespace Mud.EntityCodeGenerator
                 }
             }
             return (localClass, success);
+        }
+
+
+        private MethodDeclarationSyntax GenerateBuildMethod(ClassDeclarationSyntax orgClassDeclaration,
+            string orgClassName)
+        {
+            // 检查是否需要生成建造者模式代码。
+            var genBuilderCode = SyntaxHelper.GetAttributeSyntaxes(
+                orgClassDeclaration,
+                BuilderGenerator.BuilderGeneratorAttributeName);
+
+            if (!genBuilderCode.Any())
+                return null;
+            var builderClassName = $"{orgClassName}Builder";
+            var sb = new StringBuilder();
+            sb.AppendLine($"/// <summary>");
+            sb.AppendLine($"/// 创建 <see cref=\"{orgClassName}\"/> 类的 <see cref=\"{builderClassName}\"/> 构造者实例。");
+            sb.AppendLine($"/// </summary>");
+            sb.AppendLine($"public static {builderClassName} Builder()");
+            sb.AppendLine("{");
+            sb.AppendLine($"    return new {builderClassName}();");
+            sb.AppendLine("}");
+            return SyntaxHelper.GetMethodDeclarationSyntax(sb);
         }
     }
 }

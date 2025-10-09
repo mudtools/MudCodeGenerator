@@ -265,33 +265,73 @@ internal static class SyntaxHelper
     /// <returns>方法声明语法。</returns>
     public static MethodDeclarationSyntax GetMethodDeclarationSyntax(StringBuilder sb)
     {
-        if (sb == null || string.IsNullOrWhiteSpace(sb.ToString()))
-            return null;
-
-        try
-        {
-            var methodCode = sb.ToString().Trim();
-
-            // 包装方法到完整的类中
-            string completeCode = $@"
+        const string classTemplate = @"
 using System;
 namespace TemporaryNamespace
 {{
     public static class TemporaryClass
     {{
-        {methodCode}
+        {0}
     }}
 }}";
 
+        return GetSyntaxNode<MethodDeclarationSyntax>(sb, classTemplate);
+    }
+
+    /// <summary>
+    /// 将字符串解释为<see cref="ClassDeclarationSyntax"/>对象。
+    /// </summary>
+    /// <param name="sb">字符串构建器。</param>
+    /// <returns>类声明语法。</returns>
+    public static ClassDeclarationSyntax GetClassDeclarationSyntax(StringBuilder sb)
+    {
+        const string namespaceTemplate = @"
+using System;
+namespace TemporaryNamespace
+{{
+    {0}
+}}";
+
+        return GetSyntaxNode<ClassDeclarationSyntax>(sb, namespaceTemplate);
+    }
+
+    /// <summary>
+    /// 通用方法：解析字符串为指定的语法节点。
+    /// </summary>
+    /// <typeparam name="T">语法节点类型。</typeparam>
+    /// <param name="sb">字符串构建器。</param>
+    /// <param name="template">代码模板。</param>
+    /// <returns>语法节点。</returns>
+    private static T GetSyntaxNode<T>(StringBuilder sb, string template)
+        where T : CSharpSyntaxNode
+    {
+        if (sb == null || sb.Length == 0)
+            return null;
+
+        try
+        {
+            var code = sb.ToString().Trim();
+            if (string.IsNullOrWhiteSpace(code))
+                return null;
+
+            string completeCode = string.Format(template, code);
             var tree = CSharpSyntaxTree.ParseText(completeCode);
-            var root = tree.GetRoot();
 
             // 检查解析错误
             var errors = tree.GetDiagnostics()
-                .Where(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
+                .Where(d => d.Severity == DiagnosticSeverity.Error)
                 .ToList();
 
-            return root.DescendantNodes().OfType<MethodDeclarationSyntax>().FirstOrDefault();
+            if (errors.Any())
+            {
+                // 可以选择记录错误日志
+                var errorMessages = string.Join(Environment.NewLine, errors);
+                Console.WriteLine($"语法解析错误:{Environment.NewLine}{errorMessages}");
+                return null;
+            }
+
+            var root = tree.GetRoot();
+            return root.DescendantNodes().OfType<T>().FirstOrDefault();
         }
         catch (Exception ex)
         {
