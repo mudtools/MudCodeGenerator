@@ -55,8 +55,8 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
         // 获取所有带有指定特性的类
         var generationInfo = context.SyntaxProvider
             .CreateSyntaxProvider(
-                predicate: (node, _) => node is ClassDeclarationSyntax,
-                transform: (ctx, _) =>
+                predicate: (node, c) => node is ClassDeclarationSyntax,
+                transform: (ctx, c) =>
                 {
                     var classNode = (ClassDeclarationSyntax)ctx.Node;
                     var semanticModel = ctx.SemanticModel;
