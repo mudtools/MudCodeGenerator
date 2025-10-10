@@ -9,6 +9,9 @@
     <Import_RootNamespace>Mud.CodeGenerator</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)ClassHierarchyAnalyzer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ClassHierarchyInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PropertyInfo.cs" />
     <Compile Include="..\Mud.CodeGenerator\StringExtensions.cs" />
     <Compile Include="..\Mud.CodeGenerator\AttributeSyntaxHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PrivateFieldNamingHelper.cs" />

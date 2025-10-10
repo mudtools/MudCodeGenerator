@@ -17,7 +17,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
     }
 
     /// <inheritdoc/>
-    protected override void GenerateCode(SourceProductionContext context, ClassDeclarationSyntax orgClassDeclaration)
+    protected override void GenerateCode(SourceProductionContext context, Compilation compilation, ClassDeclarationSyntax orgClassDeclaration)
     {
         try
         {
@@ -50,6 +50,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
             ReportErrorDiagnostic(context, DiagnosticDescriptors.EntityMethodGenerationError, className, ex);
         }
     }
+
 
     /// <summary>
     /// 构建扩展类，包含所有映射方法

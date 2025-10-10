@@ -1,6 +1,3 @@
-using Mud.CodeGenerator;
-using System.Text;
-
 namespace Mud.EntityCodeGenerator;
 
 /// <summary>
@@ -18,8 +15,7 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
         return "DataQueryInput";
     }
 
-    /// <inheritdoc/>
-    protected override void GenerateCode(SourceProductionContext context, ClassDeclarationSyntax orgClassDeclaration)
+    protected override void GenerateCode(SourceProductionContext context, Compilation compilation, ClassDeclarationSyntax orgClassDeclaration)
     {
         try
         {
@@ -83,5 +79,4 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
                 Location.None));
         }
     }
-
 }

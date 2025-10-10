@@ -109,7 +109,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
                 var classes = provider.Left;
                 foreach (var classNode in classes)
                 {
-                    GenerateCode(context, classNode);
+                    GenerateCode(context, compiler, classNode);
                 }
             }
             catch (Exception ex)
@@ -127,8 +127,10 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     /// 自动生成DTO类代码。
     /// </summary>
     /// <param name="context"><see cref="SourceProductionContext"/>对象</param>
+    /// <param name="compilation"><see cref="Compilation"/>对象</param>
     /// <param name="orgClassDeclaration">原始的类声明语法<see cref="ClassDeclarationSyntax"/>对象。</param>
-    protected abstract void GenerateCode(SourceProductionContext context, ClassDeclarationSyntax orgClassDeclaration);
+    protected abstract void GenerateCode(SourceProductionContext context, Compilation compilation, ClassDeclarationSyntax orgClassDeclaration);
+
 
     /// <summary>
     /// 读取项目配置选项并初始化内部字段。

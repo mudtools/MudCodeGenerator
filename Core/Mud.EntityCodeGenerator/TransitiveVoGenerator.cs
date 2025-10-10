@@ -1,4 +1,3 @@
-using Mud.CodeGenerator;
 using Mud.EntityCodeGenerator.Diagnostics;
 
 namespace Mud.EntityCodeGenerator;
@@ -51,7 +50,7 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
     }
 
     /// <inheritdoc/>
-    protected override void GenerateCode(SourceProductionContext context, ClassDeclarationSyntax orgClassDeclaration)
+    protected override void GenerateCode(SourceProductionContext context, Compilation compilation, ClassDeclarationSyntax orgClassDeclaration)
     {
         try
         {

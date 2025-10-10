@@ -24,7 +24,7 @@ namespace Mud.EntityCodeGenerator
         }
 
         /// <inheritdoc/>
-        protected override void GenerateCode(SourceProductionContext context, ClassDeclarationSyntax orgClassDeclaration)
+        protected override void GenerateCode(SourceProductionContext context, Compilation compilation, ClassDeclarationSyntax orgClassDeclaration)
         {
             try
             {
