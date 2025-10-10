@@ -10,6 +10,8 @@ Mud 实体代码生成器是一个基于 Roslyn 的源代码生成器，用于�
 4. **创建输入类生成** - 根据实体类自动生成创建输入类（CrInput）
 5. **更新输入类生成** - 根据实体类自动生成更新输入类（UpInput）
 6. **实体映射方法生成** - 自动生成实体与DTO之间的映射方法
+7. **Builder模式代码生成** - 自动生成实体的Builder构建器模式代码
+8. **实体扩展方法生成** - 自动生成实体与其他类型之间的映射扩展方法
 
 ## 项目参数配置
 
@@ -322,7 +324,135 @@ public partial class SysClientUpInput : SysClientCrInput
 }
 ```
 
-### 2. 代码生成器增强功能
+### 2. Builder模式代码生成
+
+除了上述代码生成外，Mud.EntityCodeGenerator还支持Builder构建器模式代码生成。只需在实体类上添加[Builder]特性：
+
+```CSharp
+/// <summary>
+/// 客户端信息实体类
+/// </summary>
+[DtoGenerator]
+[Builder]
+[Table(Name = "sys_client"),SuppressSniffer]
+public partial class SysClientEntity
+{
+    /// <summary>
+    /// id
+    /// </summary>
+    [property: Column(Name = "id", IsPrimary = true, Position = 1)]
+    [property: Required(ErrorMessage = "id不能为空")]
+    private long? _id;
+
+    /// <summary>
+    /// 客户端key
+    /// </summary>
+    [property: Column(Name = "client_key", Position = 3)]
+    [property: Required(ErrorMessage = "客户端key不能为空")]
+    private string _clientKey;
+
+    /// <summary>
+    /// 删除标志（0代表存在 2代表删除）
+    /// </summary>
+    [property: Column(Name = "del_flag", Position = 10)]
+    private string _delFlag;
+}
+```
+
+基于以上实体，将自动生成Builder构建器类：
+
+```CSharp
+/// <summary>
+/// <see cref="SysClientEntity"/> 的构建者。
+/// </summary>
+public class SysClientEntityBuilder
+{
+    private SysClientEntity _sysClientEntity = new SysClientEntity();
+
+    /// <summary>
+    /// 设置 <see cref="SysClientEntity.Id"/> 属性值。
+    /// </summary>
+    /// <param name="id">属性值</param>
+    /// <returns>返回 <see cref="SysClientEntityBuilder"/> 实例</returns>
+    public SysClientEntityBuilder SetId(long? id)
+    {
+        this._sysClientEntity.Id = id;
+        return this;
+    }
+
+    /// <summary>
+    /// 设置 <see cref="SysClientEntity.ClientKey"/> 属性值。
+    /// </summary>
+    /// <param name="clientKey">属性值</param>
+    /// <returns>返回 <see cref="SysClientEntityBuilder"/> 实例</returns>
+    public SysClientEntityBuilder SetClientKey(string clientKey)
+    {
+        this._sysClientEntity.ClientKey = clientKey;
+        return this;
+    }
+
+    /// <summary>
+    /// 设置 <see cref="SysClientEntity.DelFlag"/> 属性值。
+    /// </summary>
+    /// <param name="delFlag">属性值</param>
+    /// <returns>返回 <see cref="SysClientEntityBuilder"/> 实例</returns>
+    public SysClientEntityBuilder SetDelFlag(string delFlag)
+    {
+        this._sysClientEntity.DelFlag = delFlag;
+        return this;
+    }
+
+    /// <summary>
+    /// 构建 <see cref="SysClientEntity"/> 类的实例。
+    /// </summary>
+    public SysClientEntity Build()
+    {
+        return this._sysClientEntity;
+    }
+}
+```
+
+使用Builder模式可以链式设置实体属性，创建实体对象更加方便：
+
+```csharp
+var client = new SysClientEntityBuilder()
+    .SetClientKey("client123")
+    .SetDelFlag("0")
+    .Build();
+```
+
+### 3. 实体扩展方法生成
+
+Mud.EntityCodeGenerator还支持生成实体类的扩展方法，用于在实体和各种DTO之间进行映射。这些扩展方法包括：
+
+1. `MapToEntity(this CrInput input)` - 将创建输入对象映射到实体
+2. `MapToEntity(this UpInput input)` - 将更新输入对象映射到实体
+3. `MapToCrInput(this Entity entity)` - 将实体映射到创建输入对象
+4. `MapToUpInput(this Entity entity)` - 将实体映射到更新输入对象
+5. `MapToListOutput(this Entity entity)` - 将实体映射到列表输出对象(VO)
+6. `MapToList(this IEnumerable<Entity> entities)` - 将实体集合映射到列表输出对象集合
+7. `BuildQueryWhere(this QueryInput input)` - 根据查询输入对象构建查询条件表达式
+
+使用示例：
+
+```csharp
+// 将CrInput映射到实体
+var entity = crInput.MapToEntity();
+
+// 将实体映射到UpInput
+var upInput = entity.MapToUpInput();
+
+// 将实体映射到VO
+var vo = entity.MapToListOutput();
+
+// 将实体集合映射到VO集合
+var voList = entityList.MapToList();
+
+// 构建查询条件
+var query = queryInput.BuildQueryWhere();
+```
+
+### 4. 代码生成器增强功能
 
 #### TransitiveBoGenerator 增强
 - 支持通过 `ExtraBoPropertyAttributes` 单独配置BO类属性特性
@@ -341,7 +471,7 @@ public partial class SysClientUpInput : SysClientCrInput
 - 自动生成 `MapTo()` 方法，用于将实体对象映射到VO对象
 - 支持通过 `ExtraPropertyAttributes` 配置实体属性特性
 
-### 3. 特性控制参数
+### 5. 特性控制参数
 
 DtoGenerator特性支持以下参数控制代码生成行为：
 
