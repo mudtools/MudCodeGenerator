@@ -6,13 +6,26 @@ namespace Mud.EntityCodeGenerator;
 /// <summary>
 /// 生成业务数据VO类。
 /// </summary>
-[Generator(LanguageNames.CSharp)]
 public class TransitiveVoGenerator : TransitiveDtoGenerator
 {
     internal const string VoSuffix = "ListOutput";
+    internal const string InfoSuffix = "InfoOutput";
 
     /// <inheritdoc/>
-    protected override string ClassSuffix => VoSuffix;
+    protected override string ClassSuffix
+    {
+        get
+        {
+            // 根据当前类名确定后缀
+            var currentClassName = this.GetType().Name;
+            return currentClassName switch
+            {
+                nameof(TransitiveListOutputGenerator) => VoSuffix,
+                nameof(TransitiveInfoOutputGenerator) => InfoSuffix,
+                _ => VoSuffix
+            };
+        }
+    }
 
     private const string ViewPropertyAttribute = "PropertyTranslation";
 
@@ -25,7 +38,7 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
     {
         var defaultAttributes = new[] { "DictFormat", "Translation", "Sensitive" };
         var extraAttributes = GetVoPropertyAttributes();
-        
+
         if (extraAttributes != null && extraAttributes.Length > 0)
         {
             // 合并默认属性和额外属性，并去重
@@ -33,7 +46,7 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
         }
-        
+
         return defaultAttributes.Concat(["ExportProperty"]).ToArray();
     }
 

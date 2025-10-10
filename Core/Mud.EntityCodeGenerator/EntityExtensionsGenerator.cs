@@ -98,11 +98,25 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
             extensionClass = extensionClass.AddMembers(mapToListOutputMethod);
         }
 
+        // 添加MapToInfoOutput方法（从实体映射到InfoOutput/VO）
+        var mapToInfoOutputMethod = GenerateMapToInfoOutputMethod(orgClassDeclaration, orgClassName);
+        if (mapToInfoOutputMethod != null)
+        {
+            extensionClass = extensionClass.AddMembers(mapToInfoOutputMethod);
+        }
+
         // 添加MapToListOutputCollection方法（从实体集合映射到ListOutput集合）
         var mapToListOutputCollectionMethod = GenerateMapToListOutputCollectionMethod(orgClassDeclaration, orgClassName);
         if (mapToListOutputCollectionMethod != null)
         {
             extensionClass = extensionClass.AddMembers(mapToListOutputCollectionMethod);
+        }
+
+        // 添加MapToInfoOutputCollection方法（从实体集合映射到InfoOutput集合）
+        var mapToInfoOutputCollectionMethod = GenerateMapToInfoOutputCollectionMethod(orgClassDeclaration, orgClassName);
+        if (mapToInfoOutputCollectionMethod != null)
+        {
+            extensionClass = extensionClass.AddMembers(mapToInfoOutputCollectionMethod);
         }
 
         // 添加BuildQueryWhere方法（从QueryInput构建查询条件）
@@ -372,6 +386,50 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
     }
 
     /// <summary>
+    /// 生成从实体映射到InfoOutput(VO)的扩展方法
+    /// </summary>
+    private MethodDeclarationSyntax GenerateMapToInfoOutputMethod(
+        ClassDeclarationSyntax orgClassDeclaration,
+        string orgClassName)
+    {
+        var voClassName = orgClassName.Replace(EntitySuffix, "") + TransitiveVoGenerator.InfoSuffix;
+        System.Diagnostics.Debug.WriteLine($"VO_CLASS_NAME: {voClassName}");
+
+        // 添加命名空间前缀
+        var fullVoClassName = $"{voClassName}";
+
+        var sb = new StringBuilder();
+
+        sb.AppendLine($"/// <summary>");
+        sb.AppendLine($"/// 将 <see cref=\"{orgClassName}\"/> 映射到 <see cref=\"{voClassName}\"/> 实例。");
+        sb.AppendLine($"/// </summary>");
+        sb.AppendLine($"/// <param name=\"entity\">输入的 <see cref=\"{orgClassName}\"/> 实例。</param>");
+        sb.AppendLine($"/// <returns>映射后的 <see cref=\"{voClassName}\"/> 实例。</returns>");
+        sb.AppendLine($"public static {fullVoClassName} MapToInfoOutput(this {orgClassName} entity)");
+        sb.AppendLine("{");
+        sb.AppendLine($"    if(entity==null)return null;");
+        sb.AppendLine($"    var output = new {fullVoClassName}();");
+
+        // 生成属性映射（所有属性）
+        GeneratePropertyMappings<PropertyDeclarationSyntax>(
+            orgClassDeclaration,
+            sb,
+            (orgPropertyName, propertyName) => $"    output.{propertyName} = entity.{orgPropertyName};",
+            null); // 处理所有属性
+
+        GeneratePropertyMappings<FieldDeclarationSyntax>(
+            orgClassDeclaration,
+            sb,
+            (orgPropertyName, propertyName) => $"    output.{propertyName} = entity.{orgPropertyName};",
+            null); // 处理所有属性
+
+        sb.AppendLine("    return output;");
+        sb.AppendLine("}");
+
+        return SyntaxHelper.GetMethodDeclarationSyntax(sb);
+    }
+
+    /// <summary>
     /// 生成从实体集合映射到ListOutput集合的扩展方法
     /// </summary>
     private MethodDeclarationSyntax GenerateMapToListOutputCollectionMethod(
@@ -400,6 +458,45 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         sb.AppendLine($"    foreach (var entity in entities)");
         sb.AppendLine($"    {{");
         sb.AppendLine($"        var listOutput = entity.MapToListOutput();");
+        sb.AppendLine($"        if(action!=null)");
+        sb.AppendLine($"            action(listOutput);");
+        sb.AppendLine($"        listOutputs.Add(listOutput);");
+        sb.AppendLine($"    }}");
+        sb.AppendLine($"    return listOutputs;");
+        sb.AppendLine("}");
+
+        return SyntaxHelper.GetMethodDeclarationSyntax(sb);
+    }
+
+    /// <summary>
+    /// 生成从实体集合映射到InfoOutput集合的扩展方法
+    /// </summary>
+    private MethodDeclarationSyntax GenerateMapToInfoOutputCollectionMethod(
+        ClassDeclarationSyntax orgClassDeclaration,
+        string orgClassName)
+    {
+        var voClassName = orgClassName.Replace(EntitySuffix, "") + TransitiveVoGenerator.InfoSuffix;
+        System.Diagnostics.Debug.WriteLine($"VO_CLASS_NAME: {voClassName}");
+
+        // 添加命名空间前缀
+        var fullVoClassName = $"{voClassName}";
+
+        var sb = new StringBuilder();
+
+        sb.AppendLine($"/// <summary>");
+        sb.AppendLine($"/// 将 <see cref=\"{orgClassName}\"/> 集合映射到 <see cref=\"{voClassName}\"/> 集合。");
+        sb.AppendLine($"/// </summary>");
+        sb.AppendLine($"/// <param name=\"entities\">输入的 <see cref=\"{orgClassName}\"/> 集合。</param>");
+        sb.AppendLine($"/// <returns>映射后的 <see cref=\"{voClassName}\"/> 集合。</returns>");
+        sb.AppendLine($"public static List<{fullVoClassName}> MapToInfoList(this IEnumerable<{orgClassName}> entities, Action<{fullVoClassName}>? action=null)");
+        sb.AppendLine("{");
+        sb.AppendLine($"    if (entities == null)");
+        sb.AppendLine($"        return [];");
+        sb.AppendLine();
+        sb.AppendLine($"    var listOutputs = new List<{fullVoClassName}>();");
+        sb.AppendLine($"    foreach (var entity in entities)");
+        sb.AppendLine($"    {{");
+        sb.AppendLine($"        var listOutput = entity.MapToInfoOutput();");
         sb.AppendLine($"        if(action!=null)");
         sb.AppendLine($"            action(listOutput);");
         sb.AppendLine($"        listOutputs.Add(listOutput);");
