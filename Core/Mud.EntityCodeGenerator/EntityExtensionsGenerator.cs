@@ -149,8 +149,9 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         sb.AppendLine($"/// 将 <see cref=\"{crInputClassName}\"/> 映射到 <see cref=\"{orgClassName}\"/> 实例。");
         sb.AppendLine($"/// </summary>");
         sb.AppendLine($"/// <param name=\"input\">输入的 <see cref=\"{crInputClassName}\"/> 实例。</param>");
+        sb.AppendLine($"/// <param name=\"action\">映射后对实体执行的操作。</param>");
         sb.AppendLine($"/// <returns>映射后的 <see cref=\"{orgClassName}\"/> 实例。</returns>");
-        sb.AppendLine($"public static {orgClassName} MapToEntity(this {fullCrInputClassName} input)");
+        sb.AppendLine($"public static {orgClassName} MapToEntity(this {fullCrInputClassName} input, Action<{orgClassName}>? action = null)");
         sb.AppendLine("{");
         sb.AppendLine($"    if(input==null)return null;");
         sb.AppendLine($"    var entity = new {orgClassName}();");
@@ -168,6 +169,8 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
             (orgPropertyName, propertyName) => $"    entity.{orgPropertyName} = input.{propertyName};",
             false); // 只处理非主键属性
 
+        sb.AppendLine($"    if(action!=null)");
+        sb.AppendLine($"        action(entity);");
         sb.AppendLine("    return entity;");
         sb.AppendLine("}");
 
@@ -193,8 +196,9 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         sb.AppendLine($"/// 将 <see cref=\"{upInputClassName}\"/> 映射到 <see cref=\"{orgClassName}\"/> 实例。");
         sb.AppendLine($"/// </summary>");
         sb.AppendLine($"/// <param name=\"input\">输入的 <see cref=\"{upInputClassName}\"/> 实例。</param>");
+        sb.AppendLine($"/// <param name=\"action\">映射后对实体执行的操作。</param>");
         sb.AppendLine($"/// <returns>映射后的 <see cref=\"{orgClassName}\"/> 实例。</returns>");
-        sb.AppendLine($"public static {orgClassName} MapToEntity(this {fullUpInputClassName} input)");
+        sb.AppendLine($"public static {orgClassName} MapToEntity(this {fullUpInputClassName} input, Action<{orgClassName}>? action = null)");
         sb.AppendLine("{");
         sb.AppendLine($"    if(input==null)return null;");
         sb.AppendLine($"    var entity = new {orgClassName}();");
@@ -212,6 +216,8 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
             (orgPropertyName, propertyName) => $"    entity.{orgPropertyName} = input.{propertyName};",
             null); // 处理所有属性
 
+        sb.AppendLine($"    if(action!=null)");
+        sb.AppendLine($"        action(entity);");
         sb.AppendLine("    return entity;");
         sb.AppendLine("}");
 
@@ -261,7 +267,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         string orgClassName)
     {
         var crInputClassName = GetGeneratorClassName(orgClassDeclaration, TransitiveCrInputGenerator.Suffix);
-        System.Diagnostics.Debug.WriteLine($"CRINPUT_CLASS_NAME: {crInputClassName}");
+        Debug.WriteLine($"CRINPUT_CLASS_NAME: {crInputClassName}");
 
         // 添加命名空间前缀
         var fullCrInputClassName = $"{crInputClassName}";
@@ -272,8 +278,9 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         sb.AppendLine($"/// 将 <see cref=\"{orgClassName}\"/> 映射到 <see cref=\"{crInputClassName}\"/> 实例。");
         sb.AppendLine($"/// </summary>");
         sb.AppendLine($"/// <param name=\"entity\">输入的 <see cref=\"{orgClassName}\"/> 实例。</param>");
+        sb.AppendLine($"/// <param name=\"action\">映射后对DTO执行的操作。</param>");
         sb.AppendLine($"/// <returns>映射后的 <see cref=\"{crInputClassName}\"/> 实例。</returns>");
-        sb.AppendLine($"public static {fullCrInputClassName} MapToCrInput(this {orgClassName} entity)");
+        sb.AppendLine($"public static {fullCrInputClassName} MapToCrInput(this {orgClassName} entity, Action<{fullCrInputClassName}>? action = null)");
         sb.AppendLine("{");
         sb.AppendLine($"    if(entity==null)return null;");
         sb.AppendLine($"    var input = new {fullCrInputClassName}();");
@@ -291,6 +298,8 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
             (orgPropertyName, propertyName) => $"    input.{propertyName} = entity.{orgPropertyName};",
             false); // 只处理非主键属性
 
+        sb.AppendLine($"    if(action!=null)");
+        sb.AppendLine($"        action(input);");
         sb.AppendLine("    return input;");
         sb.AppendLine("}");
 
@@ -316,8 +325,9 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         sb.AppendLine($"/// 将 <see cref=\"{orgClassName}\"/> 映射到 <see cref=\"{upInputClassName}\"/> 实例。");
         sb.AppendLine($"/// </summary>");
         sb.AppendLine($"/// <param name=\"entity\">输入的 <see cref=\"{orgClassName}\"/> 实例。</param>");
+        sb.AppendLine($"/// <param name=\"action\">映射后对DTO执行的操作。</param>");
         sb.AppendLine($"/// <returns>映射后的 <see cref=\"{upInputClassName}\"/> 实例。</returns>");
-        sb.AppendLine($"public static {fullUpInputClassName} MapToUpInput(this {orgClassName} entity)");
+        sb.AppendLine($"public static {fullUpInputClassName} MapToUpInput(this {orgClassName} entity, Action<{fullUpInputClassName}>? action = null)");
         sb.AppendLine("{");
         sb.AppendLine($"    if(entity==null)return null;");
         sb.AppendLine($"    var input = new {fullUpInputClassName}();");
@@ -335,6 +345,8 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
             (orgPropertyName, propertyName) => $"    input.{propertyName} = entity.{orgPropertyName};",
             null); // 处理所有属性
 
+        sb.AppendLine($"    if(action!=null)");
+        sb.AppendLine($"        action(input);");
         sb.AppendLine("    return input;");
         sb.AppendLine("}");
 
@@ -360,8 +372,9 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         sb.AppendLine($"/// 将 <see cref=\"{orgClassName}\"/> 映射到 <see cref=\"{voClassName}\"/> 实例。");
         sb.AppendLine($"/// </summary>");
         sb.AppendLine($"/// <param name=\"entity\">输入的 <see cref=\"{orgClassName}\"/> 实例。</param>");
+        sb.AppendLine($"/// <param name=\"action\">映射后对DTO执行的操作。</param>");
         sb.AppendLine($"/// <returns>映射后的 <see cref=\"{voClassName}\"/> 实例。</returns>");
-        sb.AppendLine($"public static {fullVoClassName} MapToListOutput(this {orgClassName} entity)");
+        sb.AppendLine($"public static {fullVoClassName} MapToListOutput(this {orgClassName} entity, Action<{fullVoClassName}>? action = null)");
         sb.AppendLine("{");
         sb.AppendLine($"    if(entity==null)return null;");
         sb.AppendLine($"    var output = new {fullVoClassName}();");
@@ -379,6 +392,8 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
             (orgPropertyName, propertyName) => $"    output.{propertyName} = entity.{orgPropertyName};",
             null); // 处理所有属性
 
+        sb.AppendLine($"    if(action!=null)");
+        sb.AppendLine($"        action(output);");
         sb.AppendLine("    return output;");
         sb.AppendLine("}");
 
@@ -404,8 +419,9 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         sb.AppendLine($"/// 将 <see cref=\"{orgClassName}\"/> 映射到 <see cref=\"{voClassName}\"/> 实例。");
         sb.AppendLine($"/// </summary>");
         sb.AppendLine($"/// <param name=\"entity\">输入的 <see cref=\"{orgClassName}\"/> 实例。</param>");
+        sb.AppendLine($"/// <param name=\"action\">映射后对DTO执行的操作。</param>");
         sb.AppendLine($"/// <returns>映射后的 <see cref=\"{voClassName}\"/> 实例。</returns>");
-        sb.AppendLine($"public static {fullVoClassName} MapToInfoOutput(this {orgClassName} entity)");
+        sb.AppendLine($"public static {fullVoClassName} MapToInfoOutput(this {orgClassName} entity, Action<{fullVoClassName}>? action = null)");
         sb.AppendLine("{");
         sb.AppendLine($"    if(entity==null)return null;");
         sb.AppendLine($"    var output = new {fullVoClassName}();");
@@ -423,6 +439,8 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
             (orgPropertyName, propertyName) => $"    output.{propertyName} = entity.{orgPropertyName};",
             null); // 处理所有属性
 
+        sb.AppendLine($"    if(action!=null)");
+        sb.AppendLine($"        action(output);");
         sb.AppendLine("    return output;");
         sb.AppendLine("}");
 
@@ -448,6 +466,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         sb.AppendLine($"/// 将 <see cref=\"{orgClassName}\"/> 集合映射到 <see cref=\"{voClassName}\"/> 集合。");
         sb.AppendLine($"/// </summary>");
         sb.AppendLine($"/// <param name=\"entities\">输入的 <see cref=\"{orgClassName}\"/> 集合。</param>");
+        sb.AppendLine($"/// <param name=\"action\">映射后对每个DTO执行的操作。</param>");
         sb.AppendLine($"/// <returns>映射后的 <see cref=\"{voClassName}\"/> 集合。</returns>");
         sb.AppendLine($"public static List<{fullVoClassName}> MapToList(this IEnumerable<{orgClassName}> entities, Action<{fullVoClassName}>? action=null)");
         sb.AppendLine("{");
@@ -487,6 +506,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         sb.AppendLine($"/// 将 <see cref=\"{orgClassName}\"/> 集合映射到 <see cref=\"{voClassName}\"/> 集合。");
         sb.AppendLine($"/// </summary>");
         sb.AppendLine($"/// <param name=\"entities\">输入的 <see cref=\"{orgClassName}\"/> 集合。</param>");
+        sb.AppendLine($"/// <param name=\"action\">映射后对每个DTO执行的操作。</param>");
         sb.AppendLine($"/// <returns>映射后的 <see cref=\"{voClassName}\"/> 集合。</returns>");
         sb.AppendLine($"public static List<{fullVoClassName}> MapToInfoList(this IEnumerable<{orgClassName}> entities, Action<{fullVoClassName}>? action=null)");
         sb.AppendLine("{");
