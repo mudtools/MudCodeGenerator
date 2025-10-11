@@ -39,7 +39,7 @@ public class BuilderGenerator : TransitiveDtoGenerator
 
             // 构建建造者模式类
             var builderClassName = $"{orgClassName}Builder";
-            var builderClass = BuildBuilderClass(orgClassDeclaration, orgClassName, builderClassName);
+            var builderClass = BuildBuilderClass(orgClassDeclaration, compilation, orgClassName, builderClassName);
 
             var compilationUnit = GenCompilationUnitSyntax(builderClass, entityNamespace, builderClassName);
             context.AddSource($"{builderClassName}.g.cs", compilationUnit);
@@ -56,6 +56,7 @@ public class BuilderGenerator : TransitiveDtoGenerator
     /// </summary>    
     private ClassDeclarationSyntax BuildBuilderClass(
         ClassDeclarationSyntax orgClassDeclaration,
+        Compilation compilation,
         string orgClassName,
         string builderClassName)
     {
@@ -72,13 +73,13 @@ public class BuilderGenerator : TransitiveDtoGenerator
         // 生成属性设置函数
         GeneratePropertyMappings<PropertyDeclarationSyntax>(
             orgClassDeclaration,
-            sb,
+            sb, compilation,
             (orgPropertyName, propertyName, propertyType) => GenPropertySet(builderClassName, orgClassName, privateFieldName, orgPropertyName, propertyName, propertyType)
             );
         // 生成私有字段设置函数
         GeneratePropertyMappings<FieldDeclarationSyntax>(
             orgClassDeclaration,
-            sb,
+            sb, compilation,
             (orgPropertyName, propertyName, propertyType) => GenPropertySet(builderClassName, orgClassName, privateFieldName, orgPropertyName, propertyName, propertyType)
             );
 
@@ -117,10 +118,20 @@ public class BuilderGenerator : TransitiveDtoGenerator
     private void GeneratePropertyMappings<T>(
         ClassDeclarationSyntax orgClassDeclaration,
         StringBuilder sb,
+        Compilation compilation,
         Func<string, string, string, string> generateSetMethod)
          where T : MemberDeclarationSyntax
     {
-        foreach (var member in orgClassDeclaration.Members.OfType<T>())
+        var members = orgClassDeclaration.Members;
+
+        if (typeof(T) == typeof(PropertyDeclarationSyntax))
+        {
+            var baseProperty = ClassHierarchyAnalyzer.GetBaseClassPublicPropertyDeclarations(orgClassDeclaration, compilation);
+            if (baseProperty.Count > 0)
+                members = members.AddRange(baseProperty.Cast<MemberDeclarationSyntax>());
+        }
+
+        foreach (var member in members.OfType<T>())
         {
             try
             {

@@ -55,7 +55,7 @@ public static class ClassHierarchyAnalyzer
         // 如果需要包含当前类的属性
         if (includeCurrentClass)
         {
-            AddPublicPropertyDeclarationsFromType(currentClassSymbol, propertyDeclarations, compilation, currentClassSymbol);
+            AddPublicPropertyDeclarationsFromType(currentClassSymbol, propertyDeclarations, currentClassSymbol);
         }
 
         // 递归获取基类的公共属性语法节点，传递当前类符号用于类型解析
@@ -83,7 +83,7 @@ public static class ClassHierarchyAnalyzer
         {
             // 获取属性的声明类型名称 - 使用语义模型获取准确的类型信息
             var semanticModel = compilation.GetSemanticModel(property.SyntaxTree);
-            var propertySymbol = semanticModel.GetDeclaredSymbol(property) as IPropertySymbol;
+            var propertySymbol = semanticModel.GetDeclaredSymbol(property);
 
             if (propertySymbol != null)
             {
@@ -228,7 +228,7 @@ public static class ClassHierarchyAnalyzer
             return;
 
         // 添加当前基类的公共属性语法节点，传递上下文类符号用于类型解析
-        AddPublicPropertyDeclarationsFromType(baseType, propertyDeclarations, compilation, contextClassSymbol);
+        AddPublicPropertyDeclarationsFromType(baseType, propertyDeclarations, contextClassSymbol);
 
         // 递归处理上一级基类
         CollectBaseClassPropertyDeclarations(baseType.BaseType, propertyDeclarations, compilation, contextClassSymbol);
@@ -237,7 +237,6 @@ public static class ClassHierarchyAnalyzer
     private static void AddPublicPropertyDeclarationsFromType(
         INamedTypeSymbol typeSymbol,
         List<PropertyDeclarationSyntax> propertyDeclarations,
-        Compilation compilation,
         INamedTypeSymbol contextClassSymbol)
     {
         var publicProperties = typeSymbol.GetMembers()
@@ -259,7 +258,7 @@ public static class ClassHierarchyAnalyzer
                 continue;
 
             // 对于泛型类型参数，创建一个修改后的语法节点来反映具体类型
-            var resolvedPropertySyntax = ResolvePropertyTypeInSyntax(propertySyntax, propertySymbol, contextClassSymbol, compilation);
+            var resolvedPropertySyntax = ResolvePropertyTypeInSyntax(propertySyntax, propertySymbol, contextClassSymbol);
 
             // 添加属性并更新已存在属性名集合
             propertyDeclarations.Add(resolvedPropertySyntax);
@@ -273,8 +272,7 @@ public static class ClassHierarchyAnalyzer
     private static PropertyDeclarationSyntax ResolvePropertyTypeInSyntax(
         PropertyDeclarationSyntax propertySyntax,
         IPropertySymbol propertySymbol,
-        INamedTypeSymbol contextClassSymbol,
-        Compilation compilation)
+        INamedTypeSymbol contextClassSymbol)
     {
         // 获取属性声明所在类型的原始定义（泛型定义）
         var declaringType = propertySymbol.ContainingType;

@@ -39,7 +39,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
 
             // 构建扩展类
             var extensionClassName = $"{orgClassName}Extensions";
-            var extensionClass = BuildExtensionClass(orgClassDeclaration, orgClassName, extensionClassName);
+            var extensionClass = BuildExtensionClass(orgClassDeclaration, compilation, orgClassName, extensionClassName);
 
             var compilationUnit = GenCompilationUnitSyntax(extensionClass, entityNamespace, extensionClassName);
             context.AddSource($"{extensionClassName}.g.cs", compilationUnit);
@@ -57,6 +57,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
     /// </summary>
     private ClassDeclarationSyntax BuildExtensionClass(
         ClassDeclarationSyntax orgClassDeclaration,
+        Compilation compilation,
         string orgClassName,
         string extensionClassName)
     {
@@ -65,42 +66,42 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
                                                   SyntaxFactory.Token(SyntaxKind.StaticKeyword)));
 
         // 添加MapToEntityFromCrInput方法（从CrInput映射到实体）
-        var mapFromCrInputMethod = GenerateMapToEntityFromCrInputMethod(orgClassDeclaration, orgClassName);
+        var mapFromCrInputMethod = GenerateMapToEntityFromCrInputMethod(orgClassDeclaration, compilation, orgClassName);
         if (mapFromCrInputMethod != null)
         {
             extensionClass = extensionClass.AddMembers(mapFromCrInputMethod);
         }
 
         // 添加MapToEntityFromUpInput方法（从UpInput映射到实体）
-        var mapFromUpInputMethod = GenerateMapToEntityFromUpInputMethod(orgClassDeclaration, orgClassName);
+        var mapFromUpInputMethod = GenerateMapToEntityFromUpInputMethod(orgClassDeclaration, compilation, orgClassName);
         if (mapFromUpInputMethod != null)
         {
             extensionClass = extensionClass.AddMembers(mapFromUpInputMethod);
         }
 
         // 添加MapToCrInput方法（从实体映射到CrInput）
-        var mapToCrInputMethod = GenerateMapToCrInputMethod(orgClassDeclaration, orgClassName);
+        var mapToCrInputMethod = GenerateMapToCrInputMethod(orgClassDeclaration, compilation, orgClassName);
         if (mapToCrInputMethod != null)
         {
             extensionClass = extensionClass.AddMembers(mapToCrInputMethod);
         }
 
         // 添加MapToUpInput方法（从实体映射到UpInput）
-        var mapToUpInputMethod = GenerateMapToUpInputMethod(orgClassDeclaration, orgClassName);
+        var mapToUpInputMethod = GenerateMapToUpInputMethod(orgClassDeclaration, compilation, orgClassName);
         if (mapToUpInputMethod != null)
         {
             extensionClass = extensionClass.AddMembers(mapToUpInputMethod);
         }
 
         // 添加MapToListOutput方法（从实体映射到ListOutput/VO）
-        var mapToListOutputMethod = GenerateMapToListOutputMethod(orgClassDeclaration, orgClassName);
+        var mapToListOutputMethod = GenerateMapToListOutputMethod(orgClassDeclaration, compilation, orgClassName);
         if (mapToListOutputMethod != null)
         {
             extensionClass = extensionClass.AddMembers(mapToListOutputMethod);
         }
 
         // 添加MapToInfoOutput方法（从实体映射到InfoOutput/VO）
-        var mapToInfoOutputMethod = GenerateMapToInfoOutputMethod(orgClassDeclaration, orgClassName);
+        var mapToInfoOutputMethod = GenerateMapToInfoOutputMethod(orgClassDeclaration, compilation, orgClassName);
         if (mapToInfoOutputMethod != null)
         {
             extensionClass = extensionClass.AddMembers(mapToInfoOutputMethod);
@@ -136,6 +137,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
     /// </summary>
     private MethodDeclarationSyntax GenerateMapToEntityFromCrInputMethod(
         ClassDeclarationSyntax orgClassDeclaration,
+        Compilation compilation,
         string orgClassName)
     {
         var crInputClassName = GetGeneratorClassName(orgClassDeclaration, TransitiveCrInputGenerator.Suffix);
@@ -160,13 +162,13 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         // 生成属性映射
         GeneratePropertyMappings<PropertyDeclarationSyntax>(
             orgClassDeclaration,
-            sb,
+            sb, compilation,
             (orgPropertyName, propertyName) => $"    entity.{orgPropertyName} = input.{propertyName};",
             false); // 只处理非主键属性
 
         GeneratePropertyMappings<FieldDeclarationSyntax>(
             orgClassDeclaration,
-            sb,
+            sb, compilation,
             (orgPropertyName, propertyName) => $"    entity.{orgPropertyName} = input.{propertyName};",
             false); // 只处理非主键属性
 
@@ -183,6 +185,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
     /// </summary>
     private MethodDeclarationSyntax GenerateMapToEntityFromUpInputMethod(
         ClassDeclarationSyntax orgClassDeclaration,
+        Compilation compilation,
         string orgClassName)
     {
         var upInputClassName = GetGeneratorClassName(orgClassDeclaration, "UpInput");
@@ -207,13 +210,13 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         // 生成属性映射（所有属性）
         GeneratePropertyMappings<PropertyDeclarationSyntax>(
             orgClassDeclaration,
-            sb,
+            sb, compilation,
             (orgPropertyName, propertyName) => $"    entity.{orgPropertyName} = input.{propertyName};",
             null); // 处理所有属性
 
         GeneratePropertyMappings<FieldDeclarationSyntax>(
             orgClassDeclaration,
-            sb,
+            sb, compilation,
             (orgPropertyName, propertyName) => $"    entity.{orgPropertyName} = input.{propertyName};",
             null); // 处理所有属性
 
@@ -265,6 +268,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
     /// </summary>
     private MethodDeclarationSyntax GenerateMapToCrInputMethod(
         ClassDeclarationSyntax orgClassDeclaration,
+        Compilation compilation,
         string orgClassName)
     {
         var crInputClassName = GetGeneratorClassName(orgClassDeclaration, TransitiveCrInputGenerator.Suffix);
@@ -289,13 +293,13 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         // 生成属性映射（只处理非主键属性）
         GeneratePropertyMappings<PropertyDeclarationSyntax>(
             orgClassDeclaration,
-            sb,
+            sb, compilation,
             (orgPropertyName, propertyName) => $"    input.{propertyName} = entity.{orgPropertyName};",
             false); // 只处理非主键属性
 
         GeneratePropertyMappings<FieldDeclarationSyntax>(
             orgClassDeclaration,
-            sb,
+            sb, compilation,
             (orgPropertyName, propertyName) => $"    input.{propertyName} = entity.{orgPropertyName};",
             false); // 只处理非主键属性
 
@@ -311,8 +315,9 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
     /// 生成从实体映射到UpInput的扩展方法
     /// </summary>
     private MethodDeclarationSyntax GenerateMapToUpInputMethod(
-        ClassDeclarationSyntax orgClassDeclaration,
-        string orgClassName)
+         ClassDeclarationSyntax orgClassDeclaration,
+         Compilation compilation,
+         string orgClassName)
     {
         var upInputClassName = GetGeneratorClassName(orgClassDeclaration, "UpInput");
         System.Diagnostics.Debug.WriteLine($"UPINPUT_CLASS_NAME: {upInputClassName}");
@@ -336,13 +341,13 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         // 生成属性映射（所有属性）
         GeneratePropertyMappings<PropertyDeclarationSyntax>(
             orgClassDeclaration,
-            sb,
+            sb, compilation,
             (orgPropertyName, propertyName) => $"    input.{propertyName} = entity.{orgPropertyName};",
             null); // 处理所有属性
 
         GeneratePropertyMappings<FieldDeclarationSyntax>(
             orgClassDeclaration,
-            sb,
+            sb, compilation,
             (orgPropertyName, propertyName) => $"    input.{propertyName} = entity.{orgPropertyName};",
             null); // 处理所有属性
 
@@ -359,6 +364,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
     /// </summary>
     private MethodDeclarationSyntax GenerateMapToListOutputMethod(
         ClassDeclarationSyntax orgClassDeclaration,
+        Compilation compilation,
         string orgClassName)
     {
         var voClassName = orgClassName.Replace(EntitySuffix, "") + TransitiveVoGenerator.VoSuffix;
@@ -383,13 +389,13 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         // 生成属性映射（所有属性）
         GeneratePropertyMappings<PropertyDeclarationSyntax>(
             orgClassDeclaration,
-            sb,
+            sb, compilation,
             (orgPropertyName, propertyName) => $"    output.{propertyName} = entity.{orgPropertyName};",
             null); // 处理所有属性
 
         GeneratePropertyMappings<FieldDeclarationSyntax>(
             orgClassDeclaration,
-            sb,
+            sb, compilation,
             (orgPropertyName, propertyName) => $"    output.{propertyName} = entity.{orgPropertyName};",
             null); // 处理所有属性
 
@@ -405,8 +411,9 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
     /// 生成从实体映射到InfoOutput(VO)的扩展方法
     /// </summary>
     private MethodDeclarationSyntax GenerateMapToInfoOutputMethod(
-        ClassDeclarationSyntax orgClassDeclaration,
-        string orgClassName)
+         ClassDeclarationSyntax orgClassDeclaration,
+         Compilation compilation,
+         string orgClassName)
     {
         var voClassName = orgClassName.Replace(EntitySuffix, "") + TransitiveVoGenerator.InfoSuffix;
         System.Diagnostics.Debug.WriteLine($"VO_CLASS_NAME: {voClassName}");
@@ -430,13 +437,13 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         // 生成属性映射（所有属性）
         GeneratePropertyMappings<PropertyDeclarationSyntax>(
             orgClassDeclaration,
-            sb,
+            sb, compilation,
             (orgPropertyName, propertyName) => $"    output.{propertyName} = entity.{orgPropertyName};",
             null); // 处理所有属性
 
         GeneratePropertyMappings<FieldDeclarationSyntax>(
             orgClassDeclaration,
-            sb,
+            sb, compilation,
             (orgPropertyName, propertyName) => $"    output.{propertyName} = entity.{orgPropertyName};",
             null); // 处理所有属性
 
@@ -534,10 +541,20 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
     private void GeneratePropertyMappings<T>(
         ClassDeclarationSyntax orgClassDeclaration,
         StringBuilder sb,
+        Compilation compilation,
         Func<string, string, string> generateMappingLine,
         bool? primaryKeyOnly) where T : MemberDeclarationSyntax
     {
-        foreach (var member in orgClassDeclaration.Members.OfType<T>())
+        var members = orgClassDeclaration.Members;
+
+        if (typeof(T) == typeof(PropertyDeclarationSyntax))
+        {
+            var baseProperty = ClassHierarchyAnalyzer.GetBaseClassPublicPropertyDeclarations(orgClassDeclaration, compilation);
+            if (baseProperty.Count > 0)
+                members = members.AddRange(baseProperty.Cast<MemberDeclarationSyntax>());
+        }
+
+        foreach (var member in members.OfType<T>())
         {
             try
             {
