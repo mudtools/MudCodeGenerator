@@ -32,35 +32,6 @@ public static class ClassHierarchyAnalyzer
     }
 
     /// <summary>
-    /// 获取基类中的所有公共属性（包括继承链中的所有基类），处理泛型类型的具体化
-    /// </summary>
-    public static IReadOnlyList<PropertyInfo> GetBaseClassPublicProperties(
-        ClassDeclarationSyntax classDeclaration,
-        Compilation compilation,
-        bool includeCurrentClass = false)
-    {
-        if (classDeclaration == null || compilation == null)
-            return [];
-        var properties = new List<PropertyInfo>();
-
-        var semanticModel = compilation.GetSemanticModel(classDeclaration.SyntaxTree);
-        var currentClassSymbol = semanticModel.GetDeclaredSymbol(classDeclaration) as INamedTypeSymbol;
-
-        if (currentClassSymbol == null)
-            return properties;
-
-        if (includeCurrentClass)
-        {
-            AddPublicPropertiesFromType(currentClassSymbol, properties, compilation, currentClassSymbol);
-        }
-
-        // 递归分析基类，传递当前类符号用于类型参数解析
-        CollectBaseClassProperties(currentClassSymbol.BaseType, properties, compilation, currentClassSymbol);
-
-        return properties;
-    }
-
-    // <summary>
     /// 获取基类中的所有公共属性的语法节点（包括继承链中的所有基类）
     /// </summary>
     public static IReadOnlyList<PropertyDeclarationSyntax> GetBaseClassPublicPropertyDeclarations(
@@ -91,25 +62,6 @@ public static class ClassHierarchyAnalyzer
         CollectBaseClassPropertyDeclarations(currentClassSymbol.BaseType, propertyDeclarations, compilation, currentClassSymbol);
 
         return propertyDeclarations;
-    }
-
-    /// <summary>
-    /// 获取基类公共属性的分组信息（按声明类型分组）
-    /// </summary>
-    public static IReadOnlyDictionary<string, List<PropertyInfo>> GetBaseClassPublicPropertiesGrouped(
-        ClassDeclarationSyntax classDeclaration,
-        Compilation compilation,
-        bool includeCurrentClass = false)
-    {
-        if (classDeclaration == null || compilation == null)
-            return new Dictionary<string, List<PropertyInfo>>();
-        var properties = GetBaseClassPublicProperties(classDeclaration, compilation, includeCurrentClass);
-
-        return properties
-            .GroupBy(p => p.DeclaringType)
-            .ToDictionary(
-                g => g.Key,
-                g => g.ToList());
     }
 
     /// <summary>
@@ -162,21 +114,6 @@ public static class ClassHierarchyAnalyzer
     }
 
     /// <summary>
-    /// 检查基类中是否存在特定名称的属性
-    /// </summary>
-    public static bool BaseClassHasProperty(
-        ClassDeclarationSyntax classDeclaration,
-        Compilation compilation,
-        string propertyName,
-        bool includeCurrentClass = false)
-    {
-        if (classDeclaration == null || compilation == null)
-            return false;
-        var properties = GetBaseClassPublicProperties(classDeclaration, compilation, includeCurrentClass);
-        return properties.Any(p => p.Name == propertyName);
-    }
-
-    /// <summary>
     /// 检查基类中是否存在特定名称的属性语法节点
     /// </summary>
     public static bool BaseClassHasPropertyDeclaration(
@@ -189,21 +126,6 @@ public static class ClassHierarchyAnalyzer
             return false;
         var properties = GetBaseClassPublicPropertyDeclarations(classDeclaration, compilation, includeCurrentClass);
         return properties.Any(p => p.Identifier.ValueText == propertyName);
-    }
-
-    /// <summary>
-    /// 获取基类中特定类型的属性
-    /// </summary>
-    public static IReadOnlyList<PropertyInfo> GetBaseClassPropertiesByType(
-        ClassDeclarationSyntax classDeclaration,
-        Compilation compilation,
-        string typeName,
-        bool includeCurrentClass = false)
-    {
-        if (classDeclaration == null || compilation == null)
-            return [];
-        var properties = GetBaseClassPublicProperties(classDeclaration, compilation, includeCurrentClass);
-        return properties.Where(p => p.Type == typeName).ToList();
     }
 
     /// <summary>
@@ -221,44 +143,6 @@ public static class ClassHierarchyAnalyzer
         return properties.Where(p =>
             p.Type is IdentifierNameSyntax identifierName &&
             identifierName.Identifier.ValueText == typeName).ToList();
-    }
-
-    /// <summary>
-    /// 从属性声明语法节点创建属性信息对象
-    /// </summary>
-    public static PropertyInfo CreatePropertyInfoFromDeclaration(
-        PropertyDeclarationSyntax propertyDeclaration,
-        Compilation compilation)
-    {
-        if (propertyDeclaration == null || compilation == null)
-            return null;
-        var semanticModel = compilation.GetSemanticModel(propertyDeclaration.SyntaxTree);
-        var propertySymbol = semanticModel.GetDeclaredSymbol(propertyDeclaration) as IPropertySymbol;
-
-        if (propertySymbol == null)
-            return null;
-
-        // 获取包含类的符号，用于解析泛型类型参数
-        var containingClass = propertySymbol.ContainingType;
-
-        // 解析属性类型，考虑泛型类型参数的具体化
-        var resolvedType = ResolvePropertyType(propertySymbol, containingClass);
-
-        return new PropertyInfo
-        {
-            Name = propertySymbol.Name,
-            Type = resolvedType ?? propertySymbol.Type.ToDisplayString(),
-            DeclaringType = propertySymbol.ContainingType.ToDisplayString(),
-            DeclaringTypeShortName = propertySymbol.ContainingType.Name,
-            CanRead = propertySymbol.GetMethod != null,
-            CanWrite = propertySymbol.SetMethod != null,
-            IsAbstract = propertySymbol.IsAbstract,
-            IsVirtual = propertySymbol.IsVirtual,
-            IsOverride = propertySymbol.IsOverride,
-            Accessibility = propertySymbol.DeclaredAccessibility,
-            OriginalType = propertySymbol.Type.ToDisplayString(),
-            Documentation = GetPropertyDocumentation(propertySymbol, compilation)
-        };
     }
 
     /// <summary>
@@ -332,24 +216,12 @@ public static class ClassHierarchyAnalyzer
         AnalyzeBaseTypes(baseType, hierarchy, compilation);
     }
 
-    private static void CollectBaseClassProperties(
-        INamedTypeSymbol baseType,
-        List<PropertyInfo> properties,
-        Compilation compilation,
-        INamedTypeSymbol originalClassSymbol)
-    {
-        if (baseType == null || baseType.SpecialType == SpecialType.System_Object)
-            return;
-
-        AddPublicPropertiesFromType(baseType, properties, compilation, originalClassSymbol);
-        CollectBaseClassProperties(baseType.BaseType, properties, compilation, originalClassSymbol);
-    }
 
     private static void CollectBaseClassPropertyDeclarations(
-    INamedTypeSymbol baseType,
-    List<PropertyDeclarationSyntax> propertyDeclarations,
-    Compilation compilation,
-    INamedTypeSymbol contextClassSymbol)
+        INamedTypeSymbol baseType,
+        List<PropertyDeclarationSyntax> propertyDeclarations,
+        Compilation compilation,
+        INamedTypeSymbol contextClassSymbol)
     {
         // 基类为 null 或 System.Object 时停止递归
         if (baseType == null || baseType.SpecialType == SpecialType.System_Object)
@@ -362,36 +234,11 @@ public static class ClassHierarchyAnalyzer
         CollectBaseClassPropertyDeclarations(baseType.BaseType, propertyDeclarations, compilation, contextClassSymbol);
     }
 
-    private static void AddPublicPropertiesFromType(
+    private static void AddPublicPropertyDeclarationsFromType(
         INamedTypeSymbol typeSymbol,
-        List<PropertyInfo> properties,
+        List<PropertyDeclarationSyntax> propertyDeclarations,
         Compilation compilation,
         INamedTypeSymbol contextClassSymbol)
-    {
-        var members = typeSymbol.GetMembers();
-
-        foreach (var member in members)
-        {
-            if (member is IPropertySymbol propertySymbol &&
-                propertySymbol.DeclaredAccessibility == Accessibility.Public &&
-                !propertySymbol.IsStatic)
-            {
-                // 解析属性类型，考虑泛型类型参数的具体化
-                var resolvedType = ResolvePropertyType(propertySymbol, contextClassSymbol);
-
-                if (!properties.Any(p => p.Name == propertySymbol.Name && p.DeclaringType == typeSymbol.ToDisplayString()))
-                {
-                    properties.Add(CreatePropertyInfo(propertySymbol, typeSymbol, resolvedType, compilation));
-                }
-            }
-        }
-    }
-
-    private static void AddPublicPropertyDeclarationsFromType(
-    INamedTypeSymbol typeSymbol,
-    List<PropertyDeclarationSyntax> propertyDeclarations,
-    Compilation compilation,
-    INamedTypeSymbol contextClassSymbol)
     {
         // 获取类型的所有成员
         var members = typeSymbol.GetMembers();
@@ -493,25 +340,11 @@ public static class ClassHierarchyAnalyzer
 
         while (currentType != null && currentType.SpecialType != SpecialType.System_Object)
         {
-            // 如果当前类型是泛型类型，检查类型参数
-            if (currentType.IsGenericType)
+            // 检查当前类型是否实现了包含该类型参数的泛型基类
+            var resolvedType = ResolveTypeParameterFromBaseChain(typeParameter, currentType);
+            if (resolvedType != null)
             {
-                var typeParameters = currentType.OriginalDefinition.TypeParameters;
-                for (int i = 0; i < typeParameters.Length; i++)
-                {
-                    if (typeParameters[i].Name == typeParameter.Name)
-                    {
-                        return currentType.TypeArguments[i].ToDisplayString();
-                    }
-                }
-            }
-
-            // 检查基类链中的类型参数具体化
-            if (currentType.BaseType != null)
-            {
-                var baseTypeResolution = ResolveTypeParameterInBaseChain(typeParameter, currentType.BaseType);
-                if (baseTypeResolution != null)
-                    return baseTypeResolution;
+                return resolvedType;
             }
 
             currentType = currentType.BaseType;
@@ -520,28 +353,52 @@ public static class ClassHierarchyAnalyzer
         return null;
     }
 
-    private static string ResolveTypeParameterInBaseChain(ITypeParameterSymbol typeParameter, INamedTypeSymbol baseType)
+    private static string ResolveTypeParameterFromBaseChain(ITypeParameterSymbol typeParameter, INamedTypeSymbol currentType)
     {
-        if (baseType == null || baseType.SpecialType == SpecialType.System_Object)
+        if (currentType == null || currentType.SpecialType == SpecialType.System_Object)
             return null;
 
-        // 如果基类是构造的泛型类型，查找类型参数的映射
-        if (baseType.IsGenericType)
+        // 检查当前类型的所有基类
+        var baseType = currentType.BaseType;
+        while (baseType != null && baseType.SpecialType != SpecialType.System_Object)
         {
-            var originalDefinition = baseType.OriginalDefinition;
-            var typeParameters = originalDefinition.TypeParameters;
-
-            for (int i = 0; i < typeParameters.Length; i++)
+            // 如果基类是泛型类型，检查类型参数映射
+            if (baseType.IsGenericType)
             {
-                if (typeParameters[i].Name == typeParameter.Name)
+                var originalDefinition = baseType.OriginalDefinition;
+                var typeParameters = originalDefinition.TypeParameters;
+
+                // 在基类的类型参数中查找匹配
+                for (int i = 0; i < typeParameters.Length; i++)
                 {
-                    return baseType.TypeArguments[i].ToDisplayString();
+                    if (typeParameters[i].Name == typeParameter.Name)
+                    {
+                        return baseType.TypeArguments[i].ToDisplayString();
+                    }
+                }
+
+                // 递归检查基类的类型参数中是否包含我们要找的类型参数
+                for (int i = 0; i < baseType.TypeArguments.Length; i++)
+                {
+                    if (baseType.TypeArguments[i] is ITypeParameterSymbol baseTypeParam)
+                    {
+                        // 如果基类类型参数本身也是类型参数，需要继续解析
+                        if (baseTypeParam.Name == typeParameter.Name)
+                        {
+                            // 在当前类型的类型参数中查找对应的具体类型
+                            if (currentType.IsGenericType && i < currentType.TypeArguments.Length)
+                            {
+                                return currentType.TypeArguments[i].ToDisplayString();
+                            }
+                        }
+                    }
                 }
             }
+
+            baseType = baseType.BaseType;
         }
 
-        // 递归检查基类的基类
-        return ResolveTypeParameterInBaseChain(typeParameter, baseType.BaseType);
+        return null;
     }
 
     private static string ResolveConstructedGenericType(INamedTypeSymbol constructedType, INamedTypeSymbol contextClassSymbol)
@@ -581,59 +438,5 @@ public static class ClassHierarchyAnalyzer
             Namespace = classSymbol.ContainingNamespace?.ToDisplayString() ?? "Global"
         };
     }
-
-    private static PropertyInfo CreatePropertyInfo(
-        IPropertySymbol propertySymbol,
-        INamedTypeSymbol declaringType,
-        string resolvedType,
-        Compilation compilation)
-    {
-        return new PropertyInfo
-        {
-            Name = propertySymbol.Name,
-            Type = resolvedType ?? propertySymbol.Type.ToDisplayString(),
-            DeclaringType = declaringType.ToDisplayString(),
-            DeclaringTypeShortName = declaringType.Name,
-            CanRead = propertySymbol.GetMethod != null,
-            CanWrite = propertySymbol.SetMethod != null,
-            IsAbstract = propertySymbol.IsAbstract,
-            IsVirtual = propertySymbol.IsVirtual,
-            IsOverride = propertySymbol.IsOverride,
-            Accessibility = propertySymbol.DeclaredAccessibility,
-            OriginalType = propertySymbol.Type.ToDisplayString(),
-            Documentation = GetPropertyDocumentation(propertySymbol, compilation)
-        };
-    }
-
-    private static string GetPropertyDocumentation(IPropertySymbol propertySymbol, Compilation compilation)
-    {
-        try
-        {
-            // 获取属性的语法引用
-            var syntaxReference = propertySymbol.DeclaringSyntaxReferences.FirstOrDefault();
-            if (syntaxReference != null)
-            {
-                var syntaxNode = syntaxReference.GetSyntax();
-                if (syntaxNode is PropertyDeclarationSyntax propertySyntax)
-                {
-                    // 获取前导 trivia 中的文档注释
-                    var trivia = propertySyntax.GetLeadingTrivia();
-                    var docComment = string.Join("\n", trivia
-                        .Where(t => t.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
-                                   t.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia))
-                        .Select(t => t.ToString()));
-
-                    return !string.IsNullOrWhiteSpace(docComment) ? docComment : null;
-                }
-            }
-        }
-        catch
-        {
-            // 如果无法获取文档注释，忽略错误
-        }
-
-        return null;
-    }
-
     #endregion
 }
