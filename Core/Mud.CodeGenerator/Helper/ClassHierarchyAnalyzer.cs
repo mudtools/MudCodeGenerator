@@ -17,7 +17,7 @@ public static class ClassHierarchyAnalyzer
         var semanticModel = compilation.GetSemanticModel(classDeclaration.SyntaxTree);
 
         // 获取当前类的符号
-        var currentClassSymbol = semanticModel.GetDeclaredSymbol(classDeclaration) as INamedTypeSymbol;
+        var currentClassSymbol = semanticModel.GetDeclaredSymbol(classDeclaration);
 
         if (currentClassSymbol == null)
             return hierarchy;

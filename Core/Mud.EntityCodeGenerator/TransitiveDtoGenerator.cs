@@ -110,6 +110,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
                 foreach (var classNode in classes)
                 {
                     GenerateCode(context, compiler, classNode);
+
                 }
             }
             catch (Exception ex)
