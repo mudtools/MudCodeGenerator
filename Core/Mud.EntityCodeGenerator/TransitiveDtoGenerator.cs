@@ -211,6 +211,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
 
         var members = orgClassDeclaration.Members;
 
+        // 只有在处理属性声明时才添加基类属性
         if (typeof(T) == typeof(PropertyDeclarationSyntax))
         {
             var baseProperty = ClassHierarchyAnalyzer.GetBaseClassPublicPropertyDeclarations(orgClassDeclaration, compilation);

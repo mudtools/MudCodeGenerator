@@ -1,3 +1,8 @@
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Collections.Generic;
+using System.Linq;
+
 namespace Mud.CodeGenerator;
 
 public static class ClassHierarchyAnalyzer
@@ -260,10 +265,37 @@ public static class ClassHierarchyAnalyzer
             // 对于泛型类型参数，创建一个修改后的语法节点来反映具体类型
             var resolvedPropertySyntax = ResolvePropertyTypeInSyntax(propertySyntax, propertySymbol, contextClassSymbol);
 
+            // 创建新的属性声明语法节点，确保它属于当前语法树
+            var newPropertySyntax = CreateNewPropertyDeclarationSyntax(resolvedPropertySyntax);
+
             // 添加属性并更新已存在属性名集合
-            propertyDeclarations.Add(resolvedPropertySyntax);
-            existingPropertyNames.Add(resolvedPropertySyntax.Identifier.ValueText);
+            propertyDeclarations.Add(newPropertySyntax);
+            existingPropertyNames.Add(newPropertySyntax.Identifier.ValueText);
         }
+    }
+
+    /// <summary>
+    /// 创建新的属性声明语法节点，确保它属于当前语法树
+    /// </summary>
+    private static PropertyDeclarationSyntax CreateNewPropertyDeclarationSyntax(PropertyDeclarationSyntax original)
+    {
+        // 创建新的属性声明，复制原始属性的所有重要特征
+        var newProperty = SyntaxFactory.PropertyDeclaration(
+                original.Type,
+                original.Identifier)
+            .WithModifiers(original.Modifiers)
+            .WithAccessorList(original.AccessorList)
+            .WithInitializer(original.Initializer)
+            .WithLeadingTrivia(original.GetLeadingTrivia())
+            .WithTrailingTrivia(original.GetTrailingTrivia());
+
+        // 如果有属性上的特性，也需要复制
+        if (original.AttributeLists.Any())
+        {
+            newProperty = newProperty.WithAttributeLists(original.AttributeLists);
+        }
+
+        return newProperty;
     }
 
     /// <summary>
@@ -308,7 +340,25 @@ public static class ClassHierarchyAnalyzer
         // 获取属性的语法引用
         var syntaxReferences = propertySymbol.DeclaringSyntaxReferences;
         if (syntaxReferences.Length == 0)
-            return null;
+        {
+            // 如果没有语法引用，手动创建一个属性声明
+            var propertyDeclaration = SyntaxFactory.PropertyDeclaration(
+                SyntaxFactory.ParseTypeName(propertySymbol.Type.ToDisplayString()),
+                propertySymbol.Name)
+                .WithModifiers(SyntaxFactory.TokenList(
+                    propertySymbol.IsReadOnly ? SyntaxFactory.Token(SyntaxKind.PublicKeyword) : SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
+                .WithAccessorList(
+                    SyntaxFactory.AccessorList(
+                        SyntaxFactory.List(new[] {
+                            SyntaxFactory.AccessorDeclaration(SyntaxKind.GetAccessorDeclaration)
+                                .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken)),
+                            propertySymbol.IsReadOnly ? null : SyntaxFactory.AccessorDeclaration(SyntaxKind.SetAccessorDeclaration)
+                                .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
+                        }.Where(x => x != null))
+                    )
+                );
+            return propertyDeclaration;
+        }
 
         // 获取第一个语法节点（对于部分类可能有多个）
         var syntaxNode = syntaxReferences[0].GetSyntax();
