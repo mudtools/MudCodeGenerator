@@ -373,7 +373,11 @@ public static class ClassHierarchyAnalyzer
                 {
                     if (typeParameters[i].Name == typeParameter.Name)
                     {
-                        return baseType.TypeArguments[i].ToDisplayString();
+                        // 找到匹配的类型参数，返回对应的具体类型
+                        if (i < baseType.TypeArguments.Length)
+                        {
+                            return baseType.TypeArguments[i].ToDisplayString();
+                        }
                     }
                 }
 
@@ -389,6 +393,27 @@ public static class ClassHierarchyAnalyzer
                             if (currentType.IsGenericType && i < currentType.TypeArguments.Length)
                             {
                                 return currentType.TypeArguments[i].ToDisplayString();
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 检查当前类型是否直接实现了包含该类型参数的接口
+            foreach (var interfaceType in currentType.Interfaces)
+            {
+                if (interfaceType.IsGenericType)
+                {
+                    var originalInterface = interfaceType.OriginalDefinition;
+                    var interfaceTypeParameters = originalInterface.TypeParameters;
+
+                    for (int i = 0; i < interfaceTypeParameters.Length; i++)
+                    {
+                        if (interfaceTypeParameters[i].Name == typeParameter.Name)
+                        {
+                            if (i < interfaceType.TypeArguments.Length)
+                            {
+                                return interfaceType.TypeArguments[i].ToDisplayString();
                             }
                         }
                     }
