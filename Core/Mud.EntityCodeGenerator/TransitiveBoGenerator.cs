@@ -55,7 +55,7 @@ public abstract class TransitiveBoGenerator : TransitiveDtoGenerator
             var orgClassName = SyntaxHelper.GetClassName(orgClassDeclaration);
             var (localClass, dtoNameSpace, dtoClassName) = BuildLocalClass(orgClassDeclaration);
 
-            localClass = BuildLocalClassProperty<PropertyDeclarationSyntax>(orgClassDeclaration, localClass, member =>
+            localClass = BuildLocalClassProperty<PropertyDeclarationSyntax>(orgClassDeclaration, localClass, compilation, member =>
             {
                 if (IsIgnoreGenerator(member))
                     return null;
@@ -66,7 +66,7 @@ public abstract class TransitiveBoGenerator : TransitiveDtoGenerator
                     return null;
                 return BuildProperty(member);
             }, null);
-            localClass = BuildLocalClassProperty<FieldDeclarationSyntax>(orgClassDeclaration, localClass, member =>
+            localClass = BuildLocalClassProperty<FieldDeclarationSyntax>(orgClassDeclaration, localClass, compilation, member =>
             {
                 if (IsIgnoreGenerator(member))
                     return null;

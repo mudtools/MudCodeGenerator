@@ -1,18 +1,14 @@
-﻿namespace CodeGeneratorTest.Entites;
+﻿using CodeBaseTest;
+
+namespace CodeGeneratorTest.Entites;
 
 /// <summary>
 /// 项目管理
 /// </summary>
 [Table(Name = "PROJECT")]
 [DtoGenerator(GenMapMethod = true), Builder]
-public partial class ProjectEntity
+public partial class ProjectEntity : CRUDEntity
 {
-    /// <summary>
-    /// 项目ID
-    /// </summary>
-    [Column(Name = "id", IsPrimary = true, Position = 1)]
-    public long Id { get; set; }
-
     /// <summary>
     /// 父项目ID
     /// </summary>

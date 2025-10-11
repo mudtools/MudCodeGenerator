@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mud.Common.CodeGenerator", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeGeneratorTest", "Test\CodeGeneratorTest\CodeGeneratorTest.csproj", "{D4EC7D07-E257-04EB-40D6-429233A360DC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeBaseTest", "Test\CodeBaseTest\CodeBaseTest.csproj", "{1FDFCE77-54B2-B7B3-5641-A19E4B9A314F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{D4EC7D07-E257-04EB-40D6-429233A360DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D4EC7D07-E257-04EB-40D6-429233A360DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D4EC7D07-E257-04EB-40D6-429233A360DC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1FDFCE77-54B2-B7B3-5641-A19E4B9A314F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1FDFCE77-54B2-B7B3-5641-A19E4B9A314F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1FDFCE77-54B2-B7B3-5641-A19E4B9A314F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1FDFCE77-54B2-B7B3-5641-A19E4B9A314F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -49,6 +55,7 @@ Global
 		{64FDD18A-1C5E-4744-AD17-1ECD25DE7E79} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{6EAC6A06-4A83-BF7B-EF2B-022E5CCB9274} = {691CCAAF-CBB6-4D50-B875-D25DFDAA69C3}
 		{D4EC7D07-E257-04EB-40D6-429233A360DC} = {691CCAAF-CBB6-4D50-B875-D25DFDAA69C3}
+		{1FDFCE77-54B2-B7B3-5641-A19E4B9A314F} = {691CCAAF-CBB6-4D50-B875-D25DFDAA69C3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {FC658F6D-5ED8-415B-9426-748C9118AFCB}

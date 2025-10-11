@@ -9,15 +9,16 @@
     <Import_RootNamespace>Mud.CodeGenerator</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="$(MSBuildThisFileDirectory)ClassHierarchyAnalyzer.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)ClassHierarchyInfo.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PropertyInfo.cs" />
-    <Compile Include="..\Mud.CodeGenerator\StringExtensions.cs" />
-    <Compile Include="..\Mud.CodeGenerator\AttributeSyntaxHelper.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PrivateFieldNamingHelper.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)ProjectConfigHelper.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)SourceProductionContextExtensions.cs" />
-    <Compile Include="..\Mud.CodeGenerator\SyntaxHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions\SourceProductionContextExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions\StringExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helper\AttributeSyntaxHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helper\ClassHierarchyAnalyzer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helper\PrivateFieldNamingHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helper\ProjectConfigHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helper\SyntaxHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helper\SyntaxNodeHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Model\ClassHierarchyInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Model\PropertyInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)TransitiveCodeGenerator.cs" />
   </ItemGroup>
 </Project>

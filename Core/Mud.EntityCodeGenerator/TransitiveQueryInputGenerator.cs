@@ -27,7 +27,7 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
 
             var (localClass, dtoNameSpace, dtoClassName) = BuildLocalClass(orgClassDeclaration);
 
-            localClass = BuildLocalClassProperty<PropertyDeclarationSyntax>(orgClassDeclaration, localClass,
+            localClass = BuildLocalClassProperty<PropertyDeclarationSyntax>(orgClassDeclaration, localClass, compilation,
                             member =>
                             {
                                 if (IsIgnoreGenerator(member))
@@ -35,7 +35,7 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
 
                                 return BuildProperty(member);
                             }, null);
-            localClass = BuildLocalClassProperty<FieldDeclarationSyntax>(orgClassDeclaration, localClass,
+            localClass = BuildLocalClassProperty<FieldDeclarationSyntax>(orgClassDeclaration, localClass, compilation,
                              member =>
                              {
                                  if (IsIgnoreGenerator(member))

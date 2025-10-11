@@ -60,10 +60,10 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
                 return;
 
             var (localClass, dtoNameSpace, dtoClassName) = BuildLocalClass(orgClassDeclaration);
-            localClass = BuildLocalClassProperty<PropertyDeclarationSyntax>(orgClassDeclaration, localClass,
+            localClass = BuildLocalClassProperty<PropertyDeclarationSyntax>(orgClassDeclaration, localClass, compilation,
                                                                 m => GenAttributeFunc(m),
                                                                 m => GenExtAttributeFunc(m));
-            localClass = BuildLocalClassProperty<FieldDeclarationSyntax>(orgClassDeclaration, localClass,
+            localClass = BuildLocalClassProperty<FieldDeclarationSyntax>(orgClassDeclaration, localClass, compilation,
                                                                m => GenAttributeFunc(m),
                                                                m => GenExtAttributeFunc(m));
 

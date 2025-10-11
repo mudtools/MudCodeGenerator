@@ -15,6 +15,7 @@ public class PropertyInfo
     public bool IsVirtual { get; set; }
     public bool IsOverride { get; set; }
     public Accessibility Accessibility { get; set; }
+    public string OriginalType { get; set; }
     public string Documentation { get; set; }
 
     public override string ToString()

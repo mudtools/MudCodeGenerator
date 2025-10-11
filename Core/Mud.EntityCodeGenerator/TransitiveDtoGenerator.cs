@@ -196,7 +196,8 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     /// <param name="genExtAttributeFunc">扩展属性生成委托函数。</param>
     protected ClassDeclarationSyntax? BuildLocalClassProperty<T>(
         ClassDeclarationSyntax orgClassDeclaration,
-         ClassDeclarationSyntax localClass,
+        ClassDeclarationSyntax localClass,
+        Compilation compilation,
         Func<T, PropertyDeclarationSyntax?> genAttributeFunc,
         Func<T, PropertyDeclarationSyntax?>? genExtAttributeFunc = null)
          where T : MemberDeclarationSyntax
@@ -207,8 +208,17 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
         if (localClass == null)
             return null;
 
+        var members = orgClassDeclaration.Members;
+
+        if (typeof(T) == typeof(PropertyDeclarationSyntax))
+        {
+            var baseProperty = ClassHierarchyAnalyzer.GetBaseClassPublicPropertyDeclarations(orgClassDeclaration, compilation);
+            if (baseProperty.Count > 0)
+                members = members.AddRange(baseProperty.Cast<MemberDeclarationSyntax>());
+        }
+
         //循环添加类的成员属性。
-        foreach (var member in orgClassDeclaration.Members.OfType<T>())
+        foreach (var member in members.OfType<T>())
         {
             try
             {
@@ -270,7 +280,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
             catch (Exception ex)
             {
                 // 提高容错性，即使单个属性生成失败也不影响其他属性
-                System.Diagnostics.Debug.WriteLine($"生成属性时发生错误: {ex.Message}");
+                Debug.WriteLine($"生成属性时发生错误: {ex.Message}");
             }
         }
 
