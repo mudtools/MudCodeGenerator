@@ -279,23 +279,77 @@ public static class ClassHierarchyAnalyzer
     /// </summary>
     private static PropertyDeclarationSyntax CreateNewPropertyDeclarationSyntax(PropertyDeclarationSyntax original)
     {
-        // 创建新的属性声明，复制原始属性的所有重要特征
+        // 先创建基本属性结构
         var newProperty = SyntaxFactory.PropertyDeclaration(
                 original.Type,
                 original.Identifier)
             .WithModifiers(original.Modifiers)
             .WithAccessorList(original.AccessorList)
-            .WithInitializer(original.Initializer)
+            .WithInitializer(original.Initializer);
+
+        // 使用 NormalizeWhitespace 创建新的语法节点
+        newProperty = newProperty.NormalizeWhitespace()
             .WithLeadingTrivia(original.GetLeadingTrivia())
             .WithTrailingTrivia(original.GetTrailingTrivia());
 
-        // 如果有属性上的特性，也需要复制
-        if (original.AttributeLists.Any())
-        {
-            newProperty = newProperty.WithAttributeLists(original.AttributeLists);
-        }
+        // 重新创建特性列表并添加到属性中
+        var newAttributeLists = CreateNewAttributeLists(original.AttributeLists);
+        newProperty = newProperty.WithAttributeLists(newAttributeLists);
 
         return newProperty;
+    }
+
+    /// <summary>
+    /// 创建新的特性列表，确保所有节点都属于当前语法树
+    /// </summary>
+    private static SyntaxList<AttributeListSyntax> CreateNewAttributeLists(SyntaxList<AttributeListSyntax> originalAttributeLists)
+    {
+        if (!originalAttributeLists.Any())
+            return originalAttributeLists;
+
+        var newAttributeLists = new List<AttributeListSyntax>();
+
+        foreach (var attributeList in originalAttributeLists)
+        {
+            var newAttributes = new List<AttributeSyntax>();
+
+            foreach (var attribute in attributeList.Attributes)
+            {
+                // 重新创建特性节点
+                var newAttribute = SyntaxFactory.Attribute(attribute.Name);
+
+                // 复制特性参数列表
+                if (attribute.ArgumentList != null)
+                {
+                    var newArguments = new List<AttributeArgumentSyntax>();
+
+                    foreach (var argument in attribute.ArgumentList.Arguments)
+                    {
+                        var newArgument = SyntaxFactory.AttributeArgument(argument.Expression)
+                            .WithNameEquals(argument.NameEquals)
+                            .WithNameColon(argument.NameColon);
+
+                        newArguments.Add(newArgument);
+                    }
+
+                    newAttribute = newAttribute.WithArgumentList(
+                        SyntaxFactory.AttributeArgumentList(
+                            SyntaxFactory.SeparatedList(newArguments)));
+                }
+
+                newAttributes.Add(newAttribute);
+            }
+
+            var newAttributeList = SyntaxFactory.AttributeList(
+                SyntaxFactory.SeparatedList(newAttributes))
+                .WithTarget(attributeList.Target)
+                .WithLeadingTrivia(attributeList.GetLeadingTrivia())
+                .WithTrailingTrivia(attributeList.GetTrailingTrivia());
+
+            newAttributeLists.Add(newAttributeList);
+        }
+
+        return SyntaxFactory.List(newAttributeLists);
     }
 
     /// <summary>
@@ -357,6 +411,35 @@ public static class ClassHierarchyAnalyzer
                         }.Where(x => x != null))
                     )
                 );
+            
+            // 添加特性（如果有的话）
+            var attributes = new List<AttributeListSyntax>();
+            foreach (var attributeData in propertySymbol.GetAttributes())
+            {
+                var attributeArguments = new List<AttributeArgumentSyntax>();
+                foreach (var namedArgument in attributeData.NamedArguments)
+                {
+                    var argumentExpression = SyntaxFactory.ParseExpression(namedArgument.Value.ToCSharpString());
+                    var attributeArgument = SyntaxFactory.AttributeArgument(argumentExpression)
+                        .WithNameEquals(SyntaxFactory.NameEquals(namedArgument.Key));
+                    attributeArguments.Add(attributeArgument);
+                }
+                
+                var attribute = SyntaxFactory.Attribute(SyntaxFactory.ParseName(attributeData.AttributeClass.Name));
+                if (attributeArguments.Any())
+                {
+                    attribute = attribute.WithArgumentList(SyntaxFactory.AttributeArgumentList(SyntaxFactory.SeparatedList(attributeArguments)));
+                }
+                
+                var attributeList = SyntaxFactory.AttributeList(SyntaxFactory.SingletonSeparatedList(attribute));
+                attributes.Add(attributeList);
+            }
+            
+            if (attributes.Any())
+            {
+                propertyDeclaration = propertyDeclaration.WithAttributeLists(SyntaxFactory.List(attributes));
+            }
+            
             return propertyDeclaration;
         }
 
