@@ -240,30 +240,30 @@ public static class ClassHierarchyAnalyzer
         Compilation compilation,
         INamedTypeSymbol contextClassSymbol)
     {
-        // 获取类型的所有成员
-        var members = typeSymbol.GetMembers();
+        var publicProperties = typeSymbol.GetMembers()
+                                         .OfType<IPropertySymbol>()
+                                         .Where(property => property.DeclaredAccessibility == Accessibility.Public && !property.IsStatic);
 
-        foreach (var member in members)
+        // 使用HashSet来跟踪已添加的属性名，提高查找性能
+        var existingPropertyNames = new HashSet<string>(propertyDeclarations.Select(p => p.Identifier.ValueText));
+
+        foreach (var propertySymbol in publicProperties)
         {
-            // 只处理公共属性
-            if (member is IPropertySymbol propertySymbol &&
-                propertySymbol.DeclaredAccessibility == Accessibility.Public &&
-                !propertySymbol.IsStatic) // 排除静态属性
-            {
-                // 获取属性的语法节点
-                var propertySyntax = GetPropertyDeclarationSyntax(propertySymbol);
-                if (propertySyntax != null)
-                {
-                    // 对于泛型类型参数，我们需要创建一个修改后的语法节点来反映具体类型
-                    var resolvedPropertySyntax = ResolvePropertyTypeInSyntax(propertySyntax, propertySymbol, contextClassSymbol, compilation);
+            // 如果属性名已存在，跳过处理
+            if (existingPropertyNames.Contains(propertySymbol.Name))
+                continue;
 
-                    // 检查是否已经存在同名属性（避免重写属性重复）
-                    if (!propertyDeclarations.Any(p => p.Identifier.ValueText == resolvedPropertySyntax.Identifier.ValueText))
-                    {
-                        propertyDeclarations.Add(resolvedPropertySyntax);
-                    }
-                }
-            }
+            // 获取属性的语法节点
+            var propertySyntax = GetPropertyDeclarationSyntax(propertySymbol);
+            if (propertySyntax == null)
+                continue;
+
+            // 对于泛型类型参数，创建一个修改后的语法节点来反映具体类型
+            var resolvedPropertySyntax = ResolvePropertyTypeInSyntax(propertySyntax, propertySymbol, contextClassSymbol, compilation);
+
+            // 添加属性并更新已存在属性名集合
+            propertyDeclarations.Add(resolvedPropertySyntax);
+            existingPropertyNames.Add(resolvedPropertySyntax.Identifier.ValueText);
         }
     }
 
@@ -276,15 +276,19 @@ public static class ClassHierarchyAnalyzer
         INamedTypeSymbol contextClassSymbol,
         Compilation compilation)
     {
-        // 如果属性类型不是泛型类型参数，直接返回原语法节点
-        if (!(propertySymbol.Type is ITypeParameterSymbol))
+        // 获取属性声明所在类型的原始定义（泛型定义）
+        var declaringType = propertySymbol.ContainingType;
+        var originalDeclaringType = declaringType.OriginalDefinition;
+
+        // 如果声明类型是泛型类型，我们需要检查是否需要解析类型
+        if (!originalDeclaringType.IsGenericType)
         {
             return propertySyntax;
         }
 
         // 解析具体的类型名称
         var resolvedTypeName = ResolvePropertyType(propertySymbol, contextClassSymbol);
-        if (resolvedTypeName == null || resolvedTypeName == propertySymbol.Type.ToDisplayString())
+        if (resolvedTypeName == null || string.IsNullOrWhiteSpace(resolvedTypeName))
         {
             return propertySyntax;
         }
@@ -373,11 +377,7 @@ public static class ClassHierarchyAnalyzer
                 {
                     if (typeParameters[i].Name == typeParameter.Name)
                     {
-                        // 找到匹配的类型参数，返回对应的具体类型
-                        if (i < baseType.TypeArguments.Length)
-                        {
-                            return baseType.TypeArguments[i].ToDisplayString();
-                        }
+                        return baseType.TypeArguments[i].ToDisplayString();
                     }
                 }
 
@@ -393,27 +393,6 @@ public static class ClassHierarchyAnalyzer
                             if (currentType.IsGenericType && i < currentType.TypeArguments.Length)
                             {
                                 return currentType.TypeArguments[i].ToDisplayString();
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 检查当前类型是否直接实现了包含该类型参数的接口
-            foreach (var interfaceType in currentType.Interfaces)
-            {
-                if (interfaceType.IsGenericType)
-                {
-                    var originalInterface = interfaceType.OriginalDefinition;
-                    var interfaceTypeParameters = originalInterface.TypeParameters;
-
-                    for (int i = 0; i < interfaceTypeParameters.Length; i++)
-                    {
-                        if (interfaceTypeParameters[i].Name == typeParameter.Name)
-                        {
-                            if (i < interfaceType.TypeArguments.Length)
-                            {
-                                return interfaceType.TypeArguments[i].ToDisplayString();
                             }
                         }
                     }
