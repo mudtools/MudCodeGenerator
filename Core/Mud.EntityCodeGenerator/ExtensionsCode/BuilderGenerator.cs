@@ -70,14 +70,8 @@ public class BuilderGenerator : TransitiveDtoGenerator
         sb.AppendLine("{");
         sb.AppendLine($"    private {orgClassName} {privateFieldName} = new {orgClassName}();");
         sb.Append("\n\n\n");
-        // 生成属性设置函数
+        // 生成属性设置函数（只处理属性声明，避免重复生成）
         GeneratePropertyMappings<PropertyDeclarationSyntax>(
-            orgClassDeclaration,
-            sb, compilation,
-            (orgPropertyName, propertyName, propertyType) => GenPropertySet(builderClassName, orgClassName, privateFieldName, orgPropertyName, propertyName, propertyType)
-            );
-        // 生成私有字段设置函数
-        GeneratePropertyMappings<FieldDeclarationSyntax>(
             orgClassDeclaration,
             sb, compilation,
             (orgPropertyName, propertyName, propertyType) => GenPropertySet(builderClassName, orgClassName, privateFieldName, orgPropertyName, propertyName, propertyType)

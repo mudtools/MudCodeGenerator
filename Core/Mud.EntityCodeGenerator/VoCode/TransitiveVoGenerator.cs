@@ -1,11 +1,12 @@
 using Mud.EntityCodeGenerator.Diagnostics;
+using Mud.EntityCodeGenerator.Helper;
 
 namespace Mud.EntityCodeGenerator;
 
 /// <summary>
 /// 生成业务数据VO类。
 /// </summary>
-public class TransitiveVoGenerator : TransitiveDtoGenerator
+public class TransitiveVoGenerator : BaseDtoGenerator
 {
     internal const string VoSuffix = "ListOutput";
     internal const string InfoSuffix = "InfoOutput";
@@ -49,44 +50,7 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
         return defaultAttributes.Concat(["ExportProperty"]).ToArray();
     }
 
-    /// <inheritdoc/>
-    protected override void GenerateCode(SourceProductionContext context, Compilation compilation, ClassDeclarationSyntax orgClassDeclaration)
-    {
-        try
-        {
-            //Debugger.Launch();
-            var genVoClass = SyntaxHelper.GetClassAttributeValues<bool>(orgClassDeclaration, DtoGeneratorAttributeName, DtoGeneratorAttributeGenVoClass, true);
-            if (!genVoClass)
-                return;
 
-            var (localClass, dtoNameSpace, dtoClassName) = BuildLocalClass(orgClassDeclaration);
-            localClass = BuildLocalClassProperty<PropertyDeclarationSyntax>(orgClassDeclaration, localClass, compilation,
-                                                                m => GenAttributeFunc(m),
-                                                                m => GenExtAttributeFunc(m));
-            localClass = BuildLocalClassProperty<FieldDeclarationSyntax>(orgClassDeclaration, localClass, compilation,
-                                                               m => GenAttributeFunc(m),
-                                                               m => GenExtAttributeFunc(m));
-
-            // 提高容错性，检查生成的类是否为空
-            if (localClass == null)
-            {
-                var className = SyntaxHelper.GetClassName(orgClassDeclaration);
-                ReportFailureDiagnostic(context, DiagnosticDescriptors.VoGenerationFailure, className);
-                return;
-            }
-
-            var compilationUnit = GenCompilationUnitSyntax(localClass, dtoNameSpace, dtoClassName);
-            // 在最后统一格式化整个编译单元，确保代码格式正确
-            compilationUnit = compilationUnit.NormalizeWhitespace();
-            context.AddSource($"{dtoClassName}.g.cs", compilationUnit);
-        }
-        catch (Exception ex)
-        {
-            // 提高容错性，报告生成错误
-            var className = SyntaxHelper.GetClassName(orgClassDeclaration);
-            ReportErrorDiagnostic(context, DiagnosticDescriptors.VoGenerationError, className, ex);
-        }
-    }
 
     /// <summary>
     /// 生成属性。
@@ -259,5 +223,67 @@ public class TransitiveVoGenerator : TransitiveDtoGenerator
         }
         return defaultName;
 
+    }
+
+    /// <inheritdoc/>
+    public override string GeneratorName => "VO Generator";
+
+    /// <inheritdoc/>
+    public override bool ShouldGenerate(ClassDeclarationSyntax classDeclaration)
+    {
+        return SyntaxHelper.GetClassAttributeValues<bool>(classDeclaration, DtoGeneratorAttributeName, DtoGeneratorAttributeGenVoClass, true);
+    }
+
+    /// <inheritdoc/>
+    public override string GetGeneratedClassName(ClassDeclarationSyntax classDeclaration)
+    {
+        return GetGeneratorClassName(classDeclaration);
+    }
+
+    /// <inheritdoc/>
+    public override string GetGeneratedNamespace(ClassDeclarationSyntax classDeclaration)
+    {
+        return GetDtoNamespaceName(classDeclaration);
+    }
+
+    /// <inheritdoc/>
+    protected override string GetGeneratorPropertyName() => DtoGeneratorAttributeGenVoClass;
+
+    /// <inheritdoc/>
+    protected override Func<PropertyDeclarationSyntax, PropertyDeclarationSyntax> CreatePropertyGenerator()
+    {
+        return m => GenAttributeFunc(m);
+    }
+
+    /// <inheritdoc/>
+    protected override Func<FieldDeclarationSyntax, PropertyDeclarationSyntax> CreateFieldGenerator()
+    {
+        return m => GenAttributeFunc(m);
+    }
+
+    /// <inheritdoc/>
+    protected override Func<PropertyDeclarationSyntax, PropertyDeclarationSyntax> CreateSafePropertyGenerator()
+    {
+        var propertyGenerator = CreatePropertyGenerator();
+        return ErrorHandler.CreateSafePropertyGenerator(this, propertyGenerator);
+    }
+
+    /// <inheritdoc/>
+    protected override Func<FieldDeclarationSyntax, PropertyDeclarationSyntax> CreateSafeFieldGenerator()
+    {
+        var fieldGenerator = CreateFieldGenerator();
+        return ErrorHandler.CreateSafePropertyGenerator(this, fieldGenerator);
+    }
+
+    /// <inheritdoc/>
+    protected override Microsoft.CodeAnalysis.DiagnosticDescriptor GetFailureDescriptor()
+    {
+        return DiagnosticDescriptors.VoGenerationFailure;
+    }
+
+    /// <inheritdoc/>
+    protected override Microsoft.CodeAnalysis.DiagnosticDescriptor GetErrorDescriptor()
+    {
+        return DiagnosticDescriptors.VoGenerationError;
     }
 }

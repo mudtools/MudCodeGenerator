@@ -1,5 +1,6 @@
 using Mud.EntityCodeGenerator.Diagnostics;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Text;
 
 namespace Mud.EntityCodeGenerator
@@ -87,12 +88,27 @@ namespace Mud.EntityCodeGenerator
 
             bool success = false;
 
+            // 获取所有已存在的属性名，避免重复生成
+            var existingPropertyNames = new HashSet<string>(orgClassDeclaration.Members
+                .OfType<PropertyDeclarationSyntax>()
+                .Select(p => p.Identifier.Text), StringComparer.OrdinalIgnoreCase);
+
             foreach (var member in orgClassDeclaration.Members.OfType<FieldDeclarationSyntax>())
             {
                 try
                 {
                     if (IsIgnoreGenerator(member))
                         continue;
+
+                    // 检查字段对应的属性是否已存在
+                    var fieldName = GetFieldName(member);
+                    var propertyName = ToPropertyName(fieldName);
+                    
+                    if (existingPropertyNames.Contains(propertyName))
+                    {
+                        // 如果属性已存在，跳过生成
+                        continue;
+                    }
 
                     var attributeList = GetAttributes(member, FieldAttributes);
                     var attributeListyntax = SyntaxFactory.SeparatedList(attributeList);

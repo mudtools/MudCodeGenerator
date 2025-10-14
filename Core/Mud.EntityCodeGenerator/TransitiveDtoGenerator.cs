@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis.Diagnostics;
 using Mud.EntityCodeGenerator.Diagnostics;
 using System.Collections.ObjectModel;
+using Mud.EntityCodeGenerator.Helper;
 
 namespace Mud.EntityCodeGenerator;
 
@@ -15,19 +16,9 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     protected const string DtoGeneratorAttributeName = "DtoGeneratorAttribute";
 
     /// <summary>
-    /// 在实体类上绑定的特性。
+    /// 配置管理器实例。
     /// </summary>
-    private string[] EntityAttachAttributes = [];
-
-    /// <summary>
-    /// VO类属性配置。
-    /// </summary>
-    private string[] VoAttributes = [];
-
-    /// <summary>
-    /// BO类属性配置。
-    /// </summary>
-    private string[] BoAttributes = [];
+    protected readonly GeneratorConfiguration Configuration = new GeneratorConfiguration();
 
     /// <summary>
     /// 是否生成实体类映射方法属性。
@@ -75,13 +66,13 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     /// 获取VO类属性配置。
     /// </summary>
     /// <returns></returns>
-    protected string[] GetVoPropertyAttributes() => VoAttributes;
+    protected string[] GetVoPropertyAttributes() => Configuration.VoAttributes;
 
     /// <summary>
     /// 获取BO类属性配置。
     /// </summary>
     /// <returns></returns>
-    protected string[] GetBoPropertyAttributes() => BoAttributes;
+    protected string[] GetBoPropertyAttributes() => Configuration.BoAttributes;
 
     /// <inheritdoc/>
     public override void Initialize(IncrementalGeneratorInitializationContext context)
@@ -139,13 +130,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     /// <param name="options">分析器配置选项</param>
     private void ReadConfigurationOptions(AnalyzerConfigOptions options)
     {
-        ProjectConfigHelper.ReadProjectOptions(options, "build_property.EntityAttachAttributes", val => EntityAttachAttributes = val.Split(','), "");
-
-        ProjectConfigHelper.ReadProjectOptions(options, "build_property.VoAttributes", val => VoAttributes = val.SplitString(',', s => s.RemoveSuffix("Attribute", false)), "");
-        ProjectConfigHelper.ReadProjectOptions(options, "build_property.BoAttributes", val => BoAttributes = val.SplitString(',', s => s.RemoveSuffix("Attribute", false)), "");
-
-        // 在此处添加对新配置项的读取，例如：
-        // ProjectConfigHelper.ReadProjectOptions(options, "build_property.NewAttributes", val => NewAttributes = val.Split(','), "");
+        Configuration.ReadFromOptions(options);
     }
 
     /// <summary>
@@ -214,6 +199,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
         // 只有在处理属性声明时才添加基类属性
         if (typeof(T) == typeof(PropertyDeclarationSyntax))
         {
+            // 恢复基类属性处理，确保继承的属性被包含在生成的DTO中
             var baseProperty = ClassHierarchyAnalyzer.GetBaseClassPublicPropertyDeclarations(orgClassDeclaration, compilation);
             if (baseProperty.Count > 0)
                 members = members.AddRange(baseProperty.Cast<MemberDeclarationSyntax>());
@@ -311,10 +297,10 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
                                                  SyntaxFactory.Token(SyntaxKind.PartialKeyword)));
 
         //在类上加入自定义注解。
-        if (isAttachAttribute && EntityAttachAttributes != null && EntityAttachAttributes.Any())
+        if (isAttachAttribute && Configuration.EntityAttachAttributes != null && Configuration.EntityAttachAttributes.Any())
         {
             List<AttributeSyntax> attributeSyntaxs = new List<AttributeSyntax>();
-            foreach (var attribute in EntityAttachAttributes)
+            foreach (var attribute in Configuration.EntityAttachAttributes)
             {
                 // 提高容错性，跳过空的特性名称
                 if (string.IsNullOrWhiteSpace(attribute))
@@ -553,10 +539,10 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
         var varName = GetFieldName(member);
         if (methBody)
         {
-            propertyName = StringExtensions.ToUpperFirstLetter(propertyName);
+            // 统一使用GetGeneratorProperty返回的属性名，确保大小写一致性
             return BuildProperty(propertyName, propertyType, varName);
         }
-        propertyName = ToLowerFirstLetter(propertyName);
+        // 统一使用GetGeneratorProperty返回的属性名，确保大小写一致性
         return BuildProperty(propertyName, propertyType);
     }
 

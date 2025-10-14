@@ -27,6 +27,7 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
 
             var (localClass, dtoNameSpace, dtoClassName) = BuildLocalClass(orgClassDeclaration);
 
+            // 先处理属性声明
             localClass = BuildLocalClassProperty<PropertyDeclarationSyntax>(orgClassDeclaration, localClass, compilation,
                             member =>
                             {
@@ -35,14 +36,25 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
 
                                 return BuildProperty(member);
                             }, null);
-            localClass = BuildLocalClassProperty<FieldDeclarationSyntax>(orgClassDeclaration, localClass, compilation,
-                             member =>
-                             {
-                                 if (IsIgnoreGenerator(member))
-                                     return null;
 
-                                 return BuildProperty(member, false);
-                             }, null);
+            // 再处理字段声明，但需要避免重复生成
+            localClass = BuildLocalClassProperty<FieldDeclarationSyntax>(orgClassDeclaration, localClass, compilation,
+                            member =>
+                            {
+                                if (IsIgnoreGenerator(member))
+                                    return null;
+
+                                // 检查对应的属性是否已存在
+                                var fieldName = GetFirstUpperPropertyName(member);
+                                var existingProperty = localClass.Members.OfType<PropertyDeclarationSyntax>()
+                                    .FirstOrDefault(p => p.Identifier.Text.Equals(fieldName, StringComparison.OrdinalIgnoreCase));
+                                
+                                // 如果对应的属性已存在，则跳过字段处理
+                                if (existingProperty != null)
+                                    return null;
+
+                                return BuildProperty(member);
+                            }, null);
 
             // 提高容错性，检查生成的类是否为空
             if (localClass == null)

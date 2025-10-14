@@ -593,8 +593,14 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
                 {
                     continue;
                 }
-                orgPropertyName = StringExtensions.ToUpperFirstLetter(orgPropertyName);
-                var propertyName = ToUpperFirstLetter(orgPropertyName);
+                
+                // 统一使用GetGeneratorProperty返回的属性名，确保与TransitiveDtoGenerator生成的属性名大小写一致
+                var propertyName = GetGeneratorProperty(member).propertyName;
+                
+                // 确保属性名不为空
+                if (string.IsNullOrEmpty(propertyName))
+                    propertyName = orgPropertyName;
+                    
                 var mappingLine = generateMappingLine(orgPropertyName, propertyName);
                 sb.AppendLine(mappingLine);
             }
@@ -621,42 +627,48 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
                 }
 
                 var isLikeQuery = IsLikeGenerator(member);
-                var (propertyName, propertyType) = GetGeneratorProperty(member);
                 var orgPropertyName = "";
+                var propertyType = "";
 
                 if (member is PropertyDeclarationSyntax property)
                 {
                     orgPropertyName = GetPropertyName(property);
+                    propertyType = SyntaxHelper.GetPropertyType(property);
                 }
                 else if (member is FieldDeclarationSyntax field)
                 {
-                    orgPropertyName = propertyName;
-                    propertyName = ToLowerFirstLetter(orgPropertyName);
+                    orgPropertyName = GetFirstUpperPropertyName(field);
+                    propertyType = SyntaxHelper.GetPropertyType(field);
                 }
 
-                if (string.IsNullOrEmpty(propertyName))
-                    propertyName = "Property";
+                if (string.IsNullOrEmpty(orgPropertyName))
+                    orgPropertyName = "Property";
 
                 if (string.IsNullOrEmpty(propertyType))
                     propertyType = "object";
 
-                if (string.IsNullOrEmpty(orgPropertyName))
-                    orgPropertyName = propertyName;
+                // 统一使用GetGeneratorProperty返回的属性名，确保与TransitiveQueryInputGenerator生成的属性名大小写一致
+                var propertyName = GetGeneratorProperty(member).propertyName;
 
-                orgPropertyName = StringExtensions.ToUpperFirstLetter(orgPropertyName);
+                // 确保属性名不为空
+                if (string.IsNullOrEmpty(propertyName))
+                    propertyName = orgPropertyName;
+
+                // 实体属性名保持原始大写形式，查询输入参数名使用小写形式
+                var entityPropertyName = orgPropertyName;
 
                 if (propertyType.StartsWith("string", StringComparison.OrdinalIgnoreCase))
                 {
                     sb.AppendLine($"    if (!string.IsNullOrEmpty(input.{propertyName}?.Trim()))");
                     if (!isLikeQuery)
-                        sb.AppendLine($"        where = where.And(x => x.{orgPropertyName} == input.{propertyName}.Trim());");
+                        sb.AppendLine($"        where = where.And(x => x.{entityPropertyName} == input.{propertyName}.Trim());");
                     else
-                        sb.AppendLine($"        where = where.And(x => x.{orgPropertyName}.Contains(input.{propertyName}.Trim()));");
+                        sb.AppendLine($"        where = where.And(x => x.{entityPropertyName}.Contains(input.{propertyName}.Trim()));");
                 }
                 else
                 {
                     sb.AppendLine($"    if (input.{propertyName} != null)");
-                    sb.AppendLine($"        where = where.And(x => x.{orgPropertyName} == input.{propertyName});");
+                    sb.AppendLine($"        where = where.And(x => x.{entityPropertyName} == input.{propertyName});");
                 }
             }
             catch (Exception ex)

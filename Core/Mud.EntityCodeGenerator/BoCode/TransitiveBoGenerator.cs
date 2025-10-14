@@ -1,4 +1,5 @@
 using Mud.EntityCodeGenerator.Diagnostics;
+using Mud.EntityCodeGenerator.Helper;
 
 namespace Mud.EntityCodeGenerator;
 
@@ -7,17 +8,17 @@ namespace Mud.EntityCodeGenerator;
 /// </summary>
 /// <param name="generateNotPrimary">是否生成非主键属性</param>
 /// <param name="generatePrimary">是否生成主键属性</param>
-public abstract class TransitiveBoGenerator : TransitiveDtoGenerator
+public abstract class TransitiveBoGenerator : BaseDtoGenerator
 {
     /// <summary>
     /// 是否生成主键属性。
     /// </summary>
-    private readonly bool _generatePrimary;
+    protected readonly bool _generatePrimary;
 
     /// <summary>
     /// 是否生成非主键属性。
     /// </summary>
-    private readonly bool _generateNotPrimary;
+    protected readonly bool _generateNotPrimary;
 
     protected TransitiveBoGenerator(bool generateNotPrimary, bool generatePrimary)
     {
@@ -26,75 +27,80 @@ public abstract class TransitiveBoGenerator : TransitiveDtoGenerator
     }
 
     /// <inheritdoc/>
+    public override string GeneratorName => "BO Generator";
+
+    /// <inheritdoc/>
+    protected override string GetGeneratorPropertyName() => DtoGeneratorAttributeGenBoClass;
+
+    /// <inheritdoc/>
+    protected override Func<PropertyDeclarationSyntax, PropertyDeclarationSyntax> CreatePropertyGenerator()
+    {
+        return member =>
+        {
+            if (IsIgnoreGenerator(member))
+                return null;
+                
+            var isPrimary = IsPrimary(member);
+            if (isPrimary && !_generatePrimary)
+                return null;
+            if (!isPrimary && !_generateNotPrimary)
+                return null;
+                
+            return BuildProperty(member);
+        };
+    }
+
+    /// <inheritdoc/>
+    protected override Func<FieldDeclarationSyntax, PropertyDeclarationSyntax> CreateFieldGenerator()
+    {
+        return member =>
+        {
+            if (IsIgnoreGenerator(member))
+                return null;
+                
+            var isPrimary = IsPrimary(member);
+            if (isPrimary && !_generatePrimary)
+                return null;
+            if (!isPrimary && !_generateNotPrimary)
+                return null;
+                
+            return BuildProperty(member, false);
+        };
+    }
+
+    /// <inheritdoc/>
     protected override string[] GetPropertyAttributes()
     {
         var defaultAttributes = new[] { "Required", "Xss", "StringLength", "MaxLength", "MinLength",
                 "EmailAddress", "DataValidation", "RegularExpression" };
-        var extraAttributes = GetBoPropertyAttributes();
-
-        if (extraAttributes != null && extraAttributes.Length > 0)
-        {
-            // 合并默认属性和额外属性，并去重
-            return defaultAttributes.Concat(extraAttributes)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToArray();
-        }
-
-        return defaultAttributes;
+        
+        // 使用配置管理器的合并功能
+        return Configuration.MergePropertyAttributes(defaultAttributes, "bo");
     }
 
-    protected override void GenerateCode(SourceProductionContext context, Compilation compilation, ClassDeclarationSyntax orgClassDeclaration)
+    /// <inheritdoc/>
+    protected override Microsoft.CodeAnalysis.DiagnosticDescriptor GetFailureDescriptor()
     {
-        try
-        {
-            var genBoClass = SyntaxHelper.GetClassAttributeValues(orgClassDeclaration, DtoGeneratorAttributeName, DtoGeneratorAttributeGenBoClass, true);
-            if (!genBoClass)
-                return;
-            //Debugger.Launch();
+        return DiagnosticDescriptors.BoGenerationFailure;
+    }
 
-            var orgClassName = SyntaxHelper.GetClassName(orgClassDeclaration);
-            var (localClass, dtoNameSpace, dtoClassName) = BuildLocalClass(orgClassDeclaration);
+    /// <inheritdoc/>
+    protected override Microsoft.CodeAnalysis.DiagnosticDescriptor GetErrorDescriptor()
+    {
+        return DiagnosticDescriptors.BoGenerationError;
+    }
 
-            localClass = BuildLocalClassProperty<PropertyDeclarationSyntax>(orgClassDeclaration, localClass, compilation, member =>
-            {
-                if (IsIgnoreGenerator(member))
-                    return null;
-                var isPrimary = IsPrimary(member);
-                if (isPrimary && !_generatePrimary)
-                    return null;
-                if (!isPrimary && !_generateNotPrimary)
-                    return null;
-                return BuildProperty(member);
-            }, null);
-            localClass = BuildLocalClassProperty<FieldDeclarationSyntax>(orgClassDeclaration, localClass, compilation, member =>
-            {
-                if (IsIgnoreGenerator(member))
-                    return null;
-                var isPrimary = IsPrimary(member);
-                if (isPrimary && !_generatePrimary)
-                    return null;
-                if (!isPrimary && !_generateNotPrimary)
-                    return null;
-                return BuildProperty(member, false);
-            }, null);
+    /// <inheritdoc/>
+    protected override Func<PropertyDeclarationSyntax, PropertyDeclarationSyntax> CreateSafePropertyGenerator()
+    {
+        var propertyGenerator = CreatePropertyGenerator();
+        return ErrorHandler.CreateSafePropertyGenerator(this, propertyGenerator);
+    }
 
-            // 提高容错性，检查生成的类是否为空
-            if (localClass == null)
-            {
-                ReportFailureDiagnostic(context, DiagnosticDescriptors.BoGenerationFailure, orgClassName);
-                return;
-            }
-
-            var compilationUnit = GenCompilationUnitSyntax(localClass, dtoNameSpace, dtoClassName);
-            // 在最后统一格式化整个编译单元，确保代码格式正确
-            compilationUnit = compilationUnit.NormalizeWhitespace();
-            context.AddSource($"{dtoClassName}.g.cs", compilationUnit);
-        }
-        catch (Exception ex)
-        {
-            // 提高容错性，报告生成错误
-            var className = orgClassDeclaration != null ? SyntaxHelper.GetClassName(orgClassDeclaration) : "Unknown";
-            ReportErrorDiagnostic(context, DiagnosticDescriptors.BoGenerationError, className, ex);
-        }
+    /// <inheritdoc/>
+    protected override Func<FieldDeclarationSyntax, PropertyDeclarationSyntax> CreateSafeFieldGenerator()
+    {
+        var fieldGenerator = CreateFieldGenerator();
+        return ErrorHandler.CreateSafePropertyGenerator(this, fieldGenerator);
     }
 }
