@@ -116,49 +116,10 @@ public class BuilderGenerator : TransitiveDtoGenerator
         Func<string, string, string, string> generateSetMethod)
          where T : MemberDeclarationSyntax
     {
-        var members = orgClassDeclaration.Members;
-
-        if (typeof(T) == typeof(PropertyDeclarationSyntax))
+        ProcessMembers<T>(orgClassDeclaration, compilation, (member, orgPropertyName, propertyName, propertyType) =>
         {
-            var baseProperty = ClassHierarchyAnalyzer.GetBaseClassPublicPropertyDeclarations(orgClassDeclaration, compilation);
-            if (baseProperty.Count > 0)
-                members = members.AddRange(baseProperty.Cast<MemberDeclarationSyntax>());
-        }
-
-        foreach (var member in members.OfType<T>())
-        {
-            try
-            {
-                if (IsIgnoreGenerator(member))
-                {
-                    continue;
-                }
-                var orgPropertyName = "";
-                var propertyType = "";
-                if (member is PropertyDeclarationSyntax property)
-                {
-                    orgPropertyName = GetPropertyName(property);
-                    propertyType = SyntaxHelper.GetPropertyType(property);
-                }
-                else if (member is FieldDeclarationSyntax field)
-                {
-                    orgPropertyName = GetFirstUpperPropertyName(field);
-                    propertyType = SyntaxHelper.GetPropertyType(field);
-                }
-
-                if (string.IsNullOrEmpty(orgPropertyName))
-                {
-                    continue;
-                }
-                orgPropertyName = StringExtensions.ToUpperFirstLetter(orgPropertyName);
-                var propertyName = ToUpperFirstLetter(orgPropertyName);
-                var mappingLine = generateSetMethod(orgPropertyName, propertyName, propertyType);
-                sb.AppendLine(mappingLine);
-            }
-            catch (Exception ex)
-            {
-                // 即使单个属性生成失败也不影响其他属性
-            }
-        }
+            var mappingLine = generateSetMethod(orgPropertyName, propertyName, propertyType);
+            sb.AppendLine(mappingLine);
+        });
     }
 }

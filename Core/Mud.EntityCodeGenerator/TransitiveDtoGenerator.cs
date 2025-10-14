@@ -174,6 +174,115 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     }
 
     /// <summary>
+    /// 通用成员处理器，用于处理类成员并执行指定的操作
+    /// </summary>
+    /// <typeparam name="T">成员类型</typeparam>
+    /// <param name="orgClassDeclaration">原始类的语法对象</param>
+    /// <param name="compilation">编译上下文</param>
+    /// <param name="memberProcessor">成员处理委托</param>
+    /// <param name="primaryKeyOnly">是否只处理主键属性</param>
+    protected void ProcessMembers<T>(
+        ClassDeclarationSyntax orgClassDeclaration,
+        Compilation compilation,
+        Action<T, string, string> memberProcessor,
+        bool? primaryKeyOnly = null) where T : MemberDeclarationSyntax
+    {
+        ProcessMembers<T>(orgClassDeclaration, compilation, (member, orgPropertyName, propertyName, propertyType) =>
+        {
+            memberProcessor(member, orgPropertyName, propertyName);
+        }, primaryKeyOnly);
+    }
+
+    /// <summary>
+    /// 通用成员处理器（包含属性类型），用于处理类成员并执行指定的操作
+    /// </summary>
+    /// <typeparam name="T">成员类型</typeparam>
+    /// <param name="orgClassDeclaration">原始类的语法对象</param>
+    /// <param name="compilation">编译上下文</param>
+    /// <param name="memberProcessor">成员处理委托</param>
+    /// <param name="primaryKeyOnly">是否只处理主键属性</param>
+    protected void ProcessMembers<T>(
+        ClassDeclarationSyntax orgClassDeclaration,
+        Compilation compilation,
+        Action<T, string, string, string> memberProcessor,
+        bool? primaryKeyOnly = null) where T : MemberDeclarationSyntax
+    {
+        if (orgClassDeclaration == null || memberProcessor == null)
+            return;
+
+        var members = orgClassDeclaration.Members;
+
+        // 只有在处理属性声明时才添加基类属性
+        if (typeof(T) == typeof(PropertyDeclarationSyntax))
+        {
+            var baseProperty = ClassHierarchyAnalyzer.GetBaseClassPublicPropertyDeclarations(orgClassDeclaration, compilation);
+            if (baseProperty.Count > 0)
+                members = members.AddRange(baseProperty.Cast<MemberDeclarationSyntax>());
+        }
+
+        foreach (var member in members.OfType<T>())
+        {
+            try
+            {
+                if (IsIgnoreGenerator(member))
+                    continue;
+
+                var isPrimary = IsPrimary(member);
+
+                // 根据primaryKeyOnly参数决定是否处理该属性
+                if (primaryKeyOnly.HasValue)
+                {
+                    if (primaryKeyOnly.Value && !isPrimary)
+                        continue;
+
+                    if (!primaryKeyOnly.Value && isPrimary)
+                        continue;
+                }
+
+                var (orgPropertyName, propertyName) = GetPropertyNames(member);
+                var propertyType = GetPropertyType(member);
+                
+                if (string.IsNullOrEmpty(orgPropertyName))
+                    continue;
+
+                // 确保属性名不为空
+                if (string.IsNullOrEmpty(propertyName))
+                    propertyName = orgPropertyName;
+
+                memberProcessor(member, orgPropertyName, propertyName, propertyType);
+            }
+            catch (Exception ex)
+            {
+                // 即使单个属性处理失败也不影响其他属性
+                Debug.WriteLine($"处理成员时发生错误: {ex.Message}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// 获取属性的原始名称和生成器名称
+    /// </summary>
+    protected (string orgPropertyName, string propertyName) GetPropertyNames<T>(T member) where T : MemberDeclarationSyntax
+    {
+        string orgPropertyName = "";
+        string propertyName = "";
+
+        if (member is PropertyDeclarationSyntax property)
+        {
+            orgPropertyName = GetPropertyName(property);
+        }
+        else if (member is FieldDeclarationSyntax field)
+        {
+            orgPropertyName = GetFirstUpperPropertyName(field);
+        }
+
+        // 统一使用GetGeneratorProperty返回的属性名
+        propertyName = GetGeneratorProperty(member).propertyName;
+
+        return (orgPropertyName, propertyName);
+    }
+
+    /// <summary>
     /// 类代码生成操作核心方法（依据<see cref="FieldDeclarationSyntax"/>生成）。
     /// </summary>
     /// <param name="orgClassDeclaration">原始类的语法对象。</param>
@@ -194,83 +303,50 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
         if (localClass == null)
             return null;
 
-        var members = orgClassDeclaration.Members;
-
-        // 只有在处理属性声明时才添加基类属性
-        if (typeof(T) == typeof(PropertyDeclarationSyntax))
+        ProcessMembers<T>(orgClassDeclaration, compilation, (member, orgPropertyName, propertyName) =>
         {
-            // 恢复基类属性处理，确保继承的属性被包含在生成的DTO中
-            var baseProperty = ClassHierarchyAnalyzer.GetBaseClassPublicPropertyDeclarations(orgClassDeclaration, compilation);
-            if (baseProperty.Count > 0)
-                members = members.AddRange(baseProperty.Cast<MemberDeclarationSyntax>());
-        }
-
-        //循环添加类的成员属性。
-        foreach (var member in members.OfType<T>())
-        {
-            try
+            //调用生成属性委托。
+            if (genAttributeFunc != null)
             {
-                //调用生成属性委托。
-                if (genAttributeFunc != null)
+                var propertyDeclaration = genAttributeFunc(member);
+                if (propertyDeclaration == null)
+                    return;
+
+                var attris = GetPropertyAttributes();
+                if (attris.Any())
                 {
-                    var propertyDeclaration = genAttributeFunc(member);
-                    if (propertyDeclaration == null)
-                        continue;
-
-                    var attris = GetPropertyAttributes();
-                    if (attris.Any())
+                    var attributeList = GetAttributes(member, attris);
+                    if (attributeList.Any())
                     {
-                        var attributeList = GetAttributes(member, attris);
-                        if (attributeList.Any())
-                        {
-                            var separatedAttributes = SyntaxFactory.SeparatedList(attributeList);
-                            var attributeListSyntax = SyntaxFactory.AttributeList(separatedAttributes);
-                            propertyDeclaration = propertyDeclaration.AddAttributeLists(attributeListSyntax);
-                        }
-                    }
-                    //生成属性注释。
-                    var orgClassName = SyntaxHelper.GetClassName(orgClassDeclaration);
-                    string propertyName;
-                    if (member is PropertyDeclarationSyntax propertyMember)
-                    {
-                        propertyName = GetPropertyName(propertyMember);
-                    }
-                    else if (member is FieldDeclarationSyntax fieldMember)
-                    {
-                        propertyName = GetFirstUpperPropertyName(fieldMember);
-                    }
-                    else
-                    {
-                        propertyName = GetGeneratorProperty(member).propertyName;
-                    }
-
-                    // 为每个属性添加注释
-                    var inheritdoc = SyntaxFactory.ParseLeadingTrivia($"/// <inheritdoc cref=\"{orgClassName}.{propertyName}\"/>\n");
-                    propertyDeclaration = propertyDeclaration.WithLeadingTrivia(inheritdoc);
-
-                    localClass = localClass.AddMembers(propertyDeclaration);
-
-                    //生成附加属性的方法
-                    if (genExtAttributeFunc != null)
-                    {
-                        var extPropertyDeclaration = genExtAttributeFunc(member);
-                        if (extPropertyDeclaration == null)
-                            continue;
-
-                        // 为扩展属性也添加注释
-                        var extInheritdoc = SyntaxFactory.ParseLeadingTrivia($"/// <inheritdoc cref=\"{orgClassName}.{propertyName}\"/>\n");
-                        extPropertyDeclaration = extPropertyDeclaration.WithLeadingTrivia(extInheritdoc);
-
-                        localClass = localClass.AddMembers(extPropertyDeclaration);
+                        var separatedAttributes = SyntaxFactory.SeparatedList(attributeList);
+                        var attributeListSyntax = SyntaxFactory.AttributeList(separatedAttributes);
+                        propertyDeclaration = propertyDeclaration.AddAttributeLists(attributeListSyntax);
                     }
                 }
+                //生成属性注释。
+                var orgClassName = SyntaxHelper.GetClassName(orgClassDeclaration);
+
+                // 为每个属性添加注释
+                var inheritdoc = SyntaxFactory.ParseLeadingTrivia($"/// <inheritdoc cref=\"{orgClassName}.{orgPropertyName}\"/>\n");
+                propertyDeclaration = propertyDeclaration.WithLeadingTrivia(inheritdoc);
+
+                localClass = localClass.AddMembers(propertyDeclaration);
+
+                //生成附加属性的方法
+                if (genExtAttributeFunc != null)
+                {
+                    var extPropertyDeclaration = genExtAttributeFunc(member);
+                    if (extPropertyDeclaration == null)
+                        return;
+
+                    // 为扩展属性也添加注释
+                    var extInheritdoc = SyntaxFactory.ParseLeadingTrivia($"/// <inheritdoc cref=\"{orgClassName}.{orgPropertyName}\"/>\n");
+                    extPropertyDeclaration = extPropertyDeclaration.WithLeadingTrivia(extInheritdoc);
+
+                    localClass = localClass.AddMembers(extPropertyDeclaration);
+                }
             }
-            catch (Exception ex)
-            {
-                // 提高容错性，即使单个属性生成失败也不影响其他属性
-                Debug.WriteLine($"生成属性时发生错误: {ex.Message}");
-            }
-        }
+        });
 
         // 不再在这里调用NormalizeWhitespace，避免覆盖手动添加的换行
         return localClass;
@@ -682,5 +758,21 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
         Exception exception)
     {
         context.ReportDiagnostic(Diagnostic.Create(descriptor, Location.None, className, exception?.Message));
+    }
+
+    /// <summary>
+    /// 获取成员的类型
+    /// </summary>
+    protected string GetPropertyType<T>(T member) where T : MemberDeclarationSyntax
+    {
+        if (member is PropertyDeclarationSyntax property)
+        {
+            return SyntaxHelper.GetPropertyType(property);
+        }
+        else if (member is FieldDeclarationSyntax field)
+        {
+            return SyntaxHelper.GetPropertyType(field);
+        }
+        return "object";
     }
 }

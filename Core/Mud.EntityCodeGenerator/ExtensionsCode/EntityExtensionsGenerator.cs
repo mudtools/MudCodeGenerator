@@ -545,70 +545,11 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         Func<string, string, string> generateMappingLine,
         bool? primaryKeyOnly) where T : MemberDeclarationSyntax
     {
-        var members = orgClassDeclaration.Members;
-
-        if (typeof(T) == typeof(PropertyDeclarationSyntax))
+        ProcessMembers<T>(orgClassDeclaration, compilation, (member, orgPropertyName, propertyName) =>
         {
-            var baseProperty = ClassHierarchyAnalyzer.GetBaseClassPublicPropertyDeclarations(orgClassDeclaration, compilation);
-            if (baseProperty.Count > 0)
-                members = members.AddRange(baseProperty.Cast<MemberDeclarationSyntax>());
-        }
-
-        foreach (var member in members.OfType<T>())
-        {
-            try
-            {
-                if (IsIgnoreGenerator(member))
-                {
-                    continue;
-                }
-
-                var isPrimary = IsPrimary(member);
-
-                // 根据primaryKeyOnly参数决定是否处理该属性
-                if (primaryKeyOnly.HasValue)
-                {
-                    if (primaryKeyOnly.Value && !isPrimary)
-                    {
-                        continue;
-                    }
-
-                    if (!primaryKeyOnly.Value && isPrimary)
-                    {
-                        continue;
-                    }
-                }
-
-                var orgPropertyName = "";
-                if (member is PropertyDeclarationSyntax property)
-                {
-                    orgPropertyName = GetPropertyName(property);
-                }
-                else if (member is FieldDeclarationSyntax field)
-                {
-                    orgPropertyName = GetFirstUpperPropertyName(field);
-                }
-
-                if (string.IsNullOrEmpty(orgPropertyName))
-                {
-                    continue;
-                }
-                
-                // 统一使用GetGeneratorProperty返回的属性名，确保与TransitiveDtoGenerator生成的属性名大小写一致
-                var propertyName = GetGeneratorProperty(member).propertyName;
-                
-                // 确保属性名不为空
-                if (string.IsNullOrEmpty(propertyName))
-                    propertyName = orgPropertyName;
-                    
-                var mappingLine = generateMappingLine(orgPropertyName, propertyName);
-                sb.AppendLine(mappingLine);
-            }
-            catch (Exception ex)
-            {
-                // 即使单个属性生成失败也不影响其他属性
-            }
-        }
+            var mappingLine = generateMappingLine(orgPropertyName, propertyName);
+            sb.AppendLine(mappingLine);
+        }, primaryKeyOnly);
     }
 
     /// <summary>
@@ -617,64 +558,46 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
     private void GenerateQueryConditions<T>(ClassDeclarationSyntax orgClassDeclaration, StringBuilder sb)
         where T : MemberDeclarationSyntax
     {
-        foreach (var member in orgClassDeclaration.Members.OfType<T>())
+        ProcessMembers<T>(orgClassDeclaration, null, (member, orgPropertyName, propertyName) =>
         {
-            try
+            var isLikeQuery = IsLikeGenerator(member);
+            var propertyType = GetPropertyType(member);
+
+            if (string.IsNullOrEmpty(propertyType))
+                propertyType = "object";
+
+            // 实体属性名保持原始大写形式，查询输入参数名使用小写形式
+            var entityPropertyName = orgPropertyName;
+
+            if (propertyType.StartsWith("string", StringComparison.OrdinalIgnoreCase))
             {
-                if (IsIgnoreGenerator(member))
-                {
-                    continue;
-                }
-
-                var isLikeQuery = IsLikeGenerator(member);
-                var orgPropertyName = "";
-                var propertyType = "";
-
-                if (member is PropertyDeclarationSyntax property)
-                {
-                    orgPropertyName = GetPropertyName(property);
-                    propertyType = SyntaxHelper.GetPropertyType(property);
-                }
-                else if (member is FieldDeclarationSyntax field)
-                {
-                    orgPropertyName = GetFirstUpperPropertyName(field);
-                    propertyType = SyntaxHelper.GetPropertyType(field);
-                }
-
-                if (string.IsNullOrEmpty(orgPropertyName))
-                    orgPropertyName = "Property";
-
-                if (string.IsNullOrEmpty(propertyType))
-                    propertyType = "object";
-
-                // 统一使用GetGeneratorProperty返回的属性名，确保与TransitiveQueryInputGenerator生成的属性名大小写一致
-                var propertyName = GetGeneratorProperty(member).propertyName;
-
-                // 确保属性名不为空
-                if (string.IsNullOrEmpty(propertyName))
-                    propertyName = orgPropertyName;
-
-                // 实体属性名保持原始大写形式，查询输入参数名使用小写形式
-                var entityPropertyName = orgPropertyName;
-
-                if (propertyType.StartsWith("string", StringComparison.OrdinalIgnoreCase))
-                {
-                    sb.AppendLine($"    if (!string.IsNullOrEmpty(input.{propertyName}?.Trim()))");
-                    if (!isLikeQuery)
-                        sb.AppendLine($"        where = where.And(x => x.{entityPropertyName} == input.{propertyName}.Trim());");
-                    else
-                        sb.AppendLine($"        where = where.And(x => x.{entityPropertyName}.Contains(input.{propertyName}.Trim()));");
-                }
+                sb.AppendLine($"    if (!string.IsNullOrEmpty(input.{propertyName}?.Trim()))");
+                if (!isLikeQuery)
+                    sb.AppendLine($"        where = where.And(x => x.{entityPropertyName} == input.{propertyName}.Trim());");
                 else
-                {
-                    sb.AppendLine($"    if (input.{propertyName} != null)");
-                    sb.AppendLine($"        where = where.And(x => x.{entityPropertyName} == input.{propertyName});");
-                }
+                    sb.AppendLine($"        where = where.And(x => x.{entityPropertyName}.Contains(input.{propertyName}.Trim()));");
             }
-            catch (Exception ex)
+            else
             {
-                // 即使单个属性生成失败也不影响其他属性
+                sb.AppendLine($"    if (input.{propertyName} != null)");
+                sb.AppendLine($"        where = where.And(x => x.{entityPropertyName} == input.{propertyName});");
             }
+        });
+    }
+
+    /// <summary>
+    /// 获取成员的类型
+    /// </summary>
+    private string GetPropertyType<T>(T member) where T : MemberDeclarationSyntax
+    {
+        if (member is PropertyDeclarationSyntax property)
+        {
+            return SyntaxHelper.GetPropertyType(property);
         }
+        else if (member is FieldDeclarationSyntax field)
+        {
+            return SyntaxHelper.GetPropertyType(field);
+        }
+        return "object";
     }
 }
