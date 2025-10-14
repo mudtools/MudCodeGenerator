@@ -19,3 +19,9 @@
 /.vs
 /Test/CodeBaseTest/bin/Debug
 /Test/CodeBaseTest/obj
+/Test/DebugTest/bin/Debug/net8.0
+/Test/DebugTest/obj
+/Test/TestBuilderGenerator/bin/Debug
+/Test/DebugTest/bin/Debug
+/Test/TestBuilderGenerator/obj
+/obj
