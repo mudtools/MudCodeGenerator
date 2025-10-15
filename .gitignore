@@ -25,3 +25,5 @@
 /Test/DebugTest/bin/Debug
 /Test/TestBuilderGenerator/obj
 /obj
+/Test/PublicPackageTest/bin/Debug
+/Test/PublicPackageTest/obj
