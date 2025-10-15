@@ -1,4 +1,4 @@
-﻿namespace CodeGeneratorTest.Interface
+﻿namespace CodeBaseTest.Interface
 {
     public interface IUserManager
     {

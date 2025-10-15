@@ -1,4 +1,4 @@
-﻿namespace CodeGeneratorTest;
+﻿namespace CodeBaseTest;
 
 /// <summary>
 /// 公共的业务数据查询类的基类
