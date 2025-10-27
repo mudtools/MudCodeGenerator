@@ -19,6 +19,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
     /// <inheritdoc/>
     protected override void GenerateCode(SourceProductionContext context, Compilation compilation, ClassDeclarationSyntax orgClassDeclaration)
     {
+        //Debugger.Launch();
         try
         {
             // 获取原始类名
@@ -166,12 +167,6 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
             (orgPropertyName, propertyName) => $"    entity.{orgPropertyName} = input.{propertyName};",
             false); // 只处理非主键属性
 
-        GeneratePropertyMappings<FieldDeclarationSyntax>(
-            orgClassDeclaration,
-            sb, compilation,
-            (orgPropertyName, propertyName) => $"    entity.{orgPropertyName} = input.{propertyName};",
-            false); // 只处理非主键属性
-
         sb.AppendLine($"    if(action!=null)");
         sb.AppendLine($"        action(entity);");
         sb.AppendLine("    return entity;");
@@ -214,12 +209,6 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
             (orgPropertyName, propertyName) => $"    entity.{orgPropertyName} = input.{propertyName};",
             null); // 处理所有属性
 
-        GeneratePropertyMappings<FieldDeclarationSyntax>(
-            orgClassDeclaration,
-            sb, compilation,
-            (orgPropertyName, propertyName) => $"    entity.{orgPropertyName} = input.{propertyName};",
-            null); // 处理所有属性
-
         sb.AppendLine($"    if(action!=null)");
         sb.AppendLine($"        action(entity);");
         sb.AppendLine("    return entity;");
@@ -255,7 +244,6 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
 
         // 生成查询条件
         GenerateQueryConditions<PropertyDeclarationSyntax>(orgClassDeclaration, sb);
-        GenerateQueryConditions<FieldDeclarationSyntax>(orgClassDeclaration, sb);
 
         sb.AppendLine("    return where;");
         sb.AppendLine("}");
@@ -292,12 +280,6 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
 
         // 生成属性映射（只处理非主键属性）
         GeneratePropertyMappings<PropertyDeclarationSyntax>(
-            orgClassDeclaration,
-            sb, compilation,
-            (orgPropertyName, propertyName) => $"    input.{propertyName} = entity.{orgPropertyName};",
-            false); // 只处理非主键属性
-
-        GeneratePropertyMappings<FieldDeclarationSyntax>(
             orgClassDeclaration,
             sb, compilation,
             (orgPropertyName, propertyName) => $"    input.{propertyName} = entity.{orgPropertyName};",
@@ -345,12 +327,6 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
             (orgPropertyName, propertyName) => $"    input.{propertyName} = entity.{orgPropertyName};",
             null); // 处理所有属性
 
-        GeneratePropertyMappings<FieldDeclarationSyntax>(
-            orgClassDeclaration,
-            sb, compilation,
-            (orgPropertyName, propertyName) => $"    input.{propertyName} = entity.{orgPropertyName};",
-            null); // 处理所有属性
-
         sb.AppendLine($"    if(action!=null)");
         sb.AppendLine($"        action(input);");
         sb.AppendLine("    return input;");
@@ -367,7 +343,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         Compilation compilation,
         string orgClassName)
     {
-        var voClassName = orgClassName.Replace(EntitySuffix, "") + Configuration.VoSuffix;
+        var voClassName = GetGeneratorClassName(orgClassDeclaration, Configuration.VoSuffix);
         System.Diagnostics.Debug.WriteLine($"VO_CLASS_NAME: {voClassName}");
 
         // 添加命名空间前缀
@@ -393,12 +369,6 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
             (orgPropertyName, propertyName) => $"    output.{propertyName} = entity.{orgPropertyName};",
             null); // 处理所有属性
 
-        GeneratePropertyMappings<FieldDeclarationSyntax>(
-            orgClassDeclaration,
-            sb, compilation,
-            (orgPropertyName, propertyName) => $"    output.{propertyName} = entity.{orgPropertyName};",
-            null); // 处理所有属性
-
         sb.AppendLine($"    if(action!=null)");
         sb.AppendLine($"        action(output);");
         sb.AppendLine("    return output;");
@@ -415,7 +385,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
          Compilation compilation,
          string orgClassName)
     {
-        var voClassName = orgClassName.Replace(EntitySuffix, "") + Configuration.InfoOutputSuffix;
+        var voClassName = GetGeneratorClassName(orgClassDeclaration, Configuration.InfoOutputSuffix);
         System.Diagnostics.Debug.WriteLine($"VO_CLASS_NAME: {voClassName}");
 
         // 添加命名空间前缀
@@ -441,12 +411,6 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
             (orgPropertyName, propertyName) => $"    output.{propertyName} = entity.{orgPropertyName};",
             null); // 处理所有属性
 
-        GeneratePropertyMappings<FieldDeclarationSyntax>(
-            orgClassDeclaration,
-            sb, compilation,
-            (orgPropertyName, propertyName) => $"    output.{propertyName} = entity.{orgPropertyName};",
-            null); // 处理所有属性
-
         sb.AppendLine($"    if(action!=null)");
         sb.AppendLine($"        action(output);");
         sb.AppendLine("    return output;");
@@ -462,7 +426,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         ClassDeclarationSyntax orgClassDeclaration,
         string orgClassName)
     {
-        var voClassName = orgClassName.Replace(EntitySuffix, "") + Configuration.VoSuffix;
+        var voClassName = GetGeneratorClassName(orgClassDeclaration, Configuration.VoSuffix);
         System.Diagnostics.Debug.WriteLine($"VO_CLASS_NAME: {voClassName}");
 
         // 添加命名空间前缀
@@ -502,7 +466,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         ClassDeclarationSyntax orgClassDeclaration,
         string orgClassName)
     {
-        var voClassName = orgClassName.Replace(EntitySuffix, "") + Configuration.InfoOutputSuffix;
+        var voClassName = GetGeneratorClassName(orgClassDeclaration, Configuration.InfoOutputSuffix);
         System.Diagnostics.Debug.WriteLine($"VO_CLASS_NAME: {voClassName}");
 
         // 添加命名空间前缀

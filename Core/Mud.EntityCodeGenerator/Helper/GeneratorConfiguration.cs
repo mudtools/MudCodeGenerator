@@ -76,7 +76,7 @@ public class GeneratorConfiguration
             val => EntityPrefix = val, "");
 
         ProjectConfigHelper.ReadProjectOptions(options, "build_property.VoSuffix",
-            val => VoSuffix = val, "Vo");
+            val => VoSuffix = val, "ListOutput");
 
         ProjectConfigHelper.ReadProjectOptions(options, "build_property.InfoOutputSuffix",
             val => InfoOutputSuffix = val, "InfoOutput");
