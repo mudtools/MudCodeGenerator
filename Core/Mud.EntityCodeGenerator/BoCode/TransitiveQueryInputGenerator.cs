@@ -7,7 +7,10 @@ namespace Mud.EntityCodeGenerator;
 public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
 {
     /// <inheritdoc/>
-    protected override string ClassSuffix => "QueryInput";
+    protected override string GetConfiguredClassSuffix()
+    {
+        return Configuration.QueryInputSuffix;
+    }
 
     /// <inheritdoc/>
     protected override string GetInheritClass(ClassDeclarationSyntax classNode)

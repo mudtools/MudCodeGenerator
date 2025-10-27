@@ -9,8 +9,8 @@ public class TransitiveCrInputGenerator : TransitiveBoGenerator
     public TransitiveCrInputGenerator() : base(true, false) { }
 
     /// <inheritdoc/>
-    public const string Suffix = "CrInput";
-
-    /// <inheritdoc/>
-    protected override string ClassSuffix => Suffix;
+    protected override string GetConfiguredClassSuffix()
+    {
+        return Configuration.CrInputSuffix;
+    }
 }

@@ -9,11 +9,14 @@ public class TransitiveUpInputGenerator : TransitiveBoGenerator
     public TransitiveUpInputGenerator() : base(false, true) { }
 
     /// <inheritdoc/>
-    protected override string ClassSuffix => "UpInput";
+    protected override string GetConfiguredClassSuffix()
+    {
+        return Configuration.UpInputSuffix;
+    }
 
     /// <inheritdoc/>
     protected override string GetInheritClass(ClassDeclarationSyntax classNode)
     {
-        return GetGeneratorClassName(classNode, TransitiveCrInputGenerator.Suffix);
+        return GetGeneratorClassName(classNode, Configuration.CrInputSuffix);
     }
 }

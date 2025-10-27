@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace Mud.EntityCodeGenerator.Helper;
 
 /// <summary>
@@ -30,6 +26,36 @@ public class GeneratorConfiguration
     public string EntityPrefix { get; private set; } = string.Empty;
 
     /// <summary>
+    /// VO类后缀配置
+    /// </summary>
+    public string VoSuffix { get; private set; } = "ListOutput";
+
+    /// <summary>
+    /// InfoOutput类后缀配置
+    /// </summary>
+    public string InfoOutputSuffix { get; private set; } = "InfoOutput";
+
+    /// <summary>
+    /// BO类后缀配置
+    /// </summary>
+    public string BoSuffix { get; private set; } = "Bo";
+
+    /// <summary>
+    /// QueryInput类后缀配置
+    /// </summary>
+    public string QueryInputSuffix { get; private set; } = "QueryInput";
+
+    /// <summary>
+    /// CrInput类后缀配置
+    /// </summary>
+    public string CrInputSuffix { get; private set; } = "CrInput";
+
+    /// <summary>
+    /// UpInput类后缀配置
+    /// </summary>
+    public string UpInputSuffix { get; private set; } = "UpInput";
+
+    /// <summary>
     /// 从分析器配置选项读取配置
     /// </summary>
     /// <param name="options">分析器配置选项</param>
@@ -37,17 +63,35 @@ public class GeneratorConfiguration
     {
         if (options == null) return;
 
-        ProjectConfigHelper.ReadProjectOptions(options, "build_property.EntityAttachAttributes", 
+        ProjectConfigHelper.ReadProjectOptions(options, "build_property.EntityAttachAttributes",
             val => EntityAttachAttributes = val.Split(','), "");
 
-        ProjectConfigHelper.ReadProjectOptions(options, "build_property.VoAttributes", 
+        ProjectConfigHelper.ReadProjectOptions(options, "build_property.VoAttributes",
             val => VoAttributes = val.SplitString(',', s => s.RemoveSuffix("Attribute", false)), "");
-        
-        ProjectConfigHelper.ReadProjectOptions(options, "build_property.BoAttributes", 
+
+        ProjectConfigHelper.ReadProjectOptions(options, "build_property.BoAttributes",
             val => BoAttributes = val.SplitString(',', s => s.RemoveSuffix("Attribute", false)), "");
 
-        ProjectConfigHelper.ReadProjectOptions(options, "build_property.EntityPrefix", 
+        ProjectConfigHelper.ReadProjectOptions(options, "build_property.EntityPrefix",
             val => EntityPrefix = val, "");
+
+        ProjectConfigHelper.ReadProjectOptions(options, "build_property.VoSuffix",
+            val => VoSuffix = val, "Vo");
+
+        ProjectConfigHelper.ReadProjectOptions(options, "build_property.InfoOutputSuffix",
+            val => InfoOutputSuffix = val, "InfoOutput");
+
+        ProjectConfigHelper.ReadProjectOptions(options, "build_property.BoSuffix",
+            val => BoSuffix = val, "Bo");
+
+        ProjectConfigHelper.ReadProjectOptions(options, "build_property.QueryInputSuffix",
+            val => QueryInputSuffix = val, "QueryInput");
+
+        ProjectConfigHelper.ReadProjectOptions(options, "build_property.CrInputSuffix",
+            val => CrInputSuffix = val, "CrInput");
+
+        ProjectConfigHelper.ReadProjectOptions(options, "build_property.UpInputSuffix",
+            val => UpInputSuffix = val, "UpInput");
     }
 
     /// <summary>
@@ -73,11 +117,11 @@ public class GeneratorConfiguration
     /// <returns>合并后的属性数组</returns>
     public string[] MergePropertyAttributes(string[] defaultAttributes, string generatorType)
     {
-        if (defaultAttributes == null) 
+        if (defaultAttributes == null)
             defaultAttributes = [];
 
         var configAttributes = GetPropertyAttributes(generatorType);
-        
+
         if (configAttributes != null && configAttributes.Length > 0)
         {
             // 合并默认属性和配置属性，并去重
@@ -94,8 +138,8 @@ public class GeneratorConfiguration
     /// </summary>
     public bool IsValid()
     {
-        return EntityAttachAttributes != null && 
-               VoAttributes != null && 
+        return EntityAttachAttributes != null &&
+               VoAttributes != null &&
                BoAttributes != null;
     }
 }

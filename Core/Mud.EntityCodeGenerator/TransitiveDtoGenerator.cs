@@ -49,7 +49,16 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     /// <summary>
     /// 获取类后缀
     /// </summary>
-    protected override string ClassSuffix => "";
+    protected override string ClassSuffix => GetConfiguredClassSuffix();
+
+    /// <summary>
+    /// 获取配置的类后缀
+    /// </summary>
+    /// <returns>配置的后缀名</returns>
+    protected virtual string GetConfiguredClassSuffix()
+    {
+        return "";
+    }
 
     /// <summary>
     /// 获取生成类的继承类。

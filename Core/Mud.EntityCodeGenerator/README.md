@@ -44,11 +44,41 @@ Mud 实体代码生成器是一个基于 Roslyn 的源代码生成器，用于�
   <VoAttributes>CustomVo1Attribute,CustomVo2Attribute</VoAttributes>
   <!-- 需要添加至BO类的自定义特性，多个特性时使用','分隔 -->
   <BoAttributes>CustomBo1Attribute,CustomBo2Attribute</BoAttributes>
-</ItemGroup>
+</PropertyGroup>
 
 <ItemGroup>
   <CompilerVisibleProperty Include="VoAttributes" />
   <CompilerVisibleProperty Include="BoAttributes" />
+</ItemGroup>
+```
+
+### 后缀名配置参数
+
+现在支持为生成的各类代码配置自定义后缀名，提供更灵活的命名控制：
+
+```xml
+<PropertyGroup>
+  <!-- VO类后缀配置 -->
+  <VoSuffix>MyVo</VoSuffix>
+  <!-- InfoOutput类后缀配置 -->
+  <InfoOutputSuffix>MyInfo</InfoOutputSuffix>
+  <!-- BO类后缀配置 -->
+  <BoSuffix>MyBo</BoSuffix>
+  <!-- QueryInput类后缀配置 -->
+  <QueryInputSuffix>MyQuery</QueryInputSuffix>
+  <!-- CrInput类后缀配置 -->
+  <CrInputSuffix>MyCreate</CrInputSuffix>
+  <!-- UpInput类后缀配置 -->
+  <UpInputSuffix>MyUpdate</UpInputSuffix>
+</PropertyGroup>
+
+<ItemGroup>
+  <CompilerVisibleProperty Include="VoSuffix" />
+  <CompilerVisibleProperty Include="InfoOutputSuffix" />
+  <CompilerVisibleProperty Include="BoSuffix" />
+  <CompilerVisibleProperty Include="QueryInputSuffix" />
+  <CompilerVisibleProperty Include="CrInputSuffix" />
+  <CompilerVisibleProperty Include="UpInputSuffix" />
 </ItemGroup>
 ```
 
@@ -71,6 +101,12 @@ Mud 实体代码生成器是一个基于 Roslyn 的源代码生成器，用于�
 | VoAttributes | (空) | 需要添加至BO类的自定义特性，多个特性用逗号分隔 |
 | BoAttributes | (空) | 需要添加至BO类的自定义特性，多个特性用逗号分隔 |
 | PropertyNameLowerCaseFirstLetter | true | 是否将生成的属性名首字母小写，设为false保持原有大小写 |
+| VoSuffix | Vo | VO类后缀配置 |
+| InfoOutputSuffix | InfoOutput | InfoOutput类后缀配置 |
+| BoSuffix | Bo | BO类后缀配置 |
+| QueryInputSuffix | QueryInput | QueryInput类后缀配置 |
+| CrInputSuffix | CrInput | CrInput类后缀配置 |
+| UpInputSuffix | UpInput | UpInput类后缀配置 |
 
 ## 代码生成功能及样例
 

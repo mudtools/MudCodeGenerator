@@ -140,7 +140,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         Compilation compilation,
         string orgClassName)
     {
-        var crInputClassName = GetGeneratorClassName(orgClassDeclaration, TransitiveCrInputGenerator.Suffix);
+        var crInputClassName = GetGeneratorClassName(orgClassDeclaration, Configuration.CrInputSuffix);
         Debug.WriteLine($"CRINPUT_CLASS_NAME: {crInputClassName}");
 
         // 添加命名空间前缀
@@ -188,7 +188,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         Compilation compilation,
         string orgClassName)
     {
-        var upInputClassName = GetGeneratorClassName(orgClassDeclaration, "UpInput");
+        var upInputClassName = GetGeneratorClassName(orgClassDeclaration, Configuration.UpInputSuffix);
         System.Diagnostics.Debug.WriteLine($"UPINPUT_CLASS_NAME: {upInputClassName}");
 
         // 添加命名空间前缀
@@ -235,7 +235,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         ClassDeclarationSyntax orgClassDeclaration,
         string orgClassName)
     {
-        var queryInputClassName = GetGeneratorClassName(orgClassDeclaration, "QueryInput");
+        var queryInputClassName = GetGeneratorClassName(orgClassDeclaration, Configuration.QueryInputSuffix);
         System.Diagnostics.Debug.WriteLine($"QUERYINPUT_CLASS_NAME: {queryInputClassName}");
 
         // 添加命名空间前缀
@@ -271,7 +271,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         Compilation compilation,
         string orgClassName)
     {
-        var crInputClassName = GetGeneratorClassName(orgClassDeclaration, TransitiveCrInputGenerator.Suffix);
+        var crInputClassName = GetGeneratorClassName(orgClassDeclaration, Configuration.CrInputSuffix);
         Debug.WriteLine($"CRINPUT_CLASS_NAME: {crInputClassName}");
 
         // 添加命名空间前缀
@@ -319,7 +319,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
          Compilation compilation,
          string orgClassName)
     {
-        var upInputClassName = GetGeneratorClassName(orgClassDeclaration, "UpInput");
+        var upInputClassName = GetGeneratorClassName(orgClassDeclaration, Configuration.UpInputSuffix);
         System.Diagnostics.Debug.WriteLine($"UPINPUT_CLASS_NAME: {upInputClassName}");
 
         // 添加命名空间前缀
@@ -367,7 +367,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         Compilation compilation,
         string orgClassName)
     {
-        var voClassName = orgClassName.Replace(EntitySuffix, "") + TransitiveVoGenerator.VoSuffix;
+        var voClassName = orgClassName.Replace(EntitySuffix, "") + Configuration.VoSuffix;
         System.Diagnostics.Debug.WriteLine($"VO_CLASS_NAME: {voClassName}");
 
         // 添加命名空间前缀
@@ -415,7 +415,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
          Compilation compilation,
          string orgClassName)
     {
-        var voClassName = orgClassName.Replace(EntitySuffix, "") + TransitiveVoGenerator.InfoSuffix;
+        var voClassName = orgClassName.Replace(EntitySuffix, "") + Configuration.InfoOutputSuffix;
         System.Diagnostics.Debug.WriteLine($"VO_CLASS_NAME: {voClassName}");
 
         // 添加命名空间前缀
@@ -462,7 +462,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         ClassDeclarationSyntax orgClassDeclaration,
         string orgClassName)
     {
-        var voClassName = orgClassName.Replace(EntitySuffix, "") + TransitiveVoGenerator.VoSuffix;
+        var voClassName = orgClassName.Replace(EntitySuffix, "") + Configuration.VoSuffix;
         System.Diagnostics.Debug.WriteLine($"VO_CLASS_NAME: {voClassName}");
 
         // 添加命名空间前缀
@@ -502,7 +502,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         ClassDeclarationSyntax orgClassDeclaration,
         string orgClassName)
     {
-        var voClassName = orgClassName.Replace(EntitySuffix, "") + TransitiveVoGenerator.InfoSuffix;
+        var voClassName = orgClassName.Replace(EntitySuffix, "") + Configuration.InfoOutputSuffix;
         System.Diagnostics.Debug.WriteLine($"VO_CLASS_NAME: {voClassName}");
 
         // 添加命名空间前缀

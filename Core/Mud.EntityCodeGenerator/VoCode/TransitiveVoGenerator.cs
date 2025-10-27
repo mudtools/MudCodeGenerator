@@ -8,23 +8,17 @@ namespace Mud.EntityCodeGenerator;
 /// </summary>
 public class TransitiveVoGenerator : BaseDtoGenerator
 {
-    internal const string VoSuffix = "ListOutput";
-    internal const string InfoSuffix = "InfoOutput";
-
     /// <inheritdoc/>
-    protected override string ClassSuffix
+    protected override string GetConfiguredClassSuffix()
     {
-        get
+        // 根据当前类名确定后缀
+        var currentClassName = this.GetType().Name;
+        return currentClassName switch
         {
-            // 根据当前类名确定后缀
-            var currentClassName = this.GetType().Name;
-            return currentClassName switch
-            {
-                nameof(TransitiveListOutputGenerator) => VoSuffix,
-                nameof(TransitiveInfoOutputGenerator) => InfoSuffix,
-                _ => VoSuffix
-            };
-        }
+            nameof(TransitiveListOutputGenerator) => Configuration.VoSuffix,
+            nameof(TransitiveInfoOutputGenerator) => Configuration.InfoOutputSuffix,
+            _ => Configuration.VoSuffix
+        };
     }
 
     private const string ViewPropertyAttribute = "PropertyTranslation";

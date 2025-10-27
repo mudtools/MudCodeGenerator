@@ -38,7 +38,7 @@ namespace Mud.EntityCodeGenerator
                 _dtoNameSpace = GetDtoNamespaceName(orgClassDeclaration);
 
                 var orgClassName = SyntaxHelper.GetClassName(orgClassDeclaration);
-                var voClassName = orgClassName.Replace(EntitySuffix, "") + TransitiveVoGenerator.VoSuffix;
+                var voClassName = orgClassName.Replace(EntitySuffix, "") + Configuration.VoSuffix;
 
                 var localClass = BuildLocalClass(orgClassDeclaration, orgClassName, false);
 
