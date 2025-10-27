@@ -1,4 +1,5 @@
 using Mud.EntityCodeGenerator.Diagnostics;
+using Mud.EntityCodeGenerator.Helper;
 using System.Text;
 
 namespace Mud.EntityCodeGenerator;
@@ -116,10 +117,14 @@ public class BuilderGenerator : TransitiveDtoGenerator
         Func<string, string, string, string> generateSetMethod)
          where T : MemberDeclarationSyntax
     {
-        ProcessMembers<T>(orgClassDeclaration, compilation, (member, orgPropertyName, propertyName, propertyType) =>
-        {
-            var mappingLine = generateSetMethod(orgPropertyName, propertyName, propertyType);
-            sb.AppendLine(mappingLine);
-        });
+        MemberProcessor.GeneratePropertyMappings<T>(
+            orgClassDeclaration,
+            sb,
+            compilation,
+            generateSetMethod,
+            IsIgnoreGenerator,
+            IsPrimary,
+            GetPropertyNames,
+            GetPropertyType);
     }
 }

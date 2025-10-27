@@ -75,7 +75,7 @@ public abstract class TransitiveBoGenerator : BaseDtoGenerator
                 "EmailAddress", "DataValidation", "RegularExpression" };
         
         // 使用配置管理器的合并功能
-        return Configuration.MergePropertyAttributes(defaultAttributes, "bo");
+        return ConfigurationManager.Instance.MergePropertyAttributes(defaultAttributes, "bo");
     }
 
     /// <inheritdoc/>

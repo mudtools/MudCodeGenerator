@@ -1,4 +1,4 @@
-using Mud.EntityCodeGenerator.Diagnostics;
+using Mud.EntityCodeGenerator.Helper;
 using System.Text;
 
 namespace Mud.EntityCodeGenerator;
@@ -20,7 +20,9 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
     protected override void GenerateCode(SourceProductionContext context, Compilation compilation, ClassDeclarationSyntax orgClassDeclaration)
     {
         //Debugger.Launch();
-        try
+        var className = orgClassDeclaration != null ? SyntaxHelper.GetClassName(orgClassDeclaration) : "Unknown";
+
+        ErrorHandler.SafeExecute(context, className, () =>
         {
             // 获取原始类名
             var orgClassName = SyntaxHelper.GetClassName(orgClassDeclaration);
@@ -44,12 +46,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
 
             var compilationUnit = GenCompilationUnitSyntax(extensionClass, entityNamespace, extensionClassName);
             context.AddSource($"{extensionClassName}.g.cs", compilationUnit);
-        }
-        catch (Exception ex)
-        {
-            var className = orgClassDeclaration != null ? SyntaxHelper.GetClassName(orgClassDeclaration) : "Unknown";
-            ReportErrorDiagnostic(context, DiagnosticDescriptors.EntityMethodGenerationError, className, ex);
-        }
+        });
     }
 
 
@@ -141,38 +138,25 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         Compilation compilation,
         string orgClassName)
     {
-        var crInputClassName = GetGeneratorClassName(orgClassDeclaration, Configuration.CrInputSuffix);
+        var crInputClassName = GetGeneratorClassName(orgClassDeclaration, ConfigurationManager.Instance.GetClassSuffix("crinput"));
         Debug.WriteLine($"CRINPUT_CLASS_NAME: {crInputClassName}");
 
         // 添加命名空间前缀
         var fullCrInputClassName = $"{crInputClassName}";
 
-        var sb = new StringBuilder();
-
-        sb.AppendLine($"/// <summary>");
-        sb.AppendLine($"/// 将 <see cref=\"{crInputClassName}\"/> 映射到 <see cref=\"{orgClassName}\"/> 实例。");
-        sb.AppendLine($"/// </summary>");
-        sb.AppendLine($"/// <param name=\"input\">输入的 <see cref=\"{crInputClassName}\"/> 实例。</param>");
-        sb.AppendLine($"/// <param name=\"action\">映射后对实体执行的操作。</param>");
-        sb.AppendLine($"/// <returns>映射后的 <see cref=\"{orgClassName}\"/> 实例。</returns>");
-        sb.AppendLine($"public static {orgClassName} MapToEntity(this {fullCrInputClassName} input, Action<{orgClassName}>? action = null)");
-        sb.AppendLine("{");
-        sb.AppendLine($"    if(input==null)return null;");
-        sb.AppendLine($"    var entity = new {orgClassName}();");
-
-        // 生成属性映射
-        GeneratePropertyMappings<PropertyDeclarationSyntax>(
-            orgClassDeclaration,
-            sb, compilation,
-            (orgPropertyName, propertyName) => $"    entity.{orgPropertyName} = input.{propertyName};",
+        // 使用MappingGenerator生成映射方法
+        var mappingLines = GenerateMappingLines<PropertyDeclarationSyntax>(
+            orgClassDeclaration, compilation,
+            (orgPropertyName, propertyName) => MappingGenerator.GeneratePropertyMappingLine(propertyName, orgPropertyName, "dto", "result"),
             false); // 只处理非主键属性
 
-        sb.AppendLine($"    if(action!=null)");
-        sb.AppendLine($"        action(entity);");
-        sb.AppendLine("    return entity;");
-        sb.AppendLine("}");
+        var methodCode = MappingGenerator.GenerateDtoToEntityMapping(
+            fullCrInputClassName,
+            orgClassName,
+            mappingLines,
+            "MapToEntity");
 
-        return SyntaxHelper.GetMethodDeclarationSyntax(sb);
+        return SyntaxHelper.GetMethodDeclarationSyntax(methodCode);
     }
 
     /// <summary>
@@ -183,38 +167,25 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         Compilation compilation,
         string orgClassName)
     {
-        var upInputClassName = GetGeneratorClassName(orgClassDeclaration, Configuration.UpInputSuffix);
+        var upInputClassName = GetGeneratorClassName(orgClassDeclaration, ConfigurationManager.Instance.GetClassSuffix("upinput"));
         System.Diagnostics.Debug.WriteLine($"UPINPUT_CLASS_NAME: {upInputClassName}");
 
         // 添加命名空间前缀
         var fullUpInputClassName = $"{upInputClassName}";
 
-        var sb = new StringBuilder();
-
-        sb.AppendLine($"/// <summary>");
-        sb.AppendLine($"/// 将 <see cref=\"{upInputClassName}\"/> 映射到 <see cref=\"{orgClassName}\"/> 实例。");
-        sb.AppendLine($"/// </summary>");
-        sb.AppendLine($"/// <param name=\"input\">输入的 <see cref=\"{upInputClassName}\"/> 实例。</param>");
-        sb.AppendLine($"/// <param name=\"action\">映射后对实体执行的操作。</param>");
-        sb.AppendLine($"/// <returns>映射后的 <see cref=\"{orgClassName}\"/> 实例。</returns>");
-        sb.AppendLine($"public static {orgClassName} MapToEntity(this {fullUpInputClassName} input, Action<{orgClassName}>? action = null)");
-        sb.AppendLine("{");
-        sb.AppendLine($"    if(input==null)return null;");
-        sb.AppendLine($"    var entity = new {orgClassName}();");
-
-        // 生成属性映射（所有属性）
-        GeneratePropertyMappings<PropertyDeclarationSyntax>(
-            orgClassDeclaration,
-            sb, compilation,
-            (orgPropertyName, propertyName) => $"    entity.{orgPropertyName} = input.{propertyName};",
+        // 使用MappingGenerator生成映射方法
+        var mappingLines = GenerateMappingLines<PropertyDeclarationSyntax>(
+            orgClassDeclaration, compilation,
+            (orgPropertyName, propertyName) => MappingGenerator.GeneratePropertyMappingLine(propertyName, orgPropertyName, "dto", "result"),
             null); // 处理所有属性
 
-        sb.AppendLine($"    if(action!=null)");
-        sb.AppendLine($"        action(entity);");
-        sb.AppendLine("    return entity;");
-        sb.AppendLine("}");
+        var methodCode = MappingGenerator.GenerateDtoToEntityMapping(
+            fullUpInputClassName,
+            orgClassName,
+            mappingLines,
+            "MapToEntity");
 
-        return SyntaxHelper.GetMethodDeclarationSyntax(sb);
+        return SyntaxHelper.GetMethodDeclarationSyntax(methodCode);
     }
 
     /// <summary>
@@ -224,7 +195,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         ClassDeclarationSyntax orgClassDeclaration,
         string orgClassName)
     {
-        var queryInputClassName = GetGeneratorClassName(orgClassDeclaration, Configuration.QueryInputSuffix);
+        var queryInputClassName = GetGeneratorClassName(orgClassDeclaration, ConfigurationManager.Instance.GetClassSuffix("queryinput"));
         System.Diagnostics.Debug.WriteLine($"QUERYINPUT_CLASS_NAME: {queryInputClassName}");
 
         // 添加命名空间前缀
@@ -259,38 +230,25 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         Compilation compilation,
         string orgClassName)
     {
-        var crInputClassName = GetGeneratorClassName(orgClassDeclaration, Configuration.CrInputSuffix);
+        var crInputClassName = GetGeneratorClassName(orgClassDeclaration, ConfigurationManager.Instance.GetClassSuffix("crinput"));
         Debug.WriteLine($"CRINPUT_CLASS_NAME: {crInputClassName}");
 
         // 添加命名空间前缀
         var fullCrInputClassName = $"{crInputClassName}";
 
-        var sb = new StringBuilder();
-
-        sb.AppendLine($"/// <summary>");
-        sb.AppendLine($"/// 将 <see cref=\"{orgClassName}\"/> 映射到 <see cref=\"{crInputClassName}\"/> 实例。");
-        sb.AppendLine($"/// </summary>");
-        sb.AppendLine($"/// <param name=\"entity\">输入的 <see cref=\"{orgClassName}\"/> 实例。</param>");
-        sb.AppendLine($"/// <param name=\"action\">映射后对DTO执行的操作。</param>");
-        sb.AppendLine($"/// <returns>映射后的 <see cref=\"{crInputClassName}\"/> 实例。</returns>");
-        sb.AppendLine($"public static {fullCrInputClassName} MapToCrInput(this {orgClassName} entity, Action<{fullCrInputClassName}>? action = null)");
-        sb.AppendLine("{");
-        sb.AppendLine($"    if(entity==null)return null;");
-        sb.AppendLine($"    var input = new {fullCrInputClassName}();");
-
-        // 生成属性映射（只处理非主键属性）
-        GeneratePropertyMappings<PropertyDeclarationSyntax>(
-            orgClassDeclaration,
-            sb, compilation,
-            (orgPropertyName, propertyName) => $"    input.{propertyName} = entity.{orgPropertyName};",
+        // 使用MappingGenerator生成映射方法
+        var mappingLines = GenerateMappingLines<PropertyDeclarationSyntax>(
+            orgClassDeclaration, compilation,
+            (orgPropertyName, propertyName) => MappingGenerator.GeneratePropertyMappingLine(orgPropertyName, propertyName, "entity", "result"),
             false); // 只处理非主键属性
 
-        sb.AppendLine($"    if(action!=null)");
-        sb.AppendLine($"        action(input);");
-        sb.AppendLine("    return input;");
-        sb.AppendLine("}");
+        var methodCode = MappingGenerator.GenerateEntityToDtoMapping(
+            orgClassName,
+            fullCrInputClassName,
+            mappingLines,
+            "MapToCrInput");
 
-        return SyntaxHelper.GetMethodDeclarationSyntax(sb);
+        return SyntaxHelper.GetMethodDeclarationSyntax(methodCode);
     }
 
     /// <summary>
@@ -301,38 +259,25 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
          Compilation compilation,
          string orgClassName)
     {
-        var upInputClassName = GetGeneratorClassName(orgClassDeclaration, Configuration.UpInputSuffix);
+        var upInputClassName = GetGeneratorClassName(orgClassDeclaration, ConfigurationManager.Instance.GetClassSuffix("upinput"));
         System.Diagnostics.Debug.WriteLine($"UPINPUT_CLASS_NAME: {upInputClassName}");
 
         // 添加命名空间前缀
         var fullUpInputClassName = $"{upInputClassName}";
 
-        var sb = new StringBuilder();
-
-        sb.AppendLine($"/// <summary>");
-        sb.AppendLine($"/// 将 <see cref=\"{orgClassName}\"/> 映射到 <see cref=\"{upInputClassName}\"/> 实例。");
-        sb.AppendLine($"/// </summary>");
-        sb.AppendLine($"/// <param name=\"entity\">输入的 <see cref=\"{orgClassName}\"/> 实例。</param>");
-        sb.AppendLine($"/// <param name=\"action\">映射后对DTO执行的操作。</param>");
-        sb.AppendLine($"/// <returns>映射后的 <see cref=\"{upInputClassName}\"/> 实例。</returns>");
-        sb.AppendLine($"public static {fullUpInputClassName} MapToUpInput(this {orgClassName} entity, Action<{fullUpInputClassName}>? action = null)");
-        sb.AppendLine("{");
-        sb.AppendLine($"    if(entity==null)return null;");
-        sb.AppendLine($"    var input = new {fullUpInputClassName}();");
-
-        // 生成属性映射（所有属性）
-        GeneratePropertyMappings<PropertyDeclarationSyntax>(
-            orgClassDeclaration,
-            sb, compilation,
-            (orgPropertyName, propertyName) => $"    input.{propertyName} = entity.{orgPropertyName};",
+        // 使用MappingGenerator生成映射方法
+        var mappingLines = GenerateMappingLines<PropertyDeclarationSyntax>(
+            orgClassDeclaration, compilation,
+            (orgPropertyName, propertyName) => MappingGenerator.GeneratePropertyMappingLine(orgPropertyName, propertyName, "entity", "result"),
             null); // 处理所有属性
 
-        sb.AppendLine($"    if(action!=null)");
-        sb.AppendLine($"        action(input);");
-        sb.AppendLine("    return input;");
-        sb.AppendLine("}");
+        var methodCode = MappingGenerator.GenerateEntityToDtoMapping(
+            orgClassName,
+            fullUpInputClassName,
+            mappingLines,
+            "MapToUpInput");
 
-        return SyntaxHelper.GetMethodDeclarationSyntax(sb);
+        return SyntaxHelper.GetMethodDeclarationSyntax(methodCode);
     }
 
     /// <summary>
@@ -343,38 +288,23 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         Compilation compilation,
         string orgClassName)
     {
-        var voClassName = GetGeneratorClassName(orgClassDeclaration, Configuration.VoSuffix);
+        var voClassName = GetGeneratorClassName(orgClassDeclaration, ConfigurationManager.Instance.GetClassSuffix("vo"));
         System.Diagnostics.Debug.WriteLine($"VO_CLASS_NAME: {voClassName}");
 
         // 添加命名空间前缀
         var fullVoClassName = $"{voClassName}";
 
-        var sb = new StringBuilder();
+        // 使用MappingGenerator生成映射方法
+        var mappingLines = GenerateMappingLines<PropertyDeclarationSyntax>(orgClassDeclaration, compilation,
+            (orgPropertyName, propertyName) => MappingGenerator.GeneratePropertyMappingLine(orgPropertyName, propertyName, "entity", "result"));
 
-        sb.AppendLine($"/// <summary>");
-        sb.AppendLine($"/// 将 <see cref=\"{orgClassName}\"/> 映射到 <see cref=\"{voClassName}\"/> 实例。");
-        sb.AppendLine($"/// </summary>");
-        sb.AppendLine($"/// <param name=\"entity\">输入的 <see cref=\"{orgClassName}\"/> 实例。</param>");
-        sb.AppendLine($"/// <param name=\"action\">映射后对DTO执行的操作。</param>");
-        sb.AppendLine($"/// <returns>映射后的 <see cref=\"{voClassName}\"/> 实例。</returns>");
-        sb.AppendLine($"public static {fullVoClassName} MapToListOutput(this {orgClassName} entity, Action<{fullVoClassName}>? action = null)");
-        sb.AppendLine("{");
-        sb.AppendLine($"    if(entity==null)return null;");
-        sb.AppendLine($"    var output = new {fullVoClassName}();");
+        var methodCode = MappingGenerator.GenerateEntityToDtoMapping(
+            orgClassName,
+            fullVoClassName,
+            mappingLines,
+            "MapToListOutput");
 
-        // 生成属性映射（所有属性）
-        GeneratePropertyMappings<PropertyDeclarationSyntax>(
-            orgClassDeclaration,
-            sb, compilation,
-            (orgPropertyName, propertyName) => $"    output.{propertyName} = entity.{orgPropertyName};",
-            null); // 处理所有属性
-
-        sb.AppendLine($"    if(action!=null)");
-        sb.AppendLine($"        action(output);");
-        sb.AppendLine("    return output;");
-        sb.AppendLine("}");
-
-        return SyntaxHelper.GetMethodDeclarationSyntax(sb);
+        return SyntaxHelper.GetMethodDeclarationSyntax(methodCode);
     }
 
     /// <summary>
@@ -385,38 +315,23 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
          Compilation compilation,
          string orgClassName)
     {
-        var voClassName = GetGeneratorClassName(orgClassDeclaration, Configuration.InfoOutputSuffix);
+        var voClassName = GetGeneratorClassName(orgClassDeclaration, ConfigurationManager.Instance.GetClassSuffix("infooutput"));
         System.Diagnostics.Debug.WriteLine($"VO_CLASS_NAME: {voClassName}");
 
         // 添加命名空间前缀
         var fullVoClassName = $"{voClassName}";
 
-        var sb = new StringBuilder();
+        // 使用MappingGenerator生成映射方法
+        var mappingLines = GenerateMappingLines<PropertyDeclarationSyntax>(orgClassDeclaration, compilation,
+            (orgPropertyName, propertyName) => MappingGenerator.GeneratePropertyMappingLine(orgPropertyName, propertyName, "entity", "result"));
 
-        sb.AppendLine($"/// <summary>");
-        sb.AppendLine($"/// 将 <see cref=\"{orgClassName}\"/> 映射到 <see cref=\"{voClassName}\"/> 实例。");
-        sb.AppendLine($"/// </summary>");
-        sb.AppendLine($"/// <param name=\"entity\">输入的 <see cref=\"{orgClassName}\"/> 实例。</param>");
-        sb.AppendLine($"/// <param name=\"action\">映射后对DTO执行的操作。</param>");
-        sb.AppendLine($"/// <returns>映射后的 <see cref=\"{voClassName}\"/> 实例。</returns>");
-        sb.AppendLine($"public static {fullVoClassName} MapToInfoOutput(this {orgClassName} entity, Action<{fullVoClassName}>? action = null)");
-        sb.AppendLine("{");
-        sb.AppendLine($"    if(entity==null)return null;");
-        sb.AppendLine($"    var output = new {fullVoClassName}();");
+        var methodCode = MappingGenerator.GenerateEntityToDtoMapping(
+            orgClassName,
+            fullVoClassName,
+            mappingLines,
+            "MapToInfoOutput");
 
-        // 生成属性映射（所有属性）
-        GeneratePropertyMappings<PropertyDeclarationSyntax>(
-            orgClassDeclaration,
-            sb, compilation,
-            (orgPropertyName, propertyName) => $"    output.{propertyName} = entity.{orgPropertyName};",
-            null); // 处理所有属性
-
-        sb.AppendLine($"    if(action!=null)");
-        sb.AppendLine($"        action(output);");
-        sb.AppendLine("    return output;");
-        sb.AppendLine("}");
-
-        return SyntaxHelper.GetMethodDeclarationSyntax(sb);
+        return SyntaxHelper.GetMethodDeclarationSyntax(methodCode);
     }
 
     /// <summary>
@@ -426,37 +341,20 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         ClassDeclarationSyntax orgClassDeclaration,
         string orgClassName)
     {
-        var voClassName = GetGeneratorClassName(orgClassDeclaration, Configuration.VoSuffix);
+        var voClassName = GetGeneratorClassName(orgClassDeclaration, ConfigurationManager.Instance.GetClassSuffix("vo"));
         System.Diagnostics.Debug.WriteLine($"VO_CLASS_NAME: {voClassName}");
 
         // 添加命名空间前缀
         var fullVoClassName = $"{voClassName}";
 
-        var sb = new StringBuilder();
+        // 使用MappingGenerator生成集合映射方法
+        var methodCode = MappingGenerator.GenerateCollectionMapping(
+            orgClassName,
+            fullVoClassName,
+            "MapToListOutput",
+            "MapToList");
 
-        sb.AppendLine($"/// <summary>");
-        sb.AppendLine($"/// 将 <see cref=\"{orgClassName}\"/> 集合映射到 <see cref=\"{voClassName}\"/> 集合。");
-        sb.AppendLine($"/// </summary>");
-        sb.AppendLine($"/// <param name=\"entities\">输入的 <see cref=\"{orgClassName}\"/> 集合。</param>");
-        sb.AppendLine($"/// <param name=\"action\">映射后对每个DTO执行的操作。</param>");
-        sb.AppendLine($"/// <returns>映射后的 <see cref=\"{voClassName}\"/> 集合。</returns>");
-        sb.AppendLine($"public static List<{fullVoClassName}> MapToList(this IEnumerable<{orgClassName}> entities, Action<{fullVoClassName}>? action=null)");
-        sb.AppendLine("{");
-        sb.AppendLine($"    if (entities == null)");
-        sb.AppendLine($"        return [];");
-        sb.AppendLine();
-        sb.AppendLine($"    var listOutputs = new List<{fullVoClassName}>();");
-        sb.AppendLine($"    foreach (var entity in entities)");
-        sb.AppendLine($"    {{");
-        sb.AppendLine($"        var listOutput = entity.MapToListOutput();");
-        sb.AppendLine($"        if(action!=null)");
-        sb.AppendLine($"            action(listOutput);");
-        sb.AppendLine($"        listOutputs.Add(listOutput);");
-        sb.AppendLine($"    }}");
-        sb.AppendLine($"    return listOutputs;");
-        sb.AppendLine("}");
-
-        return SyntaxHelper.GetMethodDeclarationSyntax(sb);
+        return SyntaxHelper.GetMethodDeclarationSyntax(methodCode);
     }
 
     /// <summary>
@@ -466,37 +364,20 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         ClassDeclarationSyntax orgClassDeclaration,
         string orgClassName)
     {
-        var voClassName = GetGeneratorClassName(orgClassDeclaration, Configuration.InfoOutputSuffix);
+        var voClassName = GetGeneratorClassName(orgClassDeclaration, ConfigurationManager.Instance.GetClassSuffix("infooutput"));
         System.Diagnostics.Debug.WriteLine($"VO_CLASS_NAME: {voClassName}");
 
         // 添加命名空间前缀
         var fullVoClassName = $"{voClassName}";
 
-        var sb = new StringBuilder();
+        // 使用MappingGenerator生成集合映射方法
+        var methodCode = MappingGenerator.GenerateCollectionMapping(
+            orgClassName,
+            fullVoClassName,
+            "MapToInfoOutput",
+            "MapToInfoList");
 
-        sb.AppendLine($"/// <summary>");
-        sb.AppendLine($"/// 将 <see cref=\"{orgClassName}\"/> 集合映射到 <see cref=\"{voClassName}\"/> 集合。");
-        sb.AppendLine($"/// </summary>");
-        sb.AppendLine($"/// <param name=\"entities\">输入的 <see cref=\"{orgClassName}\"/> 集合。</param>");
-        sb.AppendLine($"/// <param name=\"action\">映射后对每个DTO执行的操作。</param>");
-        sb.AppendLine($"/// <returns>映射后的 <see cref=\"{voClassName}\"/> 集合。</returns>");
-        sb.AppendLine($"public static List<{fullVoClassName}> MapToInfoList(this IEnumerable<{orgClassName}> entities, Action<{fullVoClassName}>? action=null)");
-        sb.AppendLine("{");
-        sb.AppendLine($"    if (entities == null)");
-        sb.AppendLine($"        return [];");
-        sb.AppendLine();
-        sb.AppendLine($"    var listOutputs = new List<{fullVoClassName}>();");
-        sb.AppendLine($"    foreach (var entity in entities)");
-        sb.AppendLine($"    {{");
-        sb.AppendLine($"        var listOutput = entity.MapToInfoOutput();");
-        sb.AppendLine($"        if(action!=null)");
-        sb.AppendLine($"            action(listOutput);");
-        sb.AppendLine($"        listOutputs.Add(listOutput);");
-        sb.AppendLine($"    }}");
-        sb.AppendLine($"    return listOutputs;");
-        sb.AppendLine("}");
-
-        return SyntaxHelper.GetMethodDeclarationSyntax(sb);
+        return SyntaxHelper.GetMethodDeclarationSyntax(methodCode);
     }
 
     /// <summary>
@@ -509,11 +390,39 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         Func<string, string, string> generateMappingLine,
         bool? primaryKeyOnly) where T : MemberDeclarationSyntax
     {
+        MemberProcessor.GeneratePropertyMappings<T>(
+            orgClassDeclaration,
+            sb,
+            compilation,
+            generateMappingLine,
+            primaryKeyOnly,
+            IsIgnoreGenerator,
+            IsPrimary,
+            GetPropertyNames,
+            GetPropertyType);
+    }
+
+    /// <summary>
+    /// 生成映射行列表
+    /// </summary>
+    private List<string> GenerateMappingLines<T>(
+        ClassDeclarationSyntax orgClassDeclaration,
+        Compilation compilation,
+        Func<string, string, string> generateMappingLine,
+        bool? primaryKeyOnly = null) where T : MemberDeclarationSyntax
+    {
+        var mappingLines = new List<string>();
+
         ProcessMembers<T>(orgClassDeclaration, compilation, (member, orgPropertyName, propertyName) =>
         {
             var mappingLine = generateMappingLine(orgPropertyName, propertyName);
-            sb.AppendLine(mappingLine);
+            if (!string.IsNullOrEmpty(mappingLine))
+            {
+                mappingLines.Add(mappingLine);
+            }
         }, primaryKeyOnly);
+
+        return mappingLines;
     }
 
     /// <summary>

@@ -6,6 +6,19 @@ namespace Mud.CodeGenerator;
 internal static class SyntaxHelper
 {
     /// <summary>
+    /// 格式化代码
+    /// </summary>
+    /// <param name="csCode"></param>
+    /// <returns></returns>
+    public static string FormatCode(this string csCode)
+    {
+        var tree = CSharpSyntaxTree.ParseText(csCode);
+        var root = tree.GetRoot().NormalizeWhitespace();
+        var ret = root.ToFullString();
+        return ret;
+    }
+
+    /// <summary>
     /// 获取属性或字段的类型，并确保返回可空类型。
     /// </summary>
     public static string GetPropertyType<T>(T declarationSyntax) where T : MemberDeclarationSyntax
@@ -256,14 +269,22 @@ internal static class SyntaxHelper
 
         return string.Join(".", tempFullName);
     }
-
-
     /// <summary>
     /// 将字符串解释为<see cref="MethodDeclarationSyntax"/>对象。
     /// </summary>
     /// <param name="sb">字符串构建器。</param>
     /// <returns>方法声明语法。</returns>
     public static MethodDeclarationSyntax GetMethodDeclarationSyntax(StringBuilder sb)
+    {
+        return GetMethodDeclarationSyntax(sb.ToString());
+    }
+
+    /// <summary>
+    /// 将字符串解释为<see cref="MethodDeclarationSyntax"/>对象。
+    /// </summary>
+    /// <param name="str">字符串构建器。</param>
+    /// <returns>方法声明语法。</returns>
+    public static MethodDeclarationSyntax GetMethodDeclarationSyntax(string str)
     {
         const string classTemplate = @"
 using System;
@@ -275,7 +296,7 @@ namespace TemporaryNamespace
     }}
 }}";
 
-        return GetSyntaxNode<MethodDeclarationSyntax>(sb, classTemplate);
+        return GetSyntaxNode<MethodDeclarationSyntax>(str, classTemplate);
     }
 
     /// <summary>
@@ -292,7 +313,7 @@ namespace TemporaryNamespace
     {0}
 }}";
 
-        return GetSyntaxNode<ClassDeclarationSyntax>(sb, namespaceTemplate);
+        return GetSyntaxNode<ClassDeclarationSyntax>(sb?.ToString(), namespaceTemplate);
     }
 
     /// <summary>
@@ -302,7 +323,7 @@ namespace TemporaryNamespace
     /// <param name="sb">字符串构建器。</param>
     /// <param name="template">代码模板。</param>
     /// <returns>语法节点。</returns>
-    private static T GetSyntaxNode<T>(StringBuilder sb, string template)
+    private static T GetSyntaxNode<T>(string sb, string template)
         where T : CSharpSyntaxNode
     {
         if (sb == null || sb.Length == 0)

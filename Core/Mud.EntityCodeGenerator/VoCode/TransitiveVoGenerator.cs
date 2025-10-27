@@ -15,9 +15,9 @@ public class TransitiveVoGenerator : BaseDtoGenerator
         var currentClassName = this.GetType().Name;
         return currentClassName switch
         {
-            nameof(TransitiveListOutputGenerator) => Configuration.VoSuffix,
-            nameof(TransitiveInfoOutputGenerator) => Configuration.InfoOutputSuffix,
-            _ => Configuration.VoSuffix
+            nameof(TransitiveListOutputGenerator) => ConfigurationManager.Instance.GetClassSuffix("vo"),
+            nameof(TransitiveInfoOutputGenerator) => ConfigurationManager.Instance.GetClassSuffix("infooutput"),
+            _ => ConfigurationManager.Instance.GetClassSuffix("vo")
         };
     }
 

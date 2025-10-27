@@ -1,3 +1,5 @@
+using Mud.EntityCodeGenerator.Helper;
+
 namespace Mud.EntityCodeGenerator;
 
 /// <summary>
@@ -9,7 +11,7 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
     /// <inheritdoc/>
     protected override string GetConfiguredClassSuffix()
     {
-        return Configuration.QueryInputSuffix;
+        return ConfigurationManager.Instance.GetClassSuffix("queryinput");
     }
 
     /// <inheritdoc/>
@@ -51,7 +53,7 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
                                 var fieldName = GetFirstUpperPropertyName(member);
                                 var existingProperty = localClass.Members.OfType<PropertyDeclarationSyntax>()
                                     .FirstOrDefault(p => p.Identifier.Text.Equals(fieldName, StringComparison.OrdinalIgnoreCase));
-                                
+
                                 // 如果对应的属性已存在，则跳过字段处理
                                 if (existingProperty != null)
                                     return null;

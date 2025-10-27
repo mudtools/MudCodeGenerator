@@ -1,3 +1,5 @@
+using Mud.EntityCodeGenerator.Helper;
+
 namespace Mud.EntityCodeGenerator;
 
 /// <summary>
@@ -11,12 +13,12 @@ public class TransitiveUpInputGenerator : TransitiveBoGenerator
     /// <inheritdoc/>
     protected override string GetConfiguredClassSuffix()
     {
-        return Configuration.UpInputSuffix;
+        return ConfigurationManager.Instance.GetClassSuffix("upinput");
     }
 
     /// <inheritdoc/>
     protected override string GetInheritClass(ClassDeclarationSyntax classNode)
     {
-        return GetGeneratorClassName(classNode, Configuration.CrInputSuffix);
+        return GetGeneratorClassName(classNode, ConfigurationManager.Instance.GetClassSuffix("crinput"));
     }
 }

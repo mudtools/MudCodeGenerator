@@ -1,6 +1,6 @@
 using Mud.EntityCodeGenerator.Diagnostics;
+using Mud.EntityCodeGenerator.Helper;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Text;
 
 namespace Mud.EntityCodeGenerator
@@ -38,7 +38,7 @@ namespace Mud.EntityCodeGenerator
                 _dtoNameSpace = GetDtoNamespaceName(orgClassDeclaration);
 
                 var orgClassName = SyntaxHelper.GetClassName(orgClassDeclaration);
-                var voClassName = orgClassName.Replace(EntitySuffix, "") + Configuration.VoSuffix;
+                var voClassName = orgClassName.Replace(EntitySuffix, "") + ConfigurationManager.Instance.GetClassSuffix("vo");
 
                 var localClass = BuildLocalClass(orgClassDeclaration, orgClassName, false);
 
@@ -103,7 +103,7 @@ namespace Mud.EntityCodeGenerator
                     // 检查字段对应的属性是否已存在
                     var fieldName = GetFieldName(member);
                     var propertyName = ToPropertyName(fieldName);
-                    
+
                     if (existingPropertyNames.Contains(propertyName))
                     {
                         // 如果属性已存在，跳过生成

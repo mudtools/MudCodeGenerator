@@ -1,5 +1,7 @@
 namespace Mud.EntityCodeGenerator;
 
+using Mud.EntityCodeGenerator.Helper;
+
 /// <summary>
 /// 生成业务数据新增操作CrInput类。
 /// </summary>
@@ -11,6 +13,6 @@ public class TransitiveCrInputGenerator : TransitiveBoGenerator
     /// <inheritdoc/>
     protected override string GetConfiguredClassSuffix()
     {
-        return Configuration.CrInputSuffix;
+        return ConfigurationManager.Instance.GetClassSuffix("crinput");
     }
 }

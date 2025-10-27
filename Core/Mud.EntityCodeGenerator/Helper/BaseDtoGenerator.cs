@@ -95,9 +95,10 @@ public abstract class BaseDtoGenerator : TransitiveDtoGenerator, IDtoGenerator
             var fieldGenerator = CreateFieldGenerator();
 
             // 使用安全的属性生成器
-            var safePropertyGenerator = ErrorHandler.CreateSafePropertyGenerator(this, propertyGenerator);
-            var safeFieldGenerator = ErrorHandler.CreateSafePropertyGenerator(this, fieldGenerator);
+            var safePropertyGenerator = ErrorHandler.CreateSafePropertyGenerator<BaseDtoGenerator, PropertyDeclarationSyntax, PropertyDeclarationSyntax>(this, propertyGenerator);
+            var safeFieldGenerator = ErrorHandler.CreateSafePropertyGenerator<BaseDtoGenerator, FieldDeclarationSyntax, PropertyDeclarationSyntax>(this, fieldGenerator);
 
+            // 只处理属性，避免重复生成（字段对应的属性已经在属性处理中生成）
             localClass = BuildLocalClassProperty<PropertyDeclarationSyntax>(classDeclaration, localClass, compilation, safePropertyGenerator, null);
 
             // 验证生成结果
@@ -108,8 +109,7 @@ public abstract class BaseDtoGenerator : TransitiveDtoGenerator, IDtoGenerator
             compilationUnit = compilationUnit.NormalizeWhitespace();
             context.AddSource($"{generatedClassName}.g.cs", compilationUnit);
         },
-        GetFailureDescriptor(),
-        GetErrorDescriptor());
+        GetFailureDescriptor());
     }
 
     /// <summary>
@@ -140,13 +140,13 @@ public abstract class BaseDtoGenerator : TransitiveDtoGenerator, IDtoGenerator
     /// 获取失败描述符
     /// </summary>
     /// <returns>诊断描述符</returns>
-    protected abstract Microsoft.CodeAnalysis.DiagnosticDescriptor GetFailureDescriptor();
+    protected abstract DiagnosticDescriptor GetFailureDescriptor();
 
     /// <summary>
     /// 获取错误描述符
     /// </summary>
     /// <returns>诊断描述符</returns>
-    protected abstract Microsoft.CodeAnalysis.DiagnosticDescriptor GetErrorDescriptor();
+    protected abstract DiagnosticDescriptor GetErrorDescriptor();
 
     // 显式实现接口方法
     string[] IDtoGenerator.GetPropertyAttributes()

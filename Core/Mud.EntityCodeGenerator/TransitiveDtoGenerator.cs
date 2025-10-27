@@ -1,7 +1,7 @@
 using Microsoft.CodeAnalysis.Diagnostics;
 using Mud.EntityCodeGenerator.Diagnostics;
-using System.Collections.ObjectModel;
 using Mud.EntityCodeGenerator.Helper;
+using System.Collections.ObjectModel;
 
 namespace Mud.EntityCodeGenerator;
 
@@ -75,13 +75,13 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     /// 获取VO类属性配置。
     /// </summary>
     /// <returns></returns>
-    protected string[] GetVoPropertyAttributes() => Configuration.VoAttributes;
+    protected string[] GetVoPropertyAttributes() => ConfigurationManager.Instance.GetPropertyAttributes("vo");
 
     /// <summary>
     /// 获取BO类属性配置。
     /// </summary>
     /// <returns></returns>
-    protected string[] GetBoPropertyAttributes() => Configuration.BoAttributes;
+    protected string[] GetBoPropertyAttributes() => ConfigurationManager.Instance.GetPropertyAttributes("bo");
 
     /// <inheritdoc/>
     public override void Initialize(IncrementalGeneratorInitializationContext context)
@@ -139,7 +139,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     /// <param name="options">分析器配置选项</param>
     private void ReadConfigurationOptions(AnalyzerConfigOptions options)
     {
-        Configuration.ReadFromOptions(options);
+        ConfigurationManager.Instance.Initialize(options);
     }
 
     /// <summary>
@@ -196,10 +196,18 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
         Action<T, string, string> memberProcessor,
         bool? primaryKeyOnly = null) where T : MemberDeclarationSyntax
     {
-        ProcessMembers<T>(orgClassDeclaration, compilation, (member, orgPropertyName, propertyName, propertyType) =>
-        {
-            memberProcessor(member, orgPropertyName, propertyName);
-        }, primaryKeyOnly);
+        MemberProcessor.ProcessMembers<T>(
+            orgClassDeclaration,
+            compilation,
+            (member, orgPropertyName, propertyName, propertyType) =>
+            {
+                memberProcessor(member, orgPropertyName, propertyName);
+            },
+            primaryKeyOnly,
+            IsIgnoreGenerator,
+            IsPrimary,
+            GetPropertyNames,
+            GetPropertyType);
     }
 
     /// <summary>
@@ -216,56 +224,15 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
         Action<T, string, string, string> memberProcessor,
         bool? primaryKeyOnly = null) where T : MemberDeclarationSyntax
     {
-        if (orgClassDeclaration == null || memberProcessor == null)
-            return;
-
-        var members = orgClassDeclaration.Members;
-
-        // 只有在处理属性声明时才添加基类属性
-        if (typeof(T) == typeof(PropertyDeclarationSyntax))
-        {
-            var baseProperty = ClassHierarchyAnalyzer.GetBaseClassPublicPropertyDeclarations(orgClassDeclaration, compilation);
-            if (baseProperty.Count > 0)
-                members = members.AddRange(baseProperty.Cast<MemberDeclarationSyntax>());
-        }
-
-        foreach (var member in members.OfType<T>())
-        {
-            try
-            {
-                if (IsIgnoreGenerator(member))
-                    continue;
-
-                var isPrimary = IsPrimary(member);
-
-                // 根据primaryKeyOnly参数决定是否处理该属性
-                if (primaryKeyOnly.HasValue)
-                {
-                    if (primaryKeyOnly.Value && !isPrimary)
-                        continue;
-
-                    if (!primaryKeyOnly.Value && isPrimary)
-                        continue;
-                }
-
-                var (orgPropertyName, propertyName) = GetPropertyNames(member);
-                var propertyType = GetPropertyType(member);
-                
-                if (string.IsNullOrEmpty(orgPropertyName))
-                    continue;
-
-                // 确保属性名不为空
-                if (string.IsNullOrEmpty(propertyName))
-                    propertyName = orgPropertyName;
-
-                memberProcessor(member, orgPropertyName, propertyName, propertyType);
-            }
-            catch (Exception ex)
-            {
-                // 即使单个属性处理失败也不影响其他属性
-                Debug.WriteLine($"处理成员时发生错误: {ex.Message}");
-            }
-        }
+        MemberProcessor.ProcessMembers<T>(
+            orgClassDeclaration,
+            compilation,
+            memberProcessor,
+            primaryKeyOnly,
+            IsIgnoreGenerator,
+            IsPrimary,
+            GetPropertyNames,
+            GetPropertyType);
     }
 
     /// <summary>
@@ -382,10 +349,10 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
                                                  SyntaxFactory.Token(SyntaxKind.PartialKeyword)));
 
         //在类上加入自定义注解。
-        if (isAttachAttribute && Configuration.EntityAttachAttributes != null && Configuration.EntityAttachAttributes.Any())
+        if (isAttachAttribute && ConfigurationManager.Instance.Configuration.EntityAttachAttributes != null && ConfigurationManager.Instance.Configuration.EntityAttachAttributes.Any())
         {
             List<AttributeSyntax> attributeSyntaxs = new List<AttributeSyntax>();
-            foreach (var attribute in Configuration.EntityAttachAttributes)
+            foreach (var attribute in ConfigurationManager.Instance.Configuration.EntityAttachAttributes)
             {
                 // 提高容错性，跳过空的特性名称
                 if (string.IsNullOrWhiteSpace(attribute))
