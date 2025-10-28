@@ -1,4 +1,4 @@
-﻿namespace CodeGeneratorTest.Entites
+﻿namespace PublicPackageTest.Entites
 {
     /// <summary>
     /// 租户配置.

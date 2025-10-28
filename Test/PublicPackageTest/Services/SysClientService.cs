@@ -1,6 +1,6 @@
 using FreeSql;
 
-namespace CodeGeneratorTest.Services;
+namespace PublicPackageTest.Services;
 
 /// <summary>
 /// 服务端代码生成测试。

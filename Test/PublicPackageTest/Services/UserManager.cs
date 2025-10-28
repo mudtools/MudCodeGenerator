@@ -1,4 +1,4 @@
-﻿namespace CodeGeneratorTest.Services;
+﻿namespace PublicPackageTest.Services;
 
 [ConstructorInject, CacheInject]
 [OptionsInject(OptionType = nameof(CacheOptions))]
