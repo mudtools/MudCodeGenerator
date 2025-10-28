@@ -12,7 +12,7 @@ public class ServiceInterfaceCodeGenerator : ServiceCodeGenerator
     {
         var cNamespace = GetNamespaceName(classNode);
         var orgClassName = SyntaxHelper.GetClassName(classNode);
-        var className = orgClassName.Replace(EntitySuffix, "");
+        var className = string.IsNullOrEmpty(EntitySuffix) ? orgClassName : orgClassName.Replace(EntitySuffix, "");
         var interfaceClassName = $"I{className}Repository";
 
         var sb = new StringBuilder();
@@ -39,6 +39,6 @@ public class ServiceInterfaceCodeGenerator : ServiceCodeGenerator
     protected override string GetNamespaceName(ClassDeclarationSyntax classNode)
     {
         var cNamespace = base.GetNamespaceName(classNode);
-        return cNamespace.Replace(EntitySuffix, "Interface");
+        return string.IsNullOrEmpty(EntitySuffix) ? cNamespace + "Interface" : cNamespace.Replace(EntitySuffix, "Interface");
     }
 }

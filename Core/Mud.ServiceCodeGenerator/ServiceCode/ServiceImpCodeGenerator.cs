@@ -12,7 +12,7 @@ public class ServiceImpCodeGenerator : ServiceCodeGenerator
     {
         var cNamespace = GetNamespaceName(classNode);
         var orgClassName = SyntaxHelper.GetClassName(classNode);
-        var className = orgClassName.Replace(EntitySuffix, "");
+        var className = string.IsNullOrEmpty(EntitySuffix) ? orgClassName : orgClassName.Replace(EntitySuffix, "");
         var serviceClassName = $"{className}Service";
 
         var sb = new StringBuilder();
@@ -44,7 +44,7 @@ public class ServiceImpCodeGenerator : ServiceCodeGenerator
     /// <param name="entityType"></param>
     private void GenerateBuildQuerySelect(StringBuilder sb, ClassDeclarationSyntax classNode, string entityType)
     {
-        var dtoClassName = entityType.Replace(EntitySuffix, "");
+        var dtoClassName = string.IsNullOrEmpty(EntitySuffix) ? entityType : entityType.Replace(EntitySuffix, "");
 
         sb.AppendLine($"        protected ISelect<{entityType}> BuildQuerySelect(IDefaultSqlRepository<{entityType}> repository, {dtoClassName}QueryInput bo)");
         sb.AppendLine("        {");
@@ -110,6 +110,6 @@ public class ServiceImpCodeGenerator : ServiceCodeGenerator
     protected override string GetNamespaceName(ClassDeclarationSyntax classNode)
     {
         var cNamespace = base.GetNamespaceName(classNode);
-        return cNamespace.Replace(EntitySuffix, "Services");
+        return string.IsNullOrEmpty(EntitySuffix) ? cNamespace + "Services" : cNamespace.Replace(EntitySuffix, "Services");
     }
 }
