@@ -119,7 +119,20 @@ internal static class SyntaxHelper
         // 获取类上的特性
         var attributes = classDeclaration.AttributeLists
                         .SelectMany(al => al.Attributes)
-                        .Where(a => a.Name.ToString() == attributeName || a.Name.ToString() == attriShortName)
+                        .Where(a => 
+                        {
+                            var currentName = a.Name.ToString();
+                            
+                            // 完全匹配
+                            if (currentName == attributeName || currentName == attriShortName)
+                                return true;
+                            
+                            // 泛型属性匹配（例如 CustomInject<IMenuRepository> 匹配 CustomInjectAttribute）
+                            if (currentName.StartsWith(attriShortName + "<", StringComparison.OrdinalIgnoreCase) && currentName.EndsWith(">", StringComparison.OrdinalIgnoreCase))
+                                return true;
+                            
+                            return false;
+                        })
                         .ToList();
         return new ReadOnlyCollection<AttributeSyntax>(attributes);
     }

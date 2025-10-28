@@ -6,8 +6,8 @@ namespace CodeGeneratorTest.Services;
 /// 服务端代码生成测试。
 /// </summary>
 [ConstructorInject, UserInject, CacheInject]
-[OptionsInject(OptionType = nameof(TenantOptions))]
-[CustomInject<IMenuRepository>()]
+[OptionsInject<TenantOptions>]
+[CustomInject<IMenuRepository>]
 [CustomInject(VarType = nameof(IRoleRepository))]
 [AutoRegister<ISysClientService>(ServiceLifetime = ServiceLifetime.Transient)]
 public partial class SysClientService : ISysClientService

@@ -432,7 +432,9 @@ public class AutoRegisterSourceGenerator : TransitiveCodeGenerator
         sb.AppendLine("#pragma warning restore");
 
         var source = sb.ToString().FormatCode();
-        context.AddSource("Mud.ServiceCodeGeneratorInject.g.cs", SourceText.From(source, Encoding.UTF8));
+        var projectName = !string.IsNullOrEmpty(rootNamespace) ? rootNamespace : "Mud";
+        var fileName = $"{projectName}.ServiceCodeGeneratorInject.g.cs";
+        context.AddSource(fileName, SourceText.From(source, Encoding.UTF8));
     }
 
     private class AutoRegisterMetadata(string implType, string baseType, string lifeTime)

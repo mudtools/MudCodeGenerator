@@ -36,8 +36,9 @@ public class CustomInjectAttribute : Attribute
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
 public class CustomInjectAttribute<T> : CustomInjectAttribute
 {
-    public CustomInjectAttribute() : base(typeof(T).Name)
+    public CustomInjectAttribute() : base(null)
     {
+        // 不设置VarType属性，让代码生成器通过泛型参数来获取类型信息
     }
 }
 #endif

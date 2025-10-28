@@ -96,14 +96,57 @@ public partial class CodeInjectGenerator
 
     private InjectionRequirements CollectInjectionRequirements(ClassDeclarationSyntax classDeclaration, ProjectConfiguration config)
     {
+        // 首先获取所有属性
+        var allAttributes = classDeclaration.AttributeLists.SelectMany(al => al.Attributes).ToList();
+
+        // 手动匹配CustomInject属性，包括泛型版本
+        var customInjectAttributes = allAttributes.Where(attr =>
+        {
+            var attrName = attr.Name.ToString();
+
+            // 匹配 CustomInjectAttribute
+            if (attrName == "CustomInjectAttribute")
+                return true;
+
+            // 匹配 CustomInject（短名称）
+            if (attrName == "CustomInject")
+                return true;
+
+            // 匹配泛型版本 CustomInject<IMenuRepository>
+            if (attrName.StartsWith("CustomInject<") && attrName.EndsWith(">"))
+                return true;
+
+            return false;
+        }).ToList();
+
+        // 手动匹配OptionsInject属性，包括泛型版本
+        var optionsInjectAttributes = allAttributes.Where(attr =>
+        {
+            var attrName = attr.Name.ToString();
+
+            // 匹配 OptionsInjectAttribute
+            if (attrName == "OptionsInjectAttribute")
+                return true;
+
+            // 匹配 OptionsInject（短名称）
+            if (attrName == "OptionsInject")
+                return true;
+
+            // 匹配泛型版本 OptionsInject<TenantOptions>
+            if (attrName.StartsWith("OptionsInject<") && attrName.EndsWith(">"))
+                return true;
+
+            return false;
+        }).ToList();
+
         return new InjectionRequirements
         {
             ConstructorInject = AttributeSyntaxHelper.GetAttributeSyntaxes(classDeclaration, AttributeNames.ConstructorInject) ?? Enumerable.Empty<AttributeSyntax>(),
             LoggerInject = AttributeSyntaxHelper.GetAttributeSyntaxes(classDeclaration, AttributeNames.LoggerInject) ?? Enumerable.Empty<AttributeSyntax>(),
-            OptionsInject = AttributeSyntaxHelper.GetAttributeSyntaxes(classDeclaration, AttributeNames.OptionsInject) ?? Enumerable.Empty<AttributeSyntax>(),
+            OptionsInject = optionsInjectAttributes,
             CacheManagerInject = AttributeSyntaxHelper.GetAttributeSyntaxes(classDeclaration, AttributeNames.CacheManagerInject) ?? Enumerable.Empty<AttributeSyntax>(),
             UserManagerInject = AttributeSyntaxHelper.GetAttributeSyntaxes(classDeclaration, AttributeNames.UserManagerInject) ?? Enumerable.Empty<AttributeSyntax>(),
-            CustomInject = AttributeSyntaxHelper.GetAttributeSyntaxes(classDeclaration, AttributeNames.CustomInject) ?? Enumerable.Empty<AttributeSyntax>()
+            CustomInject = customInjectAttributes
         };
     }
 

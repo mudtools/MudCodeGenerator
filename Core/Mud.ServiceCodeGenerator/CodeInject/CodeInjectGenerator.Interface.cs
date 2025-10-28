@@ -80,6 +80,39 @@ public partial class CodeInjectGenerator
         {
             return !string.IsNullOrEmpty(fieldName);
         }
+
+        protected string GetGenericTypeName(AttributeSyntax attribute)
+        {
+            try
+            {
+                // 检查是否是泛型属性，例如 [CustomInject<IMenuRepository>]
+                if (attribute.Name is GenericNameSyntax genericName)
+                {
+                    // 获取泛型参数
+                    var typeArguments = genericName.TypeArgumentList?.Arguments;
+                    if (typeArguments.HasValue && typeArguments.Value.Any())
+                    {
+                        // 返回第一个泛型参数的名称
+                        var typeName = typeArguments.Value.First().ToString();
+
+                        // 确保返回的是类型名称，而不是字符串字面量
+                        // 如果类型名称包含引号，说明是字符串字面量，需要去除引号
+                        if (typeName.StartsWith("\"", StringComparison.OrdinalIgnoreCase) && typeName.EndsWith("\"", StringComparison.OrdinalIgnoreCase))
+                        {
+                            typeName = typeName.Substring(1, typeName.Length - 2);
+                        }
+
+                        return typeName;
+                    }
+                }
+            }
+            catch
+            {
+                // 忽略解析错误
+            }
+
+            return string.Empty;
+        }
     }
     #endregion
     #endregion
@@ -302,7 +335,11 @@ public partial class CodeInjectGenerator
 
         private void ProcessOptionInjection(InjectionContext context, AttributeSyntax option)
         {
-            var variableType = GetSafePropertyValue(option, "OptionType");
+            // 首先尝试获取泛型类型参数
+            var genericType = GetGenericTypeName(option);
+
+            // 如果没有泛型类型参数，则尝试获取OptionType属性
+            var variableType = !string.IsNullOrWhiteSpace(genericType) ? genericType : GetSafePropertyValue(option, "OptionType");
             if (string.IsNullOrWhiteSpace(variableType))
                 return;
 
@@ -335,13 +372,19 @@ public partial class CodeInjectGenerator
 
             foreach (var customType in requirements.CustomInject)
             {
+                //System.Diagnostics.Debugger.Launch();
                 ProcessCustomInjection(context, customType);
             }
         }
 
         private void ProcessCustomInjection(InjectionContext context, AttributeSyntax customType)
         {
-            var variableType = GetSafePropertyValue(customType, "VarType");
+            // 首先尝试获取泛型类型参数
+            var genericType = GetGenericTypeName(customType);
+
+            // 如果没有泛型类型参数，则尝试获取VarType属性
+            var variableType = !string.IsNullOrWhiteSpace(genericType) ? genericType : GetSafePropertyValue(customType, "VarType");
+
             if (string.IsNullOrWhiteSpace(variableType))
                 return;
 
