@@ -35,14 +35,14 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.9" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.9" />
-		<PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.9" />
+		<PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.10" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.10" />
+		<PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.10" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Mud.EntityCodeGenerator" Version="1.1.9" />
-		<PackageReference Include="Mud.ServiceCodeGenerator" Version="1.1.9" />
+		<PackageReference Include="Mud.EntityCodeGenerator" Version="1.2.0" />
+		<PackageReference Include="Mud.ServiceCodeGenerator" Version="1.2.0" />
 	</ItemGroup>
 
 	<ItemGroup>
