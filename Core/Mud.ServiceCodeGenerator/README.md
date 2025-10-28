@@ -76,6 +76,21 @@ public partial class SysUserService
 }
 ```
 
+### 自动服务注册代码生成
+
+使用 [AutoRegister] 和 [AutoRegisterKeyed] 特性自动生成服务注册代码，简化依赖注入配置：
+
+```CSharp
+// 自动注册服务到DI容器
+[AutoRegister]
+[AutoRegister<ISysUserService>]
+[AutoRegisterKeyed<ISysUserService>("user")]
+public partial class SysUserService : ISysUserService
+{
+    // 生成的代码将包含服务注册扩展方法
+}
+```
+
 #### 构造函数注入详解
 
 ##### ConstructorInjectAttribute 字段注入
@@ -169,11 +184,14 @@ public partial class UserService
 ```
 
 ##### OptionsInjectAttribute 配置项注入
-使用 [OptionsInject] 特性可以根据指定的配置项类型注入配置实例。
+使用 [OptionsInject] 特性可以根据指定的配置项类型注入配置实例。支持泛型语法，提供更简洁的配置方式。
 
 示例：
 ```CSharp
+// 传统方式
 [OptionsInject(OptionType = "TenantOptions")]
+// 泛型方式（推荐）
+[OptionsInject<TenantOptions>]
 public partial class UserService
 {
     // 生成的代码将包含:
@@ -187,12 +205,16 @@ public partial class UserService
 ```
 
 ##### CustomInjectAttribute 自定义注入
-使用 [CustomInject] 特性可以注入任意类型的依赖项。需要指定注入类型(VarType)和字段名(VarName)。
+使用 [CustomInject] 特性可以注入任意类型的依赖项。支持泛型语法，提供更简洁的类型安全配置方式。
 
 示例：
 ```CSharp
+// 传统方式
 [CustomInject(VarType = "IRepository<SysUser>", VarName = "_userRepository")]
 [CustomInject(VarType = "INotificationService", VarName = "_notificationService")]
+// 泛型方式（推荐）
+[CustomInject<IRepository<SysUser>>(VarName = "_userRepository")]
+[CustomInject<INotificationService>(VarName = "_notificationService")]
 public partial class UserService
 {
     // 生成的代码将包含:
@@ -209,15 +231,15 @@ public partial class UserService
 
 #### 组合注入示例
 
-多种注入特性可以组合使用，生成器会自动合并所有注入需求：
+多种注入特性可以组合使用，生成器会自动合并所有注入需求。推荐使用泛型语法以获得更好的类型安全性：
 
 ```CSharp
 [ConstructorInject]
 [LoggerInject]
 [CacheInject]
 [UserInject]
-[OptionsInject(OptionType = "TenantOptions")]
-[CustomInject(VarType = "IRepository<SysUser>", VarName = "_userRepository")]
+[OptionsInject<TenantOptions>]
+[CustomInject<IRepository<SysUser>>(VarName = "_userRepository")]
 public partial class UserService
 {
     private readonly IRoleRepository _roleRepository;
@@ -249,6 +271,118 @@ public partial class UserService
         _roleRepository = roleRepository;
         _permissionRepository = permissionRepository;
     }
+}
+```
+
+### 自动服务注册代码生成
+
+AutoRegisterSourceGenerator 自动为标记了 [AutoRegister] 和 [AutoRegisterKeyed] 特性的类生成服务注册代码，简化依赖注入配置。
+
+#### AutoRegisterAttribute 自动注册
+
+使用 [AutoRegister] 特性自动将服务注册到DI容器中：
+
+```CSharp
+// 基本用法：注册实现类本身
+[AutoRegister]
+public class UserService
+{
+    // 生成的注册代码：services.AddScoped<UserService>();
+}
+
+// 注册为接口实现
+[AutoRegister<IUserService>]
+public class UserService : IUserService
+{
+    // 生成的注册代码：services.AddScoped<IUserService, UserService>();
+}
+
+// 指定生命周期
+[AutoRegister(ServiceLifetime.Singleton)]
+[AutoRegister<IUserService>(ServiceLifetime.Transient)]
+public class UserService : IUserService
+{
+    // 生成的注册代码：
+    // services.AddSingleton<UserService>();
+    // services.AddTransient<IUserService, UserService>();
+}
+```
+
+#### AutoRegisterKeyedAttribute 键控服务注册
+
+使用 [AutoRegisterKeyed] 特性注册键控服务（Microsoft.Extensions.DependencyInjection 8.0+）：
+
+```CSharp
+// 键控服务注册
+[AutoRegisterKeyed("user")]
+[AutoRegisterKeyed<IUserService>("user")]
+public class UserService : IUserService
+{
+    // 生成的注册代码：
+    // services.AddKeyedScoped<UserService>("user");
+    // services.AddKeyedScoped<IUserService, UserService>("user");
+}
+
+// 键控服务指定生命周期
+[AutoRegisterKeyed<IUserService>("user", ServiceLifetime.Singleton)]
+public class UserService : IUserService
+{
+    // 生成的注册代码：services.AddKeyedSingleton<IUserService, UserService>("user");
+}
+```
+
+#### 生成的注册代码
+
+自动生成的注册扩展方法位于 `AutoRegisterExtension` 类中：
+
+```CSharp
+// 自动生成的代码
+public static partial class AutoRegisterExtension
+{
+    /// <summary>
+    /// 自动注册标注的服务
+    /// </summary>
+    public static IServiceCollection AddAutoRegister(this IServiceCollection services)
+    {
+        services.AddScoped<UserService>();
+        services.AddScoped<IUserService, UserService>();
+        services.AddKeyedScoped<UserService>("user");
+        services.AddKeyedScoped<IUserService, UserService>("user");
+        return services;
+    }
+}
+```
+
+#### 使用方式
+
+在应用程序启动时调用生成的扩展方法：
+
+```CSharp
+var builder = WebApplication.CreateBuilder(args);
+
+// 自动注册所有标记的服务
+builder.Services.AddAutoRegister();
+
+// 或者与其他注册一起使用
+builder.Services
+    .AddControllers()
+    .AddAutoRegister();
+```
+
+#### 特性组合使用
+
+自动注册特性可以与其他注入特性组合使用：
+
+```CSharp
+[AutoRegister<IUserService>]
+[ConstructorInject]
+[LoggerInject]
+[CacheInject]
+public class UserService : IUserService
+{
+    private readonly IUserRepository _userRepository;
+    
+    // 同时生成构造函数注入和服务注册代码
 }
 ```
 

@@ -6,37 +6,8 @@ namespace Mud.ServiceCodeGenerator;
 [Generator(LanguageNames.CSharp)]
 public partial class CodeInjectGenerator : TransitiveCodeGenerator
 {
-    #region 常量定义
-    private static class AttributeNames
-    {
-        public const string ConstructorInject = "ConstructorInjectAttribute";
-        public const string LoggerInject = "LoggerInjectAttribute";
-        public const string OptionsInject = "OptionsInjectAttribute";
-        public const string CacheManagerInject = "CacheInjectAttribute";
-        public const string UserManagerInject = "UserInjectAttribute";
-        public const string CustomInject = "CustomInjectAttribute";
-    }
-
-    private static class ConfigKeys
-    {
-        public const string DefaultCacheManagerType = "build_property.DefaultCacheManagerType";
-        public const string DefaultUserManagerType = "build_property.DefaultUserManagerType";
-        public const string DefaultLoggerVariable = "build_property.DefaultLoggerVariable";
-        public const string DefaultCacheManagerVariable = "build_property.DefaultCacheManagerVariable";
-        public const string DefaultUserManagerVariable = "build_property.DefaultUserManagerVariable";
-    }
-
-    private static class DefaultValues
-    {
-        public const string CacheManagerType = "ICacheManager";
-        public const string UserManagerType = "IUserManager";
-        public const string LoggerVariable = "_logger";
-        public const string CacheManagerVariable = "_cacheManager";
-        public const string UserManagerVariable = "_userManager";
-    }
-    #endregion
-
     #region 配置和上下文类
+    #region 配置
     private record struct ProjectConfiguration(
         string DefaultCacheManagerType,
         string DefaultUserManagerType,
@@ -44,6 +15,7 @@ public partial class CodeInjectGenerator : TransitiveCodeGenerator
         string DefaultCacheManagerVariable,
         string DefaultUserManagerVariable
     );
+    #endregion
 
     #region 上下文类
     private class InjectionContext

@@ -232,7 +232,7 @@ public partial class CodeInjectGenerator
 
         public LoggerInjector(string loggerVariable)
         {
-            _loggerVariable = string.IsNullOrEmpty(loggerVariable) ? DefaultValues.LoggerVariable : loggerVariable;
+            _loggerVariable = string.IsNullOrEmpty(loggerVariable) ? CodeInjectGeneratorConstants.DefaultLoggerVariable : loggerVariable;
         }
 
         public override void Inject(InjectionContext context, InjectionRequirements requirements)
@@ -240,9 +240,9 @@ public partial class CodeInjectGenerator
             if (!requirements.LoggerInject.Any())
                 return;
 
-            AddParameter(context, "ILoggerFactory", "loggerFactory");
+            AddParameter(context, "ILoggerFactory", CodeInjectGeneratorConstants.LoggerFactoryParameter);
             AddField(context, $"ILogger<{context.ClassName}>", _loggerVariable);
-            AddStatement(context, $"{_loggerVariable} = loggerFactory.CreateLogger<{context.ClassName}>();");
+            AddStatement(context, $"{_loggerVariable} = {CodeInjectGeneratorConstants.LoggerFactoryParameter}.CreateLogger<{context.ClassName}>();");
         }
     }
     #endregion
@@ -255,8 +255,8 @@ public partial class CodeInjectGenerator
 
         public CacheManagerInjector(string cacheManagerType, string cacheManagerVariable)
         {
-            _cacheManagerType = string.IsNullOrEmpty(cacheManagerType) ? DefaultValues.CacheManagerType : cacheManagerType;
-            _cacheManagerVariable = string.IsNullOrEmpty(cacheManagerVariable) ? DefaultValues.CacheManagerVariable : cacheManagerVariable;
+            _cacheManagerType = string.IsNullOrEmpty(cacheManagerType) ? CodeInjectGeneratorConstants.DefaultCacheManagerType : cacheManagerType;
+            _cacheManagerVariable = string.IsNullOrEmpty(cacheManagerVariable) ? CodeInjectGeneratorConstants.DefaultCacheManagerVariable : cacheManagerVariable;
         }
 
         public override void Inject(InjectionContext context, InjectionRequirements requirements)
@@ -291,8 +291,8 @@ public partial class CodeInjectGenerator
 
         public UserManagerInjector(string userManagerType, string userManagerVariable)
         {
-            _userManagerType = string.IsNullOrEmpty(userManagerType) ? DefaultValues.UserManagerType : userManagerType;
-            _userManagerVariable = string.IsNullOrEmpty(userManagerVariable) ? DefaultValues.UserManagerVariable : userManagerVariable;
+            _userManagerType = string.IsNullOrEmpty(userManagerType) ? CodeInjectGeneratorConstants.DefaultUserManagerType : userManagerType;
+            _userManagerVariable = string.IsNullOrEmpty(userManagerVariable) ? CodeInjectGeneratorConstants.DefaultUserManagerVariable : userManagerVariable;
         }
 
         public override void Inject(InjectionContext context, InjectionRequirements requirements)
@@ -339,11 +339,11 @@ public partial class CodeInjectGenerator
             var genericType = GetGenericTypeName(option);
 
             // 如果没有泛型类型参数，则尝试获取OptionType属性
-            var variableType = !string.IsNullOrWhiteSpace(genericType) ? genericType : GetSafePropertyValue(option, "OptionType");
+            var variableType = !string.IsNullOrWhiteSpace(genericType) ? genericType : GetSafePropertyValue(option, CodeInjectGeneratorConstants.OptionTypeProperty);
             if (string.IsNullOrWhiteSpace(variableType))
                 return;
 
-            var varName = GetSafePropertyValue(option, "VarName");
+            var varName = GetSafePropertyValue(option, CodeInjectGeneratorConstants.VarNameProperty);
             if (string.IsNullOrWhiteSpace(varName))
                 varName = PrivateFieldNamingHelper.GeneratePrivateFieldName(variableType, FieldNamingStyle.UnderscoreCamel);
 
@@ -357,7 +357,7 @@ public partial class CodeInjectGenerator
         private string GenerateOptionParameterName(string variableType)
         {
             var baseName = PrivateFieldNamingHelper.GeneratePrivateFieldName(variableType, FieldNamingStyle.PureCamel);
-            return string.IsNullOrEmpty(baseName) ? "options" : baseName;
+            return string.IsNullOrEmpty(baseName) ? CodeInjectGeneratorConstants.OptionsParameter : baseName;
         }
     }
     #endregion
@@ -383,12 +383,12 @@ public partial class CodeInjectGenerator
             var genericType = GetGenericTypeName(customType);
 
             // 如果没有泛型类型参数，则尝试获取VarType属性
-            var variableType = !string.IsNullOrWhiteSpace(genericType) ? genericType : GetSafePropertyValue(customType, "VarType");
+            var variableType = !string.IsNullOrWhiteSpace(genericType) ? genericType : GetSafePropertyValue(customType, CodeInjectGeneratorConstants.VarTypeProperty);
 
             if (string.IsNullOrWhiteSpace(variableType))
                 return;
 
-            var varName = GetSafePropertyValue(customType, "VarName");
+            var varName = GetSafePropertyValue(customType, CodeInjectGeneratorConstants.VarNameProperty);
             if (string.IsNullOrWhiteSpace(varName))
                 varName = PrivateFieldNamingHelper.GeneratePrivateFieldName(variableType, FieldNamingStyle.UnderscoreCamel);
 
@@ -402,7 +402,7 @@ public partial class CodeInjectGenerator
         private string GenerateParameterName(string fieldName)
         {
             if (string.IsNullOrEmpty(fieldName))
-                return "customParameter";
+                return CodeInjectGeneratorConstants.CustomParameter;
 
             if (fieldName.StartsWith("_", StringComparison.CurrentCulture) && fieldName.Length > 1)
                 return fieldName.Substring(1);

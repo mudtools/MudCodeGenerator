@@ -1,15 +1,16 @@
 using FreeSql;
 
-namespace PublicPackageTest.Services;
+namespace CodeGeneratorTest.Services;
 
 /// <summary>
 /// 服务端代码生成测试。
 /// </summary>
 [ConstructorInject, UserInject, CacheInject]
-[OptionsInject(OptionType = nameof(TenantOptions))]
-[CustomInject(VarType = nameof(IMenuRepository))]
+[OptionsInject<TenantOptions>]
+[CustomInject<IMenuRepository>]
 [CustomInject(VarType = nameof(IRoleRepository))]
-public partial class SysClientService
+[AutoRegister<ISysClientService>(ServiceLifetime = ServiceLifetime.Transient)]
+public partial class SysClientService : ISysClientService
 {
     private readonly IBaseRepository<SysClientEntity> _baseRepository;
 

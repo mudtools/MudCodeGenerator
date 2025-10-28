@@ -9,11 +9,11 @@ public partial class CodeInjectGenerator
     public override void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var generationInfo = GetClassDeclarationProvider(context, [
-            AttributeNames.ConstructorInject,
-            AttributeNames.LoggerInject,
-            AttributeNames.CacheManagerInject,
-            AttributeNames.UserManagerInject,
-            AttributeNames.CustomInject
+            CodeInjectGeneratorConstants.ConstructorInjectAttribute,
+            CodeInjectGeneratorConstants.LoggerInjectAttribute,
+            CodeInjectGeneratorConstants.CacheManagerInjectAttribute,
+            CodeInjectGeneratorConstants.UserManagerInjectAttribute,
+            CodeInjectGeneratorConstants.CustomInjectAttribute
         ]);
 
         var compilationAndOptionsProvider = context.CompilationProvider
@@ -57,11 +57,11 @@ public partial class CodeInjectGenerator
     private ProjectConfiguration ReadProjectConfiguration(AnalyzerConfigOptions globalOptions)
     {
         return new ProjectConfiguration(
-            DefaultCacheManagerType: ProjectConfigHelper.ReadConfigValue(globalOptions, ConfigKeys.DefaultCacheManagerType, DefaultValues.CacheManagerType),
-            DefaultUserManagerType: ProjectConfigHelper.ReadConfigValue(globalOptions, ConfigKeys.DefaultUserManagerType, DefaultValues.UserManagerType),
-            DefaultLoggerVariable: ProjectConfigHelper.ReadConfigValue(globalOptions, ConfigKeys.DefaultLoggerVariable, DefaultValues.LoggerVariable),
-            DefaultCacheManagerVariable: ProjectConfigHelper.ReadConfigValue(globalOptions, ConfigKeys.DefaultCacheManagerVariable, DefaultValues.CacheManagerVariable),
-            DefaultUserManagerVariable: ProjectConfigHelper.ReadConfigValue(globalOptions, ConfigKeys.DefaultUserManagerVariable, DefaultValues.UserManagerVariable)
+            DefaultCacheManagerType: ProjectConfigHelper.ReadConfigValue(globalOptions, CodeInjectGeneratorConstants.DefaultCacheManagerTypeKey, CodeInjectGeneratorConstants.DefaultCacheManagerType),
+            DefaultUserManagerType: ProjectConfigHelper.ReadConfigValue(globalOptions, CodeInjectGeneratorConstants.DefaultUserManagerTypeKey, CodeInjectGeneratorConstants.DefaultUserManagerType),
+            DefaultLoggerVariable: ProjectConfigHelper.ReadConfigValue(globalOptions, CodeInjectGeneratorConstants.DefaultLoggerVariableKey, CodeInjectGeneratorConstants.DefaultLoggerVariable),
+            DefaultCacheManagerVariable: ProjectConfigHelper.ReadConfigValue(globalOptions, CodeInjectGeneratorConstants.DefaultCacheManagerVariableKey, CodeInjectGeneratorConstants.DefaultCacheManagerVariable),
+            DefaultUserManagerVariable: ProjectConfigHelper.ReadConfigValue(globalOptions, CodeInjectGeneratorConstants.DefaultUserManagerVariableKey, CodeInjectGeneratorConstants.DefaultUserManagerVariable)
         );
     }
     #endregion
@@ -105,15 +105,15 @@ public partial class CodeInjectGenerator
             var attrName = attr.Name.ToString();
 
             // 匹配 CustomInjectAttribute
-            if (attrName == "CustomInjectAttribute")
+            if (attrName == CodeInjectGeneratorConstants.CustomInjectAttribute)
                 return true;
 
             // 匹配 CustomInject（短名称）
-            if (attrName == "CustomInject")
+            if (attrName == CodeInjectGeneratorConstants.CustomInject)
                 return true;
 
             // 匹配泛型版本 CustomInject<IMenuRepository>
-            if (attrName.StartsWith("CustomInject<") && attrName.EndsWith(">"))
+            if (attrName.StartsWith(CodeInjectGeneratorConstants.CustomInjectGenericPattern) && attrName.EndsWith(CodeInjectGeneratorConstants.GenericSuffix))
                 return true;
 
             return false;
@@ -125,15 +125,15 @@ public partial class CodeInjectGenerator
             var attrName = attr.Name.ToString();
 
             // 匹配 OptionsInjectAttribute
-            if (attrName == "OptionsInjectAttribute")
+            if (attrName == CodeInjectGeneratorConstants.OptionsInjectAttribute)
                 return true;
 
             // 匹配 OptionsInject（短名称）
-            if (attrName == "OptionsInject")
+            if (attrName == CodeInjectGeneratorConstants.OptionsInject)
                 return true;
 
             // 匹配泛型版本 OptionsInject<TenantOptions>
-            if (attrName.StartsWith("OptionsInject<") && attrName.EndsWith(">"))
+            if (attrName.StartsWith(CodeInjectGeneratorConstants.OptionsInjectGenericPattern) && attrName.EndsWith(CodeInjectGeneratorConstants.GenericSuffix))
                 return true;
 
             return false;
@@ -141,11 +141,11 @@ public partial class CodeInjectGenerator
 
         return new InjectionRequirements
         {
-            ConstructorInject = AttributeSyntaxHelper.GetAttributeSyntaxes(classDeclaration, AttributeNames.ConstructorInject) ?? Enumerable.Empty<AttributeSyntax>(),
-            LoggerInject = AttributeSyntaxHelper.GetAttributeSyntaxes(classDeclaration, AttributeNames.LoggerInject) ?? Enumerable.Empty<AttributeSyntax>(),
+            ConstructorInject = AttributeSyntaxHelper.GetAttributeSyntaxes(classDeclaration, CodeInjectGeneratorConstants.ConstructorInjectAttribute) ?? Enumerable.Empty<AttributeSyntax>(),
+            LoggerInject = AttributeSyntaxHelper.GetAttributeSyntaxes(classDeclaration, CodeInjectGeneratorConstants.LoggerInjectAttribute) ?? Enumerable.Empty<AttributeSyntax>(),
             OptionsInject = optionsInjectAttributes,
-            CacheManagerInject = AttributeSyntaxHelper.GetAttributeSyntaxes(classDeclaration, AttributeNames.CacheManagerInject) ?? Enumerable.Empty<AttributeSyntax>(),
-            UserManagerInject = AttributeSyntaxHelper.GetAttributeSyntaxes(classDeclaration, AttributeNames.UserManagerInject) ?? Enumerable.Empty<AttributeSyntax>(),
+            CacheManagerInject = AttributeSyntaxHelper.GetAttributeSyntaxes(classDeclaration, CodeInjectGeneratorConstants.CacheManagerInjectAttribute) ?? Enumerable.Empty<AttributeSyntax>(),
+            UserManagerInject = AttributeSyntaxHelper.GetAttributeSyntaxes(classDeclaration, CodeInjectGeneratorConstants.UserManagerInjectAttribute) ?? Enumerable.Empty<AttributeSyntax>(),
             CustomInject = customInjectAttributes
         };
     }
