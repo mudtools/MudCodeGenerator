@@ -67,14 +67,6 @@ public class AutoRegisterSourceGenerator : TransitiveCodeGenerator
                                 metadata.LifeTime);
                         }
                     }
-                    else
-                    {
-                        // 调试信息：记录为什么没有提取到元数据
-                        ErrorHandler.ReportWarning(sourceContext, DiagnosticDescriptors.AutoRegisterMetadataExtractionFailed,
-                            SyntaxHelper.GetClassName(classDeclaration),
-                            string.Join(", ", classDeclaration.AttributeLists.SelectMany(al => al.Attributes).Select(a => a.Name.ToString())),
-                            GetAttributeDetails(classDeclaration));
-                    }
                 }
                 catch (Exception ex)
                 {
@@ -86,20 +78,10 @@ public class AutoRegisterSourceGenerator : TransitiveCodeGenerator
 
             if (autoInjects.Any())
             {
-                // 调试信息：显示提取到的元数据
-                ErrorHandler.ReportInfo(sourceContext, DiagnosticDescriptors.AutoRegisterMetadataExtracted,
-                    autoInjects.Count,
-                    string.Join(", ", autoInjects.Select(m => $"{m.ImplType} -> {m.BaseType} ({m.LifeTime})")));
-
                 GenSource(sourceContext, autoInjects, @namespace, compilation);
             }
             else
             {
-                // 调试信息：记录为什么没有生成任何代码
-                ErrorHandler.ReportWarning(sourceContext, DiagnosticDescriptors.AutoRegisterGenerationSkipped,
-                    compilation.AssemblyName, classDeclarations.Length);
-
-                // 更详细的调试信息：检查每个类是否有AutoRegister属性
                 foreach (var classDeclaration in classDeclarations)
                 {
                     if (classDeclaration == null) continue;
@@ -107,14 +89,6 @@ public class AutoRegisterSourceGenerator : TransitiveCodeGenerator
                     var className = SyntaxHelper.GetClassName(classDeclaration);
                     var attributes = classDeclaration.AttributeLists.SelectMany(al => al.Attributes);
                     var autoRegisterAttributes = attributes.Where(a => a.Name.ToString().Contains("AutoRegister"));
-
-                    if (autoRegisterAttributes.Any())
-                    {
-                        ErrorHandler.ReportInfo(sourceContext, DiagnosticDescriptors.AutoRegisterAttributesFound,
-                            className,
-                            string.Join(", ", autoRegisterAttributes.Select(a => a.Name.ToString())),
-                            GetAttributeDetails(classDeclaration));
-                    }
                 }
             }
         });
@@ -182,7 +156,7 @@ public class AutoRegisterSourceGenerator : TransitiveCodeGenerator
                     else if (!baseTypeName.Contains("."))
                     {
                         // 如果仍然找不到，尝试常见的命名空间组合
-                        var possibleNamespaces = new[] { "CodeBaseTest.Interface", "CodeGeneratorTest.Services", compilation.AssemblyName };
+                        var possibleNamespaces = new[] { "Mud.Interface", "Mud.Services", compilation.AssemblyName };
                         foreach (var ns in possibleNamespaces.Where(n => n != null))
                         {
                             var fullName = $"{ns}.{baseTypeName}";
@@ -382,32 +356,7 @@ public class AutoRegisterSourceGenerator : TransitiveCodeGenerator
         return defaultLifetime;
     }
 
-    private static void AddNamespaces(Compilation compilation, string typeName, List<string> namespaces)
-    {
-        var symbols = compilation.GetSymbolsWithName(typeName);
-        foreach (ITypeSymbol symbol in symbols.Cast<ITypeSymbol>())
-        {
-            var fullNameSpace = symbol.ContainingNamespace.ToDisplayString();
-            if (!namespaces.Contains(fullNameSpace)) namespaces.Add(fullNameSpace);
-        }
-    }
-
     private enum InjectAttributeType { Regular, Generic, Keyed, KeyedGeneric, Unknown }
-
-    private static string GetAttributeDetails(ClassDeclarationSyntax classDeclaration)
-    {
-        var details = new List<string>();
-        foreach (var attributeList in classDeclaration.AttributeLists)
-        {
-            foreach (var attribute in attributeList.Attributes)
-            {
-                var attributeName = attribute.Name.ToString();
-                var arguments = attribute.ArgumentList?.Arguments.Select(a => $"{{NameEquals={a.NameEquals?.Name.Identifier.ValueText}, Expression={a.Expression}}}") ?? [];
-                details.Add($"{attributeName}({string.Join(", ", arguments)})");
-            }
-        }
-        return string.Join("; ", details);
-    }
 
     private static void GenSource(SourceProductionContext context, IEnumerable<AutoRegisterMetadata> metas, string? rootNamespace, Compilation compilation)
     {
