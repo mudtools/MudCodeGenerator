@@ -1,6 +1,7 @@
-using Mud.EntityCodeGenerator.Diagnostics;
 
-namespace Mud.EntityCodeGenerator.Helper;
+using System.Diagnostics;
+
+namespace Mud.CodeGenerator;
 
 /// <summary>
 /// 错误处理器，统一管理代码生成器的错误处理
@@ -148,7 +149,7 @@ public static class ErrorHandler
     /// <param name="propertyGenerator">属性生成委托</param>
     /// <returns>安全的属性生成委托</returns>
     public static Func<TInput, TOutput> CreateSafePropertyGenerator<TGenerator, TInput, TOutput>(
-        TGenerator generator, 
+        TGenerator generator,
         Func<TInput, TOutput> propertyGenerator)
         where TGenerator : class
     {
@@ -176,9 +177,9 @@ public static class ErrorHandler
     /// <param name="failureDescriptor">失败描述符</param>
     /// <returns>验证是否通过</returns>
     public static bool ValidateGenerationResult(
-        SourceProductionContext context, 
-        SyntaxNode generatedNode, 
-        string className, 
+        SourceProductionContext context,
+        SyntaxNode generatedNode,
+        string className,
         DiagnosticDescriptor failureDescriptor)
     {
         if (generatedNode == null)

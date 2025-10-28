@@ -1,4 +1,3 @@
-using Mud.EntityCodeGenerator.Diagnostics;
 using Mud.EntityCodeGenerator.Helper;
 
 namespace Mud.EntityCodeGenerator;
@@ -39,13 +38,13 @@ public abstract class TransitiveBoGenerator : BaseDtoGenerator
         {
             if (IsIgnoreGenerator(member))
                 return null;
-                
+
             var isPrimary = IsPrimary(member);
             if (isPrimary && !_generatePrimary)
                 return null;
             if (!isPrimary && !_generateNotPrimary)
                 return null;
-                
+
             return BuildProperty(member);
         };
     }
@@ -57,13 +56,13 @@ public abstract class TransitiveBoGenerator : BaseDtoGenerator
         {
             if (IsIgnoreGenerator(member))
                 return null;
-                
+
             var isPrimary = IsPrimary(member);
             if (isPrimary && !_generatePrimary)
                 return null;
             if (!isPrimary && !_generateNotPrimary)
                 return null;
-                
+
             return BuildProperty(member, false);
         };
     }
@@ -73,7 +72,7 @@ public abstract class TransitiveBoGenerator : BaseDtoGenerator
     {
         var defaultAttributes = new[] { "Required", "Xss", "StringLength", "MaxLength", "MinLength",
                 "EmailAddress", "DataValidation", "RegularExpression" };
-        
+
         // 使用配置管理器的合并功能
         return ConfigurationManager.Instance.MergePropertyAttributes(defaultAttributes, "bo");
     }

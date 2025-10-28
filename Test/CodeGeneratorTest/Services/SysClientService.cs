@@ -7,9 +7,10 @@ namespace CodeGeneratorTest.Services;
 /// </summary>
 [ConstructorInject, UserInject, CacheInject]
 [OptionsInject(OptionType = nameof(TenantOptions))]
-[CustomInject(VarType = nameof(IMenuRepository))]
+[CustomInject<IMenuRepository>()]
 [CustomInject(VarType = nameof(IRoleRepository))]
-public partial class SysClientService
+[AutoRegister<ISysClientService>(ServiceLifetime = ServiceLifetime.Transient)]
+public partial class SysClientService : ISysClientService
 {
     private readonly IBaseRepository<SysClientEntity> _baseRepository;
 

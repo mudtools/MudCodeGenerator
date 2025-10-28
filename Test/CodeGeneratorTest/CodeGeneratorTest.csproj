@@ -5,6 +5,8 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<TargetFrameworks>net462;net47;net48;net8.0;net9.0</TargetFrameworks>
 		<Nullable>enable</Nullable>
+		 <LangVersion>13.0</LangVersion> 
+		<!-- 是否启用扩展分析器规则，默认为true -->
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 		<!-- 在obj目录下保存生成的代码 -->
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>

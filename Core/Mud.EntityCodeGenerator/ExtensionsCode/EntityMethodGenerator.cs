@@ -1,4 +1,3 @@
-using Mud.EntityCodeGenerator.Diagnostics;
 using Mud.EntityCodeGenerator.Helper;
 using System.Collections.ObjectModel;
 using System.Text;

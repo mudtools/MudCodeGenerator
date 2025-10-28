@@ -1,197 +1,316 @@
 ﻿using Microsoft.CodeAnalysis.Text;
-using System.Collections.Immutable;
 using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Mud.ServiceCodeGenerator;
 
-
-[Generator]
-public class AutoRegisterSourceGenerator : IIncrementalGenerator
+/// <summary>
+/// 自动注册服务代码生成器
+/// </summary>
+[Generator(LanguageNames.CSharp)]
+public class AutoRegisterSourceGenerator : TransitiveCodeGenerator
 {
-    private const string AttributeValueMetadataNameInject = "AutoRegister";
-    private const string GenericAutoRegisterAttributeName = "Mud.Common.CodeGenerator.AutoRegisterAttribute`1";
-    private const string AutoRegisterAttributeName = "Mud.Common.CodeGenerator.AutoRegisterAttribute";
-    private const string AutoRegisterKeyedMetadataNameInject = "AutoRegisterKeyed";
-    private const string AutoRegisterKeyedAttributeName = "Mud.Common.CodeGenerator.AutoRegisterKeyedAttribute`1";
-    private const string AutoRegisterKeyedAttributeNonGenericName = "Mud.Common.CodeGenerator.AutoRegisterKeyedAttribute";
-
-    public void Initialize(IncrementalGeneratorInitializationContext context)
+    private static class AttributeNames
     {
-        #region 非泛型
-        var nodesAutoRegister = context.SyntaxProvider.ForAttributeWithMetadataName(
-            AutoRegisterAttributeName,
-            (syntaxContext, _) => syntaxContext is ClassDeclarationSyntax cds && !cds.Modifiers.Any(SyntaxKind.AbstractKeyword),
-            (syntaxContext, _) => syntaxContext.TargetNode).Collect();
-        IncrementalValueProvider<(Compilation, ImmutableArray<SyntaxNode>)> compilationAndTypesInject =
-            context.CompilationProvider.Combine(nodesAutoRegister);
-        #endregion
-
-        #region 泛型
-        var nodesAutoRegisterG = context.SyntaxProvider.ForAttributeWithMetadataName(
-            GenericAutoRegisterAttributeName,
-            (syntaxContext, _) => syntaxContext is ClassDeclarationSyntax cds && !cds.Modifiers.Any(SyntaxKind.AbstractKeyword),
-            (syntaxContext, _) => syntaxContext.TargetNode).Collect();
-        IncrementalValueProvider<(Compilation, ImmutableArray<SyntaxNode>)> compilationAndTypesInjectG =
-            context.CompilationProvider.Combine(nodesAutoRegisterG);
-        #endregion
-
-        #region Keyed (generic)
-        var nodesAutoRegisterKeyedGeneric = context.SyntaxProvider.ForAttributeWithMetadataName(
-            AutoRegisterKeyedAttributeName,
-            (syntaxContext, _) => true,
-            (syntaxContext, _) => syntaxContext.TargetNode).Collect();
-        IncrementalValueProvider<(Compilation, ImmutableArray<SyntaxNode>)> compilationAndTypesInjectKeyedGeneric =
-            context.CompilationProvider.Combine(nodesAutoRegisterKeyedGeneric);
-        #endregion
-
-        #region Keyed (non generic)
-        var nodesAutoRegisterKeyedNonGeneric = context.SyntaxProvider.ForAttributeWithMetadataName(
-            AutoRegisterKeyedAttributeNonGenericName,
-            (syntaxContext, _) => true,
-            (syntaxContext, _) => syntaxContext.TargetNode).Collect();
-        IncrementalValueProvider<(Compilation, ImmutableArray<SyntaxNode>)> compilationAndTypesInjectKeyedNonGeneric =
-            context.CompilationProvider.Combine(nodesAutoRegisterKeyedNonGeneric);
-        #endregion
-
-        // Combine keyed generic + non generic first
-        var keyedJoin = compilationAndTypesInjectKeyedGeneric.Combine(compilationAndTypesInjectKeyedNonGeneric);
-        // Combine all
-        var join = compilationAndTypesInject.Combine(compilationAndTypesInjectG).Combine(keyedJoin);
-
-        context.RegisterSourceOutput(join,
-            (ctx, nodes) =>
-            {
-                var compilation = nodes.Left.Left.Item1; // base compilation
-                var @namespace = compilation.AssemblyName ??
-                                  nodes.Left.Right.Item1.AssemblyName ??
-                                  nodes.Right.Left.Item1.AssemblyName ??
-                                  nodes.Right.Right.Item1.AssemblyName;
-
-                var nodes1 = GetAnnotatedNodes(nodes.Left.Left.Item1, nodes.Left.Left.Item2, InjectAttributeType.Regular);
-                var nodes2 = GetAnnotatedNodes(nodes.Left.Right.Item1, nodes.Left.Right.Item2, InjectAttributeType.Generic);
-                var nodes3 = GetAnnotatedNodes(nodes.Right.Left.Item1, nodes.Right.Left.Item2, InjectAttributeType.Keyed);
-                var nodes4 = GetAnnotatedNodes(nodes.Right.Right.Item1, nodes.Right.Right.Item2, InjectAttributeType.Keyed); // non generic keyed
-                GenSource(ctx, [.. nodes1, .. nodes2, .. nodes3, .. nodes4], @namespace, compilation);
-            });
+        public const string AutoRegister = "AutoRegisterAttribute";
+        public const string AutoRegisterGeneric = "AutoRegisterAttribute`1";
+        public const string AutoRegisterKeyed = "AutoRegisterKeyedAttribute";
+        public const string AutoRegisterKeyedGeneric = "AutoRegisterKeyedAttribute`1";
     }
 
-    private static List<AutoRegisterMetadata> GetAnnotatedNodes(
-        Compilation compilation,
-        ImmutableArray<SyntaxNode> nodes,
-        InjectAttributeType injectType)
+    private const string AttributeValueMetadataNameInject = "AutoRegister";
+    private const string AutoRegisterKeyedMetadataNameInject = "AutoRegisterKeyed";
+
+    /// <inheritdoc/>
+    public override void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        if (nodes.Length == 0) return [];
-        List<AutoRegisterMetadata> autoInjects = [];
-        List<string> namespaces = [];
-        string attributeMetadataName = injectType switch
-        {
-            InjectAttributeType.Regular => AttributeValueMetadataNameInject,
-            InjectAttributeType.Generic => AttributeValueMetadataNameInject,
-            InjectAttributeType.Keyed => AutoRegisterKeyedMetadataNameInject,
-            _ => AttributeValueMetadataNameInject,
-        };
-        string lifetimePrefix = injectType == InjectAttributeType.Keyed ? "AddKeyed" : "Add";
+        var generationInfo = GetClassDeclarationProvider(context, [
+            AttributeNames.AutoRegister,
+            AttributeNames.AutoRegisterGeneric,
+            AttributeNames.AutoRegisterKeyed,
+            AttributeNames.AutoRegisterKeyedGeneric
+        ]);
 
-        foreach (ClassDeclarationSyntax node in nodes.AsEnumerable().Cast<ClassDeclarationSyntax>())
+        var compilationProvider = context.CompilationProvider;
+        var providers = generationInfo.Combine(compilationProvider);
+
+        context.RegisterSourceOutput(providers, (sourceContext, provider) =>
         {
-            AttributeSyntax? attributeSyntax = null;
-            string? attrName = null;
-            foreach (var attr in node.AttributeLists.AsEnumerable())
+            var (classDeclarations, compilation) = provider;
+
+            if (!classDeclarations.Any())
+                return;
+
+            //Debugger.Launch();
+            var @namespace = compilation.AssemblyName ?? "Mud";
+            var autoInjects = new List<AutoRegisterMetadata>();
+
+            foreach (var classDeclaration in classDeclarations)
             {
-                if (injectType == InjectAttributeType.Keyed)
-                {
-                    attrName = attr.Attributes.FirstOrDefault(x =>
-                        x.Name.ToString().Contains(attributeMetadataName))?.Name.ToString();
-                    if (attrName is null) continue;
-                }
-                else
-                {
-                    attrName = attr.Attributes.FirstOrDefault()?.Name.ToString();
-                }
+                if (classDeclaration == null) continue;
 
-                if (injectType == InjectAttributeType.Regular)
+                try
                 {
-                    attributeSyntax = attr.Attributes.FirstOrDefault(x =>
-                        x.Name.ToString().IndexOf(attributeMetadataName, StringComparison.Ordinal) == 0);
-                    if (attributeSyntax is null) continue;
-                }
-                else
-                {
-#pragma warning disable CA1031 // 不捕获常规异常类型
-                    try
+                    // 使用项目中的公共类分析特性
+                    var metadataList = ExtractAutoRegisterMetadata(classDeclaration, compilation);
+                    if (metadataList != null)
                     {
-                        attributeSyntax = attr.Attributes.First(x =>
-                            x.Name.ToString().IndexOf(attributeMetadataName, StringComparison.Ordinal) == 0);
-                    }
-                    catch { continue; }
-#pragma warning restore CA1031 // 不捕获常规异常类型
-                }
+                        autoInjects.AddRange(metadataList);
 
-                if (attrName?.IndexOf(attributeMetadataName, StringComparison.Ordinal) == 0)
-                {
-                    string baseTypeName = ExtractBaseTypeName(attributeSyntax, injectType);
-                    if (string.IsNullOrEmpty(baseTypeName) && injectType != InjectAttributeType.Regular)
-                    {
-                        continue;
+                        // 调试信息：显示提取到的元数据
+                        foreach (var metadata in metadataList)
+                        {
+                            ErrorHandler.ReportInfo(sourceContext, DiagnosticDescriptors.AutoRegisterMetadataDetails,
+                                SyntaxHelper.GetClassName(classDeclaration),
+                                metadata.ImplType,
+                                metadata.BaseType,
+                                metadata.LifeTime);
+                        }
                     }
-                    var implTypeName = node.Identifier.ValueText;
-                    var symbols = compilation.GetSymbolsWithName(implTypeName);
-                    foreach (ITypeSymbol symbol in symbols.Cast<ITypeSymbol>()) { implTypeName = symbol.ToDisplayString(); break; }
-                    if (string.IsNullOrEmpty(baseTypeName) && injectType == InjectAttributeType.Regular) baseTypeName = implTypeName;
-                    var baseSymbols = compilation.GetSymbolsWithName(baseTypeName);
-                    foreach (ITypeSymbol baseSymbol in baseSymbols.Cast<ITypeSymbol>()) { baseTypeName = baseSymbol.ToDisplayString(); break; }
-                    string? key = null;
-                    if (injectType == InjectAttributeType.Keyed) key = ExtractKeyFromAttribute(attributeSyntax);
-                    string lifeTime = DetermineLifetime(attributeSyntax, injectType, lifetimePrefix);
-                    var metadata = new AutoRegisterMetadata(implTypeName, baseTypeName, lifeTime);
-                    if (key != null) metadata.Key = key;
-                    autoInjects.Add(metadata);
-                    AddNamespaces(compilation, baseTypeName, namespaces);
-                    break;
+                    else
+                    {
+                        // 调试信息：记录为什么没有提取到元数据
+                        ErrorHandler.ReportWarning(sourceContext, DiagnosticDescriptors.AutoRegisterMetadataExtractionFailed,
+                            SyntaxHelper.GetClassName(classDeclaration),
+                            string.Join(", ", classDeclaration.AttributeLists.SelectMany(al => al.Attributes).Select(a => a.Name.ToString())),
+                            GetAttributeDetails(classDeclaration));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // 记录生成错误但不要中断编译
+                    ReportErrorDiagnostic(sourceContext, DiagnosticDescriptors.AutoRegisterGenerationError,
+                        SyntaxHelper.GetClassName(classDeclaration), ex);
                 }
             }
-        }
-        return autoInjects;
+
+            if (autoInjects.Any())
+            {
+                // 调试信息：显示提取到的元数据
+                ErrorHandler.ReportInfo(sourceContext, DiagnosticDescriptors.AutoRegisterMetadataExtracted,
+                    autoInjects.Count,
+                    string.Join(", ", autoInjects.Select(m => $"{m.ImplType} -> {m.BaseType} ({m.LifeTime})")));
+
+                GenSource(sourceContext, autoInjects, @namespace, compilation);
+            }
+            else
+            {
+                // 调试信息：记录为什么没有生成任何代码
+                ErrorHandler.ReportWarning(sourceContext, DiagnosticDescriptors.AutoRegisterGenerationSkipped,
+                    compilation.AssemblyName, classDeclarations.Length);
+
+                // 更详细的调试信息：检查每个类是否有AutoRegister属性
+                foreach (var classDeclaration in classDeclarations)
+                {
+                    if (classDeclaration == null) continue;
+
+                    var className = SyntaxHelper.GetClassName(classDeclaration);
+                    var attributes = classDeclaration.AttributeLists.SelectMany(al => al.Attributes);
+                    var autoRegisterAttributes = attributes.Where(a => a.Name.ToString().Contains("AutoRegister"));
+
+                    if (autoRegisterAttributes.Any())
+                    {
+                        ErrorHandler.ReportInfo(sourceContext, DiagnosticDescriptors.AutoRegisterAttributesFound,
+                            className,
+                            string.Join(", ", autoRegisterAttributes.Select(a => a.Name.ToString())),
+                            GetAttributeDetails(classDeclaration));
+                    }
+                }
+            }
+        });
     }
 
+    /// <summary>
+    /// 从类声明中提取AutoRegister元数据
+    /// </summary>
+    private static List<AutoRegisterMetadata>? ExtractAutoRegisterMetadata(ClassDeclarationSyntax classDeclaration, Compilation compilation)
+    {
+        var attributes = classDeclaration.AttributeLists.SelectMany(al => al.Attributes);
+        var metadataList = new List<AutoRegisterMetadata>();
+
+        foreach (var attribute in attributes)
+        {
+            var attributeName = attribute.Name.ToString();
+
+            // 判断特性类型
+            InjectAttributeType injectType = DetermineInjectType(attribute);
+            if (injectType == InjectAttributeType.Unknown) continue;
+
+            string attributeMetadataName = injectType switch
+            {
+                InjectAttributeType.Regular or InjectAttributeType.Generic => AttributeValueMetadataNameInject,
+                InjectAttributeType.Keyed or InjectAttributeType.KeyedGeneric => AutoRegisterKeyedMetadataNameInject,
+                _ => AttributeValueMetadataNameInject
+            };
+
+            string lifetimePrefix = (injectType == InjectAttributeType.Keyed || injectType == InjectAttributeType.KeyedGeneric) ? "AddKeyed" : "Add";
+
+            string baseTypeName = ExtractBaseTypeName(attribute, injectType);
+
+            if (string.IsNullOrEmpty(baseTypeName) && injectType != InjectAttributeType.Regular)
+            {
+                continue;
+            }
+
+            // 获取实现类型的完整名称
+            var classSymbol = compilation.GetSemanticModel(classDeclaration.SyntaxTree)?.GetDeclaredSymbol(classDeclaration);
+            var implTypeName = classSymbol?.ToDisplayString() ?? SyntaxHelper.GetClassName(classDeclaration);
+
+            if (string.IsNullOrEmpty(baseTypeName) && injectType == InjectAttributeType.Regular)
+                baseTypeName = implTypeName;
+
+            // 对于基类型，我们需要通过语义模型来解析类型符号
+            if (!string.IsNullOrEmpty(baseTypeName) && classSymbol != null)
+            {
+                // 尝试解析基类型名称
+                var baseTypeSyntax = SyntaxFactory.ParseTypeName(baseTypeName);
+                var baseTypeInfo = compilation.GetSemanticModel(classDeclaration.SyntaxTree)?.GetSpeculativeSymbolInfo(0, baseTypeSyntax, SpeculativeBindingOption.BindAsTypeOrNamespace);
+                var baseSymbol = baseTypeInfo?.Symbol as ITypeSymbol;
+                if (baseSymbol != null)
+                {
+                    baseTypeName = baseSymbol.ToDisplayString();
+                }
+                else
+                {
+                    // 如果语义模型解析失败，尝试在整个编译中查找类型
+                    var allSymbols = compilation.GetSymbolsWithName(baseTypeName, SymbolFilter.Type);
+                    var matchingSymbol = allSymbols.OfType<ITypeSymbol>().FirstOrDefault();
+                    if (matchingSymbol != null)
+                    {
+                        baseTypeName = matchingSymbol.ToDisplayString();
+                    }
+                    else if (!baseTypeName.Contains("."))
+                    {
+                        // 如果仍然找不到，尝试常见的命名空间组合
+                        var possibleNamespaces = new[] { "CodeBaseTest.Interface", "CodeGeneratorTest.Services", compilation.AssemblyName };
+                        foreach (var ns in possibleNamespaces.Where(n => n != null))
+                        {
+                            var fullName = $"{ns}.{baseTypeName}";
+                            var testSymbol = compilation.GetTypeByMetadataName(fullName);
+                            if (testSymbol != null)
+                            {
+                                baseTypeName = fullName;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            string? key = null;
+            if (injectType == InjectAttributeType.Keyed || injectType == InjectAttributeType.KeyedGeneric)
+                key = ExtractKeyFromAttribute(attribute);
+
+            string lifeTime = DetermineLifetime(attribute, injectType, lifetimePrefix);
+            var metadata = new AutoRegisterMetadata(implTypeName, baseTypeName, lifeTime);
+            if (key != null) metadata.Key = key;
+
+            metadataList.Add(metadata);
+        }
+
+        return metadataList.Any() ? metadataList : null;
+    }
+
+    /// <summary>
+    /// 判断特性类型
+    /// </summary>
+    private static InjectAttributeType DetermineInjectType(string attributeName)
+    {
+        // 检查是否包含AutoRegister但不包含Keyed
+        if (attributeName == "AutoRegister" || attributeName == "AutoRegisterAttribute" ||
+            attributeName == "AutoRegisterAttribute`1")
+        {
+            return attributeName.Contains("`1") ? InjectAttributeType.Generic : InjectAttributeType.Regular;
+        }
+        // 检查是否包含AutoRegisterKeyed
+        else if (attributeName == "AutoRegisterKeyed" || attributeName == "AutoRegisterKeyedAttribute" ||
+                 attributeName == "AutoRegisterKeyedAttribute`1")
+        {
+            return attributeName.Contains("`1") ? InjectAttributeType.KeyedGeneric : InjectAttributeType.Keyed;
+        }
+        return InjectAttributeType.Unknown;
+    }
+
+    /// <summary>
+    /// 判断特性类型（基于AttributeSyntax）
+    /// </summary>
+    private static InjectAttributeType DetermineInjectType(AttributeSyntax attributeSyntax)
+    {
+        var attributeName = attributeSyntax.Name.ToString();
+
+        // 首先检查是否是泛型语法形式
+        if (attributeSyntax.Name is GenericNameSyntax)
+        {
+            if (attributeName.Contains("AutoRegister") && !attributeName.Contains("Keyed"))
+            {
+                return InjectAttributeType.Generic;
+            }
+            else if (attributeName.Contains("AutoRegisterKeyed"))
+            {
+                return InjectAttributeType.KeyedGeneric;
+            }
+        }
+
+        // 如果不是泛型语法形式，使用原来的逻辑
+        return DetermineInjectType(attributeName);
+    }
+
+    /// <summary>
+    /// 提取基类型名称
+    /// </summary>
     private static string ExtractBaseTypeName(AttributeSyntax attributeSyntax, InjectAttributeType injectType)
     {
-        if (injectType == InjectAttributeType.Regular)
+        // 处理常规和Keyed非泛型特性
+        if (injectType == InjectAttributeType.Regular || injectType == InjectAttributeType.Keyed)
         {
-            if (attributeSyntax.ArgumentList == null || attributeSyntax.ArgumentList.Arguments.Count == 0) return string.Empty;
-            if (attributeSyntax.ArgumentList.Arguments[0].Expression is TypeOfExpressionSyntax typeOfExpression)
+            if (attributeSyntax.ArgumentList == null || attributeSyntax.ArgumentList.Arguments.Count == 0)
+                return string.Empty;
+
+            // 对于Keyed特性，第一个参数是key，需要从第二个参数开始查找typeof表达式
+            int startIndex = injectType == InjectAttributeType.Keyed ? 1 : 0;
+
+            for (int i = startIndex; i < attributeSyntax.ArgumentList.Arguments.Count; i++)
             {
-                var eType = typeOfExpression.Type;
-                if (eType.IsKind(SyntaxKind.IdentifierName)) return ((IdentifierNameSyntax)eType).Identifier.ValueText;
-                if (eType.IsKind(SyntaxKind.QualifiedName)) return ((QualifiedNameSyntax)eType).ToString().Split(['.']).Last();
-                if (eType.IsKind(SyntaxKind.AliasQualifiedName)) return ((AliasQualifiedNameSyntax)eType).ToString().Split(['.']).Last();
+                var argument = attributeSyntax.ArgumentList.Arguments[i];
+                // 跳过命名参数
+                if (argument.NameEquals != null) continue;
+
+                if (argument.Expression is TypeOfExpressionSyntax typeOfExpression)
+                {
+                    // 直接返回完整的类型名称，而不是只取最后一部分
+                    return typeOfExpression.Type.ToString();
+                }
             }
             return string.Empty;
         }
         else
         {
-            // 1. 先尝试解析泛型形式: [AutoRegisterKeyed<IFoo>("key", ...)]
-            string pattern = @"(?<=<)(?<type>\w+)(?=>)";
-            var match = Regex.Match(attributeSyntax.ToString(), pattern);
+            // 处理泛型形式: [AutoRegister<IFoo>] 或 [AutoRegisterKeyed<IFoo>("key")]
+            var attributeString = attributeSyntax.ToString();
+
+            // 首先尝试使用更精确的正则表达式来匹配泛型类型参数
+            string pattern = @"AutoRegister(?:Keyed)?<([^>]+)>";
+            var match = Regex.Match(attributeString, pattern);
             if (match.Success)
             {
-                return match.Groups["type"].Value.Split(['.']).Last();
+                return match.Groups[1].Value;
             }
 
-            // 2. 兼容非泛型 Keyed: [AutoRegisterKeyed("key", typeof(IFoo), ServiceLifetime.Scoped)]
-            if (attributeSyntax.ArgumentList is { Arguments.Count: > 0 })
+            // 如果正则表达式失败，尝试使用更简单的方法
+            var startIndex = attributeString.IndexOf('<');
+            var endIndex = attributeString.IndexOf('>');
+
+            if (startIndex > 0 && endIndex > startIndex)
             {
-                // Keyed 非泛型: 第一个参数是 key, 后续寻找 typeof 表达式
-                foreach (var arg in attributeSyntax.ArgumentList.Arguments)
+                return attributeString.Substring(startIndex + 1, endIndex - startIndex - 1);
+            }
+
+            // 如果以上方法都失败，尝试使用语法分析
+            if (attributeSyntax.Name is GenericNameSyntax genericName)
+            {
+                if (genericName.TypeArgumentList.Arguments.Count > 0)
                 {
-                    if (arg.Expression is TypeOfExpressionSyntax typeOfExpression)
-                    {
-                        var t = typeOfExpression.Type;
-                        if (t.IsKind(SyntaxKind.IdentifierName)) return ((IdentifierNameSyntax)t).Identifier.ValueText;
-                        if (t.IsKind(SyntaxKind.QualifiedName)) return ((QualifiedNameSyntax)t).ToString().Split(['.']).Last();
-                        if (t.IsKind(SyntaxKind.AliasQualifiedName)) return ((AliasQualifiedNameSyntax)t).ToString().Split(['.']).Last();
-                    }
+                    return genericName.TypeArgumentList.Arguments[0].ToString();
                 }
             }
 
@@ -218,10 +337,36 @@ public class AutoRegisterSourceGenerator : IIncrementalGenerator
     {
         string defaultLifetime = $"{prefix}Scoped";
         if (attributeSyntax.ArgumentList == null) return defaultLifetime;
+
+        // 首先检查命名参数
+        foreach (var argument in attributeSyntax.ArgumentList.Arguments)
+        {
+            if (argument.NameEquals?.Name.Identifier.ValueText == "ServiceLifetime")
+            {
+                var expressionSyntax = argument.Expression;
+                if (expressionSyntax.IsKind(SyntaxKind.SimpleMemberAccessExpression))
+                {
+                    var name = ((MemberAccessExpressionSyntax)expressionSyntax).Name.Identifier.ValueText;
+                    return name switch
+                    {
+                        "Singleton" => $"{prefix}Singleton",
+                        "Transient" => $"{prefix}Transient",
+                        "Scoped" => $"{prefix}Scoped",
+                        _ => defaultLifetime,
+                    };
+                }
+            }
+        }
+
+        // 如果没有找到命名参数，检查位置参数
         int startIndex = injectType == InjectAttributeType.Keyed ? 1 : 0; // Keyed: index0 是 key
         for (var i = startIndex; i < attributeSyntax.ArgumentList.Arguments.Count; i++)
         {
-            var expressionSyntax = attributeSyntax.ArgumentList.Arguments[i].Expression;
+            var argument = attributeSyntax.ArgumentList.Arguments[i];
+            // 跳过命名参数（已经处理过）
+            if (argument.NameEquals != null) continue;
+
+            var expressionSyntax = argument.Expression;
             if (expressionSyntax.IsKind(SyntaxKind.SimpleMemberAccessExpression))
             {
                 var name = ((MemberAccessExpressionSyntax)expressionSyntax).Name.Identifier.ValueText;
@@ -247,7 +392,22 @@ public class AutoRegisterSourceGenerator : IIncrementalGenerator
         }
     }
 
-    private enum InjectAttributeType { Regular, Generic, Keyed }
+    private enum InjectAttributeType { Regular, Generic, Keyed, KeyedGeneric, Unknown }
+
+    private static string GetAttributeDetails(ClassDeclarationSyntax classDeclaration)
+    {
+        var details = new List<string>();
+        foreach (var attributeList in classDeclaration.AttributeLists)
+        {
+            foreach (var attribute in attributeList.Attributes)
+            {
+                var attributeName = attribute.Name.ToString();
+                var arguments = attribute.ArgumentList?.Arguments.Select(a => $"{{NameEquals={a.NameEquals?.Name.Identifier.ValueText}, Expression={a.Expression}}}") ?? [];
+                details.Add($"{attributeName}({string.Join(", ", arguments)})");
+            }
+        }
+        return string.Join("; ", details);
+    }
 
     private static void GenSource(SourceProductionContext context, IEnumerable<AutoRegisterMetadata> metas, string? rootNamespace, Compilation compilation)
     {
@@ -256,22 +416,30 @@ public class AutoRegisterSourceGenerator : IIncrementalGenerator
         bool useFileScoped = languageVersion >= LanguageVersion.CSharp10;
 
         StringBuilder registrations = new();
-        foreach (var meta in metas.Distinct())
+        if (metas.Any())
         {
-            if (meta.Key != null)
+            foreach (var meta in metas.Distinct())
             {
-                if (meta.ImplType != meta.BaseType)
-                    registrations.AppendLine($"services.{meta.LifeTime}<{meta.BaseType}, {meta.ImplType}>(\"{meta.Key}\");");
+                if (meta.Key != null)
+                {
+                    if (meta.ImplType != meta.BaseType)
+                        registrations.AppendLine($"services.{meta.LifeTime}<{meta.BaseType}, {meta.ImplType}>(\"{meta.Key}\");");
+                    else
+                        registrations.AppendLine($"services.{meta.LifeTime}<{meta.ImplType}>(\"{meta.Key}\");");
+                }
                 else
-                    registrations.AppendLine($"services.{meta.LifeTime}<{meta.ImplType}>(\"{meta.Key}\");");
+                {
+                    if (meta.ImplType != meta.BaseType)
+                        registrations.AppendLine($"services.{meta.LifeTime}<{meta.BaseType}, {meta.ImplType}>();");
+                    else
+                        registrations.AppendLine($"services.{meta.LifeTime}<{meta.ImplType}>();");
+                }
             }
-            else
-            {
-                if (meta.ImplType != meta.BaseType)
-                    registrations.AppendLine($"services.{meta.LifeTime}<{meta.BaseType}, {meta.ImplType}>();");
-                else
-                    registrations.AppendLine($"services.{meta.LifeTime}<{meta.ImplType}>();");
-            }
+        }
+        else
+        {
+            // 如果没有元数据，生成空的注册语句
+            registrations.AppendLine("// No AutoRegister services found");
         }
 
         var sb = new StringBuilder();
@@ -296,7 +464,7 @@ public class AutoRegisterSourceGenerator : IIncrementalGenerator
             }
         }
 
-        sb.AppendLine($"{indent}[global::System.CodeDom.Compiler.GeneratedCode()]");
+        sb.AppendLine($"{indent}[global::System.CodeDom.Compiler.GeneratedCode(\"Mud.ServiceCodeGenerator\", \"1.0.0.0\")]");
         sb.AppendLine($"{indent}public static partial class AutoRegisterExtension");
         sb.AppendLine($"{indent}{{");
         sb.AppendLine($"{indent}    /// <summary>");
@@ -318,13 +486,13 @@ public class AutoRegisterSourceGenerator : IIncrementalGenerator
         context.AddSource("Mud.ServiceCodeGeneratorInject.g.cs", SourceText.From(source, Encoding.UTF8));
     }
 
-    private record AutoRegisterMetadata(string ImplType, string BaseType, string LifeTime)
+    private class AutoRegisterMetadata(string implType, string baseType, string lifeTime)
     {
-        public string ImplType { get; set; }
+        public string ImplType { get; set; } = implType;
 
-        public string BaseType { get; set; }
+        public string BaseType { get; set; } = baseType;
 
-        public string LifeTime { get; set; }
+        public string LifeTime { get; set; } = lifeTime;
 
         /// <summary>
         /// 针对Microsoft.Extensions.DependencyInjection 8.0以上的Keyed Service,默认为NULL
