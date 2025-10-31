@@ -380,28 +380,6 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
     }
 
     /// <summary>
-    /// 生成属性映射代码
-    /// </summary>
-    private void GeneratePropertyMappings<T>(
-        ClassDeclarationSyntax orgClassDeclaration,
-        StringBuilder sb,
-        Compilation compilation,
-        Func<string, string, string> generateMappingLine,
-        bool? primaryKeyOnly) where T : MemberDeclarationSyntax
-    {
-        MemberProcessor.GeneratePropertyMappings<T>(
-            orgClassDeclaration,
-            sb,
-            compilation,
-            generateMappingLine,
-            primaryKeyOnly,
-            IsIgnoreGenerator,
-            IsPrimary,
-            GetBuilderPropertyNames,
-            GetPropertyType);
-    }
-
-    /// <summary>
     /// 生成映射行列表
     /// </summary>
     private List<string> GenerateMappingLines<T>(
@@ -455,21 +433,5 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
                 sb.AppendLine($"        where = where.And(x => x.{entityPropertyName} == input.{propertyName});");
             }
         });
-    }
-
-    /// <summary>
-    /// 获取成员的类型
-    /// </summary>
-    private string GetPropertyType<T>(T member) where T : MemberDeclarationSyntax
-    {
-        if (member is PropertyDeclarationSyntax property)
-        {
-            return SyntaxHelper.GetPropertyType(property);
-        }
-        else if (member is FieldDeclarationSyntax field)
-        {
-            return SyntaxHelper.GetPropertyType(field);
-        }
-        return "object";
     }
 }

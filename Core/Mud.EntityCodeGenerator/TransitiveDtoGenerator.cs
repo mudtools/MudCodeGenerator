@@ -570,7 +570,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
         return dtoClassName;
     }
 
-     /// <summary>
+    /// <summary>
     /// 获取属性的原始名称（首字母大写）
     /// </summary>
     protected (string orgPropertyName, string propertyName) GetBuilderPropertyNames<T>(T member) where T : MemberDeclarationSyntax
@@ -587,7 +587,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
         }
 
         // BuilderGenerator 始终使用原始属性名（首字母大写）
-       string  propertyName = orgPropertyName;
+        string propertyName = orgPropertyName;
 
         return (orgPropertyName, propertyName);
     }

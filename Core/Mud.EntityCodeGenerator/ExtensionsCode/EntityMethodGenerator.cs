@@ -79,7 +79,7 @@ namespace Mud.EntityCodeGenerator
         /// <param name="localClass">需要生成的类。</param>
         /// <param name="orgClassDeclaration">原始列。</param>
         /// <returns></returns>
-        private (ClassDeclarationSyntax classDeclaration, bool success) BuildProperty(ClassDeclarationSyntax localClass, ClassDeclarationSyntax orgClassDeclaration)
+        private (ClassDeclarationSyntax? classDeclaration, bool success) BuildProperty(ClassDeclarationSyntax localClass, ClassDeclarationSyntax orgClassDeclaration)
         {
             // 提高容错性，处理空对象情况
             if (localClass == null || orgClassDeclaration == null)
@@ -132,7 +132,6 @@ namespace Mud.EntityCodeGenerator
                 }
                 catch (Exception ex)
                 {
-                    // 提高容错性，即使单个属性生成失败也不影响其他属性
                     System.Diagnostics.Debug.WriteLine($"生成实体属性时发生错误: {ex.Message}");
                 }
             }

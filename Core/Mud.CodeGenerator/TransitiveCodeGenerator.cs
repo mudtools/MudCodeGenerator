@@ -156,7 +156,6 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
         return "";
     }
 
-
     #region GetGeneratorProperty
 
     /// <summary>
@@ -350,7 +349,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
         return attributes != null && attributes.Any();
     }
 
-     /// <summary>
+    /// <summary>
     /// 报告生成失败的诊断信息
     /// </summary>
     /// <param name="context">源码生成上下文</param>

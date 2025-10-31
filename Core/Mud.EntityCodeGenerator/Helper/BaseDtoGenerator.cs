@@ -5,7 +5,6 @@ namespace Mud.EntityCodeGenerator.Helper;
 /// </summary>
 public abstract class BaseDtoGenerator : TransitiveDtoGenerator, IDtoGenerator
 {
-    protected GeneratorConfiguration Configuration { get; } = new GeneratorConfiguration();
 
     /// <summary>
     /// 生成器名称
