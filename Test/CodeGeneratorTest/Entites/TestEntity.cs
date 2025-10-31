@@ -1,5 +1,3 @@
-using Mud.Common.CodeGenerator;
-
 namespace CodeGeneratorTest.Entites;
 
 [DtoGenerator]
