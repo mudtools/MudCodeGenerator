@@ -365,8 +365,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         string orgClassName)
     {
         var voClassName = GetGeneratorClassName(orgClassDeclaration, ConfigurationManager.Instance.GetClassSuffix("infooutput"));
-        System.Diagnostics.Debug.WriteLine($"VO_CLASS_NAME: {voClassName}");
-
+ 
         // 添加命名空间前缀
         var fullVoClassName = $"{voClassName}";
 
@@ -398,7 +397,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
             primaryKeyOnly,
             IsIgnoreGenerator,
             IsPrimary,
-            GetPropertyNames,
+            GetBuilderPropertyNames,
             GetPropertyType);
     }
 

@@ -105,6 +105,7 @@ public class BuilderGenerator : TransitiveDtoGenerator
         sb.AppendLine("    }");
         return sb.ToString();
     }
+   
 
     /// <summary>
     /// 生成属性映射代码
@@ -123,7 +124,7 @@ public class BuilderGenerator : TransitiveDtoGenerator
             generateSetMethod,
             IsIgnoreGenerator,
             IsPrimary,
-            GetPropertyNames,
+            GetBuilderPropertyNames,
             GetPropertyType);
     }
 }
