@@ -92,7 +92,7 @@ namespace Mud.EntityCodeGenerator
                 .OfType<PropertyDeclarationSyntax>()
                 .Select(p => p.Identifier.Text), StringComparer.OrdinalIgnoreCase);
 
-            foreach (var member in orgClassDeclaration.Members.OfType<FieldDeclarationSyntax>())
+            foreach (var member in orgClassDeclaration.Members.OfType<FieldDeclarationSyntax>().Where(m=>!SyntaxHelper.IsValidPrivateField(m)))
             {
                 try
                 {
@@ -137,7 +137,6 @@ namespace Mud.EntityCodeGenerator
             }
             return (localClass, success);
         }
-
 
         private MethodDeclarationSyntax GenerateBuildMethod(ClassDeclarationSyntax orgClassDeclaration,
             string orgClassName)

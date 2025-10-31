@@ -5,6 +5,43 @@ namespace Mud.CodeGenerator;
 
 internal static class SyntaxHelper
 {
+
+        /// <summary>
+        /// 检查字段是否为有效的私有字段（不能是静态、常量、只读字段）
+        /// </summary>
+        /// <param name="fieldDeclaration">字段声明</param>
+        /// <returns>是否为有效的私有字段</returns>
+        public static bool IsValidPrivateField(FieldDeclarationSyntax fieldDeclaration)
+        {
+            // 检查字段修饰符
+            var modifiers = fieldDeclaration.Modifiers;
+            
+            // 不能包含静态修饰符
+            if (modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword)))
+                return false;
+            
+            // 不能包含常量修饰符
+            if (modifiers.Any(m => m.IsKind(SyntaxKind.ConstKeyword)))
+                return false;
+            
+            // 不能包含只读修饰符
+            if (modifiers.Any(m => m.IsKind(SyntaxKind.ReadOnlyKeyword)))
+                return false;
+            
+            // 必须是私有字段（默认或显式声明为private）
+            var hasPrivateModifier = modifiers.Any(m => m.IsKind(SyntaxKind.PrivateKeyword));
+            var hasPublicModifier = modifiers.Any(m => m.IsKind(SyntaxKind.PublicKeyword));
+            var hasProtectedModifier = modifiers.Any(m => m.IsKind(SyntaxKind.ProtectedKeyword));
+            var hasInternalModifier = modifiers.Any(m => m.IsKind(SyntaxKind.InternalKeyword));
+            
+            // 如果没有访问修饰符，默认为private，是有效的
+            if (!hasPrivateModifier && !hasPublicModifier && !hasProtectedModifier && !hasInternalModifier)
+                return true;
+            
+            // 只有显式声明为private的字段才有效
+            return hasPrivateModifier;
+        }
+
     /// <summary>
     /// 格式化代码
     /// </summary>
