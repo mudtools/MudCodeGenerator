@@ -2,13 +2,13 @@
 namespace Mud.Common.CodeGenerator;
 
 /// <summary>
-///     HTTP 声明式请求内容特性
+/// HTTP 声明式请求内容特性
 /// </summary>
 [AttributeUsage(AttributeTargets.Parameter)]
 public sealed class BodyAttribute : Attribute
 {
     /// <summary>
-    ///     <inheritdoc cref="BodyAttribute" />
+    /// <inheritdoc cref="BodyAttribute" />
     /// </summary>
     public BodyAttribute()
     {

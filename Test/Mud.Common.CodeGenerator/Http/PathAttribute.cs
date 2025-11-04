@@ -1,13 +1,20 @@
-﻿namespace Furion.HttpRemote;
+﻿namespace Mud.Common.CodeGenerator;
 
 /// <summary>
-///     HTTP 声明式路径参数特性
+/// HTTP 声明式路径参数特性
 /// </summary>
-[AttributeUsage(AttributeTargets.Method | AttributeTargets.Interface, AllowMultiple = true)]
+[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false)]
 public sealed class PathAttribute : Attribute
 {
     /// <summary>
-    ///     <inheritdoc cref="PathAttribute" />
+    /// <inheritdoc cref="PathAttribute" />
+    /// </summary>
+    public PathAttribute()
+    {
+    }
+
+    /// <summary>
+    /// <inheritdoc cref="PathAttribute" />
     /// </summary>
     /// <param name="name">参数名称</param>
     /// <param name="value">参数值</param>
@@ -18,12 +25,12 @@ public sealed class PathAttribute : Attribute
     }
 
     /// <summary>
-    ///     路径参数键
+    /// 路径参数键
     /// </summary>
     public string Name { get; set; }
 
     /// <summary>
-    ///     路径参数的值
+    /// 路径参数的值
     /// </summary>
     public object? Value { get; set; }
 }

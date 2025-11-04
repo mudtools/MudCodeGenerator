@@ -1,4 +1,4 @@
-﻿namespace Furion.HttpRemote;
+﻿namespace Mud.Common.CodeGenerator;
 
 /// <summary>
 ///     HTTP 声明式请求标头特性

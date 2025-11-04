@@ -23,7 +23,7 @@ namespace Mud.ServiceCodeGenerator;
 /// }
 /// </code>
 /// </remarks>
-[Generator]
+[Generator(LanguageNames.CSharp)]
 public class HttpClientApiSourceGenerator : TransitiveCodeGenerator
 {
     private const string HttpClientApiAttributeName = "HttpClientApiAttribute";
@@ -307,7 +307,7 @@ public class HttpClientApiSourceGenerator : TransitiveCodeGenerator
         sb.AppendLine($"            _logger.LogDebug(\"开始HTTP {methodInfo.HttpMethod}请求: {{Url}}\", \"{methodInfo.UrlTemplate}\");");
 
         // 构建URL - 处理路径参数替换
-        var urlBuilder = new StringBuilder($"var url = $\"{methodInfo.UrlTemplate}\";");
+        var urlBuilder = new StringBuilder($"            var url = $\"{methodInfo.UrlTemplate}\";");
 
         // 处理路径参数替换
         var pathParams = methodInfo.Parameters

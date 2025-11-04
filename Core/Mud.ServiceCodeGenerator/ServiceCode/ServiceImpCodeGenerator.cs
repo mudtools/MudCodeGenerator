@@ -107,7 +107,7 @@ public class ServiceImpCodeGenerator : ServiceCodeGenerator
     }
 
     /// <inheritdoc/>
-    protected override string GetNamespaceName(ClassDeclarationSyntax classNode)
+    protected override string GetNamespaceName(TypeDeclarationSyntax classNode)
     {
         var cNamespace = base.GetNamespaceName(classNode);
         return string.IsNullOrEmpty(EntitySuffix) ? cNamespace + "Services" : cNamespace.Replace(EntitySuffix, "Services");
