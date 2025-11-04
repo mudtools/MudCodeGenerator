@@ -5,14 +5,21 @@ using System.Text;
 namespace Mud.EntityCodeGenerator
 {
     /// <summary>
-    /// 生成实体映射方法
+    /// 生成私有字段的公共属性。
     /// </summary>
     [Generator(LanguageNames.CSharp)]
-    public class EntityMethodGenerator : TransitiveDtoGenerator
+    public class EntityPropertyGenerator : TransitiveDtoGenerator
     {
         private string _dtoNameSpace = "";
 
         private string[] FieldAttributes = ["TableField", "Column", "Key"];
+
+        /// <summary>
+        /// EntityPropertyGenerator构造函数
+        /// </summary>
+        public EntityPropertyGenerator() : base()
+        {
+        }
 
         /// <inheritdoc/>
         protected override Collection<string> GetFileUsingNameSpaces()
@@ -53,8 +60,6 @@ namespace Mud.EntityCodeGenerator
                 //if (methodDeclaration != null)
                 //    localClass = localClass.AddMembers(methodDeclaration);
 
-
-
                 // 提高容错性，检查生成的类是否为空
                 if (localClass == null)
                 {
@@ -81,6 +86,7 @@ namespace Mud.EntityCodeGenerator
         /// <returns></returns>
         private (ClassDeclarationSyntax? classDeclaration, bool success) BuildProperty(ClassDeclarationSyntax localClass, ClassDeclarationSyntax orgClassDeclaration)
         {
+            //Debugger.Launch();
             // 提高容错性，处理空对象情况
             if (localClass == null || orgClassDeclaration == null)
                 return (localClass, false);
@@ -92,7 +98,7 @@ namespace Mud.EntityCodeGenerator
                 .OfType<PropertyDeclarationSyntax>()
                 .Select(p => p.Identifier.Text), StringComparer.OrdinalIgnoreCase);
 
-            foreach (var member in orgClassDeclaration.Members.OfType<FieldDeclarationSyntax>().Where(m=>!SyntaxHelper.IsValidPrivateField(m)))
+            foreach (var member in orgClassDeclaration.Members.OfType<FieldDeclarationSyntax>().Where(m => !SyntaxHelper.IsValidPrivateField(m)))
             {
                 try
                 {

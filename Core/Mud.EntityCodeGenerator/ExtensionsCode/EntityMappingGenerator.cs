@@ -7,12 +7,12 @@ namespace Mud.EntityCodeGenerator;
 /// 实体扩展类生成器，用于生成实体与其他DTO类型之间的映射扩展方法。
 /// </summary>
 [Generator(LanguageNames.CSharp)]
-public class EntityExtensionsGenerator : TransitiveDtoGenerator
+public class EntityMappingGenerator : TransitiveDtoGenerator
 {
     /// <summary>
-    /// EntityExtensionsGenerator构造函数
+    /// EntityMappingGenerator构造函数
     /// </summary>
-    public EntityExtensionsGenerator() : base()
+    public EntityMappingGenerator() : base()
     {
     }
 
@@ -365,7 +365,7 @@ public class EntityExtensionsGenerator : TransitiveDtoGenerator
         string orgClassName)
     {
         var voClassName = GetGeneratorClassName(orgClassDeclaration, ConfigurationManager.Instance.GetClassSuffix("infooutput"));
- 
+
         // 添加命名空间前缀
         var fullVoClassName = $"{voClassName}";
 
