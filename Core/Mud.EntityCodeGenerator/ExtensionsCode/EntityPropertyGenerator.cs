@@ -12,7 +12,7 @@ namespace Mud.EntityCodeGenerator
     {
         private string _dtoNameSpace = "";
 
-        private string[] FieldAttributes = ["TableField", "Column", "Key"];
+        private string[] FieldAttributes = ["TableField", "Column", "SugarColumn", "Key"];
 
         /// <summary>
         /// EntityPropertyGenerator构造函数
@@ -127,7 +127,8 @@ namespace Mud.EntityCodeGenerator
                     if (propertyDeclaration == null)
                         continue;
 
-                    propertyDeclaration = propertyDeclaration.AddAttributeLists(SyntaxFactory.AttributeList(attributeListyntax));
+                    if (attributeListyntax.Any())
+                        propertyDeclaration = propertyDeclaration.AddAttributeLists(SyntaxFactory.AttributeList(attributeListyntax));
 
                     //生成属性注释。
                     var leadingTrivia = member.GetLeadingTrivia();

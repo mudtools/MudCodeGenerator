@@ -12,12 +12,12 @@ public abstract class TransitiveBoGenerator : BaseDtoGenerator
     /// <summary>
     /// 是否生成主键属性。
     /// </summary>
-    protected readonly bool _generatePrimary;
+    private readonly bool _generatePrimary;
 
     /// <summary>
     /// 是否生成非主键属性。
     /// </summary>
-    protected readonly bool _generateNotPrimary;
+    private readonly bool _generateNotPrimary;
 
     protected TransitiveBoGenerator(bool generateNotPrimary, bool generatePrimary)
     {

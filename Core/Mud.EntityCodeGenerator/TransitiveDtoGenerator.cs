@@ -15,11 +15,6 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     protected const string DtoGeneratorAttributeName = "DtoGeneratorAttribute";
 
     /// <summary>
-    /// 配置管理器实例。
-    /// </summary>
-    protected readonly GeneratorConfiguration Configuration = new GeneratorConfiguration();
-
-    /// <summary>
     /// 是否生成实体类映射方法属性。
     /// </summary>
     protected const string DtoGeneratorAttributeGenMapMethod = "GenMapMethod";
@@ -43,7 +38,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     /// <summary>
     /// 识别实体主键特性。
     /// </summary>
-    protected readonly string[] PrimaryAttributes = new[] { "KeyAttribute", "Column|IsPrimary" };
+    private readonly string[] PrimaryAttributes = ["KeyAttribute", "Column|IsPrimary"];
 
     /// <summary>
     /// 获取类后缀

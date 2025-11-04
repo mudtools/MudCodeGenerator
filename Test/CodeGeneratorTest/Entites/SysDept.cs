@@ -1,4 +1,4 @@
-﻿
+﻿using FreeSql.DataAnnotations;
 namespace CodeGeneratorTest.Entites;
 
 /// <summary>
