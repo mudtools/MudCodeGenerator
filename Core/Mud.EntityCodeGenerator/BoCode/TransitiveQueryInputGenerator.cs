@@ -32,8 +32,9 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
 
             var (localClass, dtoNameSpace, dtoClassName) = BuildLocalClass(orgClassDeclaration);
 
+            HashSet<string> propertes = [];//用于保存属性名集合，防止重复生成。
             // 先处理属性声明
-            localClass = BuildLocalClassProperty<PropertyDeclarationSyntax>(orgClassDeclaration, localClass, compilation,
+            localClass = BuildLocalClassProperty<PropertyDeclarationSyntax>(orgClassDeclaration, localClass, compilation, propertes,
                             member =>
                             {
                                 if (IsIgnoreGenerator(member))
@@ -43,7 +44,7 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
                             }, null);
 
             // 再处理字段声明，但需要避免重复生成
-            localClass = BuildLocalClassProperty<FieldDeclarationSyntax>(orgClassDeclaration, localClass, compilation,
+            localClass = BuildLocalClassProperty<FieldDeclarationSyntax>(orgClassDeclaration, localClass, compilation, propertes,
                             member =>
                             {
                                 if (IsIgnoreGenerator(member))

@@ -1,6 +1,3 @@
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Diagnostics;
 using System.Text;
 
 namespace Mud.EntityCodeGenerator.Helper;
@@ -49,6 +46,9 @@ public static class MemberProcessor
         {
             try
             {
+                if (member is FieldDeclarationSyntax fieldDeclaration && !SyntaxHelper.IsValidPrivateField(fieldDeclaration))
+                    continue;
+
                 if (isIgnoreGenerator?.Invoke(member) == true)
                     continue;
 
@@ -66,7 +66,7 @@ public static class MemberProcessor
 
                 var (orgPropertyName, propertyName) = getPropertyNames?.Invoke(member) ?? ("", "");
                 var propertyType = getPropertyType?.Invoke(member) ?? "object";
-                
+
                 if (string.IsNullOrEmpty(orgPropertyName))
                     continue;
 

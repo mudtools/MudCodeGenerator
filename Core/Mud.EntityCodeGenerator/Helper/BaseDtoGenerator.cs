@@ -98,7 +98,9 @@ public abstract class BaseDtoGenerator : TransitiveDtoGenerator, IDtoGenerator
             var safeFieldGenerator = ErrorHandler.CreateSafePropertyGenerator<BaseDtoGenerator, FieldDeclarationSyntax, PropertyDeclarationSyntax>(this, fieldGenerator);
 
             // 只处理属性，避免重复生成（字段对应的属性已经在属性处理中生成）
-            localClass = BuildLocalClassProperty<PropertyDeclarationSyntax>(classDeclaration, localClass, compilation, safePropertyGenerator, null);
+            HashSet<string> propertes = [];//用于保存属性名集合，防止重复生成。
+            localClass = BuildLocalClassProperty<PropertyDeclarationSyntax>(classDeclaration, localClass, compilation, propertes, safePropertyGenerator, null);
+            localClass = BuildLocalClassProperty<FieldDeclarationSyntax>(classDeclaration, localClass, compilation, propertes, safeFieldGenerator, null);
 
             // 验证生成结果
             if (!ErrorHandler.ValidateGenerationResult(context, localClass, className, GetFailureDescriptor()))

@@ -144,11 +144,20 @@ public class EntityMappingGenerator : TransitiveDtoGenerator
         // 添加命名空间前缀
         var fullCrInputClassName = $"{crInputClassName}";
 
+        //Debugger.Launch();
         // 使用MappingGenerator生成映射方法
+        HashSet<string> properties = [];
         var mappingLines = GenerateMappingLines<PropertyDeclarationSyntax>(
-            orgClassDeclaration, compilation,
+            orgClassDeclaration, compilation, properties,
             (orgPropertyName, propertyName) => MappingGenerator.GeneratePropertyMappingLine(propertyName, orgPropertyName, "dto", "result"),
             false); // 只处理非主键属性
+
+        var fieldMappingLines = GenerateMappingLines<FieldDeclarationSyntax>(
+              orgClassDeclaration, compilation, properties,
+              (orgPropertyName, propertyName) => MappingGenerator.GeneratePropertyMappingLine(propertyName, orgPropertyName, "dto", "result"),
+              false);
+        if (fieldMappingLines.Any())
+            mappingLines.AddRange(fieldMappingLines);
 
         var methodCode = MappingGenerator.GenerateDtoToEntityMapping(
             fullCrInputClassName,
@@ -173,11 +182,19 @@ public class EntityMappingGenerator : TransitiveDtoGenerator
         // 添加命名空间前缀
         var fullUpInputClassName = $"{upInputClassName}";
 
+        HashSet<string> properties = [];
         // 使用MappingGenerator生成映射方法
         var mappingLines = GenerateMappingLines<PropertyDeclarationSyntax>(
-            orgClassDeclaration, compilation,
+            orgClassDeclaration, compilation, properties,
             (orgPropertyName, propertyName) => MappingGenerator.GeneratePropertyMappingLine(propertyName, orgPropertyName, "dto", "result"),
             null); // 处理所有属性
+
+        var fieldMappingLines = GenerateMappingLines<FieldDeclarationSyntax>(
+            orgClassDeclaration, compilation, properties,
+            (orgPropertyName, propertyName) => MappingGenerator.GeneratePropertyMappingLine(propertyName, orgPropertyName, "dto", "result"),
+            null);
+        if (fieldMappingLines.Any())
+            mappingLines.AddRange(fieldMappingLines);
 
         var methodCode = MappingGenerator.GenerateDtoToEntityMapping(
             fullUpInputClassName,
@@ -235,12 +252,19 @@ public class EntityMappingGenerator : TransitiveDtoGenerator
 
         // 添加命名空间前缀
         var fullCrInputClassName = $"{crInputClassName}";
-
+        HashSet<string> properties = [];
         // 使用MappingGenerator生成映射方法
         var mappingLines = GenerateMappingLines<PropertyDeclarationSyntax>(
-            orgClassDeclaration, compilation,
+            orgClassDeclaration, compilation, properties,
             (orgPropertyName, propertyName) => MappingGenerator.GeneratePropertyMappingLine(orgPropertyName, propertyName, "entity", "result"),
             false); // 只处理非主键属性
+
+        var fieldMappingLines = GenerateMappingLines<FieldDeclarationSyntax>(
+            orgClassDeclaration, compilation, properties,
+            (orgPropertyName, propertyName) => MappingGenerator.GeneratePropertyMappingLine(orgPropertyName, propertyName, "entity", "result"),
+            false);
+        if (fieldMappingLines.Any())
+            mappingLines.AddRange(fieldMappingLines);
 
         var methodCode = MappingGenerator.GenerateEntityToDtoMapping(
             orgClassName,
@@ -265,11 +289,19 @@ public class EntityMappingGenerator : TransitiveDtoGenerator
         // 添加命名空间前缀
         var fullUpInputClassName = $"{upInputClassName}";
 
+        HashSet<string> properties = [];
         // 使用MappingGenerator生成映射方法
         var mappingLines = GenerateMappingLines<PropertyDeclarationSyntax>(
-            orgClassDeclaration, compilation,
+            orgClassDeclaration, compilation, properties,
             (orgPropertyName, propertyName) => MappingGenerator.GeneratePropertyMappingLine(orgPropertyName, propertyName, "entity", "result"),
             null); // 处理所有属性
+
+        var fieldMappingLines = GenerateMappingLines<FieldDeclarationSyntax>(
+            orgClassDeclaration, compilation, properties,
+            (orgPropertyName, propertyName) => MappingGenerator.GeneratePropertyMappingLine(orgPropertyName, propertyName, "entity", "result"),
+            null);
+        if (fieldMappingLines.Any())
+            mappingLines.AddRange(fieldMappingLines);
 
         var methodCode = MappingGenerator.GenerateEntityToDtoMapping(
             orgClassName,
@@ -293,10 +325,16 @@ public class EntityMappingGenerator : TransitiveDtoGenerator
 
         // 添加命名空间前缀
         var fullVoClassName = $"{voClassName}";
-
+        HashSet<string> properties = [];
         // 使用MappingGenerator生成映射方法
-        var mappingLines = GenerateMappingLines<PropertyDeclarationSyntax>(orgClassDeclaration, compilation,
+        var mappingLines = GenerateMappingLines<PropertyDeclarationSyntax>(
+            orgClassDeclaration, compilation, properties,
             (orgPropertyName, propertyName) => MappingGenerator.GeneratePropertyMappingLine(orgPropertyName, propertyName, "entity", "result"));
+        var fieldMappingLines = GenerateMappingLines<PropertyDeclarationSyntax>(
+           orgClassDeclaration, compilation, properties,
+           (orgPropertyName, propertyName) => MappingGenerator.GeneratePropertyMappingLine(orgPropertyName, propertyName, "entity", "result"));
+        if (fieldMappingLines.Any())
+            mappingLines.AddRange(fieldMappingLines);
 
         var methodCode = MappingGenerator.GenerateEntityToDtoMapping(
             orgClassName,
@@ -320,10 +358,16 @@ public class EntityMappingGenerator : TransitiveDtoGenerator
 
         // 添加命名空间前缀
         var fullVoClassName = $"{voClassName}";
-
+        HashSet<string> properties = [];
         // 使用MappingGenerator生成映射方法
-        var mappingLines = GenerateMappingLines<PropertyDeclarationSyntax>(orgClassDeclaration, compilation,
+        var mappingLines = GenerateMappingLines<PropertyDeclarationSyntax>(
+            orgClassDeclaration, compilation, properties,
             (orgPropertyName, propertyName) => MappingGenerator.GeneratePropertyMappingLine(orgPropertyName, propertyName, "entity", "result"));
+        var fieldMappingLines = GenerateMappingLines<PropertyDeclarationSyntax>(
+            orgClassDeclaration, compilation, properties,
+            (orgPropertyName, propertyName) => MappingGenerator.GeneratePropertyMappingLine(orgPropertyName, propertyName, "entity", "result"));
+        if (fieldMappingLines.Any())
+            mappingLines.AddRange(fieldMappingLines);
 
         var methodCode = MappingGenerator.GenerateEntityToDtoMapping(
             orgClassName,
@@ -384,7 +428,7 @@ public class EntityMappingGenerator : TransitiveDtoGenerator
     /// </summary>
     private List<string> GenerateMappingLines<T>(
         ClassDeclarationSyntax orgClassDeclaration,
-        Compilation compilation,
+        Compilation compilation, HashSet<string> properties,
         Func<string, string, string> generateMappingLine,
         bool? primaryKeyOnly = null) where T : MemberDeclarationSyntax
     {
@@ -392,6 +436,10 @@ public class EntityMappingGenerator : TransitiveDtoGenerator
 
         ProcessMembers<T>(orgClassDeclaration, compilation, (member, orgPropertyName, propertyName) =>
         {
+            if (properties.Contains(propertyName))
+                return;
+            properties.Add(propertyName);
+
             var mappingLine = generateMappingLine(orgPropertyName, propertyName);
             if (!string.IsNullOrEmpty(mappingLine))
             {

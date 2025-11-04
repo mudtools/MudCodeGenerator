@@ -98,10 +98,13 @@ namespace Mud.EntityCodeGenerator
                 .OfType<PropertyDeclarationSyntax>()
                 .Select(p => p.Identifier.Text), StringComparer.OrdinalIgnoreCase);
 
-            foreach (var member in orgClassDeclaration.Members.OfType<FieldDeclarationSyntax>().Where(m => !SyntaxHelper.IsValidPrivateField(m)))
+            foreach (var member in orgClassDeclaration.Members.OfType<FieldDeclarationSyntax>())
             {
                 try
                 {
+                    if (!SyntaxHelper.IsValidPrivateField(member))
+                        continue;
+
                     if (IsIgnoreGenerator(member))
                         continue;
 

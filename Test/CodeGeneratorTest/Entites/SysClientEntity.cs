@@ -7,6 +7,8 @@ namespace CodeGeneratorTest.Entites;
 [DtoGenerator, Builder]
 public partial class SysClientEntity
 {
+    private const string Key = "KEY";
+
     /// <summary>
     /// id
     /// </summary>

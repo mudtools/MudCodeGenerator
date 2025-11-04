@@ -268,6 +268,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
         ClassDeclarationSyntax orgClassDeclaration,
         ClassDeclarationSyntax localClass,
         Compilation compilation,
+        HashSet<string> propertes,
         Func<T, PropertyDeclarationSyntax?> genAttributeFunc,
         Func<T, PropertyDeclarationSyntax?>? genExtAttributeFunc = null)
          where T : MemberDeclarationSyntax
@@ -286,7 +287,9 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
                 var propertyDeclaration = genAttributeFunc(member);
                 if (propertyDeclaration == null)
                     return;
-
+                if (propertes.Contains(propertyName))
+                    return;
+                propertes.Add(propertyName);
                 var attris = GetPropertyAttributes();
                 if (attris.Any())
                 {
