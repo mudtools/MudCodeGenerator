@@ -1,4 +1,5 @@
 ﻿
+using System.Globalization;
 using System.Text;
 
 namespace Mud.CodeGenerator;
@@ -304,10 +305,10 @@ internal static class PrivateFieldNamingHelper
 
         return style switch
         {
-            FieldNamingStyle.MPrefixPascal => "m_" + char.ToUpper(typeName[0]) + typeName.Substring(1).ToLower(),
-            FieldNamingStyle.UnderscoreCamel => "_" + char.ToLower(typeName[0]) + typeName.Substring(1).ToLower(),
-            FieldNamingStyle.PureCamel => char.ToLower(typeName[0]) + typeName.Substring(1).ToLower(),
-            _ => "_" + char.ToLower(typeName[0]) + typeName.Substring(1).ToLower()
+            FieldNamingStyle.MPrefixPascal => "m_" + char.ToUpper(typeName[0], CultureInfo.CurrentCulture) + typeName.Substring(1).ToLower(CultureInfo.CurrentCulture),
+            FieldNamingStyle.UnderscoreCamel => "_" + char.ToLower(typeName[0], CultureInfo.CurrentCulture) + typeName.Substring(1).ToLower(CultureInfo.CurrentCulture),
+            FieldNamingStyle.PureCamel => char.ToLower(typeName[0], CultureInfo.CurrentCulture) + typeName.Substring(1).ToLower(CultureInfo.CurrentCulture),
+            _ => "_" + char.ToLower(typeName[0], CultureInfo.CurrentCulture) + typeName.Substring(1).ToLower(CultureInfo.CurrentCulture)
         };
     }
 
