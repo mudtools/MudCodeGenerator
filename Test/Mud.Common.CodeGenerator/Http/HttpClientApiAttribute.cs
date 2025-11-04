@@ -12,4 +12,6 @@ public class HttpClientApiAttribute : Attribute
         BaseAddress = baseAddress;
     }
     public string BaseAddress { get; set; }
+
+    public int Timeout { get; set; } = 50;
 }

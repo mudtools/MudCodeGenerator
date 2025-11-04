@@ -274,7 +274,7 @@ public class HttpClientApiSourceGenerator : TransitiveCodeGenerator
 
         if (httpMethodAttr == null) return MethodAnalysisResult.Invalid;
 
-        var httpMethod = httpMethodAttr.Name.ToString().ToUpperInvariant();
+        var httpMethod = httpMethodAttr.Name.ToString();
         var urlTemplate = GetAttributeArgumentValue(httpMethodAttr, 0)?.ToString().Trim('"') ?? "";
 
         // 分析参数

@@ -2,7 +2,7 @@
 
 namespace CodeGeneratorTest.WebApi;
 
-[HttpClientApi("https://api.dingtalk.com")]
+[HttpClientApi("https://api.dingtalk.com", Timeout = 60)]
 public interface IDingTalkApi
 {
     [Get("/api/v1/user/{id}")]
