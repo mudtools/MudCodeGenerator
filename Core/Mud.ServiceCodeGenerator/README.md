@@ -7,6 +7,7 @@ Mud 服务代码生成器是一个基于 Roslyn 的源代码生成器，用于�
 1. **服务类代码生成** - 根据实体类自动生成服务接口和服务实现类
 2. **依赖注入代码生成** - 自动为类生成构造函数注入代码，包括日志、缓存、用户管理等常用服务
 3. **服务注册代码生成** - 自动生成服务注册扩展方法，简化依赖注入配置
+4. **HttpClient API 代码生成** - 自动为标记了 HTTP 方法特性的接口生成 HttpClient 实现类
 
 ## 项目参数配置
 
@@ -403,6 +404,309 @@ public partial class UserService
     // 只有_userRepository会被构造函数注入
 }
 ```
+
+## HttpClient API 代码生成
+
+HttpClientApiSourceGenerator 自动为标记了 [HttpClientApi] 特性的接口生成 HttpClient 实现类，支持 RESTful API 调用。
+
+### 基本用法
+
+#### 1. 定义 HTTP API 接口
+
+```CSharp
+[HttpClientApi]
+public interface IDingTalkApi
+{
+    [Get("/api/v1/user/{id}")]
+    Task<UserDto> GetUserAsync([Query] string id);
+    
+    [Post("/api/v1/user")]
+    Task<UserDto> CreateUserAsync([Body] UserDto user);
+    
+    [Put("/api/v1/user/{id}")]
+    Task<UserDto> UpdateUserAsync([Path] string id, [Body] UserDto user);
+    
+    [Delete("/api/v1/user/{id}")]
+    Task<bool> DeleteUserAsync([Path] string id);
+}
+```
+
+#### 2. 生成的 HttpClient 实现类
+
+自动生成的实现类包含完整的 HTTP 请求处理逻辑：
+
+```CSharp
+// 自动生成的代码
+public partial class DingTalkApi : IDingTalkApi
+{
+    private readonly HttpClient _httpClient;
+    private readonly ILogger<DingTalkApi> _logger;
+    private readonly JsonSerializerOptions _jsonSerializerOptions;
+    
+    public DingTalkApi(HttpClient httpClient, ILogger<DingTalkApi> logger)
+    {
+        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _jsonSerializerOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = false,
+            PropertyNameCaseInsensitive = true
+        };
+    }
+    
+    public async Task<UserDto> GetUserAsync(string id)
+    {
+        // 自动生成的 HTTP GET 请求逻辑
+        _logger.LogDebug("开始HTTP GET请求: {Url}", "/api/v1/user/{id}");
+        
+        var url = $"/api/v1/user/{id}";
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        
+        // 处理查询参数
+        var queryParams = new List<string>();
+        if (id != null)
+            queryParams.Add($"id={id}");
+        
+        if (queryParams.Any())
+            url += "?" + string.Join("&", queryParams);
+        
+        // 发送请求并处理响应
+        // ... 完整的请求处理逻辑
+    }
+}
+```
+
+### 支持的 HTTP 方法特性
+
+支持所有标准的 HTTP 方法：
+
+```CSharp
+[HttpClientApi]
+public interface IExampleApi
+{
+    [Get("/api/resource/{id}")]
+    Task<ResourceDto> GetResourceAsync([Path] string id);
+    
+    [Post("/api/resource")]
+    Task<ResourceDto> CreateResourceAsync([Body] ResourceDto resource);
+    
+    [Put("/api/resource/{id}")]
+    Task<ResourceDto> UpdateResourceAsync([Path] string id, [Body] ResourceDto resource);
+    
+    [Delete("/api/resource/{id}")]
+    Task<bool> DeleteResourceAsync([Path] string id);
+    
+    [Patch("/api/resource/{id}")]
+    Task<ResourceDto> PatchResourceAsync([Path] string id, [Body] object patchData);
+    
+    [Head("/api/resource/{id}")]
+    Task<bool> CheckResourceExistsAsync([Path] string id);
+    
+    [Options("/api/resource")]
+    Task<HttpResponseMessage> GetResourceOptionsAsync();
+}
+```
+
+### 参数特性详解
+
+#### 1. Path 参数特性
+
+用于替换 URL 模板中的路径参数：
+
+```CSharp
+[Get("/api/users/{userId}/orders/{orderId}")]
+Task<OrderDto> GetOrderAsync([Path] string userId, [Path] string orderId);
+```
+
+#### 2. Query 参数特性
+
+用于生成查询字符串参数：
+
+```CSharp
+[Get("/api/users")]
+Task<List<UserDto>> GetUsersAsync(
+    [Query] string name, 
+    [Query] int? page, 
+    [Query] int? pageSize);
+```
+
+#### 3. Body 参数特性
+
+用于设置请求体内容：
+
+```CSharp
+[Post("/api/users")]
+Task<UserDto> CreateUserAsync([Body] UserDto user);
+
+// 支持自定义内容类型
+[Post("/api/users")]
+Task<UserDto> CreateUserAsync([Body(ContentType = "application/xml")] UserDto user);
+
+// 支持字符串内容
+[Post("/api/logs")]
+Task LogMessageAsync([Body(UseStringContent = true)] string message);
+```
+
+#### 4. Header 参数特性
+
+用于设置请求头：
+
+```CSharp
+[Get("/api/protected")]
+Task<ProtectedData> GetProtectedDataAsync([Header] string authorization);
+
+// 自定义头名称
+[Get("/api/protected")]
+Task<ProtectedData> GetProtectedDataAsync([Header("X-API-Key")] string apiKey);
+```
+
+### 复杂参数处理
+
+#### 1. 复杂查询参数
+
+支持复杂对象作为查询参数，自动展开为键值对：
+
+```CSharp
+[Get("/api/search")]
+Task<List<UserDto>> SearchUsersAsync([Query] UserSearchCriteria criteria);
+
+public class UserSearchCriteria
+{
+    public string Name { get; set; }
+    public int? Age { get; set; }
+    public string Department { get; set; }
+}
+
+// 生成的查询字符串：?Name=John&Age=30&Department=IT
+```
+
+#### 2. 路径参数自动替换
+
+自动处理 URL 模板中的路径参数：
+
+```CSharp
+[Get("/api/users/{userId}/orders/{orderId}/items/{itemId}")]
+Task<OrderItemDto> GetOrderItemAsync(
+    [Path] string userId, 
+    [Path] string orderId, 
+    [Path] string itemId);
+
+// 自动替换：/api/users/123/orders/456/items/789
+```
+
+### 错误处理与日志记录
+
+生成的代码包含完整的错误处理和日志记录：
+
+```CSharp
+public async Task<UserDto> GetUserAsync(string id)
+{
+    try
+    {
+        _logger.LogDebug("开始HTTP GET请求: {Url}", "/api/v1/user/{id}");
+        
+        // 请求处理逻辑
+        
+        using var response = await _httpClient.SendAsync(request);
+        var responseContent = await response.Content.ReadAsStringAsync();
+        
+        _logger.LogDebug("HTTP请求完成: {StatusCode}, 响应长度: {ContentLength}", 
+            (int)response.StatusCode, responseContent?.Length ?? 0);
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError("HTTP请求失败: {StatusCode}, 响应: {Response}", 
+                (int)response.StatusCode, responseContent);
+            throw new HttpRequestException($"HTTP请求失败: {(int)response.StatusCode} - {response.ReasonPhrase}");
+        }
+        
+        // 响应处理逻辑
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "HTTP请求异常: {Url}", url);
+        throw;
+    }
+}
+```
+
+### 配置选项
+
+#### 1. 自定义 JsonSerializerOptions
+
+生成的构造函数包含默认的 JsonSerializerOptions 配置：
+
+```CSharp
+_jsonSerializerOptions = new JsonSerializerOptions
+{
+    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    WriteIndented = false,
+    PropertyNameCaseInsensitive = true
+};
+```
+
+#### 2. 支持可空返回值
+
+自动处理可空返回值类型：
+
+```CSharp
+[Get("/api/users/{id}")]
+Task<UserDto?> GetUserOrNullAsync([Path] string id);
+```
+
+### 使用示例
+
+#### 1. 在依赖注入中注册
+
+```CSharp
+// 在 Startup.cs 或 Program.cs 中
+services.AddHttpClient<IDingTalkApi, DingTalkApi>(client =>
+{
+    client.BaseAddress = new Uri("https://api.dingtalk.com");
+    client.DefaultRequestHeaders.Add("User-Agent", "MyApp/1.0");
+});
+```
+
+#### 2. 在服务中使用
+
+```CSharp
+public class UserService
+{
+    private readonly IDingTalkApi _dingTalkApi;
+    
+    public UserService(IDingTalkApi dingTalkApi)
+    {
+        _dingTalkApi = dingTalkApi;
+    }
+    
+    public async Task<UserDto> GetUserAsync(string userId)
+    {
+        return await _dingTalkApi.GetUserAsync(userId);
+    }
+}
+```
+
+### 高级功能
+
+#### 1. 组合使用多个参数特性
+
+```CSharp
+[Post("/api/users/{userId}/permissions")]
+Task<bool> AssignPermissionsAsync(
+    [Path] string userId,
+    [Body] List<string> permissions,
+    [Header("X-Request-ID")] string requestId,
+    [Query] bool? overwrite);
+```
+
+#### 2. 自定义内容序列化
+
+```CSharp
+[Post("/api/data")]
+Task<ResponseDto> SendDataAsync([Body(ContentType = "application/xml", UseStringContent = true)] string xmlData);
+```
+
 
 ## 生成代码查看
 

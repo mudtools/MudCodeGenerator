@@ -365,4 +365,19 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     {
         context.ReportDiagnostic(Diagnostic.Create(descriptor, Location.None, className, exception?.Message));
     }
+
+    /// <summary>
+    /// 报告警告诊断信息
+    /// </summary>
+    /// <param name="context">源码生成上下文</param>
+    /// <param name="descriptor">诊断描述符</param>
+    /// <param name="className">类名</param>
+    protected void ReportWarningDiagnostic(
+        SourceProductionContext context,
+        DiagnosticDescriptor descriptor,
+        string className)
+    {
+        context.ReportDiagnostic(Diagnostic.Create(descriptor, Location.None, className));
+    }
+
 }

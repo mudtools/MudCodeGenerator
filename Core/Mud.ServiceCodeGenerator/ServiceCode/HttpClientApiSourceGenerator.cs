@@ -1,20 +1,46 @@
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
 using System.Text;
 
 namespace Mud.ServiceCodeGenerator;
 
+/// <summary>
+/// HttpClient API 源生成器
+/// <para>基于 Roslyn 技术，自动为标记了 [HttpClientApi] 特性的接口生成 HttpClient 实现类。</para>
+/// <para>支持 HTTP 方法：Get, Post, Put, Delete, Patch, Head, Options。</para>
+/// </summary>
+/// <remarks>
+/// <para>使用方式：</para>
+/// <code>
+/// [HttpClientApi]
+/// public interface IDingTalkApi
+/// {
+///     [Get("/api/v1/user/{id}")]
+///     Task&lt;UserDto&gt; GetUserAsync([Query] string id);
+///     
+///     [Post("/api/v1/user")]
+///     Task&lt;UserDto&gt; CreateUserAsync([Body] UserDto user);
+/// }
+/// </code>
+/// </remarks>
 [Generator]
 public class HttpClientApiSourceGenerator : TransitiveCodeGenerator
 {
     private const string HttpClientApiAttributeName = "HttpClientApiAttribute";
     private static readonly string[] SupportedHttpMethods = ["Get", "Post", "Put", "Delete", "Patch", "Head", "Options"];
 
+    /// <summary>
+    /// 初始化源生成器
+    /// </summary>
+    /// <param name="context">增量生成器初始化上下文</param>
+    /// <remarks>
+    /// 此方法设置源生成器的管道，包括：
+    /// <list type="bullet">
+    /// <item><description>查找标记了 [HttpClientApi] 特性的接口</description></item>
+    /// <item><description>组合编译信息和接口声明</description></item>
+    /// <item><description>注册源生成输出</description></item>
+    /// </list>
+    /// </remarks>
     public override void Initialize(IncrementalGeneratorInitializationContext context)
     {
         // 使用自定义方法查找标记了[HttpClientApi]的接口
@@ -59,7 +85,13 @@ public class HttpClientApiSourceGenerator : TransitiveCodeGenerator
         return generationInfo;
     }
 
-    // 重写获取文件使用的命名空间
+    /// <summary>
+    /// 获取生成代码文件需要使用的命名空间
+    /// </summary>
+    /// <returns>命名空间集合</returns>
+    /// <remarks>
+    /// 重写基类方法，提供 HttpClient API 实现类所需的命名空间。
+    /// </remarks>
     protected override System.Collections.ObjectModel.Collection<string> GetFileUsingNameSpaces()
     {
         return ["System", "System.Net.Http", "System.Text", "System.Text.Json",
@@ -81,13 +113,55 @@ public class HttpClientApiSourceGenerator : TransitiveCodeGenerator
 
                 if (interfaceSymbol != null)
                 {
+                    // 验证接口是否包含有效的HTTP方法
+                    if (!HasValidHttpMethods(interfaceSymbol, interfaceDecl))
+                    {
+                        ReportWarningDiagnostic(context,
+                            new DiagnosticDescriptor(
+                                "HTTPCLIENT002",
+                                "HttpClient API警告",
+                                $"接口{interfaceDecl.Identifier.Text}不包含有效的HTTP方法特性，跳过生成",
+                                "Generation",
+                                DiagnosticSeverity.Warning,
+                                true),
+                            interfaceDecl.Identifier.Text);
+                        continue;
+                    }
+
                     var sourceCode = GenerateImplementationClass(interfaceSymbol, interfaceDecl);
                     var className = GetImplementationClassName(interfaceSymbol.Name);
                     context.AddSource($"{className}.g.cs", SourceText.From(sourceCode, Encoding.UTF8));
                 }
             }
+            catch (InvalidOperationException ex)
+            {
+                // 特定异常：语法分析错误
+                ReportErrorDiagnostic(context,
+                    new DiagnosticDescriptor(
+                        "HTTPCLIENT003",
+                        "HttpClient API语法错误",
+                        $"接口{interfaceDecl.Identifier.Text}的语法分析失败: {0}",
+                        "Generation",
+                        DiagnosticSeverity.Error,
+                        true),
+                    interfaceDecl.Identifier.Text, ex);
+            }
+            catch (ArgumentException ex)
+            {
+                // 特定异常：参数错误
+                ReportErrorDiagnostic(context,
+                    new DiagnosticDescriptor(
+                        "HTTPCLIENT004",
+                        "HttpClient API参数错误",
+                        $"接口{interfaceDecl.Identifier.Text}的参数配置错误: {0}",
+                        "Generation",
+                        DiagnosticSeverity.Error,
+                        true),
+                    interfaceDecl.Identifier.Text, ex);
+            }
             catch (System.Exception ex)
             {
+                // 通用异常处理
                 ReportErrorDiagnostic(context,
                     new DiagnosticDescriptor(
                         "HTTPCLIENT001",
@@ -121,16 +195,16 @@ public class HttpClientApiSourceGenerator : TransitiveCodeGenerator
         return sb.ToString();
     }
 
-    private static void GenerateFileHeader(StringBuilder sb, string className, string namespaceName, string interfaceName)
+    private void GenerateFileHeader(StringBuilder sb, string className, string namespaceName, string interfaceName)
     {
         sb.AppendLine("// <auto-generated/>");
-        sb.AppendLine("// 此代码由HttpClient API源生成器自动生成，请勿手动修改");
+        sb.AppendLine("// 此代码由Mud.ServiceCodeGenerator源生成器自动生成，请勿手动修改");
         sb.AppendLine($"// 生成时间: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
         sb.AppendLine();
         sb.AppendLine("#nullable enable");
 
         // 使用基类的命名空间
-        var usingNamespaces = new HttpClientApiSourceGenerator().GetFileUsingNameSpaces();
+        var usingNamespaces = GetFileUsingNameSpaces();
         foreach (var usingNamespace in usingNamespaces)
         {
             sb.AppendLine($"using {usingNamespace};");
@@ -232,8 +306,27 @@ public class HttpClientApiSourceGenerator : TransitiveCodeGenerator
         // 日志记录：开始请求
         sb.AppendLine($"            _logger.LogDebug(\"开始HTTP {methodInfo.HttpMethod}请求: {{Url}}\", \"{methodInfo.UrlTemplate}\");");
 
-        // 构建URL
-        sb.AppendLine($"            var url = $\"{methodInfo.UrlTemplate}\";");
+        // 构建URL - 处理路径参数替换
+        var urlBuilder = new StringBuilder($"var url = $\"{methodInfo.UrlTemplate}\";");
+
+        // 处理路径参数替换
+        var pathParams = methodInfo.Parameters
+            .Where(p => p.Attributes.Any(attr => attr.Name == "PathAttribute" || attr.Name == "RouteAttribute"))
+            .ToList();
+
+        if (pathParams.Any())
+        {
+            urlBuilder.Clear();
+            urlBuilder.AppendLine($"            var url = $\"{methodInfo.UrlTemplate}\";");
+
+            foreach (var param in pathParams)
+            {
+                // 替换URL模板中的占位符 {paramName}
+                urlBuilder.AppendLine($"            url = url.Replace(\"{{{param.Name}}}\", {param.Name}?.ToString() ?? \"\");");
+            }
+        }
+
+        sb.AppendLine(urlBuilder.ToString());
 
         // 创建HttpRequestMessage
         sb.AppendLine($"            using var request = new HttpRequestMessage(HttpMethod.{methodInfo.HttpMethod}, url);");
@@ -250,8 +343,26 @@ public class HttpClientApiSourceGenerator : TransitiveCodeGenerator
             sb.AppendLine("            var queryParams = new List<string>();");
             foreach (var param in queryParams)
             {
-                sb.AppendLine($"            if ({param.Name} != null)");
-                sb.AppendLine($"                queryParams.Add($\"{param.Name}={{{param.Name}}}\");");
+                // 处理简单类型和复杂类型的查询参数
+                if (IsSimpleType(param.Type))
+                {
+                    sb.AppendLine($"            if ({param.Name} != null)");
+                    sb.AppendLine($"                queryParams.Add($\"{param.Name}={{{param.Name}}}\");");
+                }
+                else
+                {
+                    // 处理复杂类型（如对象）的查询参数
+                    sb.AppendLine($"            if ({param.Name} != null)");
+                    sb.AppendLine("            {");
+                    sb.AppendLine($"                var properties = {param.Name}.GetType().GetProperties();");
+                    sb.AppendLine("                foreach (var prop in properties)");
+                    sb.AppendLine("                {");
+                    sb.AppendLine("                    var value = prop.GetValue(param);");
+                    sb.AppendLine("                    if (value != null)");
+                    sb.AppendLine($"                        queryParams.Add($\"{{prop.Name}}={{value}}\");");
+                    sb.AppendLine("                }");
+                    sb.AppendLine("            }");
+                }
             }
             sb.AppendLine("            if (queryParams.Any())");
             sb.AppendLine("                url += \"?\" + string.Join(\"&\", queryParams);");
@@ -379,30 +490,143 @@ public class HttpClientApiSourceGenerator : TransitiveCodeGenerator
         return returnType.ToDisplayString();
     }
 
-    // 辅助类
+    /// <summary>
+    /// 判断是否为简单类型
+    /// </summary>
+    /// <param name="typeName">类型名称</param>
+    /// <returns>是否为简单类型</returns>
+    private bool IsSimpleType(string typeName)
+    {
+        var simpleTypes = new[] { "string", "int", "long", "float", "double", "decimal", "bool", "DateTime", "Guid" };
+        return simpleTypes.Contains(typeName) ||
+               typeName.StartsWith("string?", StringComparison.OrdinalIgnoreCase) || typeName.StartsWith("int?", StringComparison.OrdinalIgnoreCase) ||
+               typeName.StartsWith("long?", StringComparison.OrdinalIgnoreCase) || typeName.StartsWith("float?", StringComparison.OrdinalIgnoreCase) ||
+               typeName.StartsWith("double?", StringComparison.OrdinalIgnoreCase) || typeName.StartsWith("decimal?", StringComparison.OrdinalIgnoreCase) ||
+               typeName.StartsWith("bool?", StringComparison.OrdinalIgnoreCase) || typeName.StartsWith("DateTime?", StringComparison.OrdinalIgnoreCase) ||
+               typeName.StartsWith("Guid?", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// 验证接口是否包含有效的HTTP方法
+    /// </summary>
+    /// <param name="interfaceSymbol">接口符号</param>
+    /// <param name="interfaceDecl">接口声明语法</param>
+    /// <returns>是否包含有效的HTTP方法</returns>
+    private bool HasValidHttpMethods(INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDecl)
+    {
+        var methods = interfaceSymbol.GetMembers().OfType<IMethodSymbol>();
+
+        foreach (var methodSymbol in methods)
+        {
+            var methodSyntax = interfaceDecl.Members
+                .OfType<MethodDeclarationSyntax>()
+                .FirstOrDefault(m => m.Identifier.ValueText == methodSymbol.Name);
+
+            if (methodSyntax != null)
+            {
+                var hasHttpMethod = methodSyntax.AttributeLists
+                    .SelectMany(a => a.Attributes)
+                    .Any(a => SupportedHttpMethods.Contains(a.Name.ToString()));
+
+                if (hasHttpMethod)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 方法分析结果
+    /// </summary>
+    /// <remarks>
+    /// 用于存储接口方法的分析信息，包括 HTTP 方法、URL 模板、参数等。
+    /// </remarks>
     private class MethodAnalysisResult
     {
+        /// <summary>
+        /// 方法是否有效
+        /// </summary>
         public bool IsValid { get; set; }
+
+        /// <summary>
+        /// 方法名称
+        /// </summary>
         public string MethodName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// HTTP 方法（GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS）
+        /// </summary>
         public string HttpMethod { get; set; } = string.Empty;
+
+        /// <summary>
+        /// URL 模板，支持参数占位符
+        /// </summary>
         public string UrlTemplate { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 返回类型显示字符串
+        /// </summary>
         public string ReturnType { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 方法参数列表
+        /// </summary>
         public List<ParameterInfo> Parameters { get; set; } = [];
 
+        /// <summary>
+        /// 无效的分析结果实例
+        /// </summary>
         public static MethodAnalysisResult Invalid => new() { IsValid = false };
     }
 
+    /// <summary>
+    /// 参数信息
+    /// </summary>
+    /// <remarks>
+    /// 存储方法参数的详细信息，包括参数名、类型和特性。
+    /// </remarks>
     private class ParameterInfo
     {
+        /// <summary>
+        /// 参数名称
+        /// </summary>
         public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 参数类型显示字符串
+        /// </summary>
         public string Type { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 参数特性列表
+        /// </summary>
         public List<ParameterAttributeInfo> Attributes { get; set; } = [];
     }
 
+    /// <summary>
+    /// 参数特性信息
+    /// </summary>
+    /// <remarks>
+    /// 存储参数特性的详细信息，包括特性名称、构造函数参数和命名参数。
+    /// </remarks>
     private class ParameterAttributeInfo
     {
+        /// <summary>
+        /// 特性名称
+        /// </summary>
         public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 构造函数参数数组
+        /// </summary>
         public object?[] Arguments { get; set; } = [];
+
+        /// <summary>
+        /// 命名参数字典
+        /// </summary>
         public Dictionary<string, object?> NamedArguments { get; set; } = [];
     }
 }
