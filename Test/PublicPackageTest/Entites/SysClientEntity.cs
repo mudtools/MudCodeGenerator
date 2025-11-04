@@ -29,31 +29,4 @@ public partial class SysClientEntity
     [property: Column(Name = "del_flag", Position = 10)]
     [IgnoreQuery]
     private string _delFlag;
-
-    /// <summary>
-    /// id
-    /// </summary>
-    public long? Id
-    {
-        get { return _id; }
-        set { _id = value; }
-    }
-
-    /// <summary>
-    /// 客户端key
-    /// </summary>
-    public string ClientKey
-    {
-        get { return _clientKey; }
-        set { _clientKey = value; }
-    }
-
-    /// <summary>
-    /// 删除标志（0代表存在 2代表删除）
-    /// </summary>
-    public string DelFlag
-    {
-        get { return _delFlag; }
-        set { _delFlag = value; }
-    }
 }
