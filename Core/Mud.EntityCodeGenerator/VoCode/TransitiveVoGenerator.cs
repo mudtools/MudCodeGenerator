@@ -82,7 +82,7 @@ public class TransitiveVoGenerator : BaseDtoGenerator
         if (!viewAttributes.Any())
             return null;
 
-        var propertyName = GetFirstLowerPropertyName(member);
+        var propertyName = GetPropertyName(member);
         var viewAttribute = viewAttributes[0];
         var extPropertyName = GetGenPropertyName(viewAttribute, propertyName + "Str");
         var convertType = GetConvertPropety(viewAttribute);
@@ -136,7 +136,7 @@ public class TransitiveVoGenerator : BaseDtoGenerator
         if (!viewAttributes.Any())
             return null;
 
-        var propertyName = GetFirstUpperPropertyName(member);
+        var propertyName = GetPropertyName(member);
         var viewAttribute = viewAttributes[0];
         var extPropertyName = GetGenPropertyName(viewAttribute, propertyName + "Str");
         var convertType = GetConvertPropety(viewAttribute);

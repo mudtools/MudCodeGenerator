@@ -199,7 +199,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     /// <returns>属性名和属性类型元组。</returns>
     private (string propertyName, string propertyType) GetPropertyInfo(PropertyDeclarationSyntax propertySyntax)
     {
-        var propertyName = ApplyNameCaseConvention(GetPropertyName(propertySyntax));
+        var propertyName = ApplyNameCaseConvention(GetOrgPropertyName(propertySyntax));
         var propertyType = SyntaxHelper.GetPropertyType(propertySyntax);
         return (propertyName, propertyType);
     }
@@ -230,24 +230,23 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     }
 
     /// <summary>
+    /// 获取基于字段声明的属性名（基于字段声明）。
+    /// </summary>
+    /// <param name="declarationSyntax">字段声明。</param>
+    protected string GetPropertyName(FieldDeclarationSyntax declarationSyntax)
+    {
+        var fieldName = GetFieldName(declarationSyntax);
+        return ApplyNameCaseConvention(ToPropertyName(fieldName));
+    }
+
+    /// <summary>
     /// 获取首字母小写的属性名（根据配置）。
     /// </summary>
     /// <param name="declarationSyntax">属性声明。</param>
     /// <returns>首字母小写的属性名。</returns>
-    protected string GetFirstLowerPropertyName(PropertyDeclarationSyntax declarationSyntax)
+    protected string GetPropertyName(PropertyDeclarationSyntax declarationSyntax)
     {
-        return ApplyNameCaseConvention(GetPropertyName(declarationSyntax));
-    }
-
-    /// <summary>
-    /// 获取首字母大写的属性名（基于字段声明）。
-    /// </summary>
-    /// <param name="declarationSyntax">字段声明。</param>
-    /// <returns>首字母大写的字符串。</returns>
-    protected string GetFirstUpperPropertyName(FieldDeclarationSyntax declarationSyntax)
-    {
-        var fieldName = GetFieldName(declarationSyntax);
-        return ApplyNameCaseConvention(ToPropertyName(fieldName));
+        return ApplyNameCaseConvention(GetOrgPropertyName(declarationSyntax));
     }
 
     /// <summary>
@@ -255,7 +254,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     /// </summary>
     /// <param name="declarationSyntax">属性声明。</param>
     /// <returns>属性名。</returns>
-    protected string GetPropertyName(PropertyDeclarationSyntax declarationSyntax)
+    protected string GetOrgPropertyName(PropertyDeclarationSyntax declarationSyntax)
     {
         if (declarationSyntax?.Identifier == null)
             return string.Empty;
@@ -274,7 +273,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     /// </summary>
     /// <param name="declarationSyntax">变量声明。</param>
     /// <returns>字段变量名。</returns>
-    public static string GetFieldName(VariableDeclarationSyntax? declarationSyntax)
+    private string GetFieldName(VariableDeclarationSyntax? declarationSyntax)
     {
         if (declarationSyntax == null)
             return "";

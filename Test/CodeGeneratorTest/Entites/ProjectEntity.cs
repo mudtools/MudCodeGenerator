@@ -1,6 +1,4 @@
-﻿using FreeSql.DataAnnotations;
-
-namespace CodeGeneratorTest.Entites;
+﻿namespace CodeGeneratorTest.Entites;
 
 /// <summary>
 /// 项目管理

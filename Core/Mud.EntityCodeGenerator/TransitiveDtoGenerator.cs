@@ -239,11 +239,11 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
 
         if (member is PropertyDeclarationSyntax property)
         {
-            orgPropertyName = GetPropertyName(property);
+            orgPropertyName = GetOrgPropertyName(property);
         }
         else if (member is FieldDeclarationSyntax field)
         {
-            orgPropertyName = GetFirstUpperPropertyName(field);
+            orgPropertyName = GetPropertyName(field);
         }
 
         // 统一使用GetGeneratorProperty返回的属性名
@@ -577,11 +577,11 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
 
         if (member is PropertyDeclarationSyntax property)
         {
-            orgPropertyName = GetPropertyName(property);
+            orgPropertyName = GetOrgPropertyName(property);
         }
         else if (member is FieldDeclarationSyntax field)
         {
-            orgPropertyName = GetFirstUpperPropertyName(field);
+            orgPropertyName = GetPropertyName(field);
         }
 
         // BuilderGenerator 始终使用原始属性名（首字母大写）
