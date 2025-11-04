@@ -12,6 +12,7 @@
 		<RepositoryType>git</RepositoryType>
 		<PackageIcon>Icon.png</PackageIcon>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageTags>Mud;MudTools;Roslyn;SourceGenerator;代码生成器;ASP.NET;ASP.NET Core;.NET;.NET Core;</PackageTags>
 		<NoDefaultExcludes>true</NoDefaultExcludes>
 		<Copyright>© 2019-2025 Mud Studio Co.,Ltd.</Copyright>
 		<Authors>Mud Studio</Authors>
@@ -21,7 +22,6 @@
 		<AnalyzerLanguage>cs</AnalyzerLanguage>
 		<InjectIsExternalInitOnLegacy>true</InjectIsExternalInitOnLegacy>
 		<IsRoslynComponent>true</IsRoslynComponent>
-		<PackageTags>Roslyn,SourceGenerator,Mud,MudTools</PackageTags>
 		<AnalysisLevel>6.0-all</AnalysisLevel>
 		<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>

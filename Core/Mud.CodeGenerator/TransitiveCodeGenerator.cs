@@ -143,7 +143,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     /// </summary>
     /// <param name="classNode">类声明语法节点。</param>
     /// <returns>命名空间名称。</returns>
-    protected virtual string GetNamespaceName(ClassDeclarationSyntax classNode)
+    protected virtual string GetNamespaceName(TypeDeclarationSyntax classNode)
     {
         if (SyntaxHelper.TryGetParentSyntax(classNode, out NamespaceDeclarationSyntax namespaceDeclarationSyntax))
         {

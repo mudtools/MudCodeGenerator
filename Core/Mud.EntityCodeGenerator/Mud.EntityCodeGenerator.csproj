@@ -6,7 +6,7 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<GenerateDocumentationFile>False</GenerateDocumentationFile>
-		<PackageReleaseNotes>Mud 实体代码生成器是一个基于 Roslyn 的源代码生成器，用于根据实体类自动生成VO、BO以及实体映射相关各种代码的工具组件。</PackageReleaseNotes>
+		<Description>Mud 实体代码生成器是一个基于 Roslyn 的源代码生成器，用于根据实体类自动生成VO、BO以及实体映射相关各种代码的工具组件。</Description>
 	</PropertyGroup>
 	<ItemGroup>
 	  <None Remove="bin\Debug\netstandard2.0\\netstandard2.0\Mud.EntityCodeGenerator.dll" />
