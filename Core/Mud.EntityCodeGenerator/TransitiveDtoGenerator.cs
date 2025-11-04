@@ -616,6 +616,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
         if (methBody)
         {
             // 统一使用GetGeneratorProperty返回的属性名，确保大小写一致性
+            propertyName = ToPropertyName(propertyName);
             return BuildProperty(propertyName, propertyType, varName);
         }
         // 统一使用GetGeneratorProperty返回的属性名，确保大小写一致性

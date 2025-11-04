@@ -439,7 +439,10 @@ public class EntityMappingGenerator : TransitiveDtoGenerator
             if (properties.Contains(propertyName))
                 return;
             properties.Add(propertyName);
-
+            if (member is FieldDeclarationSyntax fieldDeclarationSyntax)
+            {
+                orgPropertyName = ToPropertyName(orgPropertyName);
+            }
             var mappingLine = generateMappingLine(orgPropertyName, propertyName);
             if (!string.IsNullOrEmpty(mappingLine))
             {

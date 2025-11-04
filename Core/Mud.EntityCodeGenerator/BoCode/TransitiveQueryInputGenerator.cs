@@ -49,17 +49,7 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
                             {
                                 if (IsIgnoreGenerator(member))
                                     return null;
-
-                                // 检查对应的属性是否已存在
-                                var fieldName = GetFirstUpperPropertyName(member);
-                                var existingProperty = localClass.Members.OfType<PropertyDeclarationSyntax>()
-                                    .FirstOrDefault(p => p.Identifier.Text.Equals(fieldName, StringComparison.OrdinalIgnoreCase));
-
-                                // 如果对应的属性已存在，则跳过字段处理
-                                if (existingProperty != null)
-                                    return null;
-
-                                return BuildProperty(member);
+                                return BuildProperty(member, false);
                             }, null);
 
             // 提高容错性，检查生成的类是否为空
