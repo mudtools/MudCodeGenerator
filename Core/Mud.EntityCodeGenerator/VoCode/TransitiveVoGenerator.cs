@@ -211,7 +211,7 @@ public class TransitiveVoGenerator : BaseDtoGenerator
             if (item.NameEquals?.Name?.Identifier.Text?.Equals("propertyname", StringComparison.OrdinalIgnoreCase) == true)
             {
                 var propertyValue = AttributeSyntaxHelper.ExtractValueFromSyntax(item.Expression);
-                return propertyValue != null ? ToLowerFirstLetter(propertyValue.ToString()) : defaultName;
+                return propertyValue != null ? ApplyNameCaseConvention(propertyValue.ToString()) : defaultName;
             }
         }
         return defaultName;

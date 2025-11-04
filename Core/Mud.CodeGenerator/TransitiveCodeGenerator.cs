@@ -156,13 +156,12 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
         return "";
     }
 
-    #region GetGeneratorProperty
-
+    #region Property Name Handling
     /// <summary>
-    /// 获取实体需要生成的属性信息。
+    /// 获取实体需要生成的属性信息（从配置信息中决定属性名首字母是否大小写）。
     /// </summary>
     /// <typeparam name="T">成员声明类型。</typeparam>
-    /// <param name="declarationSyntax"><seealso cref="PropertyDeclarationSyntax"/>属性声明语法。</param>
+    /// <param name="declarationSyntax">成员声明语法。</param>
     /// <returns>属性名和属性类型元组。</returns>
     protected (string propertyName, string propertyType) GetGeneratorProperty<T>(T declarationSyntax)
         where T : MemberDeclarationSyntax
@@ -170,52 +169,65 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
         if (declarationSyntax == null)
             return ("", "");
 
-        if (declarationSyntax is PropertyDeclarationSyntax propertySyntax)
+        return declarationSyntax switch
         {
-            var propertyName = GetPropertyName(propertySyntax);
-            // 根据配置决定是否将属性名首字母小写
-            if (PropertyNameLowerCaseFirstLetter)
-            {
-                propertyName = ToLowerFirstLetter(propertyName);
-            }
-            var propertyType = SyntaxHelper.GetPropertyType(propertySyntax);
-            return (propertyName, propertyType);
-        }
-        else if (declarationSyntax is FieldDeclarationSyntax fieldSyntax)
-        {
-            var propertyName = GetFirstUpperPropertyName(fieldSyntax);
-            // 根据配置决定是否将属性名首字母小写
-            if (PropertyNameLowerCaseFirstLetter)
-            {
-                propertyName = ToLowerFirstLetter(propertyName);
-            }
-            var propertyType = SyntaxHelper.GetPropertyType(fieldSyntax);
-            return (propertyName, propertyType);
-        }
-        return ("", "");
+            PropertyDeclarationSyntax propertySyntax => GetPropertyInfo(propertySyntax),
+            FieldDeclarationSyntax fieldSyntax => GetFieldInfo(fieldSyntax),
+            _ => ("", "")
+        };
     }
 
     /// <summary>
     /// 获取实体需要生成的属性信息。
     /// </summary>
-    /// <param name="propertySymbol"><seealso cref="IPropertySymbol"/>属性声明语法。</param>
+    /// <param name="propertySymbol">属性符号。</param>
     /// <returns>属性名和属性类型元组。</returns>
     protected (string propertyName, string propertyType) GetGeneratorProperty(IPropertySymbol propertySymbol)
     {
         if (propertySymbol == null)
             return ("", "");
 
-        var propertyName = propertySymbol.Name;
-        // 根据配置决定是否将属性名首字母小写
-        if (PropertyNameLowerCaseFirstLetter)
-        {
-            propertyName = ToLowerFirstLetter(propertyName);
-        }
+        var propertyName = ApplyNameCaseConvention(propertySymbol.Name);
         var propertyType = propertySymbol.Type.OriginalDefinition.Name;
         return (propertyName, propertyType);
     }
 
+    /// <summary>
+    /// 获取属性信息。
+    /// </summary>
+    /// <param name="propertySyntax">属性声明语法。</param>
+    /// <returns>属性名和属性类型元组。</returns>
+    private (string propertyName, string propertyType) GetPropertyInfo(PropertyDeclarationSyntax propertySyntax)
+    {
+        var propertyName = ApplyNameCaseConvention(GetPropertyName(propertySyntax));
+        var propertyType = SyntaxHelper.GetPropertyType(propertySyntax);
+        return (propertyName, propertyType);
+    }
 
+    /// <summary>
+    /// 获取字段信息。
+    /// </summary>
+    /// <param name="fieldSyntax">字段声明语法。</param>
+    /// <returns>属性名和属性类型元组。</returns>
+    private (string propertyName, string propertyType) GetFieldInfo(FieldDeclarationSyntax fieldSyntax)
+    {
+        var fieldName = GetFieldName(fieldSyntax);
+        var propertyName = ApplyNameCaseConvention(ToPropertyName(fieldName));
+        var propertyType = SyntaxHelper.GetPropertyType(fieldSyntax);
+        return (propertyName, propertyType);
+    }
+
+    /// <summary>
+    /// 根据配置应用命名大小写约定。
+    /// </summary>
+    /// <param name="name">原始名称。</param>
+    /// <returns>应用约定后的名称。</returns>
+    protected string ApplyNameCaseConvention(string name)
+    {
+        return PropertyNameLowerCaseFirstLetter ?
+            StringExtensions.ToLowerFirstLetter(name) :
+            name;
+    }
 
     /// <summary>
     /// 获取首字母小写的属性名（根据配置）。
@@ -224,8 +236,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     /// <returns>首字母小写的属性名。</returns>
     protected string GetFirstLowerPropertyName(PropertyDeclarationSyntax declarationSyntax)
     {
-        var propertyName = GetPropertyName(declarationSyntax);
-        return PropertyNameLowerCaseFirstLetter ? ToLowerFirstLetter(propertyName) : propertyName;
+        return ApplyNameCaseConvention(GetPropertyName(declarationSyntax));
     }
 
     /// <summary>
@@ -235,8 +246,8 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     /// <returns>首字母大写的字符串。</returns>
     protected string GetFirstUpperPropertyName(FieldDeclarationSyntax declarationSyntax)
     {
-        var propertyName = ToPropertyName(GetFieldName(declarationSyntax));
-        return PropertyNameLowerCaseFirstLetter ? ToLowerFirstLetter(propertyName) : propertyName;
+        var fieldName = GetFieldName(declarationSyntax);
+        return ApplyNameCaseConvention(ToPropertyName(fieldName));
     }
 
     /// <summary>
@@ -246,9 +257,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     /// <returns>属性名。</returns>
     protected string GetPropertyName(PropertyDeclarationSyntax declarationSyntax)
     {
-        if (declarationSyntax == null)
-            return string.Empty;
-        if (declarationSyntax.Identifier == null)
+        if (declarationSyntax?.Identifier == null)
             return string.Empty;
         return declarationSyntax.Identifier.Text;
     }
@@ -282,54 +291,33 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     }
 
     /// <summary>
-    /// 将首字母小写（根据配置）。
+    /// 将字段名转换为属性名。
     /// </summary>
-    /// <param name="input">输入字符串。</param>
-    /// <returns>首字母小写的字符串。</returns>
-    protected string ToLowerFirstLetter(string input)
-    {
-        // 如果不启用首字母小写，则直接返回原字符串
-        if (!PropertyNameLowerCaseFirstLetter)
-        {
-            return input;
-        }
-        return StringExtensions.ToLowerFirstLetter(input);
-    }
-
-    /// <summary>
-    /// 将首字母大写（根据配置）。
-    /// </summary>
-    /// <param name="input">输入字符串。</param>
-    /// <returns>首字母大写的字符串。</returns>
-    protected string ToUpperFirstLetter(string input)
-    {
-        // 如果启用了首字母小写，则将首字母小写
-        if (PropertyNameLowerCaseFirstLetter)
-        {
-            return ToLowerFirstLetter(input);
-        }
-
-        return StringExtensions.ToUpperFirstLetter(input);
-    }
-
-    /// <summary>
-    /// 将字段名转换位属性名
-    /// </summary>
-    /// <param name="fieldName">待转换的字段名</param>
+    /// <param name="fieldName">待转换的字段名。</param>
     /// <returns>属性名。</returns>
     protected string ToPropertyName(string fieldName)
     {
         if (string.IsNullOrEmpty(fieldName))
             return "";
 
-        var propertyName = fieldName;
+        var propertyName = ExtractPropertyNameFromField(fieldName);
+        return StringExtensions.ToUpperFirstLetter(propertyName);
+    }
+
+    /// <summary>
+    /// 从字段名中提取属性名（处理下划线前缀）。
+    /// </summary>
+    /// <param name="fieldName">字段名。</param>
+    /// <returns>提取的属性名。</returns>
+    private static string ExtractPropertyNameFromField(string fieldName)
+    {
         var index = fieldName.IndexOf("_", StringComparison.CurrentCultureIgnoreCase);
         if (index >= 0 && index < 2)
         {
-            var t = fieldName.Split(['_'], StringSplitOptions.RemoveEmptyEntries);
-            propertyName = t.Length > 1 ? t[1] : t[0];
+            var parts = fieldName.Split(['_'], StringSplitOptions.RemoveEmptyEntries);
+            return parts.Length > 1 ? parts[1] : parts[0];
         }
-        return ToUpperFirstLetter(propertyName);
+        return fieldName;
     }
     #endregion
 
