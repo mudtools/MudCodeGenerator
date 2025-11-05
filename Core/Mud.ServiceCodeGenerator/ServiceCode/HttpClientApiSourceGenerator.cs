@@ -199,6 +199,7 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
         sb.AppendLine($"        /// <summary>");
         sb.AppendLine($"        /// 实现 {methodSymbol.Name} 方法");
         sb.AppendLine($"        /// </summary>");
+        sb.AppendLine("        [global::System.Runtime.CompilerServices.CompilerGenerated]");
         sb.AppendLine($"        public async {methodSymbol.ReturnType} {methodSymbol.Name}({GetParameterList(methodSymbol)})");
         sb.AppendLine("        {");
 

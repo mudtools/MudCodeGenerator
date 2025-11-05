@@ -40,6 +40,18 @@
 		<PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.10" />
 	</ItemGroup>
 
+	<ItemGroup Condition="'$(TargetFramework)' == 'net462' or '$(TargetFramework)' == 'net47' or '$(TargetFramework)' == 'net48'">
+		<PackageReference Include="System.Net.Http" Version="4.3.4" />
+		<Reference Include="System.Web" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+		<PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="8.0.21"></PackageReference>
+	</ItemGroup>
+	<ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+		<PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="9.0.10"></PackageReference>
+	</ItemGroup>
+
 	<ItemGroup>
 		<PackageReference Include="Mud.EntityCodeGenerator" Version="1.2.2" />
 		<PackageReference Include="Mud.ServiceCodeGenerator" Version="1.2.2" />
