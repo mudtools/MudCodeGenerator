@@ -1,4 +1,5 @@
 using FreeSql;
+using System.Net;
 
 namespace CodeGeneratorTest.Services;
 
@@ -26,11 +27,34 @@ public partial class SysClientService : ISysClientService
 
     public void TestBuilder(SysClientQueryInput input)
     {
-        var properties = input.GetType().GetProperties();
-        foreach (var prop in properties)
-        {
-            var value = prop.GetValue(input);
 
+        var queryParams = new List<string>();
+        if (input != null)
+        {
+            var properties = input.GetType().GetProperties();
+            foreach (var prop in properties)
+            {
+                var value = prop.GetValue(input);
+                if (value != null)
+                {
+                    switch (value)
+                    {
+                        case string strValue when !string.IsNullOrEmpty(strValue):
+                            strValue = WebUtility.UrlEncode(strValue);
+                            queryParams.Add($"{prop.Name}={strValue}");
+                            break;
+                        case int or long or decimal or float or double or bool:
+                            queryParams.Add($"{prop.Name}={value}");
+                            break;
+                        case Guid:
+                            queryParams.Add($"{prop.Name}={value}");
+                            break;
+                        default:
+                            queryParams.Add($"{prop.Name}={value}");
+                            break;
+                    }
+                }
+            }
         }
 
         var pro = ProjectEntity.Builder()

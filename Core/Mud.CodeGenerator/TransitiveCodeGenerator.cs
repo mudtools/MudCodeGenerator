@@ -41,7 +41,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     /// <returns></returns>
     protected virtual Collection<string> GetFileUsingNameSpaces()
     {
-        return ["System", "System.ComponentModel.DataAnnotations", "System.Runtime.CompilerServices", "System.Linq.Expressions", "Microsoft.Extensions.Options"];
+        return ["System", "System.ComponentModel.DataAnnotations", "System.Runtime.CompilerServices", "System.Linq.Expressions"];
     }
 
     /// <summary>

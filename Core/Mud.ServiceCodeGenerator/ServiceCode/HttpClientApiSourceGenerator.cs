@@ -35,9 +35,9 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
     /// </remarks>
     protected override System.Collections.ObjectModel.Collection<string> GetFileUsingNameSpaces()
     {
-        return ["System", "System.Net.Http", "System.Text", "System.Text.Json",
+        return ["System", "System.Web","System.Net.Http", "System.Text", "System.Text.Json",
                 "System.Threading.Tasks", "System.Collections.Generic", "System.Linq",
-                "Microsoft.Extensions.Logging"];
+                "Microsoft.Extensions.Logging", "Microsoft.Extensions.Options"];
     }
 
     /// <summary>
@@ -261,8 +261,19 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
                 // 处理简单类型和复杂类型的查询参数
                 if (IsSimpleType(param.Type))
                 {
-                    sb.AppendLine($"            if ({param.Name} != null)");
-                    sb.AppendLine($"                queryParams.Add($\"{param.Name}={{{param.Name}}}\");");
+                    if (IsStringType(param.Type))
+                    {
+                        sb.AppendLine($"            if (!string.IsNullOrEmpty({param.Name}))");
+                        sb.AppendLine("            {");
+                        sb.AppendLine($"                {param.Name} = HttpUtility.UrlEncode({param.Name});");
+                        sb.AppendLine($"                queryParams.Add($\"{param.Name}={{{param.Name}}}\");");
+                        sb.AppendLine("            }");
+                    }
+                    else
+                    {
+                        sb.AppendLine($"            if ({param.Name} != null)");
+                        sb.AppendLine($"                queryParams.Add($\"{param.Name}={{{param.Name}}}\");");
+                    }
                 }
                 else
                 {
@@ -274,7 +285,17 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
                     sb.AppendLine("                {");
                     sb.AppendLine($"                    var value = prop.GetValue({param.Name});");
                     sb.AppendLine("                    if (value != null)");
-                    sb.AppendLine($"                        queryParams.Add($\"{{prop.Name}}={{value}}\");");
+                    sb.AppendLine("                    {");
+                    sb.AppendLine("                        if (value is string strValue && string.IsNullOrEmpty(strValue))");
+                    sb.AppendLine("                        {");
+                    sb.AppendLine("                            strValue = HttpUtility.UrlEncode(strValue);");
+                    sb.AppendLine($"                            queryParams.Add($\"{{prop.Name}}={{strValue}}\");");
+                    sb.AppendLine("                         }");
+                    sb.AppendLine("                        else");
+                    sb.AppendLine("                        {");
+                    sb.AppendLine($"                            queryParams.Add($\"{{prop.Name}}={{value}}\");");
+                    sb.AppendLine("                         }");
+                    sb.AppendLine("                    }");
                     sb.AppendLine("                }");
                     sb.AppendLine("            }");
                 }
@@ -406,6 +427,11 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
                typeName.StartsWith("double?", StringComparison.OrdinalIgnoreCase) || typeName.StartsWith("decimal?", StringComparison.OrdinalIgnoreCase) ||
                typeName.StartsWith("bool?", StringComparison.OrdinalIgnoreCase) || typeName.StartsWith("DateTime?", StringComparison.OrdinalIgnoreCase) ||
                typeName.StartsWith("Guid?", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsStringType(string typeName)
+    {
+        return typeName.Equals("string", StringComparison.OrdinalIgnoreCase) || typeName.Equals("string?", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
