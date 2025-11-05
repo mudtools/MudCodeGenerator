@@ -24,7 +24,7 @@ public class AutoRegisterSourceGenerator : TransitiveCodeGenerator
     /// <inheritdoc/>
     public override void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var generationInfo = GetClassDeclarationProvider(context, [
+        var generationInfo = GetClassDeclarationProvider<ClassDeclarationSyntax>(context, [
             AttributeNames.AutoRegister,
             AttributeNames.AutoRegisterGeneric,
             AttributeNames.AutoRegisterKeyed,
@@ -97,7 +97,7 @@ public class AutoRegisterSourceGenerator : TransitiveCodeGenerator
     /// <summary>
     /// 从类声明中提取AutoRegister元数据
     /// </summary>
-    private  List<AutoRegisterMetadata>? ExtractAutoRegisterMetadata(ClassDeclarationSyntax classDeclaration, Compilation compilation)
+    private List<AutoRegisterMetadata>? ExtractAutoRegisterMetadata(ClassDeclarationSyntax classDeclaration, Compilation compilation)
     {
         var attributes = classDeclaration.AttributeLists.SelectMany(al => al.Attributes);
         var metadataList = new List<AutoRegisterMetadata>();
@@ -188,7 +188,7 @@ public class AutoRegisterSourceGenerator : TransitiveCodeGenerator
     /// <summary>
     /// 判断特性类型
     /// </summary>
-    private  InjectAttributeType DetermineInjectType(string attributeName)
+    private InjectAttributeType DetermineInjectType(string attributeName)
     {
         // 检查是否包含AutoRegister但不包含Keyed
         if (attributeName == "AutoRegister" || attributeName == "AutoRegisterAttribute" ||
@@ -208,7 +208,7 @@ public class AutoRegisterSourceGenerator : TransitiveCodeGenerator
     /// <summary>
     /// 判断特性类型（基于AttributeSyntax）
     /// </summary>
-    private  InjectAttributeType DetermineInjectType(AttributeSyntax attributeSyntax)
+    private InjectAttributeType DetermineInjectType(AttributeSyntax attributeSyntax)
     {
         var attributeName = attributeSyntax.Name.ToString();
 
@@ -232,7 +232,7 @@ public class AutoRegisterSourceGenerator : TransitiveCodeGenerator
     /// <summary>
     /// 提取基类型名称
     /// </summary>
-    private  string ExtractBaseTypeName(AttributeSyntax attributeSyntax, InjectAttributeType injectType)
+    private string ExtractBaseTypeName(AttributeSyntax attributeSyntax, InjectAttributeType injectType)
     {
         // 处理常规和Keyed非泛型特性
         if (injectType == InjectAttributeType.Regular || injectType == InjectAttributeType.Keyed)
@@ -292,7 +292,7 @@ public class AutoRegisterSourceGenerator : TransitiveCodeGenerator
         }
     }
 
-    private  string? ExtractKeyFromAttribute(AttributeSyntax attributeSyntax)
+    private string? ExtractKeyFromAttribute(AttributeSyntax attributeSyntax)
     {
         if (attributeSyntax.ArgumentList?.Arguments.Count > 0)
         {
@@ -307,7 +307,7 @@ public class AutoRegisterSourceGenerator : TransitiveCodeGenerator
         return null;
     }
 
-    private  string DetermineLifetime(AttributeSyntax attributeSyntax, InjectAttributeType injectType, string prefix)
+    private string DetermineLifetime(AttributeSyntax attributeSyntax, InjectAttributeType injectType, string prefix)
     {
         string defaultLifetime = $"{prefix}Scoped";
         if (attributeSyntax.ArgumentList == null) return defaultLifetime;
@@ -358,7 +358,7 @@ public class AutoRegisterSourceGenerator : TransitiveCodeGenerator
 
     private enum InjectAttributeType { Regular, Generic, Keyed, KeyedGeneric, Unknown }
 
-    private  void GenSource(SourceProductionContext context, IEnumerable<AutoRegisterMetadata> metas, string? rootNamespace, Compilation compilation)
+    private void GenSource(SourceProductionContext context, IEnumerable<AutoRegisterMetadata> metas, string? rootNamespace, Compilation compilation)
     {
         if (!metas.Any()) return;
         var languageVersion = (compilation as CSharpCompilation)?.LanguageVersion ?? LanguageVersion.Default;

@@ -24,7 +24,7 @@ public abstract class ServiceCodeGenerator : TransitiveCodeGenerator
     public override void Initialize(IncrementalGeneratorInitializationContext context)
     {
         //Debugger.Launch();
-        var generationInfo = GetClassDeclarationProvider(context, [ServiceGeneratorAttributeName]);
+        var generationInfo = GetClassDeclarationProvider<ClassDeclarationSyntax>(context, [ServiceGeneratorAttributeName]);
 
         var compilationAndOptionsProvider = context.CompilationProvider
                                           .Combine(context.AnalyzerConfigOptionsProvider)

@@ -8,7 +8,7 @@ public partial class CodeInjectGenerator
     /// <inheritdoc/>
     public override void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var generationInfo = GetClassDeclarationProvider(context, [
+        var generationInfo = GetClassDeclarationProvider<ClassDeclarationSyntax>(context, [
             CodeInjectGeneratorConstants.ConstructorInjectAttribute,
             CodeInjectGeneratorConstants.LoggerInjectAttribute,
             CodeInjectGeneratorConstants.CacheManagerInjectAttribute,

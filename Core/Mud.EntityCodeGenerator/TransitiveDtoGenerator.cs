@@ -81,7 +81,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     public override void Initialize(IncrementalGeneratorInitializationContext context)
     {
         // 获取所有带有DtoGeneratorAttribute的类
-        var classDeclarationProvider = GetClassDeclarationProvider(context, [DtoGeneratorAttributeName]);
+        var classDeclarationProvider = GetClassDeclarationProvider<ClassDeclarationSyntax>(context, [DtoGeneratorAttributeName]);
         var compilationAndOptionsProvider = context.CompilationProvider
                                           .Combine(context.AnalyzerConfigOptionsProvider)
                                           .Select((s, _) => s);

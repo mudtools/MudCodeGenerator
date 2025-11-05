@@ -50,15 +50,15 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     /// <param name="context"><see cref="IncrementalGeneratorInitializationContext"/>对象。</param>
     /// <param name="attributeNames">需要查找的特性名称数组。</param>
     /// <returns></returns>
-    protected IncrementalValueProvider<ImmutableArray<ClassDeclarationSyntax?>> GetClassDeclarationProvider(IncrementalGeneratorInitializationContext context, string[] attributeNames)
+    protected IncrementalValueProvider<ImmutableArray<T?>> GetClassDeclarationProvider<T>(IncrementalGeneratorInitializationContext context, string[] attributeNames) where T : TypeDeclarationSyntax
     {
         // 获取所有带有指定特性的类
         var generationInfo = context.SyntaxProvider
             .CreateSyntaxProvider(
-                predicate: (node, c) => node is ClassDeclarationSyntax,
+                predicate: (node, c) => node is T,
                 transform: (ctx, c) =>
                 {
-                    var classNode = (ClassDeclarationSyntax)ctx.Node;
+                    var classNode = (T)ctx.Node;
                     var semanticModel = ctx.SemanticModel;
                     var symbol = semanticModel.GetDeclaredSymbol(classNode, cancellationToken: default);
 

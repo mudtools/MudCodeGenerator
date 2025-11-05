@@ -5,29 +5,9 @@ using System.Text;
 namespace Mud.ServiceCodeGenerator;
 
 [Generator(LanguageNames.CSharp)]
-public class HttpClientApiRegisterSourceGenerator : TransitiveCodeGenerator
+public class HttpClientApiRegisterSourceGenerator : WebApiSourceGenerator
 {
-    private const string HttpClientApiAttributeName = "HttpClientApiAttribute";
-
-    public override void Initialize(IncrementalGeneratorInitializationContext context)
-    {
-        // 使用基类方法收集带有 HttpClientApi 特性的接口声明
-        var interfaces = GetClassDeclarationProvider(context, [HttpClientApiAttributeName]);
-
-        // 获取编译对象
-        var compilation = context.CompilationProvider;
-
-        // 合并接口和编译信息
-        var combined = interfaces.Combine(compilation);
-
-        // 生成代码
-        context.RegisterSourceOutput(combined, (spc, source) => Execute(source.Left, source.Right, spc));
-    }
-
-    private void Execute(
-        ImmutableArray<ClassDeclarationSyntax?> interfaces,
-        Compilation compilation,
-        SourceProductionContext context)
+    protected override void Execute(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context)
     {
         if (interfaces.IsDefaultOrEmpty)
             return;
@@ -53,10 +33,7 @@ public class HttpClientApiRegisterSourceGenerator : TransitiveCodeGenerator
                 var timeout = GetTimeoutFromAttribute(httpClientApiAttribute);
 
                 // 生成实现类名称 (约定：移除接口前缀 "I")
-                var implementationName = interfaceSymbol.Name.StartsWith("I") &&
-                                         char.IsUpper(interfaceSymbol.Name[1])
-                    ? interfaceSymbol.Name.Substring(1)
-                    : interfaceSymbol.Name + "Impl";
+                var implementationName = GetImplementationClassName(interfaceSymbol.Name);
 
                 // 使用基类方法获取命名空间
                 var namespaceName = GetNamespaceName(interfaceSyntax);

@@ -24,66 +24,9 @@ namespace Mud.ServiceCodeGenerator;
 /// </code>
 /// </remarks>
 [Generator(LanguageNames.CSharp)]
-public class HttpClientApiSourceGenerator : TransitiveCodeGenerator
+public class HttpClientApiSourceGenerator : WebApiSourceGenerator
 {
-    private const string HttpClientApiAttributeName = "HttpClientApiAttribute";
     private static readonly string[] SupportedHttpMethods = ["Get", "Post", "Put", "Delete", "Patch", "Head", "Options"];
-
-    /// <summary>
-    /// 初始化源生成器
-    /// </summary>
-    /// <param name="context">增量生成器初始化上下文</param>
-    /// <remarks>
-    /// 此方法设置源生成器的管道，包括：
-    /// <list type="bullet">
-    /// <item><description>查找标记了 [HttpClientApi] 特性的接口</description></item>
-    /// <item><description>组合编译信息和接口声明</description></item>
-    /// <item><description>注册源生成输出</description></item>
-    /// </list>
-    /// </remarks>
-    public override void Initialize(IncrementalGeneratorInitializationContext context)
-    {
-        // 使用自定义方法查找标记了[HttpClientApi]的接口
-        var interfaceDeclarations = GetInterfaceDeclarationProvider(context, [HttpClientApiAttributeName, "HttpClientApi"]);
-
-        // 组合编译和接口声明
-        var compilationAndInterfaces = context.CompilationProvider.Combine(interfaceDeclarations);
-
-        // 注册源生成
-        context.RegisterSourceOutput(compilationAndInterfaces,
-             (spc, source) => Execute(source.Left, source.Right, spc));
-    }
-
-    /// <summary>
-    /// 根据注解名获取需要进行代码辅助生成的接口。
-    /// </summary>
-    /// <param name="context"><see cref="IncrementalGeneratorInitializationContext"/>对象。</param>
-    /// <param name="attributeNames">需要查找的特性名称数组。</param>
-    /// <returns></returns>
-    protected IncrementalValueProvider<ImmutableArray<InterfaceDeclarationSyntax>> GetInterfaceDeclarationProvider(IncrementalGeneratorInitializationContext context, string[] attributeNames)
-    {
-        // 获取所有带有指定特性的接口
-        var generationInfo = context.SyntaxProvider
-            .CreateSyntaxProvider(
-                predicate: (node, c) => node is InterfaceDeclarationSyntax,
-                transform: (ctx, c) =>
-                {
-                    var interfaceNode = (InterfaceDeclarationSyntax)ctx.Node;
-                    var semanticModel = ctx.SemanticModel;
-                    var symbol = semanticModel.GetDeclaredSymbol(interfaceNode, cancellationToken: default);
-
-                    if (symbol?.GetAttributes().Any(a => attributeNames.Contains(a.AttributeClass?.Name)) ?? false)
-                    {
-                        return interfaceNode;
-                    }
-
-                    return null;
-                })
-            .Where(static s => s is not null)
-            .Select(static (s, c) => s!)
-            .Collect();
-        return generationInfo;
-    }
 
     /// <summary>
     /// 获取生成代码文件需要使用的命名空间
@@ -99,7 +42,7 @@ public class HttpClientApiSourceGenerator : TransitiveCodeGenerator
                 "Microsoft.Extensions.Logging"];
     }
 
-    private void Execute(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context)
+    protected override void Execute(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context)
     {
         if (interfaces.IsDefaultOrEmpty)
             return;
@@ -441,12 +384,7 @@ public class HttpClientApiSourceGenerator : TransitiveCodeGenerator
         sb.AppendLine("            }");
     }
 
-    private string GetImplementationClassName(string interfaceName)
-    {
-        return interfaceName.StartsWith("I", StringComparison.Ordinal) && interfaceName.Length > 1 && char.IsUpper(interfaceName[1])
-            ? interfaceName.Substring(1)
-            : interfaceName + "Impl";
-    }
+
 
     private string GetParameterList(IMethodSymbol methodSymbol)
     {
