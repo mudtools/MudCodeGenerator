@@ -15,7 +15,7 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
     /// HttpClientApi特性名称数组
     /// </summary>
     private readonly string[] HttpClientApiAttributeName = ["HttpClientApiAttribute", "HttpClientApi"];
-    
+
     /// <summary>
     /// 支持的HTTP方法名称数组
     /// </summary>
@@ -156,16 +156,11 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
         sb.AppendLine("        /// </summary>");
         sb.AppendLine("        /// <param name=\"httpClient\">HttpClient实例</param>");
         sb.AppendLine("        /// <param name=\"logger\">日志记录器</param>");
-        sb.AppendLine($"        public {className}(HttpClient httpClient, ILogger<{className}> logger)");
+        sb.AppendLine($"        public {className}(HttpClient httpClient, ILogger<{className}> logger, IOptions<JsonSerializerOptions> option)");
         sb.AppendLine("        {");
         sb.AppendLine("            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));");
         sb.AppendLine("            _logger = logger ?? throw new ArgumentNullException(nameof(logger));");
-        sb.AppendLine("            _jsonSerializerOptions = new JsonSerializerOptions");
-        sb.AppendLine("            {");
-        sb.AppendLine("                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,");
-        sb.AppendLine("                WriteIndented = false,");
-        sb.AppendLine("                PropertyNameCaseInsensitive = true");
-        sb.AppendLine("            };");
+        sb.AppendLine("            _jsonSerializerOptions = option.Value;");
         sb.AppendLine("        }");
     }
 
