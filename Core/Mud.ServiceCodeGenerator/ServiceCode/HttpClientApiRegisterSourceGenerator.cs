@@ -9,7 +9,7 @@ public class HttpClientApiRegisterSourceGenerator : WebApiSourceGenerator
 {
     protected override void Execute(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context)
     {
-        if (interfaces.IsDefaultOrEmpty)
+        if (compilation==null||interfaces.IsDefaultOrEmpty)
             return;
 
         var httpClientApis = new List<HttpClientApiInfo>();
@@ -68,25 +68,6 @@ public class HttpClientApiRegisterSourceGenerator : WebApiSourceGenerator
         context.AddSource("HttpClientApiExtensions.g.cs", SourceText.From(sourceCode, Encoding.UTF8));
     }
 
-    private AttributeData? GetHttpClientApiAttribute(INamedTypeSymbol interfaceSymbol)
-    {
-        return interfaceSymbol.GetAttributes()
-            .FirstOrDefault(a => a.AttributeClass?.Name is "HttpClientApiAttribute" or "HttpClientApi");
-    }
-
-    private string GetBaseUrlFromAttribute(AttributeData attribute)
-    {
-        // 获取构造函数参数 (基地址)
-        var baseUrlArg = attribute.ConstructorArguments.FirstOrDefault();
-        return baseUrlArg.Value?.ToString() ?? string.Empty;
-    }
-
-    private int GetTimeoutFromAttribute(AttributeData attribute)
-    {
-        // 获取命名参数 Timeout
-        var timeoutArg = attribute.NamedArguments.FirstOrDefault(a => a.Key == "Timeout");
-        return timeoutArg.Value.Value is int value ? value : 100; // 默认100秒
-    }
 
     private string GenerateSourceCode(List<HttpClientApiInfo> apis)
     {
