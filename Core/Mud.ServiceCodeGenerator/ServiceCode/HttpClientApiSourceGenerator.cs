@@ -311,7 +311,7 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
 
         if (queryParams.Any())
         {
-            sb.AppendLine("            var queryParams = new List<string>();");
+            sb.AppendLine($"            var queryParams = HttpUtility.ParseQueryString(string.Empty);");
             foreach (var param in queryParams)
             {
                 // 处理简单类型和复杂类型的查询参数
@@ -322,13 +322,13 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
                         sb.AppendLine($"            if (!string.IsNullOrEmpty({param.Name}))");
                         sb.AppendLine("            {");
                         sb.AppendLine($"                {param.Name} = HttpUtility.UrlEncode({param.Name});");
-                        sb.AppendLine($"                queryParams.Add($\"{param.Name}={{{param.Name}}}\");");
+                        sb.AppendLine($"                queryParams.Add(\"{param.Name}\",{param.Name});");
                         sb.AppendLine("            }");
                     }
                     else
                     {
                         sb.AppendLine($"            if ({param.Name} != null)");
-                        sb.AppendLine($"                queryParams.Add($\"{param.Name}={{{param.Name}}}\");");
+                        sb.AppendLine($"                queryParams.Add(\"{param.Name}\",{param.Name}.ToString());");
                     }
                 }
                 else
@@ -337,26 +337,19 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
                     sb.AppendLine($"            if ({param.Name} != null)");
                     sb.AppendLine("            {");
                     sb.AppendLine($"                var properties = {param.Name}.GetType().GetProperties();");
+                    sb.AppendLine();
                     sb.AppendLine("                foreach (var prop in properties)");
                     sb.AppendLine("                {");
                     sb.AppendLine($"                    var value = prop.GetValue({param.Name});");
                     sb.AppendLine("                    if (value != null)");
                     sb.AppendLine("                    {");
-                    sb.AppendLine("                        if (value is string strValue && string.IsNullOrEmpty(strValue))");
-                    sb.AppendLine("                        {");
-                    sb.AppendLine("                            strValue = HttpUtility.UrlEncode(strValue);");
-                    sb.AppendLine($"                            queryParams.Add($\"{{prop.Name}}={{strValue}}\");");
-                    sb.AppendLine("                         }");
-                    sb.AppendLine("                        else");
-                    sb.AppendLine("                        {");
-                    sb.AppendLine($"                            queryParams.Add($\"{{prop.Name}}={{value}}\");");
-                    sb.AppendLine("                         }");
+                    sb.AppendLine($"                        queryParams.Add(\"{param.Name}\", HttpUtility.UrlEncode(value.ToString()));");
                     sb.AppendLine("                    }");
                     sb.AppendLine("                }");
                     sb.AppendLine("            }");
                 }
             }
-            sb.AppendLine("            if (queryParams.Any())");
+            sb.AppendLine("            if (queryParams.Count > 0)");
             sb.AppendLine("                url += \"?\" + string.Join(\"&\", queryParams);");
         }
 
@@ -416,24 +409,22 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
         sb.AppendLine("            try");
         sb.AppendLine("            {");
         sb.AppendLine($"                using var response = await _httpClient.SendAsync(request{cancellationTokenArg});");
-        sb.AppendLine($"                var responseContent = await response.Content.ReadAsStringAsync();");
-        sb.AppendLine();
-        sb.AppendLine("                _logger.LogDebug(\"HTTP请求完成: {{StatusCode}}, 响应长度: {{ContentLength}}\", " +
-                     "(int)response.StatusCode, responseContent?.Length ?? 0);");
+        sb.AppendLine("                _logger.LogDebug(\"HTTP请求完成: {StatusCode}\", (int)response.StatusCode);");
         sb.AppendLine();
         sb.AppendLine("                if (!response.IsSuccessStatusCode)");
         sb.AppendLine("                {");
-        sb.AppendLine("                    _logger.LogError(\"HTTP请求失败: {{StatusCode}}, 响应: {{Response}}\", " +
-                     "(int)response.StatusCode, responseContent);");
-        sb.AppendLine("                    throw new HttpRequestException($\"HTTP请求失败: {(int)response.StatusCode} - {response.ReasonPhrase}\");");
+        sb.AppendLine("                    var errorContent = await response.Content.ReadAsStringAsync();");
+        sb.AppendLine("                    _logger.LogError(\"HTTP请求失败: {StatusCode}, 响应: {Response}\", (int)response.StatusCode, errorContent);");
+        sb.AppendLine("                    throw new HttpRequestException($\"HTTP请求失败: {(int)response.StatusCode}\");");
         sb.AppendLine("                }");
+        sb.AppendLine("                using var stream = await response.Content.ReadAsStreamAsync();");
         sb.AppendLine();
-        sb.AppendLine("                if (string.IsNullOrEmpty(responseContent))");
+        sb.AppendLine("                if (stream.Length == 0)");
         sb.AppendLine("                {");
         sb.AppendLine("                    return default;");
         sb.AppendLine("                }");
         sb.AppendLine();
-        sb.AppendLine($"                var result = JsonSerializer.Deserialize<{methodInfo.ReturnType}>(responseContent, _jsonSerializerOptions);");
+        sb.AppendLine($"                var result = await JsonSerializer.DeserializeAsync<{methodInfo.ReturnType}>(stream, _jsonSerializerOptions{cancellationTokenArg});");
         sb.AppendLine("                return result;");
         sb.AppendLine("            }");
         sb.AppendLine("            catch (System.Exception ex)");

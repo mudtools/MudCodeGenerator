@@ -27,7 +27,6 @@ public partial class SysClientService : ISysClientService
 
     public void TestBuilder(SysClientQueryInput input)
     {
-
         var queryParams = new List<string>();
         if (input != null)
         {
