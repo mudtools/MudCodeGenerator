@@ -6,6 +6,12 @@ public interface IDingTalkDeptApi
     [Get("/api/v2/dept/{id}")]
     Task<DeptDto> GetDeptAsync([Path] string id);
 
+    [Get("/api/v2/dept/{id}")]
+    Task<DeptDto> GetDeptAsync([Header("X-API-Key")] string apiKey, [Query] string tid, [Path] int id);
+
+    [Get("/api/v2/dept/{id}")]
+    Task<DeptDto> GetDeptAsync([Path] long id, [Query] string tid);
+
     [Get("/api/v2/dept")]
     Task<DeptDto> GetDeptPageAsync([Query] DataQueryInput input);
 

@@ -258,23 +258,33 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
         sb.AppendLine($"            _logger.LogDebug(\"开始HTTP {methodInfo.HttpMethod}请求: {{Url}}\", \"{methodInfo.UrlTemplate}\");");
 
         // 构建URL - 处理路径参数替换
-        var urlBuilder = new StringBuilder($"            var url = $\"{methodInfo.UrlTemplate}\";");
-
-        // 处理路径参数替换
+        var urlTemplate = methodInfo.UrlTemplate;
         var pathParams = methodInfo.Parameters
             .Where(p => p.Attributes.Any(attr => attr.Name == "PathAttribute" || attr.Name == "RouteAttribute"))
             .ToList();
 
+        // 检查URL模板中是否包含路径参数
+        var urlBuilder = new StringBuilder();
         if (pathParams.Any())
         {
-            urlBuilder.Clear();
-            urlBuilder.AppendLine($"            var url = $\"{methodInfo.UrlTemplate}\";");
-
+            // 如果URL模板包含路径参数占位符，使用字符串插值构建URL
+            var interpolatedUrl = urlTemplate;
             foreach (var param in pathParams)
             {
-                // 替换URL模板中的占位符 {paramName}
-                urlBuilder.AppendLine($"            url = url.Replace(\"{{{param.Name}}}\", {param.Name}?.ToString() ?? \"\");");
+                // 检查URL模板是否包含该参数占位符
+                if (urlTemplate.Contains($"{{{param.Name}}}"))
+                {
+                    interpolatedUrl = interpolatedUrl.Replace($"{{{param.Name}}}", $"{{{param.Name}}}");
+                }
             }
+            
+            // 构建URL字符串插值表达式
+            urlBuilder.Append($"            var url = $\"{interpolatedUrl}\";");
+        }
+        else
+        {
+            // 如果没有路径参数，直接使用模板
+            urlBuilder.Append($"            var url = \"{urlTemplate}\";");
         }
 
         sb.AppendLine(urlBuilder.ToString());
