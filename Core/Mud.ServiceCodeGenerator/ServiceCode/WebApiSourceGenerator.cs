@@ -25,10 +25,6 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
     /// 初始化源代码生成器
     /// </summary>
     /// <param name="context">初始化上下文</param>
-    /// <summary>
-    /// 初始化源代码生成器
-    /// </summary>
-    /// <param name="context">初始化上下文</param>
     public override void Initialize(IncrementalGeneratorInitializationContext context)
     {
         // 使用自定义方法查找标记了[HttpClientApi]的接口
@@ -42,12 +38,6 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
              (spc, source) => Execute(source.Left, source.Right, spc));
     }
 
-    /// <summary>
-    /// 执行源代码生成逻辑
-    /// </summary>
-    /// <param name="compilation">编译信息</param>
-    /// <param name="interfaces">接口声明数组</param>
-    /// <param name="context">源代码生成上下文</param>
     /// <summary>
     /// 执行源代码生成逻辑
     /// </summary>
@@ -95,7 +85,7 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
         if (interfaceSymbol == null)
             return null;
         return interfaceSymbol.GetAttributes()
-            .FirstOrDefault(a => a.AttributeClass?.Name is "HttpClientApiAttribute" or "HttpClientApi");
+            .FirstOrDefault(a => HttpClientApiAttributeName.Contains(a.AttributeClass?.Name));
     }
 
     /// <summary>

@@ -2,6 +2,9 @@
 
 namespace CodeGeneratorTest.WebApi;
 
+/// <summary>
+/// 钉钉用户接口
+/// </summary>
 [HttpClientApi("https://api.dingtalk.com", Timeout = 60)]
 public interface IDingTalkUserApi
 {
