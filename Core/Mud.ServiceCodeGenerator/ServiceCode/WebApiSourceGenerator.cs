@@ -135,7 +135,7 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
         sb.AppendLine($"    /// <summary>");
         sb.AppendLine($"    /// {interfaceName}的HttpClient实现类");
         sb.AppendLine($"    /// </summary>");
-        sb.AppendLine($"    public partial class {className} : {interfaceName}");
+        sb.AppendLine($"    internal partial class {className} : {interfaceName}");
         sb.AppendLine("    {");
         sb.AppendLine("        private readonly HttpClient _httpClient;");
         sb.AppendLine($"        private readonly ILogger<{className}> _logger;");

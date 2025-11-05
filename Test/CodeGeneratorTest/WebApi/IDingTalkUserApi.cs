@@ -27,7 +27,7 @@ public interface IDingTalkUserApi
     Task<ProtectedData> GetProtectedDataAsync([Header("X-API-Key")] string apiKey, [Header("X-API-Value")] string apiValue, [Body] UserDto user);
 
     [Post("/api/protected")]
-    Task<ProtectedData> GetProtectedXmlDataAsync([Header("X-API-Key")] string apiKey, [Header("X-API-Value")] string apiValue, [Body(ContentType = "application/xml")] UserDto user);
+    Task<ProtectedData> GetProtectedXmlDataAsync([Header("X-API-Key")] string apiKey, [Header("X-API-Value")] string apiValue, [Body(ContentType = "application/xml", UseStringContent = true)] UserDto user);
 
     [Get("/api/search")]
     Task<List<UserDto>> SearchUsersAsync([Query] UserSearchCriteria criteria);
