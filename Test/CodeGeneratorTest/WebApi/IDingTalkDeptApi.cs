@@ -4,13 +4,13 @@
 public interface IDingTalkDeptApi
 {
     [Get("/api/v2/dept/{id}")]
-    Task<DeptDto> GetDeptAsync([Query] string id);
+    Task<DeptDto> GetDeptAsync([Path] string id);
 
     [Get("/api/v2/dept")]
     Task<DeptDto> GetDeptPageAsync([Query] DataQueryInput input);
 
-    [Get("/api/v2/dept/{id}")]
-    Task<DeptDto> GetDeptPageAsync([Query] string id, [Query] int? age, [Query] DataQueryInput input);
+    [Get("/api/v2/dept/{age}")]
+    Task<DeptDto> GetDeptPageAsync([Query] string id, [Path] int? age, [Query] DataQueryInput input);
 
     [Post("/api/v2/dept")]
     Task<DeptDto> CreateDeptAsync([Body] DeptDto Dept);
