@@ -1,5 +1,6 @@
 ﻿using Microsoft.CodeAnalysis.Text;
 using System.Collections.Immutable;
+using System.Collections.ObjectModel;
 using System.Text;
 
 namespace Mud.ServiceCodeGenerator;
@@ -27,7 +28,7 @@ public class HttpClientApiRegisterSourceGenerator : WebApiSourceGenerator
     /// <param name="context">源代码生成上下文</param>
     protected override void Execute(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context)
     {
-        if (compilation==null||interfaces.IsDefaultOrEmpty)
+        if (compilation == null || interfaces.IsDefaultOrEmpty)
             return;
 
         var httpClientApis = new List<HttpClientApiInfo>();
@@ -86,16 +87,20 @@ public class HttpClientApiRegisterSourceGenerator : WebApiSourceGenerator
         context.AddSource("HttpClientApiExtensions.g.cs", SourceText.From(sourceCode, Encoding.UTF8));
     }
 
+    protected override Collection<string> GetFileUsingNameSpaces()
+    {
+        return ["System", "Microsoft.Extensions.DependencyInjection", "System.Runtime.CompilerServices", "System.Net.Http"];
+    }
+
 
     private string GenerateSourceCode(List<HttpClientApiInfo> apis)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("using System;");
-        sb.AppendLine("using System.Net.Http;");
-        sb.AppendLine("using Microsoft.Extensions.DependencyInjection;");
+        GenerateFileHeader(sb);
         sb.AppendLine();
         sb.AppendLine("namespace Microsoft.Extensions.DependencyInjection");
         sb.AppendLine("{");
+        sb.AppendLine("    [global::System.Runtime.CompilerServices.CompilerGenerated]");
         sb.AppendLine("    public static class HttpClientApiExtensions");
         sb.AppendLine("    {");
         sb.AppendLine("        public static IServiceCollection AddWebApiHttpClient(this IServiceCollection services)");

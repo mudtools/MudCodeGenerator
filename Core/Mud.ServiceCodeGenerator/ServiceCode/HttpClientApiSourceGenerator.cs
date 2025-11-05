@@ -155,6 +155,41 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
         GenerateHttpClientFileHeader(sb, className, namespaceName, interfaceName);
     }
 
+    /// <summary>
+    /// 生成HttpClient实现类的文件头部
+    /// </summary>
+    protected void GenerateHttpClientFileHeader(StringBuilder sb, string className, string namespaceName, string interfaceName)
+    {
+
+        GenerateFileHeader(sb);
+
+        sb.AppendLine();
+        sb.AppendLine($"namespace {namespaceName}");
+        sb.AppendLine("{");
+        sb.AppendLine($"    /// <summary>");
+        sb.AppendLine($"    /// {interfaceName}的HttpClient实现类");
+        sb.AppendLine($"    /// </summary>");
+        sb.AppendLine("    [global::System.Runtime.CompilerServices.CompilerGenerated]");
+        sb.AppendLine($"    internal partial class {className} : {interfaceName}");
+        sb.AppendLine("    {");
+        sb.AppendLine("        private readonly HttpClient _httpClient;");
+        sb.AppendLine($"        private readonly ILogger<{className}> _logger;");
+        sb.AppendLine("        private readonly JsonSerializerOptions _jsonSerializerOptions;");
+        sb.AppendLine();
+        sb.AppendLine("        /// <summary>");
+        sb.AppendLine($"        /// 构建 <see cref = \"{className}\"/> 类的实例。");
+        sb.AppendLine("        /// </summary>");
+        sb.AppendLine("        /// <param name=\"httpClient\">HttpClient实例</param>");
+        sb.AppendLine("        /// <param name=\"logger\">日志记录器</param>");
+        sb.AppendLine("        /// <param name=\"option\">Json序列化参数</param>");
+        sb.AppendLine($"        public {className}(HttpClient httpClient, ILogger<{className}> logger, IOptions<JsonSerializerOptions> option)");
+        sb.AppendLine("        {");
+        sb.AppendLine("            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));");
+        sb.AppendLine("            _logger = logger ?? throw new ArgumentNullException(nameof(logger));");
+        sb.AppendLine("            _jsonSerializerOptions = option.Value;");
+        sb.AppendLine("        }");
+    }
+
     private void GenerateMethodImplementation(StringBuilder sb, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl)
     {
         var methodInfo = AnalyzeMethod(methodSymbol, interfaceDecl);
