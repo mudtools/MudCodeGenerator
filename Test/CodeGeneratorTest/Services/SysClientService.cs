@@ -24,8 +24,15 @@ public partial class SysClientService : ISysClientService
         return listOutputs;
     }
 
-    public void TestBuilder()
+    public void TestBuilder(SysClientQueryInput input)
     {
+        var properties = input.GetType().GetProperties();
+        foreach (var prop in properties)
+        {
+            var value = prop.GetValue(input);
+
+        }
+
         var pro = ProjectEntity.Builder()
                         .SetParentId("1")
                         .SetProNum("2")

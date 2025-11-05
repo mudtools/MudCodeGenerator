@@ -3,7 +3,7 @@
 namespace CodeGeneratorTest.WebApi;
 
 [HttpClientApi("https://api.dingtalk.com", Timeout = 60)]
-public interface IDingTalkApi
+public interface IDingTalkUserApi
 {
     [Get("/api/v1/user/{id}")]
     Task<UserDto> GetUserAsync([Query] string id);

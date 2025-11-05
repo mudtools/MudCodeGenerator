@@ -4,9 +4,27 @@ using System.Text;
 
 namespace Mud.ServiceCodeGenerator;
 
+/// <summary>
+/// HttpClient API 注册源生成器
+/// </summary>
+/// <remarks>
+/// 基于 Roslyn 技术，自动为标记了 [HttpClientApi] 特性的接口生成依赖注入注册代码
+/// </remarks>
 [Generator(LanguageNames.CSharp)]
 public class HttpClientApiRegisterSourceGenerator : WebApiSourceGenerator
 {
+    /// <summary>
+    /// 执行HttpClient API注册源代码生成逻辑
+    /// </summary>
+    /// <param name="compilation">编译信息</param>
+    /// <param name="interfaces">接口声明数组</param>
+    /// <param name="context">源代码生成上下文</param>
+    /// <summary>
+    /// 执行HttpClient API注册源代码生成逻辑
+    /// </summary>
+    /// <param name="compilation">编译信息</param>
+    /// <param name="interfaces">接口声明数组</param>
+    /// <param name="context">源代码生成上下文</param>
     protected override void Execute(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context)
     {
         if (compilation==null||interfaces.IsDefaultOrEmpty)

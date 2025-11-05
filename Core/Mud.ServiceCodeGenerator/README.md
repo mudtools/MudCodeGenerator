@@ -707,6 +707,439 @@ Task<bool> AssignPermissionsAsync(
 Task<ResponseDto> SendDataAsync([Body(ContentType = "application/xml", UseStringContent = true)] string xmlData);
 ```
 
+## HttpClient API 注册代码生成
+
+HttpClientApiRegisterSourceGenerator 自动为标记了 [HttpClientApi] 特性的接口生成依赖注入注册代码，简化 HttpClient 服务的配置。
+
+### 基本用法
+
+#### 1. 定义 HTTP API 接口
+
+```CSharp
+[HttpClientApi("https://api.dingtalk.com", Timeout = 30)]
+public interface IDingTalkApi
+{
+    [Get("/api/v1/user/{id}")]
+    Task<UserDto> GetUserAsync([Query] string id);
+    
+    [Post("/api/v1/user")]
+    Task<UserDto> CreateUserAsync([Body] UserDto user);
+}
+
+[HttpClientApi("https://api.wechat.com", Timeout = 60)]
+public interface IWeChatApi
+{
+    [Get("/api/v1/user/{id}")]
+    Task<UserDto> GetUserAsync([Query] string id);
+}
+```
+
+#### 2. 生成的注册代码
+
+自动生成的依赖注入注册扩展方法：
+
+```CSharp
+// 自动生成的代码 - HttpClientApiExtensions.g.cs
+using System;
+using System.Net.Http;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Microsoft.Extensions.DependencyInjection
+{
+    public static class HttpClientApiExtensions
+    {
+        public static IServiceCollection AddWebApiHttpClient(this IServiceCollection services)
+        {
+            services.AddHttpClient<global::YourNamespace.IDingTalkApi, global::YourNamespace.DingTalkApi>(client =>
+            {
+                client.BaseAddress = new Uri("https://api.dingtalk.com");
+                client.Timeout = TimeSpan.FromSeconds(30);
+            });
+            
+            services.AddHttpClient<global::YourNamespace.IWeChatApi, global::YourNamespace.WeChatApi>(client =>
+            {
+                client.BaseAddress = new Uri("https://api.wechat.com");
+                client.Timeout = TimeSpan.FromSeconds(60);
+            });
+            
+            return services;
+        }
+    }
+}
+```
+
+### 配置选项
+
+#### 1. HttpClientApi 特性参数
+
+```CSharp
+// 基本配置
+[HttpClientApi("https://api.example.com")]
+public interface IExampleApi { }
+
+// 配置超时时间
+[HttpClientApi("https://api.example.com", Timeout = 120)]
+public interface IExampleApi { }
+
+// 使用命名参数
+[HttpClientApi(BaseUrl = "https://api.example.com", Timeout = 60)]
+public interface IExampleApi { }
+```
+
+#### 2. 生成的 HttpClient 配置
+
+生成的注册代码包含以下配置：
+- **BaseAddress**: 从 [HttpClientApi] 特性的第一个参数获取
+- **Timeout**: 从 Timeout 命名参数获取，默认 100 秒
+- **服务注册**: 使用 AddHttpClient 方法注册接口和实现类
+
+### 使用方式
+
+#### 1. 在应用程序启动时调用
+
+```CSharp
+// 在 Program.cs 或 Startup.cs 中
+var builder = WebApplication.CreateBuilder(args);
+
+// 自动注册所有 HttpClient API 服务
+builder.Services.AddWebApiHttpClient();
+
+// 或者与其他服务注册一起使用
+builder.Services
+    .AddControllers()
+    .AddWebApiHttpClient();
+```
+
+#### 2. 在控制台应用程序中使用
+
+```CSharp
+// 在控制台应用程序中
+var services = new ServiceCollection();
+
+// 注册 HttpClient API 服务
+services.AddWebApiHttpClient();
+
+var serviceProvider = services.BuildServiceProvider();
+var dingTalkApi = serviceProvider.GetRequiredService<IDingTalkApi>();
+```
+
+### 与 HttpClientApiSourceGenerator 配合使用
+
+HttpClientApiRegisterSourceGenerator 与 HttpClientApiSourceGenerator 完美配合：
+
+1. **HttpClientApiSourceGenerator** 生成接口的实现类
+2. **HttpClientApiRegisterSourceGenerator** 生成依赖注入注册代码
+3. **完整的开发体验**：定义接口 → 自动生成实现 → 自动注册服务
+
+#### 完整示例
+
+```CSharp
+// 1. 定义接口
+[HttpClientApi("https://api.dingtalk.com", Timeout = 30)]
+public interface IDingTalkApi
+{
+    [Get("/api/v1/user/{id}")]
+    Task<UserDto> GetUserAsync([Query] string id);
+}
+
+// 2. 自动生成实现类 (由 HttpClientApiSourceGenerator 生成)
+// public partial class DingTalkApi : IDingTalkApi { ... }
+
+// 3. 自动生成注册代码 (由 HttpClientApiRegisterSourceGenerator 生成)
+// public static class HttpClientApiExtensions { ... }
+
+// 4. 在应用程序中使用
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddWebApiHttpClient(); // 自动注册
+
+var app = builder.Build();
+
+// 5. 在服务中注入使用
+public class UserService
+{
+    private readonly IDingTalkApi _dingTalkApi;
+    
+    public UserService(IDingTalkApi dingTalkApi)
+    {
+        _dingTalkApi = dingTalkApi;
+    }
+    
+    public async Task<UserDto> GetUserAsync(string userId)
+    {
+        return await _dingTalkApi.GetUserAsync(userId);
+    }
+}
+```
+
+### 高级配置
+
+#### 1. 自定义 HttpClient 配置
+
+如果需要更复杂的 HttpClient 配置，可以在注册后继续配置：
+
+```CSharp
+builder.Services.AddWebApiHttpClient()
+    .ConfigureHttpClientDefaults(httpClient =>
+    {
+        httpClient.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+        {
+            UseProxy = false,
+            AllowAutoRedirect = false
+        });
+    });
+```
+
+#### 2. 添加自定义请求头
+
+```CSharp
+builder.Services.AddHttpClient<IDingTalkApi, DingTalkApi>(client =>
+{
+    client.BaseAddress = new Uri("https://api.dingtalk.com");
+    client.Timeout = TimeSpan.FromSeconds(30);
+    client.DefaultRequestHeaders.Add("User-Agent", "MyApp/1.0");
+    client.DefaultRequestHeaders.Add("X-API-Key", "your-api-key");
+});
+```
+
+### 错误处理
+
+注册生成器会自动处理以下错误情况：
+- **无效的 [HttpClientApi] 特性**：忽略没有有效特性的接口
+- **特性参数验证**：确保 BaseUrl 和 Timeout 参数的有效性
+- **命名空间处理**：正确处理全局命名空间引用
+
+### 生成的代码结构
+
+```
+obj/Debug/net8.0/generated/
+├── Mud.ServiceCodeGenerator/
+    ├── HttpClientApiSourceGenerator/
+    │   └── YourNamespace.DingTalkApi.g.cs
+    └── HttpClientApiRegisterSourceGenerator/
+        └── HttpClientApiExtensions.g.cs
+```
+
+### 最佳实践
+
+1. **统一配置**：在 [HttpClientApi] 特性中统一配置所有 API 的基础设置
+2. **合理超时**：根据 API 的响应时间设置合理的超时时间
+3. **命名规范**：遵循接口命名规范（I{ServiceName}Api）
+4. **错误处理**：在服务层处理 API 调用异常
+5. **日志记录**：利用生成的日志记录功能监控 API 调用
+
+## HttpClient API 注册代码生成
+
+HttpClientApiRegisterSourceGenerator 自动为标记了 [HttpClientApi] 特性的接口生成依赖注入注册代码，简化 HttpClient 服务的配置。
+
+### 基本用法
+
+#### 1. 定义 HTTP API 接口
+
+```CSharp
+[HttpClientApi("https://api.dingtalk.com", Timeout = 30)]
+public interface IDingTalkApi
+{
+    [Get("/api/v1/user/{id}")]
+    Task<UserDto> GetUserAsync([Query] string id);
+    
+    [Post("/api/v1/user")]
+    Task<UserDto> CreateUserAsync([Body] UserDto user);
+}
+
+[HttpClientApi("https://api.wechat.com", Timeout = 60)]
+public interface IWeChatApi
+{
+    [Get("/api/v1/user/{id}")]
+    Task<UserDto> GetUserAsync([Query] string id);
+}
+```
+
+#### 2. 生成的注册代码
+
+自动生成的依赖注入注册扩展方法：
+
+```CSharp
+// 自动生成的代码 - HttpClientApiExtensions.g.cs
+using System;
+using System.Net.Http;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Microsoft.Extensions.DependencyInjection
+{
+    public static class HttpClientApiExtensions
+    {
+        public static IServiceCollection AddWebApiHttpClient(this IServiceCollection services)
+        {
+            services.AddHttpClient<global::YourNamespace.IDingTalkApi, global::YourNamespace.DingTalkApi>(client =>
+            {
+                client.BaseAddress = new Uri("https://api.dingtalk.com");
+                client.Timeout = TimeSpan.FromSeconds(30);
+            });
+            
+            services.AddHttpClient<global::YourNamespace.IWeChatApi, global::YourNamespace.WeChatApi>(client =>
+            {
+                client.BaseAddress = new Uri("https://api.wechat.com");
+                client.Timeout = TimeSpan.FromSeconds(60);
+            });
+            
+            return services;
+        }
+    }
+}
+```
+
+### 配置选项
+
+#### 1. HttpClientApi 特性参数
+
+```CSharp
+// 基本配置
+[HttpClientApi("https://api.example.com")]
+public interface IExampleApi { }
+
+// 配置超时时间
+[HttpClientApi("https://api.example.com", Timeout = 120)]
+public interface IExampleApi { }
+
+// 使用命名参数
+[HttpClientApi(BaseUrl = "https://api.example.com", Timeout = 60)]
+public interface IExampleApi { }
+```
+
+#### 2. 生成的 HttpClient 配置
+
+生成的注册代码包含以下配置：
+- **BaseAddress**: 从 [HttpClientApi] 特性的第一个参数获取
+- **Timeout**: 从 Timeout 命名参数获取，默认 100 秒
+- **服务注册**: 使用 AddHttpClient 方法注册接口和实现类
+
+### 使用方式
+
+#### 1. 在应用程序启动时调用
+
+```CSharp
+// 在 Program.cs 或 Startup.cs 中
+var builder = WebApplication.CreateBuilder(args);
+
+// 自动注册所有 HttpClient API 服务
+builder.Services.AddWebApiHttpClient();
+
+// 或者与其他服务注册一起使用
+builder.Services
+    .AddControllers()
+    .AddWebApiHttpClient();
+```
+
+#### 2. 在控制台应用程序中使用
+
+```CSharp
+// 在控制台应用程序中
+var services = new ServiceCollection();
+
+// 注册 HttpClient API 服务
+services.AddWebApiHttpClient();
+
+var serviceProvider = services.BuildServiceProvider();
+var dingTalkApi = serviceProvider.GetRequiredService<IDingTalkApi>();
+```
+
+### 与 HttpClientApiSourceGenerator 配合使用
+
+HttpClientApiRegisterSourceGenerator 与 HttpClientApiSourceGenerator 完美配合：
+
+1. **HttpClientApiSourceGenerator** 生成接口的实现类
+2. **HttpClientApiRegisterSourceGenerator** 生成依赖注入注册代码
+3. **完整的开发体验**：定义接口 → 自动生成实现 → 自动注册服务
+
+#### 完整示例
+
+```CSharp
+// 1. 定义接口
+[HttpClientApi("https://api.dingtalk.com", Timeout = 30)]
+public interface IDingTalkApi
+{
+    [Get("/api/v1/user/{id}")]
+    Task<UserDto> GetUserAsync([Query] string id);
+}
+
+// 2. 自动生成实现类 (由 HttpClientApiSourceGenerator 生成)
+// public partial class DingTalkApi : IDingTalkApi { ... }
+
+// 3. 自动生成注册代码 (由 HttpClientApiRegisterSourceGenerator 生成)
+// public static class HttpClientApiExtensions { ... }
+
+// 4. 在应用程序中使用
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddWebApiHttpClient(); // 自动注册
+
+var app = builder.Build();
+
+// 5. 在服务中注入使用
+public class UserService
+{
+    private readonly IDingTalkApi _dingTalkApi;
+    
+    public UserService(IDingTalkApi dingTalkApi)
+    {
+        _dingTalkApi = dingTalkApi;
+    }
+    
+    public async Task<UserDto> GetUserAsync(string userId)
+    {
+        return await _dingTalkApi.GetUserAsync(userId);
+    }
+}
+```
+
+### 高级配置
+
+#### 1. 自定义 HttpClient 配置
+
+如果需要更复杂的 HttpClient 配置，可以在注册后继续配置：
+
+```CSharp
+builder.Services.AddWebApiHttpClient()
+    .ConfigureHttpClientDefaults(httpClient =>
+    {
+        httpClient.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+        {
+            UseProxy = false,
+            AllowAutoRedirect = false
+        });
+    });
+```
+
+#### 2. 添加自定义请求头
+
+```CSharp
+builder.Services.AddHttpClient<IDingTalkApi, DingTalkApi>(client =>
+{
+    client.BaseAddress = new Uri("https://api.dingtalk.com");
+    client.Timeout = TimeSpan.FromSeconds(30);
+    client.DefaultRequestHeaders.Add("User-Agent", "MyApp/1.0");
+    client.DefaultRequestHeaders.Add("X-API-Key", "your-api-key");
+});
+```
+
+### 生成的代码结构
+
+```
+obj/Debug/net8.0/generated/
+├── Mud.ServiceCodeGenerator/
+    ├── HttpClientApiSourceGenerator/
+    │   └── YourNamespace.DingTalkApi.g.cs
+    └── HttpClientApiRegisterSourceGenerator/
+        └── HttpClientApiExtensions.g.cs
+```
+
+### 最佳实践
+
+1. **统一配置**：在 [HttpClientApi] 特性中统一配置所有 API 的基础设置
+2. **合理超时**：根据 API 的响应时间设置合理的超时时间
+3. **命名规范**：遵循接口命名规范（I{ServiceName}Api）
+4. **错误处理**：在服务层处理 API 调用异常
+5. **日志记录**：利用生成的日志记录功能监控 API 调用
+
 
 ## 生成代码查看
 

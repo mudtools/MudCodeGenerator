@@ -3,11 +3,32 @@ using System.Text;
 
 namespace Mud.ServiceCodeGenerator;
 
+/// <summary>
+/// Web API 源代码生成器基类
+/// </summary>
+/// <remarks>
+/// 提供Web API相关的公共功能，包括HttpClient特性处理、HTTP方法验证等
+/// </remarks>
 public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
 {
+    /// <summary>
+    /// HttpClientApi特性名称数组
+    /// </summary>
     private readonly string[] HttpClientApiAttributeName = ["HttpClientApiAttribute", "HttpClientApi"];
+    
+    /// <summary>
+    /// 支持的HTTP方法名称数组
+    /// </summary>
     protected static readonly string[] SupportedHttpMethods = ["Get", "GetAttribute", "Post", "PostAttribute", "Put", "PutAttribute", "Delete", "DeleteAttribute", "Patch", "PatchAttribute", "Head", "HeadAttribute", "Options", "OptionsAttribute"];
 
+    /// <summary>
+    /// 初始化源代码生成器
+    /// </summary>
+    /// <param name="context">初始化上下文</param>
+    /// <summary>
+    /// 初始化源代码生成器
+    /// </summary>
+    /// <param name="context">初始化上下文</param>
     public override void Initialize(IncrementalGeneratorInitializationContext context)
     {
         // 使用自定义方法查找标记了[HttpClientApi]的接口
@@ -21,8 +42,28 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
              (spc, source) => Execute(source.Left, source.Right, spc));
     }
 
+    /// <summary>
+    /// 执行源代码生成逻辑
+    /// </summary>
+    /// <param name="compilation">编译信息</param>
+    /// <param name="interfaces">接口声明数组</param>
+    /// <param name="context">源代码生成上下文</param>
+    /// <summary>
+    /// 执行源代码生成逻辑
+    /// </summary>
+    /// <param name="compilation">编译信息</param>
+    /// <param name="interfaces">接口声明数组</param>
+    /// <param name="context">源代码生成上下文</param>
     protected abstract void Execute(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context);
 
+    /// <summary>
+    /// 根据接口名称获取实现类名称
+    /// </summary>
+    /// <param name="interfaceName">接口名称</param>
+    /// <returns>实现类名称</returns>
+    /// <remarks>
+    /// 如果接口名称以"I"开头且第二个字符为大写，则移除"I"前缀；否则添加"Impl"后缀
+    /// </remarks>
     protected string GetImplementationClassName(string interfaceName)
     {
         if (string.IsNullOrEmpty(interfaceName))

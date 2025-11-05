@@ -40,6 +40,18 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
                 "Microsoft.Extensions.Logging"];
     }
 
+    /// <summary>
+    /// 执行HttpClient API源代码生成逻辑
+    /// </summary>
+    /// <param name="compilation">编译信息</param>
+    /// <param name="interfaces">接口声明数组</param>
+    /// <param name="context">源代码生成上下文</param>
+    /// <summary>
+    /// 执行HttpClient API源代码生成逻辑
+    /// </summary>
+    /// <param name="compilation">编译信息</param>
+    /// <param name="interfaces">接口声明数组</param>
+    /// <param name="context">源代码生成上下文</param>
     protected override void Execute(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context)
     {
         //Debugger.Launch();
@@ -260,7 +272,7 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
                     sb.AppendLine($"                var properties = {param.Name}.GetType().GetProperties();");
                     sb.AppendLine("                foreach (var prop in properties)");
                     sb.AppendLine("                {");
-                    sb.AppendLine("                    var value = prop.GetValue(param);");
+                    sb.AppendLine($"                    var value = prop.GetValue({param.Name});");
                     sb.AppendLine("                    if (value != null)");
                     sb.AppendLine($"                        queryParams.Add($\"{{prop.Name}}={{value}}\");");
                     sb.AppendLine("                }");
