@@ -45,6 +45,22 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
     /// </summary>
     protected override string ClassSuffix => GetConfiguredClassSuffix();
 
+    protected override Collection<string> GetFileUsingNameSpaces()
+    {
+        var nameSpaces = base.GetFileUsingNameSpaces();
+
+        var configNameSpaces = ConfigurationManager.Instance.Configuration.UsingNameSpaces;
+        if (configNameSpaces.Length > 0)
+        {
+            foreach (var item in configNameSpaces)
+            {
+                if (!nameSpaces.Contains(item))
+                    nameSpaces.Add(item);
+            }
+        }
+        return nameSpaces;
+    }
+
     /// <summary>
     /// 获取配置的类后缀
     /// </summary>

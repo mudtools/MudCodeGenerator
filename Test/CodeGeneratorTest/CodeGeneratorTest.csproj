@@ -5,7 +5,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<TargetFrameworks>net462;net47;net48;net8.0;net9.0</TargetFrameworks>
 		<Nullable>enable</Nullable>
-		 <LangVersion>13.0</LangVersion> 
+		<LangVersion>13.0</LangVersion>
 		<!-- 是否启用扩展分析器规则，默认为true -->
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 		<!-- 在obj目录下保存生成的代码 -->
@@ -14,12 +14,14 @@
 		<EntitySuffix>Entity</EntitySuffix>
 		<!-- 生成的VO、BO类加上Attribute特性配置，多个特性时使用','分隔 -->
 		<EntityAttachAttributes>TestCustom,CompilerGenerated</EntityAttachAttributes>
+		<!-- 需要添加至DTO实体中引用的命名空间 -->
+		<UsingNameSpaces>FreeSql.DataAnnotations,CodeGeneratorTest.Entites,CodeGeneratorTest.Entites.Dto</UsingNameSpaces>
 		<!-- 需要添加至VO类的自定义特性，多个特性时使用','分隔 -->
 		<VoAttributes>CustomVo1Attribute,CustomVo2Attribute</VoAttributes>
 		<!-- 需要添加至BO类的自定义特性，多个特性时使用','分隔 -->
 		<BoAttributes>CustomBo1Attribute,CustomBo2Attribute</BoAttributes>
 		<!-- 是否将生成的属性名首字母小写，默认为true -->
-		<PropertyNameLowerCaseFirstLetter>true</PropertyNameLowerCaseFirstLetter> 
+		<PropertyNameLowerCaseFirstLetter>true</PropertyNameLowerCaseFirstLetter>
 		<InterfaceAssembly>CodeGeneratorTest.Entites.Interface</InterfaceAssembly>
 		<ImpAssembly>CodeGeneratorTest.Entites</ImpAssembly>
 		<ServiceGenerator>false</ServiceGenerator>
@@ -33,21 +35,22 @@
 		<CompilerVisibleProperty Include="ImpAssembly" />
 		<CompilerVisibleProperty Include="ServiceGenerator" />
 		<CompilerVisibleProperty Include="VoAttributes" />
-		<CompilerVisibleProperty Include="BoAttributes" />	
+		<CompilerVisibleProperty Include="BoAttributes" />
 		<CompilerVisibleProperty Include="PropertyNameLowerCaseFirstLetter" />
+		<CompilerVisibleProperty Include="UsingNameSpaces" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.10" />
-	  <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.10" />
-	  <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.10" />
-	  <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.10" />
-	  <PackageReference Include="System.Text.Json" Version="9.0.10" />
+		<PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.10" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.10" />
+		<PackageReference Include="Microsoft.Extensions.Http" Version="9.0.10" />
+		<PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.10" />
+		<PackageReference Include="System.Text.Json" Version="9.0.10" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net462' or '$(TargetFramework)' == 'net47' or '$(TargetFramework)' == 'net48'">
-	  <PackageReference Include="System.Net.Http" Version="4.3.4" />
-      <Reference Include="System.Web" />
+		<PackageReference Include="System.Net.Http" Version="4.3.4" />
+		<Reference Include="System.Web" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
@@ -58,10 +61,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\..\Core\Mud.EntityCodeGenerator\Mud.EntityCodeGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-	  <ProjectReference Include="..\..\Core\Mud.ServiceCodeGenerator\Mud.ServiceCodeGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-	  <ProjectReference Include="..\CodeBaseTest\CodeBaseTest.csproj" />
-	  <ProjectReference Include="..\Mud.Common.CodeGenerator\Mud.Common.CodeGenerator.csproj" />
+		<ProjectReference Include="..\..\Core\Mud.EntityCodeGenerator\Mud.EntityCodeGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\..\Core\Mud.ServiceCodeGenerator\Mud.ServiceCodeGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\CodeBaseTest\CodeBaseTest.csproj" />
+		<ProjectReference Include="..\Mud.Common.CodeGenerator\Mud.Common.CodeGenerator.csproj" />
 	</ItemGroup>
 
 

@@ -6,6 +6,11 @@ namespace Mud.EntityCodeGenerator.Helper;
 public class GeneratorConfiguration
 {
     /// <summary>
+    /// 生成的实体DTO类中需要添加的引用的命名空间。
+    /// </summary>
+    public string[] UsingNameSpaces { get; private set; } = [];
+
+    /// <summary>
     /// 在实体类上绑定的特性。
     /// </summary>
     public string[] EntityAttachAttributes { get; private set; } = [];
@@ -62,6 +67,9 @@ public class GeneratorConfiguration
     public void ReadFromOptions(Microsoft.CodeAnalysis.Diagnostics.AnalyzerConfigOptions options)
     {
         if (options == null) return;
+
+        ProjectConfigHelper.ReadProjectOptions(options, "build_property.UsingNameSpaces",
+           val => UsingNameSpaces = val.Split(','), "");
 
         ProjectConfigHelper.ReadProjectOptions(options, "build_property.EntityAttachAttributes",
             val => EntityAttachAttributes = val.Split(','), "");
