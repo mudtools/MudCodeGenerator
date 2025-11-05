@@ -381,12 +381,22 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
         }
     }
 
+    private string GetCancellationTokenParam(MethodAnalysisResult methodInfo)
+    {
+        var hasCancellationToken = methodInfo.Parameters.Any(p => p.Type.Contains("CancellationToken"));
+        var cancellationTokenParam = methodInfo.Parameters.FirstOrDefault(p => p.Type.Contains("CancellationToken"));
+        var cancellationTokenArg = hasCancellationToken ? $", {cancellationTokenParam?.Name ?? "CancellationToken.None"}" : "";
+        return cancellationTokenArg;
+    }
+
     private void GenerateRequestExecution(StringBuilder sb, MethodAnalysisResult methodInfo)
     {
+        var cancellationTokenArg = GetCancellationTokenParam(methodInfo);
+
         sb.AppendLine("            try");
         sb.AppendLine("            {");
-        sb.AppendLine("                using var response = await _httpClient.SendAsync(request);");
-        sb.AppendLine("                var responseContent = await response.Content.ReadAsStringAsync();");
+        sb.AppendLine($"                using var response = await _httpClient.SendAsync(request{cancellationTokenArg});");
+        sb.AppendLine($"                var responseContent = await response.Content.ReadAsStringAsync();");
         sb.AppendLine();
         sb.AppendLine("                _logger.LogDebug(\"HTTP请求完成: {{StatusCode}}, 响应长度: {{ContentLength}}\", " +
                      "(int)response.StatusCode, responseContent?.Length ?? 0);");

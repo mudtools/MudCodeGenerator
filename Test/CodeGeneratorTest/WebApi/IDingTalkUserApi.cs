@@ -31,6 +31,9 @@ public interface IDingTalkUserApi
 
     [Get("/api/search")]
     Task<List<UserDto>> SearchUsersAsync([Query] UserSearchCriteria criteria);
+
+    [Post("/api/v1/user")]
+    Task<UserDto> CreateUserTestAsync([Body] UserDto user, CancellationToken cancellationToken = default);
 }
 
 public class UserDto
