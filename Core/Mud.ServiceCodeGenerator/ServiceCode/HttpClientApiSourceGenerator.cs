@@ -26,6 +26,11 @@ namespace Mud.ServiceCodeGenerator;
 [Generator(LanguageNames.CSharp)]
 public class HttpClientApiSourceGenerator : WebApiSourceGenerator
 {
+    private readonly string[] PathAttributes = ["PathAttribute", "Path", "RouteAttribute", "Route"];
+    private const string QueryAttribute = "QueryAttribute";
+    private const string HeaderAttribute = "HeaderAttribute";
+    private const string BodyAttribute = "BodyAttribute";
+
     /// <summary>
     /// 获取生成代码文件需要使用的命名空间
     /// </summary>
@@ -83,7 +88,7 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
                         continue;
                     }
 
-                    var sourceCode = GenerateImplementationClass(interfaceSymbol, interfaceDecl);
+                    var sourceCode = GenerateImplementationClass(compilation, interfaceSymbol, interfaceDecl);
                     var className = GetImplementationClassName(interfaceSymbol.Name);
                     context.AddSource($"{className}.g.cs", SourceText.From(sourceCode, Encoding.UTF8));
                 }
@@ -130,7 +135,7 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
         }
     }
 
-    private string GenerateImplementationClass(INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDecl)
+    private string GenerateImplementationClass(Compilation compilation, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDecl)
     {
         var className = GetImplementationClassName(interfaceSymbol.Name);
         var namespaceName = GetNamespaceName(interfaceDecl);
@@ -141,7 +146,7 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
         // 为每个方法生成实现
         foreach (var methodSymbol in interfaceSymbol.GetMembers().OfType<IMethodSymbol>())
         {
-            GenerateMethodImplementation(sb, methodSymbol, interfaceDecl);
+            GenerateMethodImplementation(compilation, sb, methodSymbol, interfaceDecl);
         }
 
         sb.AppendLine("    }");
@@ -160,7 +165,6 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
     /// </summary>
     protected void GenerateHttpClientFileHeader(StringBuilder sb, string className, string namespaceName, string interfaceName)
     {
-
         GenerateFileHeader(sb);
 
         sb.AppendLine();
@@ -190,9 +194,11 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
         sb.AppendLine("        }");
     }
 
-    private void GenerateMethodImplementation(StringBuilder sb, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl)
+    private void GenerateMethodImplementation(Compilation compilation, StringBuilder sb, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl)
     {
-        var methodInfo = AnalyzeMethod(methodSymbol, interfaceDecl);
+        //Debugger.Launch();
+
+        var methodInfo = AnalyzeMethod(compilation, methodSymbol, interfaceDecl);
         if (!methodInfo.IsValid) return;
 
         sb.AppendLine();
@@ -210,11 +216,17 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
         sb.AppendLine("        }");
     }
 
-    private MethodAnalysisResult AnalyzeMethod(IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl)
+    private MethodAnalysisResult AnalyzeMethod(Compilation compilation, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl)
     {
         var methodSyntax = interfaceDecl.Members
-            .OfType<MethodDeclarationSyntax>()
-            .FirstOrDefault(m => m.Identifier.ValueText == methodSymbol.Name);
+     .OfType<MethodDeclarationSyntax>()
+     .FirstOrDefault(m =>
+     {
+         var model = compilation.GetSemanticModel(m.SyntaxTree);
+         var methodSymbolFromSyntax = model.GetDeclaredSymbol(m);
+         return methodSymbolFromSyntax != null &&
+                methodSymbolFromSyntax.Equals(methodSymbol, SymbolEqualityComparer.Default);
+     });
 
         if (methodSyntax == null) return MethodAnalysisResult.Invalid;
 
@@ -254,13 +266,10 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
 
     private void GenerateRequestSetup(StringBuilder sb, MethodAnalysisResult methodInfo)
     {
-        // 日志记录：开始请求
-        sb.AppendLine($"            _logger.LogDebug(\"开始HTTP {methodInfo.HttpMethod}请求: {{Url}}\", \"{methodInfo.UrlTemplate}\");");
-
         // 构建URL - 处理路径参数替换
         var urlTemplate = methodInfo.UrlTemplate;
         var pathParams = methodInfo.Parameters
-            .Where(p => p.Attributes.Any(attr => attr.Name == "PathAttribute" || attr.Name == "RouteAttribute"))
+            .Where(p => p.Attributes.Any(attr => PathAttributes.Contains(attr.Name)))
             .ToList();
 
         // 检查URL模板中是否包含路径参数
@@ -277,7 +286,7 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
                     interpolatedUrl = interpolatedUrl.Replace($"{{{param.Name}}}", $"{{{param.Name}}}");
                 }
             }
-            
+
             // 构建URL字符串插值表达式
             urlBuilder.Append($"            var url = $\"{interpolatedUrl}\";");
         }
@@ -286,8 +295,9 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
             // 如果没有路径参数，直接使用模板
             urlBuilder.Append($"            var url = \"{urlTemplate}\";");
         }
-
         sb.AppendLine(urlBuilder.ToString());
+        // 日志记录：开始请求
+        sb.AppendLine($"            _logger.LogDebug(\"开始HTTP {methodInfo.HttpMethod}请求: {{Url}}\", url);");
 
         // 创建HttpRequestMessage
         sb.AppendLine($"            using var request = new HttpRequestMessage(HttpMethod.{methodInfo.HttpMethod}, url);");
@@ -296,7 +306,7 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
     private void GenerateParameterHandling(StringBuilder sb, MethodAnalysisResult methodInfo)
     {
         var queryParams = methodInfo.Parameters
-            .Where(p => p.Attributes.Any(attr => attr.Name == "QueryAttribute"))
+            .Where(p => p.Attributes.Any(attr => attr.Name == QueryAttribute))
             .ToList();
 
         if (queryParams.Any())
@@ -352,12 +362,12 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
 
         // 处理Header参数
         var headerParams = methodInfo.Parameters
-            .Where(p => p.Attributes.Any(attr => attr.Name == "HeaderAttribute"))
+            .Where(p => p.Attributes.Any(attr => attr.Name == HeaderAttribute))
             .ToList();
 
         foreach (var param in headerParams)
         {
-            var headerAttr = param.Attributes.First(a => a.Name == "HeaderAttribute");
+            var headerAttr = param.Attributes.First(a => a.Name == HeaderAttribute);
             var headerName = headerAttr.Arguments.FirstOrDefault()?.ToString() ?? param.Name;
 
             sb.AppendLine($"            if (!string.IsNullOrEmpty({param.Name}))");
@@ -366,11 +376,11 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
 
         // 处理Body参数
         var bodyParam = methodInfo.Parameters
-            .FirstOrDefault(p => p.Attributes.Any(attr => attr.Name == "BodyAttribute"));
+            .FirstOrDefault(p => p.Attributes.Any(attr => attr.Name == BodyAttribute));
 
         if (bodyParam != null)
         {
-            var bodyAttr = bodyParam.Attributes.First(a => a.Name == "BodyAttribute");
+            var bodyAttr = bodyParam.Attributes.First(a => a.Name == BodyAttribute);
             var contentType = bodyAttr.NamedArguments.TryGetValue("ContentType", out var contentTypeArg) ? (contentTypeArg?.ToString() ?? "application/json") : "application/json";
             var useStringContent = bodyAttr.NamedArguments.TryGetValue("UseStringContent", out var useStringContentArg) ? bool.Parse((useStringContentArg?.ToString() ?? "false")) : false;
 
