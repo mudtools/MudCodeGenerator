@@ -25,12 +25,14 @@ Mud 实体代码生成器是一个基于 Roslyn 的源代码生成器，用于�
   <EntitySuffix>Entity</EntitySuffix>  <!-- 实体类后缀配置 -->
   <EntityAttachAttributes>SuppressSniffer</EntityAttachAttributes>  <!-- 实体类加上Attribute特性配置，多个特性时使用','分隔 -->
   <PropertyNameLowerCaseFirstLetter>true</PropertyNameLowerCaseFirstLetter>  <!-- 是否将生成的属性名首字母小写 -->
+  <UsingNameSpaces>FreeSql.DataAnnotations,CodeGeneratorTest.Entites,CodeGeneratorTest.Entites.Dto</UsingNameSpaces>  <!-- 需要添加至DTO实体中引用的命名空间 -->
 </PropertyGroup>
 
 <ItemGroup>
   <CompilerVisibleProperty Include="EntitySuffix" />
   <CompilerVisibleProperty Include="EntityAttachAttributes" />
   <CompilerVisibleProperty Include="PropertyNameLowerCaseFirstLetter" />
+  <CompilerVisibleProperty Include="UsingNameSpaces" />
 </ItemGroup>
 ```
 
@@ -98,9 +100,10 @@ Mud 实体代码生成器是一个基于 Roslyn 的源代码生成器，用于�
 | EmitCompilerGeneratedFiles | false | 是否在obj目录下保存生成的代码，设为true便于调试 |
 | EntitySuffix | Entity | 实体类后缀，用于识别实体类 |
 | EntityAttachAttributes | (空) | 生成的VO、BO类加上Attribute特性配置，多个特性时使用','分隔 |
-| VoAttributes | (空) | 需要添加至BO类的自定义特性，多个特性用逗号分隔 |
+| VoAttributes | (空) | 需要添加至VO类的自定义特性，多个特性用逗号分隔 |
 | BoAttributes | (空) | 需要添加至BO类的自定义特性，多个特性用逗号分隔 |
 | PropertyNameLowerCaseFirstLetter | true | 是否将生成的属性名首字母小写，设为false保持原有大小写 |
+| UsingNameSpaces | (空) | 需要添加至DTO实体中引用的命名空间，多个命名空间用逗号分隔 |
 | VoSuffix | Vo | VO类后缀配置 |
 | InfoOutputSuffix | InfoOutput | InfoOutput类后缀配置 |
 | BoSuffix | Bo | BO类后缀配置 |
