@@ -4,35 +4,28 @@
 public interface IDingTalkDeptApi
 {
     [Get("/api/v2/dept/{id}")]
-    Task<DeptDto> GetDeptAsync([Path] string id);
+    Task<SysDeptInfoOutput> GetDeptAsync([Path] string id);
 
     [Get("/api/v2/dept/{id}")]
-    Task<DeptDto> GetDeptAsync([Header("X-API-Key")] string apiKey, [Query] string tid, [Path] int id);
+    Task<SysDeptInfoOutput> GetDeptAsync([Header("X-API-Key")] string apiKey, [Query] string tid, [Path] int id);
 
     [Get("/api/v2/dept/{id}")]
-    Task<DeptDto> GetDeptAsync([Path] long id, [Query] string tid);
+    Task<SysDeptInfoOutput> GetDeptAsync([Path] long id, [Query] string tid);
 
     [Get("/api/v2/dept")]
-    Task<DeptDto> GetDeptPageAsync([Query] DataQueryInput input);
+    Task<List<SysDeptListOutput>> GetDeptPageAsync([Query] ProjectQueryInput input);
 
     [Get("/api/v2/dept/{age}")]
-    Task<DeptDto> GetDeptPageAsync([Query] string id, [Path] int? age, [Query] DataQueryInput input);
+    Task<List<SysDeptListOutput>> GetDeptPageAsync([Query] string id, [Path] int? age, [Query] ProjectQueryInput input);
 
     [Post("/api/v2/dept")]
-    Task<DeptDto> CreateDeptAsync([Body] DeptDto Dept);
+    Task<SysDeptInfoOutput> CreateDeptAsync([Body] SysDeptCrInput Dept);
 
     [Put("/api/v2/dept/{id}")]
-    Task<DeptDto> UpdateDeptAsync([Path] string id, [Body] DeptDto Dept);
+    Task<bool> UpdateDeptAsync([Path] string id, [Body] SysDeptUpInput Dept);
 
     [Delete("/api/v2/dept/{id}")]
     Task<bool> DeleteDeptAsync([Path] string id);
-}
-
-public class DeptDto
-{
-    public string Id { get; set; }
-    public string Name { get; set; }
-    public string ParentId { get; set; }
 }
 
 

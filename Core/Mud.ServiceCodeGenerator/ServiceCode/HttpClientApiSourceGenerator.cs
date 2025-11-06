@@ -350,7 +350,9 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
                 }
             }
             sb.AppendLine("            if (queryParams.Count > 0)");
-            sb.AppendLine("                url += \"?\" + string.Join(\"&\", queryParams);");
+            sb.AppendLine("            {");
+            sb.AppendLine("                url += \"?\" + queryParams.ToString();");
+            sb.AppendLine("            }");
         }
 
         // 处理Header参数
