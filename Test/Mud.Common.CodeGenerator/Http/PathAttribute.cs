@@ -13,24 +13,16 @@ public sealed class PathAttribute : Attribute
     {
     }
 
+
     /// <summary>
     /// <inheritdoc cref="PathAttribute" />
     /// </summary>
-    /// <param name="name">参数名称</param>
-    /// <param name="value">参数值</param>
-    public PathAttribute(string name, object? value)
-    {
-        Name = name;
-        Value = value;
-    }
+    /// <param name="formatString">参数值的格式化字符串</param>
+    public PathAttribute(string? formatString) =>
+        FormatString = formatString;
 
     /// <summary>
-    /// 路径参数键
+    /// 参数值的格式化字符串。
     /// </summary>
-    public string Name { get; set; }
-
-    /// <summary>
-    /// 路径参数的值
-    /// </summary>
-    public object? Value { get; set; }
+    public string? FormatString { get; set; }
 }

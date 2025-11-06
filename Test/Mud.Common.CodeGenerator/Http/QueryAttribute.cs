@@ -30,64 +30,23 @@ public sealed class QueryAttribute : Attribute
     }
 
     /// <summary>
-    ///     <inheritdoc cref="QueryAttribute" />
+    /// <inheritdoc cref="QueryAttribute" />
     /// </summary>
     /// <param name="name">查询参数键</param>
-    /// <param name="value">查询参数的值</param>
-    public QueryAttribute(string name, object? value)
+    /// <param name="formatString">参数值的格式化字符串</param>
+    public QueryAttribute(string name, string? formatString)
         : this(name) =>
-        Value = value;
+        FormatString = formatString;
 
     /// <summary>
-    ///     查询参数键
+    /// 查询参数键
     /// </summary>
-    /// <remarks>该属性优先级低于 <see cref="AliasAs" /> 属性设置的值。</remarks>
     public string? Name { get; set; }
 
-    private object? field;
+
 
     /// <summary>
-    ///     查询参数的值
+    /// 参数值的格式化字符串。
     /// </summary>
-    /// <remarks>当特性作用于参数时，表示默认值。</remarks>
-    public object? Value
-    {
-        get => field;
-        set
-        {
-            field = value;
-            HasSetValue = true;
-        }
-    }
-
-    /// <summary>
-    ///     别名
-    /// </summary>
-    /// <remarks>
-    ///     <para>特性用于参数时有效。</para>
-    ///     <para>该属性优先级高于 <see cref="Name" /> 属性设置的值。</para>
-    /// </remarks>
-    public string? AliasAs { get; set; }
-
-    /// <summary>
-    ///     参数前缀
-    /// </summary>
-    /// <remarks>作用于对象类型时有效。</remarks>
-    public string? Prefix { get; set; }
-
-    /// <summary>
-    ///     是否替换已存在的查询参数。默认值为 <c>false</c>
-    /// </summary>
-    public bool Replace { get; set; }
-
-    /// <summary>
-    ///     是否忽略空值
-    /// </summary>
-    /// <remarks>设置为 <c>true</c> 之后，当参数值为 <c>null</c> 时将被忽略。默认值为 <c>false</c>。</remarks>
-    public bool IgnoreNullValues { get; set; }
-
-    /// <summary>
-    ///     是否设置了值
-    /// </summary>
-    internal bool HasSetValue { get; private set; }
+    public string? FormatString { get; set; }
 }

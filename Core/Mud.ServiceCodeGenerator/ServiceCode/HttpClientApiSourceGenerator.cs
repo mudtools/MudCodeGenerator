@@ -283,7 +283,19 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
                 // 检查URL模板是否包含该参数占位符
                 if (urlTemplate.Contains($"{{{param.Name}}}"))
                 {
-                    interpolatedUrl = interpolatedUrl.Replace($"{{{param.Name}}}", $"{{{param.Name}}}");
+                    // 获取格式化字符串
+                    var pathAttr = param.Attributes.First(a => PathAttributes.Contains(a.Name));
+                    var formatString = GetFormatString(pathAttr);
+
+                    if (!string.IsNullOrEmpty(formatString))
+                    {
+                        // 使用格式化字符串
+                        interpolatedUrl = interpolatedUrl.Replace($"{{{param.Name}}}", $"{{{param.Name}.ToString(\"{formatString}\")}}");
+                    }
+                    else
+                    {
+                        interpolatedUrl = interpolatedUrl.Replace($"{{{param.Name}}}", $"{{{param.Name}}}");
+                    }
                 }
             }
 
@@ -314,6 +326,10 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
             sb.AppendLine($"            var queryParams = HttpUtility.ParseQueryString(string.Empty);");
             foreach (var param in queryParams)
             {
+                var queryAttr = param.Attributes.First(a => a.Name == QueryAttribute);
+                var paramName = GetQueryParameterName(queryAttr, param.Name);
+                var formatString = GetFormatString(queryAttr);
+
                 // 处理简单类型和复杂类型的查询参数
                 if (IsSimpleType(param.Type))
                 {
@@ -321,14 +337,21 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
                     {
                         sb.AppendLine($"            if (!string.IsNullOrEmpty({param.Name}))");
                         sb.AppendLine("            {");
-                        sb.AppendLine($"                {param.Name} = HttpUtility.UrlEncode({param.Name});");
-                        sb.AppendLine($"                queryParams.Add(\"{param.Name}\",{param.Name});");
+                        sb.AppendLine($"                var encodedValue = HttpUtility.UrlEncode({param.Name});");
+                        sb.AppendLine($"                queryParams.Add(\"{paramName}\", encodedValue);");
                         sb.AppendLine("            }");
                     }
                     else
                     {
                         sb.AppendLine($"            if ({param.Name} != null)");
-                        sb.AppendLine($"                queryParams.Add(\"{param.Name}\",{param.Name}.ToString());");
+                        if (!string.IsNullOrEmpty(formatString))
+                        {
+                            sb.AppendLine($"                queryParams.Add(\"{paramName}\", {param.Name}.ToString(\"{formatString}\"));");
+                        }
+                        else
+                        {
+                            sb.AppendLine($"                queryParams.Add(\"{paramName}\", {param.Name}.ToString());");
+                        }
                     }
                 }
                 else
@@ -343,7 +366,7 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
                     sb.AppendLine($"                    var value = prop.GetValue({param.Name});");
                     sb.AppendLine("                    if (value != null)");
                     sb.AppendLine("                    {");
-                    sb.AppendLine($"                        queryParams.Add(\"{param.Name}\", HttpUtility.UrlEncode(value.ToString()));");
+                    sb.AppendLine($"                        queryParams.Add(prop.Name, HttpUtility.UrlEncode(value.ToString()));");
                     sb.AppendLine("                    }");
                     sb.AppendLine("                }");
                     sb.AppendLine("            }");
@@ -583,5 +606,78 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
         /// 命名参数字典
         /// </summary>
         public Dictionary<string, object?> NamedArguments { get; set; } = [];
+    }
+
+    /// <summary>
+    /// 获取格式化字符串
+    /// </summary>
+    /// <param name="attribute">特性信息</param>
+    /// <returns>格式化字符串</returns>
+    private string? GetFormatString(ParameterAttributeInfo attribute)
+    {
+        // 检查构造函数参数中的格式化字符串
+        if (attribute.Arguments.Length > 1)
+        {
+            var formatStringArg = attribute.Arguments[1] as string;
+            if (!string.IsNullOrEmpty(formatStringArg))
+            {
+                return formatStringArg;
+            }
+        }
+        else if (attribute.Arguments.Length == 1)
+        {
+            // 对于PathAttribute，第一个参数可能是格式化字符串
+            if (PathAttributes.Contains(attribute.Name))
+            {
+                var formatStringArg = attribute.Arguments[0] as string;
+                if (!string.IsNullOrEmpty(formatStringArg))
+                {
+                    return formatStringArg;
+                }
+            }
+        }
+
+        // 检查命名参数中的格式化字符串
+        if (attribute.NamedArguments.TryGetValue("FormatString", out var formatStringNamedArg))
+        {
+            var formatString = formatStringNamedArg as string;
+            if (!string.IsNullOrEmpty(formatString))
+            {
+                return formatString;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// 获取查询参数名称
+    /// </summary>
+    /// <param name="attribute">特性信息</param>
+    /// <param name="defaultName">默认参数名称</param>
+    /// <returns>查询参数名称</returns>
+    private string GetQueryParameterName(ParameterAttributeInfo attribute, string defaultName)
+    {
+        // 检查构造函数参数中的名称
+        if (attribute.Arguments.Length > 0)
+        {
+            var nameArg = attribute.Arguments[0] as string;
+            if (!string.IsNullOrEmpty(nameArg))
+            {
+                return nameArg;
+            }
+        }
+
+        // 检查命名参数中的名称
+        if (attribute.NamedArguments.TryGetValue("Name", out var nameNamedArg))
+        {
+            var name = nameNamedArg as string;
+            if (!string.IsNullOrEmpty(name))
+            {
+                return name;
+            }
+        }
+
+        return defaultName;
     }
 }
