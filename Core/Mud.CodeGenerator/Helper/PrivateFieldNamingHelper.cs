@@ -202,16 +202,16 @@ internal static class PrivateFieldNamingHelper
                 if (sb.Length == 0)
                 {
                     // 第一个字符确保小写
-                    sb.Append(char.ToLower(c));
+                    sb.Append(char.ToLower(c, CultureInfo.CurrentCulture));
                 }
                 else if (makeUpper)
                 {
-                    sb.Append(char.ToUpper(c));
+                    sb.Append(char.ToUpper(c, CultureInfo.CurrentCulture));
                     makeUpper = false;
                 }
                 else
                 {
-                    sb.Append(char.ToLower(c));
+                    sb.Append(char.ToLower(c, CultureInfo.CurrentCulture));
                 }
             }
             else
@@ -482,7 +482,7 @@ internal static class PrivateFieldNamingHelper
             {
                 if (makeUpper)
                 {
-                    sb.Append(char.ToUpper(c));
+                    sb.Append(char.ToUpper(c, CultureInfo.CurrentCulture));
                     makeUpper = false;
                 }
                 else

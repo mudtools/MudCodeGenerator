@@ -113,7 +113,7 @@ public partial class CodeInjectGenerator
                 return true;
 
             // 匹配泛型版本 CustomInject<IMenuRepository>
-            if (attrName.StartsWith(CodeInjectGeneratorConstants.CustomInjectGenericPattern) && attrName.EndsWith(CodeInjectGeneratorConstants.GenericSuffix))
+            if (attrName.StartsWith(CodeInjectGeneratorConstants.CustomInjectGenericPattern, StringComparison.OrdinalIgnoreCase) && attrName.EndsWith(CodeInjectGeneratorConstants.GenericSuffix, StringComparison.OrdinalIgnoreCase))
                 return true;
 
             return false;
@@ -133,7 +133,7 @@ public partial class CodeInjectGenerator
                 return true;
 
             // 匹配泛型版本 OptionsInject<TenantOptions>
-            if (attrName.StartsWith(CodeInjectGeneratorConstants.OptionsInjectGenericPattern) && attrName.EndsWith(CodeInjectGeneratorConstants.GenericSuffix))
+            if (attrName.StartsWith(CodeInjectGeneratorConstants.OptionsInjectGenericPattern, StringComparison.OrdinalIgnoreCase) && attrName.EndsWith(CodeInjectGeneratorConstants.GenericSuffix, StringComparison.OrdinalIgnoreCase))
                 return true;
 
             return false;

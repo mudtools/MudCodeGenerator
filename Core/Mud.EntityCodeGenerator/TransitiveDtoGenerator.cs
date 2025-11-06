@@ -54,6 +54,8 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
         {
             foreach (var item in configNameSpaces)
             {
+                if (string.IsNullOrEmpty(item))
+                    continue;
                 if (!nameSpaces.Contains(item))
                     nameSpaces.Add(item);
             }
