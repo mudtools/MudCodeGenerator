@@ -53,13 +53,11 @@ Mud 服务代码生成器是一个基于 Roslyn 的源代码生成器，用于�
 ```xml
 <ItemGroup>
   <!-- 引入的代码生成器程序集 -->
-  <PackageReference Include="Mud.ServiceCodeGenerator" Version="1.2.0"/>
+  <PackageReference Include="Mud.ServiceCodeGenerator" Version="1.2.3"/>
 </ItemGroup>
 ```
 
-## 代码生成功能及样例
-
-### 依赖注入代码生成
+## 依赖注入代码生成
 
 使用各种注入特性为类自动生成构造函数注入代码：
 
@@ -78,7 +76,7 @@ public partial class SysUserService
 }
 ```
 
-### 自动服务注册代码生成
+## 自动服务注册代码生成
 
 使用 [AutoRegister] 和 [AutoRegisterKeyed] 特性自动生成服务注册代码，简化依赖注入配置：
 
@@ -93,9 +91,9 @@ public partial class SysUserService : ISysUserService
 }
 ```
 
-#### 构造函数注入详解
+### 构造函数注入详解
 
-##### ConstructorInjectAttribute 字段注入
+### ConstructorInjectAttribute 字段注入
 使用 [ConstructorInject] 特性可以将类中已存在的字段通过构造函数注入初始化。该注入方式会扫描类中的所有私有只读字段，并为其生成相应的构造函数参数和赋值语句。
 
 示例：
@@ -115,7 +113,7 @@ public partial class UserService
 }
 ```
 
-##### LoggerInjectAttribute 日志注入
+### LoggerInjectAttribute 日志注入
 使用 [LoggerInject] 特性可以为类注入 ILogger<> 类型的日志记录器。该注入会自动生成 ILoggerFactory 参数，并在构造函数中创建对应类的 Logger 实例。
 
 示例：
@@ -133,7 +131,7 @@ public partial class UserService
 }
 ```
 
-##### CacheInjectAttribute 缓存管理器注入
+## CacheInjectAttribute 缓存管理器注入
 使用 [CacheInject] 特性可以注入缓存管理器实例。默认类型为 ICacheManager，默认字段名为 _cacheManager，可通过项目配置修改。
 
 示例：
@@ -206,7 +204,7 @@ public partial class UserService
 }
 ```
 
-##### CustomInjectAttribute 自定义注入
+## CustomInjectAttribute 自定义注入
 使用 [CustomInject] 特性可以注入任意类型的依赖项。支持泛型语法，提供更简洁的类型安全配置方式。
 
 示例：
@@ -231,7 +229,7 @@ public partial class UserService
 }
 ```
 
-#### 组合注入示例
+## 组合注入示例
 
 多种注入特性可以组合使用，生成器会自动合并所有注入需求。推荐使用泛型语法以获得更好的类型安全性：
 
@@ -276,11 +274,11 @@ public partial class UserService
 }
 ```
 
-### 自动服务注册代码生成
+## 自动服务注册代码生成
 
 AutoRegisterSourceGenerator 自动为标记了 [AutoRegister] 和 [AutoRegisterKeyed] 特性的类生成服务注册代码，简化依赖注入配置。
 
-#### AutoRegisterAttribute 自动注册
+### AutoRegisterAttribute 自动注册
 
 使用 [AutoRegister] 特性自动将服务注册到DI容器中：
 
@@ -310,7 +308,7 @@ public class UserService : IUserService
 }
 ```
 
-#### AutoRegisterKeyedAttribute 键控服务注册
+### AutoRegisterKeyedAttribute 键控服务注册
 
 使用 [AutoRegisterKeyed] 特性注册键控服务（Microsoft.Extensions.DependencyInjection 8.0+）：
 
@@ -333,7 +331,7 @@ public class UserService : IUserService
 }
 ```
 
-#### 生成的注册代码
+### 生成的注册代码
 
 自动生成的注册扩展方法位于 `AutoRegisterExtension` 类中：
 
@@ -355,7 +353,7 @@ public static partial class AutoRegisterExtension
 }
 ```
 
-#### 使用方式
+### 使用方式
 
 在应用程序启动时调用生成的扩展方法：
 
@@ -371,7 +369,7 @@ builder.Services
     .AddAutoRegister();
 ```
 
-#### 特性组合使用
+### 特性组合使用
 
 自动注册特性可以与其他注入特性组合使用：
 
@@ -388,7 +386,7 @@ public class UserService : IUserService
 }
 ```
 
-### 忽略字段注入
+## 忽略字段注入
 
 对于某些不需要通过构造函数注入的字段，可以使用 [IgnoreGenerator] 特性标记：
 
