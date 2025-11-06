@@ -219,14 +219,14 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
     private MethodAnalysisResult AnalyzeMethod(Compilation compilation, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl)
     {
         var methodSyntax = interfaceDecl.Members
-     .OfType<MethodDeclarationSyntax>()
-     .FirstOrDefault(m =>
-     {
-         var model = compilation.GetSemanticModel(m.SyntaxTree);
-         var methodSymbolFromSyntax = model.GetDeclaredSymbol(m);
-         return methodSymbolFromSyntax != null &&
-                methodSymbolFromSyntax.Equals(methodSymbol, SymbolEqualityComparer.Default);
-     });
+                                 .OfType<MethodDeclarationSyntax>()
+                                 .FirstOrDefault(m =>
+                                 {
+                                     var model = compilation.GetSemanticModel(m.SyntaxTree);
+                                     var methodSymbolFromSyntax = model.GetDeclaredSymbol(m);
+                                     return methodSymbolFromSyntax != null &&
+                                            methodSymbolFromSyntax.Equals(methodSymbol, SymbolEqualityComparer.Default);
+                                 });
 
         if (methodSyntax == null) return MethodAnalysisResult.Invalid;
 
@@ -320,7 +320,7 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
         var queryParams = methodInfo.Parameters
             .Where(p => p.Attributes.Any(attr => attr.Name == QueryAttribute))
             .ToList();
-
+        //Debugger.Launch();
         if (queryParams.Any())
         {
             sb.AppendLine($"            var queryParams = HttpUtility.ParseQueryString(string.Empty);");
@@ -502,19 +502,94 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
     /// <returns>是否为简单类型</returns>
     private bool IsSimpleType(string typeName)
     {
-        var simpleTypes = new[] { "string", "int", "long", "float", "double", "decimal", "bool", "DateTime", "Guid" };
+        var simpleTypes = new[] { "string", "int", "long", "float", "double", "decimal", "bool", "DateTime", "System.DateTime", "Guid", "System.Guid" };
         return simpleTypes.Contains(typeName) ||
                typeName.StartsWith("string?", StringComparison.OrdinalIgnoreCase) || typeName.StartsWith("int?", StringComparison.OrdinalIgnoreCase) ||
                typeName.StartsWith("long?", StringComparison.OrdinalIgnoreCase) || typeName.StartsWith("float?", StringComparison.OrdinalIgnoreCase) ||
                typeName.StartsWith("double?", StringComparison.OrdinalIgnoreCase) || typeName.StartsWith("decimal?", StringComparison.OrdinalIgnoreCase) ||
-               typeName.StartsWith("bool?", StringComparison.OrdinalIgnoreCase) || typeName.StartsWith("DateTime?", StringComparison.OrdinalIgnoreCase) ||
-               typeName.StartsWith("Guid?", StringComparison.OrdinalIgnoreCase);
+               typeName.StartsWith("bool?", StringComparison.OrdinalIgnoreCase) ||
+               typeName.StartsWith("DateTime?", StringComparison.OrdinalIgnoreCase) || typeName.StartsWith("System.DateTime?", StringComparison.OrdinalIgnoreCase) ||
+               typeName.StartsWith("Guid?", StringComparison.OrdinalIgnoreCase) || typeName.StartsWith("System.Guid?", StringComparison.OrdinalIgnoreCase);
     }
 
     private bool IsStringType(string typeName)
     {
         return typeName.Equals("string", StringComparison.OrdinalIgnoreCase) || typeName.Equals("string?", StringComparison.OrdinalIgnoreCase);
     }
+
+    /// <summary>
+    /// 获取格式化字符串
+    /// </summary>
+    /// <param name="attribute">特性信息</param>
+    /// <returns>格式化字符串</returns>
+    private string? GetFormatString(ParameterAttributeInfo attribute)
+    {
+        // 检查构造函数参数中的格式化字符串
+        if (attribute.Arguments.Length > 1)
+        {
+            var formatStringArg = attribute.Arguments[1] as string;
+            if (!string.IsNullOrEmpty(formatStringArg))
+            {
+                return formatStringArg;
+            }
+        }
+        else if (attribute.Arguments.Length == 1)
+        {
+            // 对于PathAttribute，第一个参数可能是格式化字符串
+            if (PathAttributes.Contains(attribute.Name))
+            {
+                var formatStringArg = attribute.Arguments[0] as string;
+                if (!string.IsNullOrEmpty(formatStringArg))
+                {
+                    return formatStringArg;
+                }
+            }
+        }
+
+        // 检查命名参数中的格式化字符串
+        if (attribute.NamedArguments.TryGetValue("FormatString", out var formatStringNamedArg))
+        {
+            var formatString = formatStringNamedArg as string;
+            if (!string.IsNullOrEmpty(formatString))
+            {
+                return formatString;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// 获取查询参数名称
+    /// </summary>
+    /// <param name="attribute">特性信息</param>
+    /// <param name="defaultName">默认参数名称</param>
+    /// <returns>查询参数名称</returns>
+    private string GetQueryParameterName(ParameterAttributeInfo attribute, string defaultName)
+    {
+        // 检查构造函数参数中的名称
+        if (attribute.Arguments.Length > 0)
+        {
+            var nameArg = attribute.Arguments[0] as string;
+            if (!string.IsNullOrEmpty(nameArg))
+            {
+                return nameArg;
+            }
+        }
+
+        // 检查命名参数中的名称
+        if (attribute.NamedArguments.TryGetValue("Name", out var nameNamedArg))
+        {
+            var name = nameNamedArg as string;
+            if (!string.IsNullOrEmpty(name))
+            {
+                return name;
+            }
+        }
+
+        return defaultName;
+    }
+
 
     /// <summary>
     /// 方法分析结果
@@ -606,78 +681,5 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
         /// 命名参数字典
         /// </summary>
         public Dictionary<string, object?> NamedArguments { get; set; } = [];
-    }
-
-    /// <summary>
-    /// 获取格式化字符串
-    /// </summary>
-    /// <param name="attribute">特性信息</param>
-    /// <returns>格式化字符串</returns>
-    private string? GetFormatString(ParameterAttributeInfo attribute)
-    {
-        // 检查构造函数参数中的格式化字符串
-        if (attribute.Arguments.Length > 1)
-        {
-            var formatStringArg = attribute.Arguments[1] as string;
-            if (!string.IsNullOrEmpty(formatStringArg))
-            {
-                return formatStringArg;
-            }
-        }
-        else if (attribute.Arguments.Length == 1)
-        {
-            // 对于PathAttribute，第一个参数可能是格式化字符串
-            if (PathAttributes.Contains(attribute.Name))
-            {
-                var formatStringArg = attribute.Arguments[0] as string;
-                if (!string.IsNullOrEmpty(formatStringArg))
-                {
-                    return formatStringArg;
-                }
-            }
-        }
-
-        // 检查命名参数中的格式化字符串
-        if (attribute.NamedArguments.TryGetValue("FormatString", out var formatStringNamedArg))
-        {
-            var formatString = formatStringNamedArg as string;
-            if (!string.IsNullOrEmpty(formatString))
-            {
-                return formatString;
-            }
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// 获取查询参数名称
-    /// </summary>
-    /// <param name="attribute">特性信息</param>
-    /// <param name="defaultName">默认参数名称</param>
-    /// <returns>查询参数名称</returns>
-    private string GetQueryParameterName(ParameterAttributeInfo attribute, string defaultName)
-    {
-        // 检查构造函数参数中的名称
-        if (attribute.Arguments.Length > 0)
-        {
-            var nameArg = attribute.Arguments[0] as string;
-            if (!string.IsNullOrEmpty(nameArg))
-            {
-                return nameArg;
-            }
-        }
-
-        // 检查命名参数中的名称
-        if (attribute.NamedArguments.TryGetValue("Name", out var nameNamedArg))
-        {
-            var name = nameNamedArg as string;
-            if (!string.IsNullOrEmpty(name))
-            {
-                return name;
-            }
-        }
-
-        return defaultName;
     }
 }
