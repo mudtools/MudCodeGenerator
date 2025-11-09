@@ -24,7 +24,7 @@ public class HttpClientRegistrationGenerator : WebApiSourceGenerator
         if (httpClientApis.Count == 0)
             return;
 
-        var sourceCode = GenerateSourceCode(httpClientApis);
+        var sourceCode = GenerateSourceCode(compilation, httpClientApis);
         context.AddSource("HttpClientApiExtensions.g.cs", SourceText.From(sourceCode, Encoding.UTF8));
     }
 
@@ -102,19 +102,22 @@ public class HttpClientRegistrationGenerator : WebApiSourceGenerator
         ReportErrorDiagnostic(context, errorDescriptor, interfaceSyntax.Identifier.Text, ex);
     }
 
-    private string GenerateSourceCode(List<HttpClientApiInfo> apis)
+    private string GenerateSourceCode(Compilation compilation, List<HttpClientApiInfo> apis)
     {
         var codeBuilder = new StringBuilder();
-        GenerateExtensionClass(codeBuilder, apis);
+        GenerateExtensionClass(compilation, codeBuilder, apis);
         return codeBuilder.ToString();
     }
 
-    private void GenerateExtensionClass(StringBuilder codeBuilder, List<HttpClientApiInfo> apis)
+    private void GenerateExtensionClass(Compilation compilation, StringBuilder codeBuilder, List<HttpClientApiInfo> apis)
     {
         GenerateFileHeader(codeBuilder);
 
         codeBuilder.AppendLine();
-        codeBuilder.AppendLine("namespace Microsoft.Extensions.DependencyInjection");
+        var @namespace = compilation.AssemblyName;
+        var targetNamespace = string.IsNullOrEmpty(@namespace) ? "Microsoft.Extensions.DependencyInjection" : @namespace;
+
+        codeBuilder.AppendLine($"namespace {targetNamespace}");
         codeBuilder.AppendLine("{");
         codeBuilder.AppendLine("    [global::System.Runtime.CompilerServices.CompilerGenerated]");
         codeBuilder.AppendLine("    public static class HttpClientApiExtensions");
