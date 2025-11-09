@@ -143,6 +143,9 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
         var sb = new StringBuilder();
         GenerateFileHeader(sb, className, namespaceName, interfaceSymbol.Name);
 
+        // 生成类级别的部分方法
+        GenerateClassPartialMethods(sb, interfaceSymbol);
+
         // 为每个方法生成实现
         foreach (var methodSymbol in interfaceSymbol.GetMembers().OfType<IMethodSymbol>())
         {
@@ -201,8 +204,6 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
         var methodInfo = AnalyzeMethod(compilation, methodSymbol, interfaceDecl);
         if (!methodInfo.IsValid) return;
 
-        GenerateInvokeMethod(sb, methodSymbol);
-
         sb.AppendLine();
         sb.AppendLine($"        /// <summary>");
         sb.AppendLine($"        /// 实现 {methodSymbol.Name} 方法");
@@ -218,36 +219,93 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
         sb.AppendLine("        }");
     }
 
-    private void GenerateInvokeMethod(StringBuilder sb, IMethodSymbol methodInfo)
+    /// <summary>
+    /// 生成类级别的部分方法
+    /// </summary>
+    /// <param name="sb">StringBuilder</param>
+    /// <param name="interfaceSymbol">接口符号</param>
+    private void GenerateClassPartialMethods(StringBuilder sb, INamedTypeSymbol interfaceSymbol)
     {
-        sb.AppendLine();
-        sb.AppendLine($"        /// <summary>");
-        sb.AppendLine($"        /// {methodInfo.Name} 方法调用之前。");
-        sb.AppendLine($"        /// </summary>");
-        sb.AppendLine("        [global::System.Runtime.CompilerServices.CompilerGenerated]");
-        sb.AppendLine($"        partial void On{StringExtensions.ConvertFunctionName(methodInfo.Name, "Before")}(HttpRequestMessage request)");
+        // 获取所有方法
+        var methods = interfaceSymbol.GetMembers().OfType<IMethodSymbol>().ToList();
+
+        // 使用HashSet来避免重复的方法名
+        var processedMethods = new HashSet<string>();
+
+        foreach (var methodSymbol in methods)
+        {
+            var methodName = methodSymbol.Name;
+
+            // 如果已经处理过这个方法，跳过
+            if (processedMethods.Contains(methodName))
+                continue;
+
+            processedMethods.Add(methodName);
+
+            sb.AppendLine();
+            sb.AppendLine($"        /// <summary>");
+            sb.AppendLine($"        /// {methodName} 方法调用之前。");
+            sb.AppendLine($"        /// </summary>");
+            sb.AppendLine("        [global::System.Runtime.CompilerServices.CompilerGenerated]");
+            sb.AppendLine($"        partial void On{StringExtensions.ConvertFunctionName(methodName, "Before")}(HttpRequestMessage request, string url);");
+
+            sb.AppendLine();
+            sb.AppendLine($"        /// <summary>");
+            sb.AppendLine($"        /// {methodName} 方法调用之后。");
+            sb.AppendLine($"        /// </summary>");
+            sb.AppendLine("        [global::System.Runtime.CompilerServices.CompilerGenerated]");
+            sb.AppendLine($"        partial void On{StringExtensions.ConvertFunctionName(methodName, "After")}(HttpResponseMessage request, string url);");
+
+            sb.AppendLine();
+            sb.AppendLine($"        /// <summary>");
+            sb.AppendLine($"        /// {methodName} 方法调用失败。");
+            sb.AppendLine($"        /// </summary>");
+            sb.AppendLine("        [global::System.Runtime.CompilerServices.CompilerGenerated]");
+            sb.AppendLine($"        partial void On{StringExtensions.ConvertFunctionName(methodName, "Fail")}(HttpResponseMessage request, string url);");
+
+            sb.AppendLine();
+            sb.AppendLine($"        /// <summary>");
+            sb.AppendLine($"        /// {methodName} 方法调用发生错误。");
+            sb.AppendLine($"        /// </summary>");
+            sb.AppendLine("        [global::System.Runtime.CompilerServices.CompilerGenerated]");
+            sb.AppendLine($"        partial void On{StringExtensions.ConvertFunctionName(methodName, "Error")}(Exception error, string url);");
+        }
+
+        var interfaceName = GetImplementationClassName(interfaceSymbol.Name);
+        if (processedMethods.Contains(interfaceName))
+            return;
+        processedMethods.Add(interfaceName);
 
         sb.AppendLine();
         sb.AppendLine($"        /// <summary>");
-        sb.AppendLine($"        /// {methodInfo.Name} 方法调用之后。");
+        sb.AppendLine($"        /// {interfaceName} 方法调用之前。");
         sb.AppendLine($"        /// </summary>");
         sb.AppendLine("        [global::System.Runtime.CompilerServices.CompilerGenerated]");
-        sb.AppendLine($"        partial void On{StringExtensions.ConvertFunctionName(methodInfo.Name, "After")}(HttpResponseMessage request)");
+        sb.AppendLine($"        partial void On{StringExtensions.ConvertFunctionName(interfaceName, "Api", "RequestBefore")}(HttpRequestMessage request, string url);");
 
         sb.AppendLine();
         sb.AppendLine($"        /// <summary>");
-        sb.AppendLine($"        /// {methodInfo.Name} 方法调用失败。");
+        sb.AppendLine($"        /// {interfaceName} 方法调用之后。");
         sb.AppendLine($"        /// </summary>");
         sb.AppendLine("        [global::System.Runtime.CompilerServices.CompilerGenerated]");
-        sb.AppendLine($"        partial void On{StringExtensions.ConvertFunctionName(methodInfo.Name, "Fail")}(HttpResponseMessage request)");
+        sb.AppendLine($"        partial void On{StringExtensions.ConvertFunctionName(interfaceName, "Api", "RequestAfter")}(HttpResponseMessage response, string url);");
 
         sb.AppendLine();
         sb.AppendLine($"        /// <summary>");
-        sb.AppendLine($"        /// {methodInfo.Name} 方法调用发生错误。");
+        sb.AppendLine($"        /// {interfaceName} 方法调用失败。");
         sb.AppendLine($"        /// </summary>");
         sb.AppendLine("        [global::System.Runtime.CompilerServices.CompilerGenerated]");
-        sb.AppendLine($"        partial void On{StringExtensions.ConvertFunctionName(methodInfo.Name, "Error")}(Exception error, string url)");
+        sb.AppendLine($"        partial void On{StringExtensions.ConvertFunctionName(interfaceName, "Api", "RequestFail")}(HttpResponseMessage response, string url);");
+
+        sb.AppendLine();
+        sb.AppendLine($"        /// <summary>");
+        sb.AppendLine($"        /// {interfaceName} 方法调用发生错误。");
+        sb.AppendLine($"        /// </summary>");
+        sb.AppendLine("        [global::System.Runtime.CompilerServices.CompilerGenerated]");
+        sb.AppendLine($"        partial void On{StringExtensions.ConvertFunctionName(interfaceName, "Api", "RequestError")}(Exception error, string url);");
+
     }
+
     private MethodAnalysisResult AnalyzeMethod(Compilation compilation, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl)
     {
         var methodSyntax = interfaceDecl.Members
@@ -287,6 +345,7 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
 
         return new MethodAnalysisResult
         {
+            InterfaceName = interfaceDecl.Identifier.Text,
             IsValid = true,
             MethodName = methodSymbol.Name,
             HttpMethod = httpMethod,
@@ -463,20 +522,24 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
     {
         var cancellationTokenArg = GetCancellationTokenParam(methodInfo);
 
+        var interfaceName = GetImplementationClassName(methodInfo.InterfaceName);
         sb.AppendLine("            try");
         sb.AppendLine("            {");
-        sb.AppendLine($"                On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "Before")}(request);");
+        sb.AppendLine($"                On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "Before")}(request, url);");
+        sb.AppendLine($"                On{StringExtensions.ConvertFunctionName(interfaceName, "Api", "RequestBefore")}(request, url);");
         sb.AppendLine($"                using var response = await _httpClient.SendAsync(request{cancellationTokenArg});");
         sb.AppendLine("                _logger.LogDebug(\"HTTP请求完成: {StatusCode}\", (int)response.StatusCode);");
         sb.AppendLine();
         sb.AppendLine("                if (!response.IsSuccessStatusCode)");
         sb.AppendLine("                {");
-         sb.AppendLine($"                    On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "Fail")}(response);");
+        sb.AppendLine($"                    On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "Fail")}(response, url);");
+        sb.AppendLine($"                    On{StringExtensions.ConvertFunctionName(interfaceName, "Api", "RequestFail")}(response, url);");
         sb.AppendLine("                    var errorContent = await response.Content.ReadAsStringAsync();");
         sb.AppendLine("                    _logger.LogError(\"HTTP请求失败: {StatusCode}, 响应: {Response}\", (int)response.StatusCode, errorContent);");
         sb.AppendLine("                    throw new HttpRequestException($\"HTTP请求失败: {(int)response.StatusCode}\");");
         sb.AppendLine("                }");
-        sb.AppendLine($"                On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "After")}(response);");
+        sb.AppendLine($"                On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "After")}(response, url);");
+        sb.AppendLine($"                On{StringExtensions.ConvertFunctionName(interfaceName, "Api", "RequestAfter")}(response, url);");
         sb.AppendLine("                using var stream = await response.Content.ReadAsStreamAsync();");
         sb.AppendLine();
         sb.AppendLine("                if (stream.Length == 0)");
@@ -491,6 +554,7 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
         sb.AppendLine("            {");
         sb.AppendLine("                _logger.LogError(ex, \"HTTP请求异常: {{Url}}\", url);");
         sb.AppendLine($"                On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "Error")}(ex, url);");
+        sb.AppendLine($"                On{StringExtensions.ConvertFunctionName(interfaceName, "Api", "RequestError")}(ex, url);");
         sb.AppendLine("                throw;");
         sb.AppendLine("            }");
     }
@@ -635,6 +699,11 @@ public class HttpClientApiSourceGenerator : WebApiSourceGenerator
     /// </remarks>
     private class MethodAnalysisResult
     {
+        /// <summary>
+        /// 接口名称
+        /// </summary>
+        public string InterfaceName { get; set; } = string.Empty;
+
         /// <summary>
         /// 方法是否有效
         /// </summary>
