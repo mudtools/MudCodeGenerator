@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Reflection;
 using System.Text;
 
 namespace Mud.CodeGenerator;
@@ -26,7 +27,26 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     private const string LikeQueryAttributeName = "LikeQueryAttribute";
 
     protected const string CompilerGeneratedAttribute = "[global::System.Runtime.CompilerServices.CompilerGenerated]";
-    protected const string GeneratedCodeAttribute = "[global::System.CodeDom.Compiler.GeneratedCode(\"Mud.ServiceCodeGenerator\", \"1.2.3\")]";
+    protected string GeneratedCodeAttribute => $"[global::System.CodeDom.Compiler.GeneratedCode(\"Mud.ServiceCodeGenerator\", \"{GetAssemblyVersion()}\")]";
+    
+    /// <summary>
+    /// 获取当前程序集的版本号
+    /// </summary>
+    /// <returns>程序集版本号字符串</returns>
+    private static string GetAssemblyVersion()
+    {
+        try
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var version = assembly.GetName().Version ?? new Version(1, 0, 0);
+            return $"{version.Major}.{version.Minor}.{version.Build}";
+        }
+        catch
+        {
+            // 如果获取失败，返回默认版本号
+            return "1.2.3";
+        }
+    }
     /// <summary>
     /// 原始实体类的后缀名。
     /// </summary>
