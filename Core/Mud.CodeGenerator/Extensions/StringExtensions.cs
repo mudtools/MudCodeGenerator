@@ -137,4 +137,28 @@ internal static class StringExtensions
 
         return str;
     }
+
+    /// <summary>
+    /// 将函数名转换为指定的格式
+    /// </summary>
+    /// <param name="originalFunctionName">原始函数名</param>
+    /// <returns>转换后的函数名</returns>
+    public static string ConvertFunctionName(string originalFunctionName, string suffixName)
+    {
+        if (string.IsNullOrWhiteSpace(originalFunctionName) || string.IsNullOrEmpty(suffixName))
+        {
+            return originalFunctionName;
+        }
+
+        // 处理以"Async"结尾的函数名
+        if (originalFunctionName.EndsWith("Async", StringComparison.OrdinalIgnoreCase))
+        {
+            return originalFunctionName.Substring(0, originalFunctionName.Length - 5) + suffixName;
+        }
+        // 处理不以"Async"结尾的函数名
+        else
+        {
+            return originalFunctionName + suffixName;
+        }
+    }
 }
