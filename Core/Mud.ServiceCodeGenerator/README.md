@@ -405,7 +405,100 @@ public partial class UserService
 
 ## HttpClient API 代码生成
 
-HttpClientApiSourceGenerator 自动为标记了 [HttpClientApi] 特性的接口生成 HttpClient 实现类，支持 RESTful API 调用。
+HttpClientApiSourceGenerator 自动为标记了 [HttpClientApi] 特性的接口生成 HttpClient 实现类，支持 RESTful API 调用。该生成器提供了完整的 HTTP 请求生命周期管理，包括部分方法事件钩子、参数自动处理、错误处理和日志记录。
+
+### 新功能亮点
+
+#### 1. 部分方法事件钩子
+
+为每个 HTTP 方法自动生成4个事件钩子方法，支持完整的请求生命周期监控：
+
+```CSharp
+[HttpClientApi]
+public interface IExampleApi
+{
+    [Get("/api/users/{id}")]
+    Task<UserDto> GetUserAsync([Path] string id);
+}
+
+// 生成的实现类包含以下部分方法：
+public partial class ExampleApi : IExampleApi
+{
+    // 方法级别事件钩子
+    partial void OnGetUserBefore(HttpRequestMessage request, string url);
+    partial void OnGetUserAfter(HttpResponseMessage response, string url);
+    partial void OnGetUserFail(HttpResponseMessage response, string url);
+    partial void OnGetUserError(Exception error, string url);
+    
+    // 接口级别事件钩子
+    partial void OnExampleApiRequestBefore(HttpRequestMessage request, string url);
+    partial void OnExampleApiRequestAfter(HttpResponseMessage response, string url);
+    partial void OnExampleApiRequestFail(HttpResponseMessage response, string url);
+    partial void OnExampleApiRequestError(Exception error, string url);
+}
+```
+
+#### 2. 改进的参数特性支持
+
+支持多种参数特性，自动处理不同类型的参数：
+
+```CSharp
+[HttpClientApi]
+public interface IAdvancedApi
+{
+    // 路径参数 - 自动替换 URL 模板中的占位符
+    [Get("/api/users/{userId}/orders/{orderId}")]
+    Task<OrderDto> GetOrderAsync([Path] string userId, [Path] string orderId);
+    
+    // 查询参数 - 自动生成查询字符串
+    [Get("/api/search")]
+    Task<List<UserDto>> SearchUsersAsync([Query] string name, [Query] int? page);
+    
+    // 请求头参数 - 自动设置请求头
+    [Get("/api/protected")]
+    Task<ProtectedData> GetProtectedDataAsync([Header("Authorization")] string token);
+    
+    // 请求体参数 - 自动序列化为 JSON
+    [Post("/api/users")]
+    Task<UserDto> CreateUserAsync([Body] UserDto user);
+    
+    // 复杂查询参数对象
+    [Get("/api/search")]
+    Task<List<UserDto>> AdvancedSearchAsync([Query] UserSearchCriteria criteria);
+}
+
+public class UserSearchCriteria
+{
+    public string Name { get; set; }
+    public int? Age { get; set; }
+    public string Department { get; set; }
+}
+```
+
+#### 3. 高级参数特性配置
+
+支持参数特性的高级配置选项：
+
+```CSharp
+[HttpClientApi]
+public interface IConfigurableApi
+{
+    // 自定义查询参数名称和格式
+    [Get("/api/users")]
+    Task<List<UserDto>> GetUsersAsync(
+        [Query(Name = "user_name", FormatString = "UPPER")] string name,
+        [Query(FormatString = "D2")] int? page);
+    
+    // 自定义请求内容类型
+    [Post("/api/data")]
+    Task<ResponseDto> SendDataAsync(
+        [Body(ContentType = "application/xml", UseStringContent = true)] string xmlData);
+    
+    // 自定义路径参数格式
+    [Get("/api/orders/{orderId:guid}")]
+    Task<OrderDto> GetOrderAsync([Path(FormatString = "N")] Guid orderId);
+}
+```
 
 ### 基本用法
 
@@ -681,6 +774,258 @@ public class UserService
     public async Task<UserDto> GetUserAsync(string userId)
     {
         return await _dingTalkApi.GetUserAsync(userId);
+    }
+}
+```
+
+### 部分方法事件钩子使用指南
+
+#### 1. 方法级别事件钩子
+
+为每个 HTTP 方法自动生成4个事件钩子，可在自定义实现中重写：
+
+```CSharp
+public partial class ExampleApi
+{
+    // 请求执行前调用 - 可用于修改请求
+    partial void OnGetUserBefore(HttpRequestMessage request, string url)
+    {
+        // 添加自定义请求头
+        request.Headers.Add("X-Custom-Header", "custom-value");
+        
+        // 记录请求日志
+        _logger.LogInformation("开始调用 GetUser API: {Url}", url);
+    }
+    
+    // 请求成功后调用 - 可用于处理响应
+    partial void OnGetUserAfter(HttpResponseMessage response, string url)
+    {
+        // 记录成功响应
+        _logger.LogInformation("GetUser API 调用成功: {StatusCode}", (int)response.StatusCode);
+        
+        // 验证响应内容
+        if (!response.Headers.Contains("X-RateLimit-Remaining"))
+        {
+            _logger.LogWarning("API 响应缺少速率限制信息");
+        }
+    }
+    
+    // 请求失败时调用 (HTTP 状态码非 2xx) - 可用于错误处理
+    partial void OnGetUserFail(HttpResponseMessage response, string url)
+    {
+        // 处理特定错误状态码
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            _logger.LogWarning("用户不存在: {Url}", url);
+        }
+        else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            // 触发重新认证流程
+            _authService.RefreshToken();
+        }
+    }
+    
+    // 请求发生异常时调用 - 可用于异常处理
+    partial void OnGetUserError(Exception error, string url)
+    {
+        // 记录异常详细信息
+        _logger.LogError(error, "GetUser API 调用异常: {Url}", url);
+        
+        // 发送异常通知
+        _notificationService.SendErrorNotification(error, url);
+    }
+}
+```
+
+#### 2. 接口级别事件钩子
+
+为整个接口类生成4个全局事件钩子，适用于所有方法：
+
+```CSharp
+public partial class ExampleApi
+{
+    // 所有方法请求前调用
+    partial void OnExampleApiRequestBefore(HttpRequestMessage request, string url)
+    {
+        // 添加全局请求头
+        request.Headers.Add("X-Request-ID", Guid.NewGuid().ToString());
+        request.Headers.Add("X-Timestamp", DateTime.UtcNow.ToString("O"));
+        
+        // 全局请求验证
+        if (string.IsNullOrEmpty(url))
+        {
+            throw new ArgumentException("URL 不能为空", nameof(url));
+        }
+    }
+    
+    // 所有方法请求成功后调用
+    partial void OnExampleApiRequestAfter(HttpResponseMessage response, string url)
+    {
+        // 全局响应处理
+        var rateLimit = response.Headers.GetValues("X-RateLimit-Remaining").FirstOrDefault();
+        if (!string.IsNullOrEmpty(rateLimit) && int.Parse(rateLimit) < 10)
+        {
+            _logger.LogWarning("API 速率限制即将达到: {Remaining}", rateLimit);
+        }
+    }
+    
+    // 所有方法请求失败时调用
+    partial void OnExampleApiRequestFail(HttpResponseMessage response, string url)
+    {
+        // 全局错误处理
+        if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+        {
+            var retryAfter = response.Headers.RetryAfter?.Delta;
+            if (retryAfter.HasValue)
+            {
+                _logger.LogWarning("达到速率限制，将在 {RetryAfter} 后重试", retryAfter.Value);
+            }
+        }
+    }
+    
+    // 所有方法请求异常时调用
+    partial void OnExampleApiRequestError(Exception error, string url)
+    {
+        // 全局异常处理
+        if (error is System.Net.Http.HttpRequestException httpError)
+        {
+            _logger.LogError(httpError, "网络请求异常: {Url}", url);
+        }
+        else if (error is System.Text.Json.JsonException jsonError)
+        {
+            _logger.LogError(jsonError, "JSON 序列化异常: {Url}", url);
+        }
+    }
+}
+```
+
+#### 3. 事件钩子的执行顺序
+
+请求生命周期中事件钩子的执行顺序如下：
+
+```
+1. On{InterfaceName}ApiRequestBefore (接口级别)
+2. On{MethodName}Before (方法级别)
+3. 执行 HTTP 请求
+4. On{MethodName}After (方法级别) - 如果请求成功
+   On{MethodName}Fail (方法级别) - 如果请求失败 (HTTP 状态码非 2xx)
+5. On{InterfaceName}ApiRequestAfter (接口级别) - 如果请求成功
+   On{InterfaceName}ApiRequestFail (接口级别) - 如果请求失败
+6. On{MethodName}Error (方法级别) - 如果发生异常
+   On{InterfaceName}ApiRequestError (接口级别) - 如果发生异常
+```
+
+#### 4. 高级事件钩子应用场景
+
+##### 4.1 请求重试机制
+
+```CSharp
+public partial class ResilientApi
+{
+    private int _retryCount = 0;
+    
+    partial void OnGetDataBefore(HttpRequestMessage request, string url)
+    {
+        // 在重试时添加延迟
+        if (_retryCount > 0)
+        {
+            Thread.Sleep(TimeSpan.FromSeconds(_retryCount * 2));
+        }
+    }
+    
+    partial void OnGetDataFail(HttpResponseMessage response, string url)
+    {
+        // 如果是暂时性错误，触发重试
+        if (IsTransientError(response.StatusCode) && _retryCount < 3)
+        {
+            _retryCount++;
+            _logger.LogWarning("第 {RetryCount} 次重试: {Url}", _retryCount, url);
+            
+            // 重新调用方法 (需要实现重试逻辑)
+            // 注意：实际实现中需要在方法外部处理重试
+        }
+    }
+    
+    partial void OnGetDataAfter(HttpResponseMessage response, string url)
+    {
+        // 重置重试计数器
+        _retryCount = 0;
+    }
+    
+    private bool IsTransientError(System.Net.HttpStatusCode statusCode)
+    {
+        return statusCode == System.Net.HttpStatusCode.RequestTimeout ||
+               statusCode == System.Net.HttpStatusCode.TooManyRequests ||
+               statusCode == System.Net.HttpStatusCode.InternalServerError ||
+               statusCode == System.Net.HttpStatusCode.ServiceUnavailable;
+    }
+}
+```
+
+##### 4.2 请求监控和指标收集
+
+```CSharp
+public partial class MonitoredApi
+{
+    private readonly IMetricsCollector _metrics;
+    
+    partial void OnGetUserBefore(HttpRequestMessage request, string url)
+    {
+        // 开始计时
+        request.Properties["StartTime"] = DateTime.UtcNow;
+    }
+    
+    partial void OnGetUserAfter(HttpResponseMessage response, string url)
+    {
+        // 计算请求耗时
+        if (response.RequestMessage?.Properties.TryGetValue("StartTime", out var startTimeObj) == true)
+        {
+            var startTime = (DateTime)startTimeObj;
+            var duration = DateTime.UtcNow - startTime;
+            
+            // 收集指标
+            _metrics.RecordApiCall("GetUser", duration, true);
+            _logger.LogInformation("GetUser API 调用耗时: {Duration}ms", duration.TotalMilliseconds);
+        }
+    }
+    
+    partial void OnGetUserFail(HttpResponseMessage response, string url)
+    {
+        // 记录失败指标
+        _metrics.RecordApiCall("GetUser", TimeSpan.Zero, false);
+    }
+}
+```
+
+##### 4.3 安全审计
+
+```CSharp
+public partial class AuditedApi
+{
+    private readonly IAuditLogger _auditLogger;
+    
+    partial void OnUpdateUserBefore(HttpRequestMessage request, string url)
+    {
+        // 记录操作审计
+        var user = _userContext.CurrentUser;
+        _auditLogger.LogOperation(user?.Id, "UpdateUser", 
+            $"开始更新用户数据: {url}", AuditLevel.Info);
+    }
+    
+    partial void OnUpdateUserAfter(HttpResponseMessage response, string url)
+    {
+        // 记录成功审计
+        var user = _userContext.CurrentUser;
+        _auditLogger.LogOperation(user?.Id, "UpdateUser", 
+            $"用户数据更新成功: {(int)response.StatusCode}", AuditLevel.Info);
+    }
+    
+    partial void OnUpdateUserFail(HttpResponseMessage response, string url)
+    {
+        // 记录失败审计
+        var user = _userContext.CurrentUser;
+        _auditLogger.LogOperation(user?.Id, "UpdateUser", 
+            $"用户数据更新失败: {(int)response.StatusCode}", AuditLevel.Warning);
     }
 }
 ```

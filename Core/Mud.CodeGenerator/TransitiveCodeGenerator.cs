@@ -25,7 +25,8 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     protected const string IgnoreGeneratorAttribute = "IgnoreGeneratorAttribute";
     private const string LikeQueryAttributeName = "LikeQueryAttribute";
 
-
+    protected const string CompilerGeneratedAttribute = "[global::System.Runtime.CompilerServices.CompilerGenerated]";
+    protected const string GeneratedCodeAttribute = "[global::System.CodeDom.Compiler.GeneratedCode(\"Mud.ServiceCodeGenerator\", \"1.2.3\")]";
     /// <summary>
     /// 原始实体类的后缀名。
     /// </summary>

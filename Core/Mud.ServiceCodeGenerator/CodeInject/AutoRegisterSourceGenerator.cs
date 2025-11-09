@@ -413,12 +413,15 @@ public class AutoRegisterSourceGenerator : TransitiveCodeGenerator
             }
         }
 
-        sb.AppendLine($"{indent}[global::System.CodeDom.Compiler.GeneratedCode(\"Mud.ServiceCodeGenerator\", \"1.0.0.0\")]");
+        sb.AppendLine($"{indent}{CompilerGeneratedAttribute}");
+        sb.AppendLine($"{indent}{GeneratedCodeAttribute}");
         sb.AppendLine($"{indent}public static partial class AutoRegisterExtension");
         sb.AppendLine($"{indent}{{");
         sb.AppendLine($"{indent}    /// <summary>");
         sb.AppendLine($"{indent}    /// 自动注册标注的服务");
         sb.AppendLine($"{indent}    /// </summary>");
+        sb.AppendLine($"{indent}    {CompilerGeneratedAttribute}");
+        sb.AppendLine($"{indent}    {GeneratedCodeAttribute}");
         sb.AppendLine($"{indent}    public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddAutoRegister(this Microsoft.Extensions.DependencyInjection.IServiceCollection services)");
         sb.AppendLine($"{indent}    {{");
         foreach (var line in registrations.ToString().Split(['\n'], StringSplitOptions.RemoveEmptyEntries))

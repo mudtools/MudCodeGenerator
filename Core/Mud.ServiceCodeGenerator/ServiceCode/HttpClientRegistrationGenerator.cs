@@ -119,7 +119,8 @@ public class HttpClientRegistrationGenerator : WebApiSourceGenerator
 
         codeBuilder.AppendLine($"namespace {targetNamespace}");
         codeBuilder.AppendLine("{");
-        codeBuilder.AppendLine("    [global::System.Runtime.CompilerServices.CompilerGenerated]");
+        codeBuilder.AppendLine($"    {CompilerGeneratedAttribute}");
+        codeBuilder.AppendLine($"    {GeneratedCodeAttribute}");
         codeBuilder.AppendLine("    public static class HttpClientApiExtensions");
         codeBuilder.AppendLine("    {");
         GenerateAddWebApiHttpClientMethod(codeBuilder, apis);
@@ -134,6 +135,8 @@ public class HttpClientRegistrationGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine("        /// </summary>");
         codeBuilder.AppendLine("        /// <param name=\"services\">服务集合</param>");
         codeBuilder.AppendLine("        /// <returns>服务集合，用于链式调用</returns>");
+        codeBuilder.AppendLine($"        {CompilerGeneratedAttribute}");
+        codeBuilder.AppendLine($"        {GeneratedCodeAttribute}");
         codeBuilder.AppendLine("        public static IServiceCollection AddWebApiHttpClient(this IServiceCollection services)");
         codeBuilder.AppendLine("        {");
 

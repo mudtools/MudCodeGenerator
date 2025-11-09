@@ -124,7 +124,8 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine($"    /// <summary>");
         codeBuilder.AppendLine($"    /// {interfaceSymbol.Name}的HttpClient实现类");
         codeBuilder.AppendLine($"    /// </summary>");
-        codeBuilder.AppendLine("    [global::System.Runtime.CompilerServices.CompilerGenerated]");
+        codeBuilder.AppendLine($"    {CompilerGeneratedAttribute}");
+        codeBuilder.AppendLine($"    {GeneratedCodeAttribute}");
         codeBuilder.AppendLine($"    internal partial class {className} : {interfaceSymbol.Name}");
         codeBuilder.AppendLine("    {");
         GenerateClassFieldsAndConstructor(codeBuilder, className);
@@ -169,7 +170,8 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine($"        /// <summary>");
         codeBuilder.AppendLine($"        /// 实现 {methodSymbol.Name} 方法");
         codeBuilder.AppendLine($"        /// </summary>");
-        codeBuilder.AppendLine("        [global::System.Runtime.CompilerServices.CompilerGenerated]");
+        codeBuilder.AppendLine($"        {CompilerGeneratedAttribute}");
+        codeBuilder.AppendLine($"        {GeneratedCodeAttribute}");
         codeBuilder.AppendLine($"        public async {methodSymbol.ReturnType} {methodSymbol.Name}({GetParameterList(methodSymbol)})");
         codeBuilder.AppendLine("        {");
 
@@ -216,7 +218,8 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
             codeBuilder.AppendLine($"        /// <summary>");
             codeBuilder.AppendLine($"        /// {methodName} {description}。");
             codeBuilder.AppendLine($"        /// </summary>");
-            codeBuilder.AppendLine("        [global::System.Runtime.CompilerServices.CompilerGenerated]");
+            codeBuilder.AppendLine($"        {CompilerGeneratedAttribute}");
+            codeBuilder.AppendLine($"        {GeneratedCodeAttribute}");
             codeBuilder.AppendLine($"        partial void On{StringExtensions.ConvertFunctionName(methodName, eventType)}({parameter}, string url);");
         }
     }
@@ -237,7 +240,8 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
             codeBuilder.AppendLine($"        /// <summary>");
             codeBuilder.AppendLine($"        /// {interfaceName} {description}。");
             codeBuilder.AppendLine($"        /// </summary>");
-            codeBuilder.AppendLine("        [global::System.Runtime.CompilerServices.CompilerGenerated]");
+            codeBuilder.AppendLine($"        {CompilerGeneratedAttribute}");
+            codeBuilder.AppendLine($"        {GeneratedCodeAttribute}");
             codeBuilder.AppendLine($"        partial void On{StringExtensions.ConvertFunctionName(interfaceName, "Api", eventType)}({parameter}, string url);");
         }
     }
