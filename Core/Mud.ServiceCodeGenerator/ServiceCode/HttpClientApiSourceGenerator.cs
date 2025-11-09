@@ -38,7 +38,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
     /// <inheritdoc/>
     protected override void Execute(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context)
     {
-        if (interfaces.IsDefaultOrEmpty)
+        if (compilation == null || interfaces.IsDefaultOrEmpty)
             return;
 
         foreach (var interfaceDecl in interfaces)
@@ -490,8 +490,8 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
 
     private void GenerateRequestExecutionCore(StringBuilder codeBuilder, MethodAnalysisResult methodInfo, string interfaceName, string cancellationTokenArg)
     {
-        codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "Before")}(request, url);");
         codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(interfaceName, "Api", "RequestBefore")}(request, url);");
+        codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "Before")}(request, url);");
         codeBuilder.AppendLine($"                using var response = await _httpClient.SendAsync(request{cancellationTokenArg});");
         codeBuilder.AppendLine("                _logger.LogDebug(\"HTTP请求完成: {StatusCode}\", (int)response.StatusCode);");
         codeBuilder.AppendLine();
@@ -499,16 +499,16 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine("                {");
         GenerateErrorResponseHandling(codeBuilder, methodInfo, interfaceName);
         codeBuilder.AppendLine("                }");
-        codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "After")}(response, url);");
         codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(interfaceName, "Api", "RequestAfter")}(response, url);");
+        codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "After")}(response, url);");
 
         GenerateResponseProcessing(codeBuilder, methodInfo, cancellationTokenArg);
     }
 
     private void GenerateErrorResponseHandling(StringBuilder codeBuilder, MethodAnalysisResult methodInfo, string interfaceName)
     {
-        codeBuilder.AppendLine($"                    On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "Fail")}(response, url);");
         codeBuilder.AppendLine($"                    On{StringExtensions.ConvertFunctionName(interfaceName, "Api", "RequestFail")}(response, url);");
+        codeBuilder.AppendLine($"                    On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "Fail")}(response, url);");
         codeBuilder.AppendLine("                    var errorContent = await response.Content.ReadAsStringAsync();");
         codeBuilder.AppendLine("                    _logger.LogError(\"HTTP请求失败: {StatusCode}, 响应: {Response}\", (int)response.StatusCode, errorContent);");
         codeBuilder.AppendLine("                    throw new HttpRequestException($\"HTTP请求失败: {(int)response.StatusCode}\");");
@@ -530,8 +530,8 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
     private void GenerateExceptionHandling(StringBuilder codeBuilder, MethodAnalysisResult methodInfo, string interfaceName)
     {
         codeBuilder.AppendLine("                _logger.LogError(ex, \"HTTP请求异常: {{Url}}\", url);");
-        codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "Error")}(ex, url);");
         codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(interfaceName, "Api", "RequestError")}(ex, url);");
+        codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "Error")}(ex, url);");
         codeBuilder.AppendLine("                throw;");
     }
 
