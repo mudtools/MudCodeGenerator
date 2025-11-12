@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<OutputType>Library</OutputType>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<TargetFrameworks>net462;net47;net48;net8.0;net9.0</TargetFrameworks>
+		<TargetFrameworks>net462;net47;net48;net8.0;net9.0;net10.0</TargetFrameworks>
 		<Nullable>enable</Nullable>
 		<LangVersion>13.0</LangVersion>
 		<!-- 是否启用扩展分析器规则，默认为true -->
