@@ -9,7 +9,16 @@ namespace CodeGeneratorTest.WebApi;
 public interface IDingTalkUserApi
 {
     [Get("/api/v1/user/{id}")]
-    Task<UserDto> GetUserAsync([Query] string id);
+    Task<UserDto> GetUserAsync([Path] string id);
+
+    [Get("/api/v1/user")]
+    Task<UserDto> GetUsers1Async([Query] string[] ids);
+
+    [Get("/api/v1/user")]
+    Task<UserDto> GetUsersAsync([ArrayQuery] string[] ids);
+
+    [Get("/api/v1/user")]
+    Task<UserDto> GetUser1Async([ArrayQuery("Ids", ";")] string[] ids);
 
     [Post("/api/v1/user")]
     Task<UserDto> CreateUserAsync([Body] UserDto user);

@@ -427,7 +427,16 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
 
     private void GenerateSimpleQueryParameter(StringBuilder codeBuilder, ParameterInfo param, string paramName, string? formatString)
     {
-        if (IsStringType(param.Type))
+        if (IsArrayType(param.Type))
+        {
+            // 处理数组类型：使用默认分号分隔符格式
+            codeBuilder.AppendLine($"            if ({param.Name} != null && {param.Name}.Length > 0)");
+            codeBuilder.AppendLine("            {");
+            codeBuilder.AppendLine($"                var joinedValues = string.Join(\";\", {param.Name}.Where(item => item != null).Select(item => HttpUtility.UrlEncode(item.ToString())));");
+            codeBuilder.AppendLine($"                queryParams.Add(\"{paramName}\", joinedValues);");
+            codeBuilder.AppendLine("            }");
+        }
+        else if (IsStringType(param.Type))
         {
             codeBuilder.AppendLine($"            if (!string.IsNullOrEmpty({param.Name}))");
             codeBuilder.AppendLine("            {");
@@ -621,6 +630,11 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
     {
         return typeName.Equals("string", StringComparison.OrdinalIgnoreCase) ||
                typeName.Equals("string?", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsArrayType(string typeName)
+    {
+        return typeName.EndsWith("[]",StringComparison.OrdinalIgnoreCase) || typeName.Contains("[]?",StringComparison.OrdinalIgnoreCase);
     }
 
     private string? GetFormatString(ParameterAttributeInfo attribute)

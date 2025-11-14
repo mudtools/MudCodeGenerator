@@ -121,7 +121,7 @@ public class HttpClientRegistrationGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine("{");
         codeBuilder.AppendLine($"    {CompilerGeneratedAttribute}");
         codeBuilder.AppendLine($"    {GeneratedCodeAttribute}");
-        codeBuilder.AppendLine("    public static class HttpClientApiExtensions");
+        codeBuilder.AppendLine("    internal static class HttpClientApiExtensions");
         codeBuilder.AppendLine("    {");
         GenerateAddWebApiHttpClientMethod(codeBuilder, apis);
         codeBuilder.AppendLine("    }");
