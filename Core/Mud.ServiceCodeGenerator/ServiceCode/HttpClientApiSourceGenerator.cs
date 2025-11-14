@@ -14,6 +14,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
 {
     private static readonly string[] PathAttributes = ["PathAttribute", "Path", "RouteAttribute", "Route"];
     private const string QueryAttribute = "QueryAttribute";
+    private const string ArrayQueryAttribute = "ArrayQueryAttribute";
     private const string HeaderAttribute = "HeaderAttribute";
     private const string BodyAttribute = "BodyAttribute";
 
@@ -352,7 +353,11 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
             .Where(p => p.Attributes.Any(attr => attr.Name == QueryAttribute))
             .ToList();
 
-        if (!queryParams.Any())
+        var arrayQueryParams = methodInfo.Parameters
+            .Where(p => p.Attributes.Any(attr => attr.Name == ArrayQueryAttribute))
+            .ToList();
+
+        if (!queryParams.Any() && !arrayQueryParams.Any())
             return;
 
         codeBuilder.AppendLine($"            var queryParams = HttpUtility.ParseQueryString(string.Empty);");
@@ -360,6 +365,11 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         foreach (var param in queryParams)
         {
             GenerateSingleQueryParameter(codeBuilder, param);
+        }
+
+        foreach (var param in arrayQueryParams)
+        {
+            GenerateArrayQueryParameter(codeBuilder, param);
         }
 
         codeBuilder.AppendLine("            if (queryParams.Count > 0)");
@@ -382,6 +392,37 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         {
             GenerateComplexQueryParameter(codeBuilder, param, paramName);
         }
+    }
+
+    private void GenerateArrayQueryParameter(StringBuilder codeBuilder, ParameterInfo param)
+    {
+        var arrayQueryAttr = param.Attributes.First(a => a.Name == ArrayQueryAttribute);
+        var paramName = GetQueryParameterName(arrayQueryAttr, param.Name);
+        var separator = GetArrayQuerySeparator(arrayQueryAttr);
+
+        codeBuilder.AppendLine($"            if ({param.Name} != null && {param.Name}.Length > 0)");
+        codeBuilder.AppendLine("            {");
+        
+        if (string.IsNullOrEmpty(separator))
+        {
+            // 使用重复键名格式：user_ids=id0&user_ids=id1&user_ids=id2
+            codeBuilder.AppendLine($"                foreach (var item in {param.Name})");
+            codeBuilder.AppendLine("                {");
+            codeBuilder.AppendLine($"                    if (item != null)");
+            codeBuilder.AppendLine("                    {");
+            codeBuilder.AppendLine($"                        var encodedValue = HttpUtility.UrlEncode(item.ToString());");
+            codeBuilder.AppendLine($"                        queryParams.Add(\"{paramName}\", encodedValue);");
+            codeBuilder.AppendLine("                    }");
+            codeBuilder.AppendLine("                }");
+        }
+        else
+        {
+            // 使用分隔符连接格式：user_ids=id0;id1;id2
+            codeBuilder.AppendLine($"                var joinedValues = string.Join(\"{separator}\", {param.Name}.Where(item => item != null).Select(item => HttpUtility.UrlEncode(item.ToString())));");
+            codeBuilder.AppendLine($"                queryParams.Add(\"{paramName}\", joinedValues);");
+        }
+        
+        codeBuilder.AppendLine("            }");
     }
 
     private void GenerateSimpleQueryParameter(StringBuilder codeBuilder, ParameterInfo param, string paramName, string? formatString)
@@ -612,6 +653,20 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         return attribute.NamedArguments.TryGetValue("Name", out var nameNamedArg)
             ? nameNamedArg as string ?? defaultName
             : defaultName;
+    }
+
+    private string? GetArrayQuerySeparator(ParameterAttributeInfo attribute)
+    {
+        // 检查构造函数参数
+        if (attribute.Arguments.Length > 1)
+        {
+            return attribute.Arguments[1] as string;
+        }
+
+        // 检查命名参数
+        return attribute.NamedArguments.TryGetValue("Separator", out var separator)
+            ? separator as string
+            : null;
     }
 
     private string GetCancellationTokenParam(MethodAnalysisResult methodInfo)
