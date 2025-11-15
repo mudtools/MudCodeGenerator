@@ -125,8 +125,6 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
         return timeoutArg.Value.Value is int value ? value : 100; // 默认100秒
     }
 
-
-
     /// <summary>
     /// 获取方法参数列表字符串
     /// </summary>
@@ -173,7 +171,13 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
 
 
     #region AnalyzeMethod
-
+    /// <summary>
+    /// 分析函数符号，并返回<see cref="MethodAnalysisResult"/>分析结果。。
+    /// </summary>
+    /// <param name="compilation"></param>
+    /// <param name="methodSymbol"></param>
+    /// <param name="interfaceDecl"></param>
+    /// <returns></returns>
     protected MethodAnalysisResult AnalyzeMethod(Compilation compilation, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl)
     {
         var methodSyntax = FindMethodSyntax(compilation, methodSymbol, interfaceDecl);
@@ -274,56 +278,102 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
     /// <returns>默认值的字面量表示</returns>
     private string GetDefaultValueLiteral(ITypeSymbol parameterType, object? defaultValue)
     {
-        var typeName = parameterType.ToDisplayString();
-        if (defaultValue == null && typeName == "System.Threading.CancellationToken")
-            return "default";
         if (defaultValue == null)
-            return "null";
-
-        switch (typeName)
         {
-            case "string":
-                return $"\"{defaultValue}\"";
-            case "bool":
-                return defaultValue.ToString()?.ToLowerInvariant() ?? "false";
-            case "char":
-                return $"'{(char)defaultValue}'";
-            case "int":
-            case "long":
-            case "short":
-            case "byte":
-            case "float":
-            case "double":
-            case "decimal":
-                return defaultValue.ToString() ?? "0";
-            default:
-                // 处理枚举类型
-                if (parameterType is INamedTypeSymbol namedType && namedType.TypeKind == TypeKind.Enum)
-                {
-                    var enumTypeName = namedType.ToDisplayString();
-
-                    // 使用Roslyn符号系统获取枚举成员
-                    var enumMembers = namedType.GetMembers()
-                        .OfType<IFieldSymbol>()
-                        .Where(f => f.IsConst && f.HasConstantValue && Equals(f.ConstantValue, defaultValue))
-                        .ToList();
-
-                    var enumValueName = enumMembers.Any()
-                        ? enumMembers.First().Name
-                        : defaultValue?.ToString() ?? "0";
-
-                    return $"{enumTypeName}.{enumValueName}";
-                }
-
-                // 默认处理为字符串
-                return $"\"{defaultValue}\"";
+            return parameterType.ToDisplayString() == "System.Threading.CancellationToken"
+                ? "default"
+                : "null";
         }
+
+        switch (parameterType.SpecialType)
+        {
+            case SpecialType.System_String:
+                return $"\"{EscapeString(defaultValue.ToString()!)}\"";
+            case SpecialType.System_Boolean:
+                return defaultValue.ToString()!.ToLowerInvariant();
+            case SpecialType.System_Char:
+                return $"'{EscapeChar((char)defaultValue)}'";
+            case SpecialType.System_Int16:
+            case SpecialType.System_Int32:
+            case SpecialType.System_Int64:
+            case SpecialType.System_Byte:
+            case SpecialType.System_Single:
+            case SpecialType.System_Double:
+            case SpecialType.System_Decimal:
+                return defaultValue.ToString()!;
+        }
+
+        // 处理枚举类型
+        if (parameterType is INamedTypeSymbol { TypeKind: TypeKind.Enum } namedType)
+        {
+            return GetEnumLiteral(namedType, defaultValue);
+        }
+
+        // 默认处理为字符串
+        return $"\"{EscapeString(defaultValue.ToString()!)}\"";
     }
 
-    #endregion
+    /// <summary>
+    /// 获取枚举值的字面量表示
+    /// </summary>
+    private static string GetEnumLiteral(INamedTypeSymbol enumType, object defaultValue)
+    {
+        var enumTypeName = enumType.ToDisplayString();
+
+        // 查找匹配的枚举成员
+        var matchingMember = enumType.GetMembers()
+            .OfType<IFieldSymbol>()
+            .Where(f => f.IsConst && f.HasConstantValue && Equals(f.ConstantValue, defaultValue))
+            .Select(f => f.Name)
+            .FirstOrDefault();
+
+        // 如果找到匹配成员，使用成员名；否则使用数值
+        var valueRepresentation = matchingMember ?? Convert.ToInt64(defaultValue).ToString();
+
+        return $"{enumTypeName}.{valueRepresentation}";
+    }
+
+    /// <summary>
+    /// 转义字符串中的特殊字符
+    /// </summary>
+    private static string EscapeString(string value)
+    {
+        return value.Replace("\\", "\\\\")
+                    .Replace("\"", "\\\"")
+                    .Replace("\0", "\\0")
+                    .Replace("\a", "\\a")
+                    .Replace("\b", "\\b")
+                    .Replace("\f", "\\f")
+                    .Replace("\n", "\\n")
+                    .Replace("\r", "\\r")
+                    .Replace("\t", "\\t")
+                    .Replace("\v", "\\v");
+    }
+
+    /// <summary>
+    /// 转义字符中的特殊字符
+    /// </summary>
+    private static string EscapeChar(char value)
+    {
+        return value switch
+        {
+            '\\' => "\\\\",
+            '\'' => "\\'",
+            '\0' => "\\0",
+            '\a' => "\\a",
+            '\b' => "\\b",
+            '\f' => "\\f",
+            '\n' => "\\n",
+            '\r' => "\\r",
+            '\t' => "\\t",
+            '\v' => "\\v",
+            _ => value.ToString()
+        };
+
+        #endregion
+    }
+
 }
-
-
 
 /// <summary>
 /// 方法分析结果
