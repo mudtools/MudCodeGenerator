@@ -25,19 +25,40 @@ public interface ISingleTestApi
     [Get("/api/v1/user/{birthday}")]
     Task<UserDto> GetUser1Async([Token][Header("x-token")] string token, [Path(FormatString = "yyyy-MM-dd")] DateTime birthday);
 
-    // 以下接口生成的url为：/api/v1/user?idKey=id值
+    /// <summary>
+    /// 以下接口生成的url为：/api/v1/user?idKey=id值
+    /// </summary>
+    /// <param name="token"></param>
+    /// <param name="id"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
     [Get("/api/v1/user")]
     Task<UserDto> GetUser2Async([Token][Header("x-token")] string token, [Query("idKey")] string id, CancellationToken cancellationToken = default);
 
-    // 以下接口生成的url为：/api/v1/user?idKey=id值
+    /// <summary>
+    /// 以下接口生成的url为：/api/v1/user?idKey=id值
+    /// </summary>
+    /// <param name="token"></param>
+    /// <param name="id"></param>
+    /// <returns></returns>
     [Get("/api/v1/user")]
     Task<UserDto> GetUser3Async([Token][Header("x-token")] string token, [Query(Name = "idKey")] string id);
 
-    // 以下接口生成的url为：/api/v1/user?bth=birthday.ToString("yyyy-MM-dd")值
+    /// <summary>
+    /// 以下接口生成的url为：/api/v1/user?bth=birthday.ToString("yyyy-MM-dd")值
+    /// </summary>
+    /// <param name="token"></param>
+    /// <param name="birthday"></param>
+    /// <returns></returns>
     [Get("/api/v1/user")]
     Task<UserDto> GetUser2Async([Token][Header("x-token")] string token, [Query("bth", "yyyy-MM-dd")] DateTime birthday);
 
-    // 以下接口生成的url为：/api/v1/user?bth=birthday.ToString("yyyy-MM-dd")值
+    /// <summary>
+    /// 以下接口生成的url为：/api/v1/user?bth=birthday.ToString("yyyy-MM-dd")值
+    /// </summary>
+    /// <param name="birthday"></param>
+    /// <param name="token"></param>
+    /// <returns></returns>
     [Get("/api/v1/user")]
     Task<UserDto> GetUser3Async([Query(Name = "bth", FormatString = "yyyy-MM-dd")] DateTime birthday, [Token][Header("x-token")] string token);
 
