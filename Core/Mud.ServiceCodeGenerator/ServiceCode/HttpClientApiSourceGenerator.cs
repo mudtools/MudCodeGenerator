@@ -56,7 +56,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
             if (model.GetDeclaredSymbol(interfaceDecl) is not INamedTypeSymbol interfaceSymbol)
                 return;
 
-            if (!HasValidHttpMethods(interfaceSymbol, interfaceDecl))
+            if (!HasValidHttpMethods(interfaceSymbol))
             {
                 ReportWarning(context, interfaceDecl.Identifier.Text, "HTTPCLIENT002",
                     $"接口{interfaceDecl.Identifier.Text}不包含有效的HTTP方法特性，跳过生成");

@@ -63,18 +63,33 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
             : interfaceName + "Impl";
     }
 
-    /// <summary>
-    /// 验证接口是否包含有效的HTTP方法
-    /// </summary>
-    protected bool HasValidHttpMethods(INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDecl)
-    {
-        if (interfaceSymbol == null)
-            return false;
 
-        return interfaceSymbol.GetMembers().OfType<IMethodSymbol>()
-            .Any(method => method.GetAttributes()
-                .Any(attr => SupportedHttpMethods.Contains(attr.AttributeClass?.Name)));
+    /// <summary>
+    /// 获取包装接口名称
+    /// </summary>
+    protected string GetWrapInterfaceName(INamedTypeSymbol interfaceSymbol, AttributeData wrapAttribute)
+    {
+        // 检查特性参数中是否有指定的包装接口名称
+        var wrapInterfaceArg = wrapAttribute.NamedArguments.FirstOrDefault(a => a.Key == "WrapInterface");
+        if (!string.IsNullOrEmpty(wrapInterfaceArg.Value.Value?.ToString()))
+        {
+            return wrapInterfaceArg.Value.Value.ToString();
+        }
+
+        // 根据接口名称生成默认包装接口名称
+        var interfaceName = interfaceSymbol.Name;
+        if (interfaceName.EndsWith("Api", StringComparison.OrdinalIgnoreCase))
+        {
+            return interfaceName.Substring(0, interfaceName.Length - 3);
+        }
+        else if (interfaceName.StartsWith("I", StringComparison.OrdinalIgnoreCase) && interfaceName.Length > 1)
+        {
+            return interfaceName.Substring(1);
+        }
+
+        return interfaceName + "Wrap";
     }
+
 
     /// <summary>
     /// 获取HttpClientApi特性
@@ -123,6 +138,40 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
         return string.Join(", ", methodSymbol.Parameters.Select(p => $"{p.Type} {p.Name}"));
     }
 
+    /// <summary>
+    /// 检查方法是否有效
+    /// </summary>
+    protected bool IsValidMethod(IMethodSymbol method)
+    {
+        if (method == null)
+            return false;
+        return method.GetAttributes()
+            .Any(attr => SupportedHttpMethods.Contains(attr.AttributeClass?.Name));
+    }
+
+    /// <summary>
+    /// 验证接口是否包含有效的HTTP方法
+    /// </summary>
+    protected bool HasValidHttpMethods(INamedTypeSymbol interfaceSymbol)
+    {
+        if (interfaceSymbol == null)
+            return false;
+
+        return interfaceSymbol.GetMembers().OfType<IMethodSymbol>()
+                              .Any(method => method.GetAttributes()
+                              .Any(attr => SupportedHttpMethods.Contains(attr.AttributeClass?.Name)));
+    }
+
+    protected AttributeSyntax? FindHttpMethodAttribute(MethodDeclarationSyntax methodSyntax)
+    {
+        if (methodSyntax == null)
+            return null;
+        return methodSyntax.AttributeLists
+            .SelectMany(a => a.Attributes)
+            .FirstOrDefault(a => SupportedHttpMethods.Contains(a.Name.ToString()));
+    }
+
+
     #region AnalyzeMethod
 
     protected MethodAnalysisResult AnalyzeMethod(Compilation compilation, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl)
@@ -138,16 +187,28 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
         var httpMethod = httpMethodAttr.Name.ToString();
         var urlTemplate = GetAttributeArgumentValue(httpMethodAttr, 0)?.ToString().Trim('"') ?? "";
 
-        var parameters = methodSymbol.Parameters.Select(p => new ParameterInfo
+        var parameters = methodSymbol.Parameters.Select(p =>
         {
-            Name = p.Name,
-            Type = p.Type.ToDisplayString(),
-            Attributes = p.GetAttributes().Select(attr => new ParameterAttributeInfo
+            var parameterInfo = new ParameterInfo
             {
-                Name = attr.AttributeClass?.Name ?? "",
-                Arguments = attr.ConstructorArguments.Select(arg => arg.Value).ToArray(),
-                NamedArguments = attr.NamedArguments.ToDictionary(na => na.Key, na => na.Value.Value)
-            }).ToList()
+                Name = p.Name,
+                Type = p.Type.ToDisplayString(),
+                Attributes = p.GetAttributes().Select(attr => new ParameterAttributeInfo
+                {
+                    Name = attr.AttributeClass?.Name ?? "",
+                    Arguments = attr.ConstructorArguments.Select(arg => arg.Value).ToArray(),
+                    NamedArguments = attr.NamedArguments.ToDictionary(na => na.Key, na => na.Value.Value)
+                }).ToList(),
+                HasDefaultValue = p.HasExplicitDefaultValue
+            };
+
+            if (p.HasExplicitDefaultValue)
+            {
+                parameterInfo.DefaultValue = p.ExplicitDefaultValue;
+                parameterInfo.DefaultValueLiteral = GetDefaultValueLiteral(p.Type, p.ExplicitDefaultValue);
+            }
+
+            return parameterInfo;
         }).ToList();
 
         return new MethodAnalysisResult
@@ -172,13 +233,6 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
                 var methodSymbolFromSyntax = model.GetDeclaredSymbol(m);
                 return methodSymbolFromSyntax?.Equals(methodSymbol, SymbolEqualityComparer.Default) == true;
             });
-    }
-
-    private AttributeSyntax? FindHttpMethodAttribute(MethodDeclarationSyntax methodSyntax)
-    {
-        return methodSyntax.AttributeLists
-            .SelectMany(a => a.Attributes)
-            .FirstOrDefault(a => SupportedHttpMethods.Contains(a.Name.ToString()));
     }
 
 
@@ -210,6 +264,60 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
         }
 
         return returnType.ToDisplayString();
+    }
+
+    /// <summary>
+    /// 获取参数默认值的字面量表示
+    /// </summary>
+    /// <param name="parameterType">参数类型</param>
+    /// <param name="defaultValue">默认值</param>
+    /// <returns>默认值的字面量表示</returns>
+    private string GetDefaultValueLiteral(ITypeSymbol parameterType, object? defaultValue)
+    {
+        var typeName = parameterType.ToDisplayString();
+        if (defaultValue == null && typeName == "System.Threading.CancellationToken")
+            return "default";
+        if (defaultValue == null)
+            return "null";
+
+        switch (typeName)
+        {
+            case "string":
+                return $"\"{defaultValue}\"";
+            case "bool":
+                return defaultValue.ToString()?.ToLowerInvariant() ?? "false";
+            case "char":
+                return $"'{(char)defaultValue}'";
+            case "int":
+            case "long":
+            case "short":
+            case "byte":
+            case "float":
+            case "double":
+            case "decimal":
+                return defaultValue.ToString() ?? "0";
+            default:
+                // 处理枚举类型
+                if (parameterType is INamedTypeSymbol namedType && namedType.TypeKind == TypeKind.Enum)
+                {
+                    var enumTypeName = namedType.ToDisplayString();
+
+                    // 使用Roslyn符号系统获取枚举成员
+                    var enumMembers = namedType.GetMembers()
+                        .OfType<IFieldSymbol>()
+                        .Where(f => f.IsConst && f.HasConstantValue && Equals(f.ConstantValue, defaultValue))
+                        .ToList();
+
+                    var enumValueName = enumMembers.Any()
+                        ? enumMembers.First().Name
+                        : defaultValue?.ToString() ?? "0";
+
+                    return $"{enumTypeName}.{enumValueName}";
+                }
+
+                // 默认处理为字符串
+                return $"\"{defaultValue}\"";
+        }
     }
 
     #endregion
@@ -270,7 +378,7 @@ public class MethodAnalysisResult
 /// 参数信息
 /// </summary>
 /// <remarks>
-/// 存储方法参数的详细信息，包括参数名、类型和特性。
+/// 存储方法参数的详细信息，包括参数名、类型、特性和默认值。
 /// </remarks>
 public class ParameterInfo
 {
@@ -288,6 +396,21 @@ public class ParameterInfo
     /// 参数特性列表
     /// </summary>
     public List<ParameterAttributeInfo> Attributes { get; set; } = [];
+
+    /// <summary>
+    /// 是否具有默认值
+    /// </summary>
+    public bool HasDefaultValue { get; set; }
+
+    /// <summary>
+    /// 默认值
+    /// </summary>
+    public object? DefaultValue { get; set; }
+
+    /// <summary>
+    /// 默认值的字面量表示
+    /// </summary>
+    public string? DefaultValueLiteral { get; set; }
 }
 
 /// <summary>

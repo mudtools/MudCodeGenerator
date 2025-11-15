@@ -51,7 +51,7 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
                 var semanticModel = compilation.GetSemanticModel(interfaceDecl.SyntaxTree);
                 var interfaceSymbol = semanticModel.GetDeclaredSymbol(interfaceDecl);
 
-                if (interfaceSymbol == null || !HasValidHttpMethods(interfaceSymbol, interfaceDecl))
+                if (interfaceSymbol == null || !HasValidHttpMethods(interfaceSymbol))
                     continue;
 
                 var wrapAttribute = GetHttpClientApiWrapAttribute(interfaceSymbol);
@@ -98,12 +98,14 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     private string GenerateWrapInterface(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl, INamedTypeSymbol interfaceSymbol, AttributeData wrapAttribute)
     {
         var sb = new StringBuilder();
-
+        GenerateFileHeader(sb);
         // 获取命名空间
         var namespaceName = GetNamespaceName(interfaceDecl);
         if (!string.IsNullOrEmpty(namespaceName))
         {
+            sb.AppendLine();
             sb.AppendLine($"namespace {namespaceName};");
+            sb.AppendLine();
         }
 
         // 获取包装接口名称
@@ -116,6 +118,8 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
             sb.Append(xmlDoc);
         }
 
+        sb.AppendLine($"{CompilerGeneratedAttribute}");
+        sb.AppendLine($"{GeneratedCodeAttribute}");
         sb.AppendLine($"public interface {wrapInterfaceName}");
         sb.AppendLine("{");
 
@@ -132,7 +136,7 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
             var methodSyntax = GetMethodDeclarationSyntax(methodSymbol, interfaceDecl);
             if (methodSyntax != null)
             {
-                var wrapMethodCode = GenerateWrapMethod(methodSymbol, methodSyntax);
+                var wrapMethodCode = GenerateWrapMethod(methodInfo, methodSyntax);
                 if (!string.IsNullOrEmpty(wrapMethodCode))
                 {
                     sb.AppendLine(wrapMethodCode);
@@ -147,39 +151,13 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     }
 
     /// <summary>
-    /// 获取包装接口名称
-    /// </summary>
-    private string GetWrapInterfaceName(INamedTypeSymbol interfaceSymbol, AttributeData wrapAttribute)
-    {
-        // 检查特性参数中是否有指定的包装接口名称
-        var wrapInterfaceArg = wrapAttribute.NamedArguments.FirstOrDefault(a => a.Key == "WrapInterface");
-        if (!string.IsNullOrEmpty(wrapInterfaceArg.Value.Value?.ToString()))
-        {
-            return wrapInterfaceArg.Value.Value.ToString();
-        }
-
-        // 根据接口名称生成默认包装接口名称
-        var interfaceName = interfaceSymbol.Name;
-        if (interfaceName.EndsWith("Api", StringComparison.OrdinalIgnoreCase))
-        {
-            return interfaceName.Substring(0, interfaceName.Length - 3);
-        }
-        else if (interfaceName.StartsWith("I", StringComparison.OrdinalIgnoreCase) && interfaceName.Length > 1)
-        {
-            return interfaceName.Substring(1);
-        }
-
-        return interfaceName + "Wrap";
-    }
-
-    /// <summary>
     /// 获取XML文档注释
     /// </summary>
     private string GetXmlDocumentation(InterfaceDeclarationSyntax interfaceDecl)
     {
         var leadingTrivia = interfaceDecl.GetLeadingTrivia();
-        var xmlDocTrivia = leadingTrivia.FirstOrDefault(t => t.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.SingleLineDocumentationCommentTrivia) ||
-                                                           t.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.MultiLineDocumentationCommentTrivia));
+        var xmlDocTrivia = leadingTrivia.FirstOrDefault(t => t.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
+                                                             t.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia));
 
         if (xmlDocTrivia != default)
         {
@@ -187,15 +165,6 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
         }
 
         return string.Empty;
-    }
-
-    /// <summary>
-    /// 检查方法是否有效
-    /// </summary>
-    private bool IsValidMethod(IMethodSymbol method)
-    {
-        return method.GetAttributes()
-            .Any(attr => SupportedHttpMethods.Contains(attr.AttributeClass?.Name));
     }
 
     /// <summary>
@@ -211,45 +180,41 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     /// <summary>
     /// 生成包装方法
     /// </summary>
-    private string GenerateWrapMethod(IMethodSymbol method, MethodDeclarationSyntax methodSyntax)
+    private string GenerateWrapMethod(MethodAnalysisResult methodInfo, MethodDeclarationSyntax methodSyntax)
     {
         var sb = new StringBuilder();
 
         // 添加方法注释
-        var methodDoc = GetMethodXmlDocumentation(methodSyntax, method);
+        var methodDoc = GetMethodXmlDocumentation(methodSyntax, methodInfo);
         if (!string.IsNullOrEmpty(methodDoc))
         {
             sb.AppendLine(methodDoc);
         }
 
         // 方法签名
-        sb.Append($"    {method.ReturnType} {method.Name}(");
+        sb.Append($"    {methodInfo.ReturnType} {methodInfo.MethodName}(");
 
         // 过滤掉标记了[Token]特性的参数，保留其他所有参数
-        var filteredParameters = method.Parameters.Where(p => !HasTokenAttribute(p)).ToList();
+        var filteredParameters = methodInfo.Parameters.Where(p => !HasTokenAttribute(p)).ToList();
 
         for (int i = 0; i < filteredParameters.Count; i++)
         {
             var parameter = filteredParameters[i];
-            var parameterSyntax = GetParameterSyntax(parameter, methodSyntax);
 
-            if (parameterSyntax != null)
+            // 获取参数类型和名称
+            var parameterStr = $"{parameter.Type} {parameter.Name}";
+
+            // 处理可选参数
+            if (parameter.HasDefaultValue && !string.IsNullOrEmpty(parameter.DefaultValueLiteral))
             {
-                // 获取参数类型和名称，但移除特性标记
-                var parameterStr = $"{parameter.Type} {parameter.Name}";
+                parameterStr += $" = {parameter.DefaultValueLiteral}";
+            }
 
-                // 处理可选参数
-                if (parameter.HasExplicitDefaultValue)
-                {
-                    parameterStr += $" = {GetDefaultValueLiteral(parameter.Type, parameter.ExplicitDefaultValue)}";
-                }
+            sb.Append(parameterStr);
 
-                sb.Append(parameterStr);
-
-                if (i < filteredParameters.Count - 1)
-                {
-                    sb.Append(", ");
-                }
+            if (i < filteredParameters.Count - 1)
+            {
+                sb.Append(", ");
             }
         }
 
@@ -261,7 +226,7 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     /// <summary>
     /// 获取方法的XML文档注释
     /// </summary>
-    private string GetMethodXmlDocumentation(MethodDeclarationSyntax methodSyntax, IMethodSymbol methodSymbol)
+    private string GetMethodXmlDocumentation(MethodDeclarationSyntax methodSyntax, MethodAnalysisResult methodInfo)
     {
         var leadingTrivia = methodSyntax.GetLeadingTrivia();
         var xmlDocTrivia = leadingTrivia.FirstOrDefault(t => t.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.SingleLineDocumentationCommentTrivia) ||
@@ -270,7 +235,7 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
         if (xmlDocTrivia != default)
         {
             // 获取标记了Token特性的参数名称
-            var tokenParameterNames = methodSymbol.Parameters
+            var tokenParameterNames = methodInfo.Parameters
                 .Where(p => HasTokenAttribute(p))
                 .Select(p => p.Name)
                 .ToList();
@@ -311,51 +276,9 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     /// <summary>
     /// 检查参数是否有Token特性
     /// </summary>
-    private bool HasTokenAttribute(IParameterSymbol parameter)
+    private bool HasTokenAttribute(ParameterInfo parameter)
     {
-        return parameter.GetAttributes()
-            .Any(attr => TokenAttributeNames.Contains(attr.AttributeClass?.Name));
-    }
-
-    /// <summary>
-    /// 获取参数语法节点
-    /// </summary>
-    private ParameterSyntax? GetParameterSyntax(IParameterSymbol parameter, MethodDeclarationSyntax methodSyntax)
-    {
-        return methodSyntax.ParameterList.Parameters
-            .FirstOrDefault(p => p.Identifier.ValueText == parameter.Name);
-    }
-
-    /// <summary>
-    /// 获取默认值的字面量表示
-    /// </summary>
-    private string GetDefaultValueLiteral(ITypeSymbol type, object? defaultValue)
-    {
-        if (defaultValue == null)
-        {
-            // 对于CancellationToken类型，使用default而不是null
-            if (type.Name == "CancellationToken")
-            {
-                return "default";
-            }
-            return "null";
-        }
-
-        if (type.SpecialType == SpecialType.System_String)
-        {
-            return $"\"{defaultValue}\"";
-        }
-
-        if (type.SpecialType == SpecialType.System_Boolean)
-        {
-            return defaultValue.ToString()?.ToLowerInvariant();
-        }
-
-        if (type.SpecialType == SpecialType.System_Char)
-        {
-            return $"'{(char)defaultValue}'";
-        }
-
-        return defaultValue.ToString() ?? "default";
+        return parameter.Attributes
+            .Any(attr => TokenAttributeNames.Contains(attr.Name));
     }
 }
