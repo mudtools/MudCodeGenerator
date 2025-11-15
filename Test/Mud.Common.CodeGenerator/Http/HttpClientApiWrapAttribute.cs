@@ -7,18 +7,22 @@ public class HttpClientApiWrapAttribute : Attribute
     {
     }
 
-    public HttpClientApiWrapAttribute(string wrapInterface, string tokenManage)
+    public HttpClientApiWrapAttribute(string tokenManage)
+    {
+        TokenManage = tokenManage;
+    }
+
+    public HttpClientApiWrapAttribute(string tokenManage, string wrapInterface)
     {
         WrapInterface = wrapInterface;
         TokenManage = tokenManage;
     }
 
-#if NET8_0_OR_GREATER
-    public required string WrapInterface { get; set; }
+    public string WrapInterface { get; set; }
 
+#if NET8_0_OR_GREATER
     public required string TokenManage { get; set; }
 #else
-    public string WrapInterface { get; set; }
 
     public string TokenManage { get; set; }
 #endif
