@@ -402,7 +402,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
 
         codeBuilder.AppendLine($"            if ({param.Name} != null && {param.Name}.Length > 0)");
         codeBuilder.AppendLine("            {");
-        
+
         if (string.IsNullOrEmpty(separator))
         {
             // 使用重复键名格式：user_ids=id0&user_ids=id1&user_ids=id2
@@ -421,7 +421,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
             codeBuilder.AppendLine($"                var joinedValues = string.Join(\"{separator}\", {param.Name}.Where(item => item != null).Select(item => HttpUtility.UrlEncode(item.ToString())));");
             codeBuilder.AppendLine($"                queryParams.Add(\"{paramName}\", joinedValues);");
         }
-        
+
         codeBuilder.AppendLine("            }");
     }
 
@@ -622,7 +622,10 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
 
     private bool IsSimpleType(string typeName)
     {
-        var simpleTypes = new[] { "string", "int", "long", "float", "double", "decimal", "bool", "DateTime", "System.DateTime", "Guid", "System.Guid" };
+        var simpleTypes = new[] { "string", "int", "long", "float", "double", "decimal", "bool",
+                                  "DateTime", "System.DateTime", "Guid", "System.Guid",
+                                  "string[]", "int[]", "long[]", "float[]", "double[]", "decimal[]",
+                                  "DateTime[]", "System.DateTime[]", "Guid[]", "System.Guid[]",};
         return simpleTypes.Contains(typeName) || typeName.EndsWith("?") && simpleTypes.Contains(typeName.TrimEnd('?'));
     }
 
@@ -634,7 +637,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
 
     private bool IsArrayType(string typeName)
     {
-        return typeName.EndsWith("[]",StringComparison.OrdinalIgnoreCase) || typeName.Contains("[]?",StringComparison.OrdinalIgnoreCase);
+        return typeName.EndsWith("[]", StringComparison.OrdinalIgnoreCase) || typeName.Contains("[]?", StringComparison.OrdinalIgnoreCase);
     }
 
     private string? GetFormatString(ParameterAttributeInfo attribute)
