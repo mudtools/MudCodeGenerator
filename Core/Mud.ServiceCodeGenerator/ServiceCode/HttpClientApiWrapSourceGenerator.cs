@@ -49,7 +49,7 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
             try
             {
                 var semanticModel = compilation.GetSemanticModel(interfaceDecl.SyntaxTree);
-                var interfaceSymbol = semanticModel.GetDeclaredSymbol(interfaceDecl) as INamedTypeSymbol;
+                var interfaceSymbol = semanticModel.GetDeclaredSymbol(interfaceDecl);
 
                 if (interfaceSymbol == null || !HasValidHttpMethods(interfaceSymbol, interfaceDecl))
                     continue;
@@ -59,7 +59,7 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
                     continue;
 
                 // 生成包装接口代码
-                var generatedCode = GenerateWrapInterface(interfaceDecl, interfaceSymbol, wrapAttribute);
+                var generatedCode = GenerateWrapInterface(compilation, interfaceDecl, interfaceSymbol, wrapAttribute);
                 if (!string.IsNullOrEmpty(generatedCode))
                 {
                     var fileName = $"{interfaceSymbol.Name}.Wrap.g.cs";
@@ -95,7 +95,7 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     /// <summary>
     /// 生成包装接口代码
     /// </summary>
-    private string GenerateWrapInterface(InterfaceDeclarationSyntax interfaceDecl, INamedTypeSymbol interfaceSymbol, AttributeData wrapAttribute)
+    private string GenerateWrapInterface(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl, INamedTypeSymbol interfaceSymbol, AttributeData wrapAttribute)
     {
         var sb = new StringBuilder();
 
@@ -120,13 +120,19 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
         sb.AppendLine("{");
 
         // 生成接口方法
-        var methods = interfaceSymbol.GetMembers().OfType<IMethodSymbol>().Where(m => IsValidMethod(m));
-        foreach (var method in methods)
+        var methods = interfaceSymbol.GetMembers()
+                                     .OfType<IMethodSymbol>()
+                                     .Where(m => IsValidMethod(m));
+        foreach (var methodSymbol in methods)
         {
-            var methodSyntax = GetMethodDeclarationSyntax(method, interfaceDecl);
+            var methodInfo = AnalyzeMethod(compilation, methodSymbol, interfaceDecl);
+            if (!methodInfo.IsValid)
+                continue;
+
+            var methodSyntax = GetMethodDeclarationSyntax(methodSymbol, interfaceDecl);
             if (methodSyntax != null)
             {
-                var wrapMethodCode = GenerateWrapMethod(method, methodSyntax);
+                var wrapMethodCode = GenerateWrapMethod(methodSymbol, methodSyntax);
                 if (!string.IsNullOrEmpty(wrapMethodCode))
                 {
                     sb.AppendLine(wrapMethodCode);
@@ -188,7 +194,8 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     /// </summary>
     private bool IsValidMethod(IMethodSymbol method)
     {
-        return method.GetAttributes().Any(attr => SupportedHttpMethods.Contains(attr.AttributeClass?.Name));
+        return method.GetAttributes()
+            .Any(attr => SupportedHttpMethods.Contains(attr.AttributeClass?.Name));
     }
 
     /// <summary>
@@ -209,7 +216,7 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
         var sb = new StringBuilder();
 
         // 添加方法注释
-        var methodDoc = GetMethodXmlDocumentation(methodSyntax);
+        var methodDoc = GetMethodXmlDocumentation(methodSyntax, method);
         if (!string.IsNullOrEmpty(methodDoc))
         {
             sb.AppendLine(methodDoc);
@@ -254,7 +261,7 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     /// <summary>
     /// 获取方法的XML文档注释
     /// </summary>
-    private string GetMethodXmlDocumentation(MethodDeclarationSyntax methodSyntax)
+    private string GetMethodXmlDocumentation(MethodDeclarationSyntax methodSyntax, IMethodSymbol methodSymbol)
     {
         var leadingTrivia = methodSyntax.GetLeadingTrivia();
         var xmlDocTrivia = leadingTrivia.FirstOrDefault(t => t.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.SingleLineDocumentationCommentTrivia) ||
@@ -262,19 +269,39 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
 
         if (xmlDocTrivia != default)
         {
-            // 简化处理：每行都添加4个空格的缩进
+            // 获取标记了Token特性的参数名称
+            var tokenParameterNames = methodSymbol.Parameters
+                .Where(p => HasTokenAttribute(p))
+                .Select(p => p.Name)
+                .ToList();
+
+            // 处理XML文档注释，移除token参数的注释
             var docLines = xmlDocTrivia.ToFullString().Split('\n');
             var result = new StringBuilder();
-            
+
+            int i = 0;
             foreach (var line in docLines)
             {
                 var trimmedLine = line.TrimEnd();
                 if (!string.IsNullOrWhiteSpace(trimmedLine))
                 {
-                    result.AppendLine($"    {trimmedLine}");
+                    // 检查是否是token参数的注释行
+                    var isTokenParameterComment = tokenParameterNames.Any(name =>
+                        trimmedLine.Contains($"<param name=\"{name}\">") ||
+                        trimmedLine.Contains($"<param name=\"{name}\""));
+
+                    if (!isTokenParameterComment)
+                    {
+                        if (i == 0)
+                            result.AppendLine($"    {trimmedLine}");
+                        else
+                            result.AppendLine($"{trimmedLine}");
+                    }
+
+                    i++;
                 }
             }
-            
+
             return result.ToString().TrimEnd();
         }
 
@@ -287,7 +314,7 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     private bool HasTokenAttribute(IParameterSymbol parameter)
     {
         return parameter.GetAttributes()
-            .Any(attr =>TokenAttributeNames.Contains(attr.AttributeClass?.Name));
+            .Any(attr => TokenAttributeNames.Contains(attr.AttributeClass?.Name));
     }
 
     /// <summary>

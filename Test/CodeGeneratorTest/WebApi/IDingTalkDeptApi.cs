@@ -13,20 +13,6 @@ public interface IDingTalkDeptApi
     [Get("/api/v2/dept/{id}")]
     Task<SysDeptInfoOutput> GetDeptAsync([Path] long id, [Query] string tid);
 
-    [Get("/api/v2/dept")]
-    Task<List<SysDeptListOutput>> GetDeptPageAsync([Query] ProjectQueryInput input);
-
-    [Get("/api/v2/dept/{age}")]
-    Task<List<SysDeptListOutput>> GetDeptPageAsync([Query] string id, [Path] int? age, [Query] ProjectQueryInput input);
-
-    [Post("/api/v2/dept")]
-    Task<SysDeptInfoOutput> CreateDeptAsync([Body] SysDeptCrInput Dept);
-
-    [Put("/api/v2/dept/{id}")]
-    Task<bool> UpdateDeptAsync([Path] string id, [Body] SysDeptUpInput Dept);
-
-    [Delete("/api/v2/dept/{id}")]
-    Task<bool> DeleteDeptAsync([Path] string id);
 }
 
 

@@ -122,4 +122,194 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
 
         return string.Join(", ", methodSymbol.Parameters.Select(p => $"{p.Type} {p.Name}"));
     }
+
+    #region AnalyzeMethod
+
+    protected MethodAnalysisResult AnalyzeMethod(Compilation compilation, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl)
+    {
+        var methodSyntax = FindMethodSyntax(compilation, methodSymbol, interfaceDecl);
+        if (methodSyntax == null)
+            return MethodAnalysisResult.Invalid;
+
+        var httpMethodAttr = FindHttpMethodAttribute(methodSyntax);
+        if (httpMethodAttr == null)
+            return MethodAnalysisResult.Invalid;
+
+        var httpMethod = httpMethodAttr.Name.ToString();
+        var urlTemplate = GetAttributeArgumentValue(httpMethodAttr, 0)?.ToString().Trim('"') ?? "";
+
+        var parameters = methodSymbol.Parameters.Select(p => new ParameterInfo
+        {
+            Name = p.Name,
+            Type = p.Type.ToDisplayString(),
+            Attributes = p.GetAttributes().Select(attr => new ParameterAttributeInfo
+            {
+                Name = attr.AttributeClass?.Name ?? "",
+                Arguments = attr.ConstructorArguments.Select(arg => arg.Value).ToArray(),
+                NamedArguments = attr.NamedArguments.ToDictionary(na => na.Key, na => na.Value.Value)
+            }).ToList()
+        }).ToList();
+
+        return new MethodAnalysisResult
+        {
+            InterfaceName = interfaceDecl.Identifier.Text,
+            IsValid = true,
+            MethodName = methodSymbol.Name,
+            HttpMethod = httpMethod,
+            UrlTemplate = urlTemplate,
+            ReturnType = GetReturnTypeDisplayString(methodSymbol.ReturnType),
+            Parameters = parameters
+        };
+    }
+
+    private MethodDeclarationSyntax? FindMethodSyntax(Compilation compilation, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl)
+    {
+        return interfaceDecl.Members
+            .OfType<MethodDeclarationSyntax>()
+            .FirstOrDefault(m =>
+            {
+                var model = compilation.GetSemanticModel(m.SyntaxTree);
+                var methodSymbolFromSyntax = model.GetDeclaredSymbol(m);
+                return methodSymbolFromSyntax?.Equals(methodSymbol, SymbolEqualityComparer.Default) == true;
+            });
+    }
+
+    private AttributeSyntax? FindHttpMethodAttribute(MethodDeclarationSyntax methodSyntax)
+    {
+        return methodSyntax.AttributeLists
+            .SelectMany(a => a.Attributes)
+            .FirstOrDefault(a => SupportedHttpMethods.Contains(a.Name.ToString()));
+    }
+
+
+    private object? GetAttributeArgumentValue(AttributeSyntax attribute, int index)
+    {
+        if (attribute.ArgumentList == null || index >= attribute.ArgumentList.Arguments.Count)
+            return null;
+
+        return attribute.ArgumentList.Arguments[index].Expression switch
+        {
+            LiteralExpressionSyntax literal => literal.Token.Value,
+            _ => null
+        };
+    }
+
+    private string GetReturnTypeDisplayString(ITypeSymbol returnType)
+    {
+        if (returnType is INamedTypeSymbol namedType && namedType.IsGenericType)
+        {
+            if (namedType.Name == "Task" && namedType.TypeArguments.Length == 1)
+            {
+                var genericType = namedType.TypeArguments[0];
+                return genericType is INamedTypeSymbol genericNamedType &&
+                       genericNamedType.IsGenericType &&
+                       genericNamedType.Name == "Nullable"
+                    ? $"{genericNamedType.TypeArguments[0].ToDisplayString()}?"
+                    : genericType.ToDisplayString();
+            }
+        }
+
+        return returnType.ToDisplayString();
+    }
+
+    #endregion
+}
+
+
+
+/// <summary>
+/// 方法分析结果
+/// </summary>
+/// <remarks>
+/// 用于存储接口方法的分析信息，包括 HTTP 方法、URL 模板、参数等。
+/// </remarks>
+public class MethodAnalysisResult
+{
+    /// <summary>
+    /// 接口名称
+    /// </summary>
+    public string InterfaceName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 方法是否有效
+    /// </summary>
+    public bool IsValid { get; set; }
+
+    /// <summary>
+    /// 方法名称
+    /// </summary>
+    public string MethodName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// HTTP 方法（GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS）
+    /// </summary>
+    public string HttpMethod { get; set; } = string.Empty;
+
+    /// <summary>
+    /// URL 模板，支持参数占位符
+    /// </summary>
+    public string UrlTemplate { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 返回类型显示字符串
+    /// </summary>
+    public string ReturnType { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 方法参数列表
+    /// </summary>
+    public List<ParameterInfo> Parameters { get; set; } = [];
+
+    /// <summary>
+    /// 无效的分析结果实例
+    /// </summary>
+    public static MethodAnalysisResult Invalid => new() { IsValid = false };
+}
+
+/// <summary>
+/// 参数信息
+/// </summary>
+/// <remarks>
+/// 存储方法参数的详细信息，包括参数名、类型和特性。
+/// </remarks>
+public class ParameterInfo
+{
+    /// <summary>
+    /// 参数名称
+    /// </summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 参数类型显示字符串
+    /// </summary>
+    public string Type { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 参数特性列表
+    /// </summary>
+    public List<ParameterAttributeInfo> Attributes { get; set; } = [];
+}
+
+/// <summary>
+/// 参数特性信息
+/// </summary>
+/// <remarks>
+/// 存储参数特性的详细信息，包括特性名称、构造函数参数和命名参数。
+/// </remarks>
+public class ParameterAttributeInfo
+{
+    /// <summary>
+    /// 特性名称
+    /// </summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 构造函数参数数组
+    /// </summary>
+    public object?[] Arguments { get; set; } = [];
+
+    /// <summary>
+    /// 命名参数字典
+    /// </summary>
+    public Dictionary<string, object?> NamedArguments { get; set; } = [];
 }
