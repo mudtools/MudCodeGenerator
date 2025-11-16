@@ -314,14 +314,14 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
         }
 
         // 方法签名
-        sb.AppendLine($"    public async Task<{methodInfo.ReturnType}> {methodInfo.MethodName}(");
+        sb.Append($"    public async Task<{methodInfo.ReturnType}> {methodInfo.MethodName}(");
         
         // 过滤掉标记了[Token]特性的参数，保留其他所有参数
         var filteredParameters = FilterParametersByAttribute(methodInfo.Parameters, TokenAttributeNames, exclude: true);
         
         // 生成参数列表
         var parameterList = GenerateParameterList(filteredParameters);
-        sb.AppendLine($"        {parameterList})");
+        sb.AppendLine($"{parameterList})");
         
         sb.AppendLine("    {");
         
