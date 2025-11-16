@@ -2,5 +2,5 @@
 
 public interface ITokenManage
 {
-    string GetToken();
+    Task<string> GetTokenAsync();
 }

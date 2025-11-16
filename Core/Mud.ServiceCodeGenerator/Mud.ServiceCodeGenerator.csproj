@@ -8,9 +8,6 @@
 		<GenerateDocumentationFile>False</GenerateDocumentationFile>
 		<Description>Mud 服务代码生成器是一个基于 Roslyn 的源代码生成器，自动为类生成构造函数注入代码、服务注册代码等，包括日志、缓存、用户管理等常用服务相关代码。</Description>
 	</PropertyGroup>
-	<ItemGroup>
-		<None Remove="bin\Debug\netstandard2.0\\netstandard2.0\Mud.ServiceCodeGenerator.dll" />
-	</ItemGroup>
 	<!--开发调试阶段-->
 	<ItemGroup>
 		<!-- Package the generator in the analyzer directory of the nuget package -->
