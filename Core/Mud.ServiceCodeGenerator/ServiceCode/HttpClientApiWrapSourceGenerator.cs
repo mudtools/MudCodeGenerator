@@ -4,18 +4,30 @@ using System.Text;
 namespace Mud.ServiceCodeGenerator;
 
 /// <summary>
+/// 生成器常量配置
+/// </summary>
+internal static class GeneratorConstants
+{
+    // 特性名称
+    public static readonly string[] HttpClientApiWrapAttributeNames = ["HttpClientApiWrapAttribute", "HttpClientApiWrap"];
+    public static readonly string[] TokenAttributeNames = ["TokenAttribute", "Token"];
+
+    // 默认值
+    public const string DefaultTokenManageInterface = "ITokenManage";
+    public const string DefaultWrapSuffix = "Wrap";
+
+    // 诊断ID
+    public const string GeneratorErrorDiagnosticId = "MCG001";
+    public const string GeneratorWarningDiagnosticId = "MCG002";
+}
+
+/// <summary>
 /// HttpClientApiWrap 源代码生成器
 /// 为标记有HttpClientApiWrap特性的接口生成二次包装实现类
 /// </summary>
 [Generator]
 public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
 {
-    /// <summary>
-    /// HttpClientApiWrap特性名称数组
-    /// </summary>
-    private readonly string[] HttpClientApiWrapAttributeName = ["HttpClientApiWrapAttribute", "HttpClientApiWrap"];
-    private readonly string[] TokenAttributeNames = new[] { "TokenAttribute", "Token" };
-
     /// <inheritdoc/>
     protected override System.Collections.ObjectModel.Collection<string> GetFileUsingNameSpaces()
     {
@@ -39,7 +51,7 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     public override void Initialize(IncrementalGeneratorInitializationContext context)
     {
         // 使用自定义方法查找标记了[HttpClientApiWrap]的接口
-        var interfaceDeclarations = GetClassDeclarationProvider<InterfaceDeclarationSyntax>(context, HttpClientApiWrapAttributeName);
+        var interfaceDeclarations = GetClassDeclarationProvider<InterfaceDeclarationSyntax>(context, GeneratorConstants.HttpClientApiWrapAttributeNames);
 
         // 组合编译和接口声明
         var compilationAndInterfaces = context.CompilationProvider.Combine(interfaceDeclarations);
@@ -49,12 +61,10 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
              (spc, source) => Execute(source.Left, source.Right, spc));
     }
 
+
     /// <summary>
-    /// 执行源代码生成逻辑
+    /// 更新Execute方法以使用验证
     /// </summary>
-    /// <param name="compilation">编译信息</param>
-    /// <param name="interfaces">接口声明数组</param>
-    /// <param name="context">源代码生成上下文</param>
     protected override void Execute(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context)
     {
         if (compilation == null || interfaces.IsDefaultOrEmpty)
@@ -66,12 +76,9 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
             {
                 var semanticModel = compilation.GetSemanticModel(interfaceDecl.SyntaxTree);
                 var interfaceSymbol = semanticModel.GetDeclaredSymbol(interfaceDecl);
-
-                if (interfaceSymbol == null || !HasValidHttpMethods(interfaceSymbol))
-                    continue;
-
                 var wrapAttribute = GetHttpClientApiWrapAttribute(interfaceSymbol);
-                if (wrapAttribute == null)
+
+                if (!ValidateInterfaceConfiguration(interfaceSymbol, wrapAttribute, context, interfaceDecl))
                     continue;
 
                 // 生成包装接口代码
@@ -92,15 +99,7 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
             }
             catch (Exception ex)
             {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    new DiagnosticDescriptor(
-                        "MCG001",
-                        "HttpClientApiWrap Source Generator Error",
-                        $"Error generating wrap interface for {interfaceDecl.Identifier}: {ex.Message}",
-                        "Generation",
-                        DiagnosticSeverity.Error,
-                        true),
-                    interfaceDecl.GetLocation()));
+                ReportDiagnosticError(context, interfaceDecl, ex);
             }
         }
     }
@@ -113,7 +112,7 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
         if (interfaceSymbol == null)
             return null;
         return interfaceSymbol.GetAttributes()
-            .FirstOrDefault(a => HttpClientApiWrapAttributeName.Contains(a.AttributeClass?.Name));
+            .FirstOrDefault(a => GeneratorConstants.HttpClientApiWrapAttributeNames.Contains(a.AttributeClass?.Name));
     }
 
     /// <summary>
@@ -129,7 +128,7 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
         }
 
         // 默认使用 ITokenManage
-        return "ITokenManage";
+        return GeneratorConstants.DefaultTokenManageInterface;
     }
 
     /// <summary>
@@ -141,16 +140,32 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
         {
             return wrapInterfaceName.Substring(1);
         }
-        return wrapInterfaceName + "Wrap";
+        return wrapInterfaceName + GeneratorConstants.DefaultWrapSuffix;
     }
 
     /// <summary>
-    /// 生成包装接口代码
+    /// 获取包装接口名称
     /// </summary>
-    private string GenerateWrapInterface(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl, INamedTypeSymbol interfaceSymbol, AttributeData wrapAttribute)
+    private string GetWrapInterfaceName(INamedTypeSymbol interfaceSymbol, AttributeData wrapAttribute)
     {
-        var sb = new StringBuilder();
+        // 检查特性参数中是否有指定的包装接口名称
+        var wrapInterfaceArg = wrapAttribute.NamedArguments.FirstOrDefault(a => a.Key == "WrapInterface");
+        if (!string.IsNullOrEmpty(wrapInterfaceArg.Value.Value?.ToString()))
+        {
+            return wrapInterfaceArg.Value.Value.ToString();
+        }
+
+        // 默认在接口名称后添加"Wrap"
+        return interfaceSymbol.Name + "Wrap";
+    }
+
+    /// <summary>
+    /// 生成文件头部（命名空间和头部注释）
+    /// </summary>
+    private void GenerateFileHeader(StringBuilder sb, InterfaceDeclarationSyntax interfaceDecl)
+    {
         GenerateFileHeader(sb);
+
         // 获取命名空间
         var namespaceName = GetNamespaceName(interfaceDecl);
         if (!string.IsNullOrEmpty(namespaceName))
@@ -159,6 +174,57 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
             sb.AppendLine($"namespace {namespaceName};");
             sb.AppendLine();
         }
+    }
+
+    /// <summary>
+    /// 生成接口或类的开始部分
+    /// </summary>
+    private void GenerateClassOrInterfaceStart(StringBuilder sb, string typeName, string interfaceName, bool isInterface = false)
+    {
+        var parentName = isInterface ? " " : $" : {interfaceName}";
+        sb.AppendLine($"{CompilerGeneratedAttribute}");
+        sb.AppendLine($"{GeneratedCodeAttribute}");
+        sb.AppendLine($"{(isInterface ? "public partial interface" : "internal partial class")} {typeName}{parentName}");
+        sb.AppendLine("{");
+    }
+
+    /// <summary>
+    /// 生成构造函数代码
+    /// </summary>
+    private void GenerateConstructor(StringBuilder sb, string className, string interfaceName, string tokenManageInterfaceName)
+    {
+        var apiParameterName = char.ToLower(className[0]) + className.Substring(1) + "Api";
+        var tokenParameterName = char.ToLower(tokenManageInterfaceName[0]) + tokenManageInterfaceName.Substring(1);
+
+        sb.AppendLine($"    public {className}({interfaceName} {apiParameterName}, {tokenManageInterfaceName} {tokenParameterName}, ILogger<{className}> logger)");
+        sb.AppendLine("    {");
+        sb.AppendLine($"        {PrivateFieldNamingHelper.GeneratePrivateFieldName(interfaceName)} = {apiParameterName};");
+        sb.AppendLine($"        {PrivateFieldNamingHelper.GeneratePrivateFieldName(tokenManageInterfaceName)} = {tokenParameterName};");
+        sb.AppendLine("        _logger = logger;");
+        sb.AppendLine("    }");
+        sb.AppendLine();
+    }
+
+    /// <summary>
+    /// 生成字段声明
+    /// </summary>
+    private void GenerateFieldDeclarations(StringBuilder sb, string interfaceName, string tokenManageInterfaceName, string className)
+    {
+        sb.AppendLine($"    private readonly {interfaceName} {PrivateFieldNamingHelper.GeneratePrivateFieldName(interfaceName)};");
+        sb.AppendLine($"    private readonly {tokenManageInterfaceName} {PrivateFieldNamingHelper.GeneratePrivateFieldName(tokenManageInterfaceName)};");
+        sb.AppendLine($"    private readonly ILogger<{className}> _logger;");
+        sb.AppendLine();
+    }
+
+    /// <summary>
+    /// 生成包装接口代码
+    /// </summary>
+    private string GenerateWrapInterface(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl, INamedTypeSymbol interfaceSymbol, AttributeData wrapAttribute)
+    {
+        var sb = new StringBuilder();
+
+        // 生成文件头部
+        GenerateFileHeader(sb, interfaceDecl);
 
         // 获取包装接口名称
         var wrapInterfaceName = GetWrapInterfaceName(interfaceSymbol, wrapAttribute);
@@ -170,32 +236,11 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
             sb.Append(xmlDoc);
         }
 
-        sb.AppendLine($"{CompilerGeneratedAttribute}");
-        sb.AppendLine($"{GeneratedCodeAttribute}");
-        sb.AppendLine($"public partial interface {wrapInterfaceName}");
-        sb.AppendLine("{");
+        // 生成接口开始部分
+        GenerateClassOrInterfaceStart(sb, wrapInterfaceName, "", isInterface: true);
 
         // 生成接口方法
-        var methods = interfaceSymbol.GetMembers()
-                                     .OfType<IMethodSymbol>()
-                                     .Where(m => IsValidMethod(m));
-        foreach (var methodSymbol in methods)
-        {
-            var methodInfo = AnalyzeMethod(compilation, methodSymbol, interfaceDecl);
-            if (!methodInfo.IsValid)
-                continue;
-
-            var methodSyntax = GetMethodDeclarationSyntax(methodSymbol, interfaceDecl);
-            if (methodSyntax != null)
-            {
-                var wrapMethodCode = GenerateWrapMethodDeclaration(methodInfo, methodSyntax);
-                if (!string.IsNullOrEmpty(wrapMethodCode))
-                {
-                    sb.AppendLine(wrapMethodCode);
-                    sb.AppendLine();
-                }
-            }
-        }
+        GenerateWrapMethods(compilation, interfaceDecl, interfaceSymbol, sb, isInterface: true);
 
         sb.AppendLine("}");
 
@@ -208,45 +253,41 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     private string GenerateWrapImplementation(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl, INamedTypeSymbol interfaceSymbol, AttributeData wrapAttribute)
     {
         var sb = new StringBuilder();
-        GenerateFileHeader(sb);
-        
-        // 获取命名空间
-        var namespaceName = GetNamespaceName(interfaceDecl);
-        if (!string.IsNullOrEmpty(namespaceName))
-        {
-            sb.AppendLine();
-            sb.AppendLine($"namespace {namespaceName};");
-            sb.AppendLine();
-        }
+
+        // 生成文件头部
+        GenerateFileHeader(sb, interfaceDecl);
 
         // 获取包装类名称和接口名称
-        
         var wrapInterfaceName = GetWrapInterfaceName(interfaceSymbol, wrapAttribute);
         var wrapClassName = GetWrapClassName(wrapInterfaceName);
         var tokenManageInterfaceName = GetTokenManageInterfaceName(interfaceSymbol, wrapAttribute);
 
-        sb.AppendLine($"{CompilerGeneratedAttribute}");
-        sb.AppendLine($"{GeneratedCodeAttribute}");
-        sb.AppendLine($"internal partial class {wrapClassName} : {wrapInterfaceName}");
-        sb.AppendLine("{");
-        sb.AppendLine($"    private readonly {interfaceSymbol.Name} {PrivateFieldNamingHelper.GeneratePrivateFieldName(interfaceSymbol.Name)};");
-        sb.AppendLine($"    private readonly {tokenManageInterfaceName} {PrivateFieldNamingHelper.GeneratePrivateFieldName(tokenManageInterfaceName)};");
-        sb.AppendLine($"    private readonly ILogger<{wrapClassName}> _logger;");
-        sb.AppendLine();
-        
+        // 生成类开始部分
+        GenerateClassOrInterfaceStart(sb, wrapClassName, wrapInterfaceName);
+
+        // 生成字段声明
+        GenerateFieldDeclarations(sb, interfaceSymbol.Name, tokenManageInterfaceName, wrapClassName);
+
         // 生成构造函数
-        sb.AppendLine($"    public {wrapClassName}({interfaceSymbol.Name} {wrapClassName.ToLowerInvariant()[0] + wrapClassName.Substring(1)}Api, {tokenManageInterfaceName} {tokenManageInterfaceName.ToLowerInvariant()[0] + tokenManageInterfaceName.Substring(1)}, ILogger<{wrapClassName}> logger)");
-        sb.AppendLine("    {");
-        sb.AppendLine($"        {PrivateFieldNamingHelper.GeneratePrivateFieldName(interfaceSymbol.Name)} = {wrapClassName.ToLowerInvariant()[0] + wrapClassName.Substring(1)}Api;");
-        sb.AppendLine($"        {PrivateFieldNamingHelper.GeneratePrivateFieldName(tokenManageInterfaceName)} = {tokenManageInterfaceName.ToLowerInvariant()[0] + tokenManageInterfaceName.Substring(1)};");
-        sb.AppendLine("        _logger = logger;");
-        sb.AppendLine("    }");
-        sb.AppendLine();
+        GenerateConstructor(sb, wrapClassName, interfaceSymbol.Name, tokenManageInterfaceName);
 
         // 生成包装方法实现
+        GenerateWrapMethods(compilation, interfaceDecl, interfaceSymbol, sb, isInterface: false, tokenManageInterfaceName, interfaceSymbol.Name);
+
+        sb.AppendLine("}");
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// 生成包装方法（接口声明或实现）
+    /// </summary>
+    private void GenerateWrapMethods(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl, INamedTypeSymbol interfaceSymbol, StringBuilder sb, bool isInterface, string tokenManageInterfaceName = null, string interfaceName = null)
+    {
         var methods = interfaceSymbol.GetMembers()
                                      .OfType<IMethodSymbol>()
                                      .Where(m => IsValidMethod(m));
+
         foreach (var methodSymbol in methods)
         {
             var methodInfo = AnalyzeMethod(compilation, methodSymbol, interfaceDecl);
@@ -256,7 +297,16 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
             var methodSyntax = GetMethodDeclarationSyntax(methodSymbol, interfaceDecl);
             if (methodSyntax != null)
             {
-                var wrapMethodCode = GenerateWrapMethodImplementation(methodInfo, methodSyntax, interfaceSymbol.Name,tokenManageInterfaceName);
+                string wrapMethodCode;
+                if (isInterface)
+                {
+                    wrapMethodCode = GenerateWrapMethodDeclaration(methodInfo, methodSyntax);
+                }
+                else
+                {
+                    wrapMethodCode = GenerateWrapMethodImplementation(methodInfo, methodSyntax, interfaceName, tokenManageInterfaceName);
+                }
+
                 if (!string.IsNullOrEmpty(wrapMethodCode))
                 {
                     sb.AppendLine(wrapMethodCode);
@@ -264,10 +314,6 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
                 }
             }
         }
-
-        sb.AppendLine("}");
-
-        return sb.ToString();
     }
 
     /// <summary>
@@ -284,11 +330,11 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
             sb.AppendLine(methodDoc);
         }
 
-        // 方法签名
-        sb.Append($"    {methodInfo.ReturnType} {methodInfo.MethodName}(");
+        // 方法签名 - 使用原始方法的返回类型
+        sb.Append($"    {methodSyntax.ReturnType} {methodInfo.MethodName}(");
 
         // 过滤掉标记了[Token]特性的参数，保留其他所有参数
-        var filteredParameters = FilterParametersByAttribute(methodInfo.Parameters, TokenAttributeNames, exclude: true);
+        var filteredParameters = FilterParametersByAttribute(methodInfo.Parameters, GeneratorConstants.TokenAttributeNames, exclude: true);
 
         // 生成参数列表
         var parameterList = GenerateParameterList(filteredParameters);
@@ -302,7 +348,7 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     /// <summary>
     /// 生成包装方法实现（具体实现）
     /// </summary>
-    private string GenerateWrapMethodImplementation(MethodAnalysisResult methodInfo, MethodDeclarationSyntax methodSyntax, string interfaceName,string tokenManageInterfaceName)
+    private string GenerateWrapMethodImplementation(MethodAnalysisResult methodInfo, MethodDeclarationSyntax methodSyntax, string interfaceName, string tokenManageInterfaceName)
     {
         var sb = new StringBuilder();
 
@@ -313,41 +359,65 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
             sb.AppendLine(methodDoc);
         }
 
-        // 方法签名
-        sb.Append($"    public async Task<{methodInfo.ReturnType}> {methodInfo.MethodName}(");
-        
+        // 方法签名 - 根据原始方法的返回类型决定是否添加async关键字
+        var originalMethodReturnType = methodSyntax.ReturnType.ToString();
+        var isAsyncMethod = originalMethodReturnType.StartsWith("Task", StringComparison.OrdinalIgnoreCase);
+
+        if (isAsyncMethod)
+        {
+            sb.Append($"    public async {originalMethodReturnType} {methodInfo.MethodName}(");
+        }
+        else
+        {
+            sb.Append($"    public {originalMethodReturnType} {methodInfo.MethodName}(");
+        }
+
         // 过滤掉标记了[Token]特性的参数，保留其他所有参数
-        var filteredParameters = FilterParametersByAttribute(methodInfo.Parameters, TokenAttributeNames, exclude: true);
-        
+        var filteredParameters = FilterParametersByAttribute(methodInfo.Parameters, GeneratorConstants.TokenAttributeNames, exclude: true);
+
         // 生成参数列表
         var parameterList = GenerateParameterList(filteredParameters);
         sb.AppendLine($"{parameterList})");
-        
+
         sb.AppendLine("    {");
-        
+
         // 生成方法体
         sb.AppendLine("        try");
         sb.AppendLine("        {");
-        
+
         // 获取Token
-        sb.AppendLine($"            var token = await {PrivateFieldNamingHelper.GeneratePrivateFieldName(tokenManageInterfaceName)}.GetTokenAsync();");
+        if (isAsyncMethod)
+        {
+            sb.AppendLine($"            var token = await {PrivateFieldNamingHelper.GeneratePrivateFieldName(tokenManageInterfaceName)}.GetTokenAsync();");
+        }
+        else
+        {
+            sb.AppendLine($"            var token = {PrivateFieldNamingHelper.GeneratePrivateFieldName(tokenManageInterfaceName)}.GetToken();");
+        }
         sb.AppendLine();
-        
+
         // Token空值检查
         sb.AppendLine("            if (string.IsNullOrEmpty(token))");
         sb.AppendLine("            {");
         sb.AppendLine("                _logger.LogWarning(\"获取到的Token为空！\");");
         sb.AppendLine("            }");
         sb.AppendLine();
-        
+
         // 调用原始API方法
-        sb.Append($"            return await {PrivateFieldNamingHelper.GeneratePrivateFieldName(interfaceName)}.{methodInfo.MethodName}(");
-        
+        if (isAsyncMethod)
+        {
+            sb.Append($"            return await {PrivateFieldNamingHelper.GeneratePrivateFieldName(interfaceName)}.{methodInfo.MethodName}(");
+        }
+        else
+        {
+            sb.Append($"            return {PrivateFieldNamingHelper.GeneratePrivateFieldName(interfaceName)}.{methodInfo.MethodName}(");
+        }
+
         // 生成调用参数列表（包含Token和过滤后的参数）
         var callParameters = new List<string> { "token" };
         callParameters.AddRange(filteredParameters.Select(p => p.Name));
         sb.Append(string.Join(", ", callParameters));
-        
+
         sb.AppendLine(");");
         sb.AppendLine("        }");
         sb.AppendLine("        catch (Exception x)");
@@ -370,7 +440,7 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
             return string.Empty;
 
         // 获取标记了Token特性的参数名称
-        var tokenParameterNames = FilterParametersByAttribute(methodInfo.Parameters, TokenAttributeNames)
+        var tokenParameterNames = FilterParametersByAttribute(methodInfo.Parameters, GeneratorConstants.TokenAttributeNames)
             .Select(p => p.Name)
             .ToList();
 
@@ -402,5 +472,63 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
         }
 
         return result.ToString().TrimEnd();
+    }
+
+    /// <summary>
+    /// 报告诊断错误
+    /// </summary>
+    private void ReportDiagnosticError(SourceProductionContext context, InterfaceDeclarationSyntax interfaceDecl, Exception ex)
+    {
+        context.ReportDiagnostic(Diagnostic.Create(
+            new DiagnosticDescriptor(
+                GeneratorConstants.GeneratorErrorDiagnosticId,
+                "HttpClientApiWrap Source Generator Error",
+                $"Error generating wrap interface for {interfaceDecl.Identifier}: {ex.Message}",
+                "Generation",
+                DiagnosticSeverity.Error,
+                true),
+            interfaceDecl.GetLocation()));
+    }
+
+    /// <summary>
+    /// 报告诊断警告
+    /// </summary>
+    private void ReportDiagnosticWarning(SourceProductionContext context, InterfaceDeclarationSyntax interfaceDecl, string message)
+    {
+        context.ReportDiagnostic(Diagnostic.Create(
+            new DiagnosticDescriptor(
+                GeneratorConstants.GeneratorWarningDiagnosticId,
+                "HttpClientApiWrap Source Generator Warning",
+                message,
+                "Generation",
+                DiagnosticSeverity.Warning,
+                true),
+            interfaceDecl.GetLocation()));
+    }
+
+    /// <summary>
+    /// 验证接口配置
+    /// </summary>
+    private bool ValidateInterfaceConfiguration(INamedTypeSymbol interfaceSymbol, AttributeData wrapAttribute, SourceProductionContext context, InterfaceDeclarationSyntax interfaceDecl)
+    {
+        if (interfaceSymbol == null)
+        {
+            ReportDiagnosticWarning(context, interfaceDecl, "Interface symbol is null, skipping generation.");
+            return false;
+        }
+
+        if (!HasValidHttpMethods(interfaceSymbol))
+        {
+            ReportDiagnosticWarning(context, interfaceDecl, $"Interface {interfaceSymbol.Name} has no valid HTTP methods, skipping generation.");
+            return false;
+        }
+
+        if (wrapAttribute == null)
+        {
+            ReportDiagnosticWarning(context, interfaceDecl, $"Interface {interfaceSymbol.Name} is missing HttpClientApiWrap attribute, skipping generation.");
+            return false;
+        }
+
+        return true;
     }
 }
