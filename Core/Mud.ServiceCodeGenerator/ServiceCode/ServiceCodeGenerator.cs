@@ -184,7 +184,7 @@ public abstract class ServiceCodeGenerator : TransitiveCodeGenerator
     /// </summary>
     /// <param name="propertyDeclaration">属性声明</param>
     /// <returns>属性名称</returns>
-    protected string GetPropertyName(PropertyDeclarationSyntax propertyDeclaration)
+    protected override string GetPropertyName(PropertyDeclarationSyntax propertyDeclaration)
     {
         return propertyDeclaration?.Identifier.Text ?? "";
     }

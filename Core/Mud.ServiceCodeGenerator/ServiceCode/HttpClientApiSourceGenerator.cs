@@ -541,7 +541,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
                                   "DateTime", "System.DateTime", "Guid", "System.Guid",
                                   "string[]", "int[]", "long[]", "float[]", "double[]", "decimal[]",
                                   "DateTime[]", "System.DateTime[]", "Guid[]", "System.Guid[]",};
-        return simpleTypes.Contains(typeName) || typeName.EndsWith("?") && simpleTypes.Contains(typeName.TrimEnd('?'));
+        return simpleTypes.Contains(typeName) || typeName.EndsWith("?", StringComparison.OrdinalIgnoreCase) && simpleTypes.Contains(typeName.TrimEnd('?'));
     }
 
     private bool IsStringType(string typeName)
@@ -552,7 +552,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
 
     private bool IsArrayType(string typeName)
     {
-        return typeName.EndsWith("[]", StringComparison.OrdinalIgnoreCase) || typeName.Contains("[]?", StringComparison.OrdinalIgnoreCase);
+        return typeName.EndsWith("[]", StringComparison.OrdinalIgnoreCase) || typeName.EndsWith("[]?", StringComparison.OrdinalIgnoreCase);
     }
 
     private string? GetFormatString(ParameterAttributeInfo attribute)

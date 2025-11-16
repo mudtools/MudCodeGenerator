@@ -41,7 +41,7 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     /// <param name="context">源代码生成上下文</param>
     protected override void Execute(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context)
     {
-        if (interfaces.IsDefaultOrEmpty)
+        if (compilation == null || interfaces.IsDefaultOrEmpty)
             return;
 
         foreach (var interfaceDecl in interfaces)
@@ -151,33 +151,6 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     }
 
     /// <summary>
-    /// 获取XML文档注释
-    /// </summary>
-    private string GetXmlDocumentation(InterfaceDeclarationSyntax interfaceDecl)
-    {
-        var leadingTrivia = interfaceDecl.GetLeadingTrivia();
-        var xmlDocTrivia = leadingTrivia.FirstOrDefault(t => t.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
-                                                             t.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia));
-
-        if (xmlDocTrivia != default)
-        {
-            return xmlDocTrivia.ToFullString();
-        }
-
-        return string.Empty;
-    }
-
-    /// <summary>
-    /// 获取方法的声明语法
-    /// </summary>
-    private MethodDeclarationSyntax? GetMethodDeclarationSyntax(IMethodSymbol method, InterfaceDeclarationSyntax interfaceDecl)
-    {
-        return interfaceDecl.Members
-            .OfType<MethodDeclarationSyntax>()
-            .FirstOrDefault(m => m.Identifier.ValueText == method.Name);
-    }
-
-    /// <summary>
     /// 生成包装方法
     /// </summary>
     private string GenerateWrapMethod(MethodAnalysisResult methodInfo, MethodDeclarationSyntax methodSyntax)
@@ -195,28 +168,11 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
         sb.Append($"    {methodInfo.ReturnType} {methodInfo.MethodName}(");
 
         // 过滤掉标记了[Token]特性的参数，保留其他所有参数
-        var filteredParameters = methodInfo.Parameters.Where(p => !HasTokenAttribute(p)).ToList();
+        var filteredParameters = FilterParametersByAttribute(methodInfo.Parameters, TokenAttributeNames, exclude: true);
 
-        for (int i = 0; i < filteredParameters.Count; i++)
-        {
-            var parameter = filteredParameters[i];
-
-            // 获取参数类型和名称
-            var parameterStr = $"{parameter.Type} {parameter.Name}";
-
-            // 处理可选参数
-            if (parameter.HasDefaultValue && !string.IsNullOrEmpty(parameter.DefaultValueLiteral))
-            {
-                parameterStr += $" = {parameter.DefaultValueLiteral}";
-            }
-
-            sb.Append(parameterStr);
-
-            if (i < filteredParameters.Count - 1)
-            {
-                sb.Append(", ");
-            }
-        }
+        // 生成参数列表
+        var parameterList = GenerateParameterList(filteredParameters);
+        sb.Append(parameterList);
 
         sb.Append(");");
 
@@ -228,57 +184,42 @@ public class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     /// </summary>
     private string GetMethodXmlDocumentation(MethodDeclarationSyntax methodSyntax, MethodAnalysisResult methodInfo)
     {
-        var leadingTrivia = methodSyntax.GetLeadingTrivia();
-        var xmlDocTrivia = leadingTrivia.FirstOrDefault(t => t.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.SingleLineDocumentationCommentTrivia) ||
-                                                           t.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.MultiLineDocumentationCommentTrivia));
+        var xmlDoc = GetXmlDocumentation(methodSyntax);
+        if (string.IsNullOrEmpty(xmlDoc))
+            return string.Empty;
 
-        if (xmlDocTrivia != default)
+        // 获取标记了Token特性的参数名称
+        var tokenParameterNames = FilterParametersByAttribute(methodInfo.Parameters, TokenAttributeNames)
+            .Select(p => p.Name)
+            .ToList();
+
+        // 处理XML文档注释，移除token参数的注释
+        var docLines = xmlDoc.Split('\n');
+        var result = new StringBuilder();
+
+        int i = 0;
+        foreach (var line in docLines)
         {
-            // 获取标记了Token特性的参数名称
-            var tokenParameterNames = methodInfo.Parameters
-                .Where(p => HasTokenAttribute(p))
-                .Select(p => p.Name)
-                .ToList();
-
-            // 处理XML文档注释，移除token参数的注释
-            var docLines = xmlDocTrivia.ToFullString().Split('\n');
-            var result = new StringBuilder();
-
-            int i = 0;
-            foreach (var line in docLines)
+            var trimmedLine = line.TrimEnd();
+            if (!string.IsNullOrWhiteSpace(trimmedLine))
             {
-                var trimmedLine = line.TrimEnd();
-                if (!string.IsNullOrWhiteSpace(trimmedLine))
+                // 检查是否是token参数的注释行
+                var isTokenParameterComment = tokenParameterNames.Any(name =>
+                    trimmedLine.Contains($"<param name=\"{name}\">") ||
+                    trimmedLine.Contains($"<param name=\"{name}\""));
+
+                if (!isTokenParameterComment)
                 {
-                    // 检查是否是token参数的注释行
-                    var isTokenParameterComment = tokenParameterNames.Any(name =>
-                        trimmedLine.Contains($"<param name=\"{name}\">") ||
-                        trimmedLine.Contains($"<param name=\"{name}\""));
-
-                    if (!isTokenParameterComment)
-                    {
-                        if (i == 0)
-                            result.AppendLine($"    {trimmedLine}");
-                        else
-                            result.AppendLine($"{trimmedLine}");
-                    }
-
-                    i++;
+                    if (i == 0)
+                        result.AppendLine($"    {trimmedLine}");
+                    else
+                        result.AppendLine($"{trimmedLine}");
                 }
-            }
 
-            return result.ToString().TrimEnd();
+                i++;
+            }
         }
 
-        return string.Empty;
-    }
-
-    /// <summary>
-    /// 检查参数是否有Token特性
-    /// </summary>
-    private bool HasTokenAttribute(ParameterInfo parameter)
-    {
-        return parameter.Attributes
-            .Any(attr => TokenAttributeNames.Contains(attr.Name));
+        return result.ToString().TrimEnd();
     }
 }

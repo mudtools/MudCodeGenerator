@@ -284,7 +284,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     /// </summary>
     /// <param name="declarationSyntax">属性声明。</param>
     /// <returns>首字母小写的属性名。</returns>
-    protected string GetPropertyName(PropertyDeclarationSyntax declarationSyntax)
+    protected virtual string GetPropertyName(PropertyDeclarationSyntax declarationSyntax)
     {
         return ApplyNameCaseConvention(GetOrgPropertyName(declarationSyntax));
     }

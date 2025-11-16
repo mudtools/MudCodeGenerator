@@ -169,6 +169,92 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
             .FirstOrDefault(a => SupportedHttpMethods.Contains(a.Name.ToString()));
     }
 
+    #region Common Utility Methods
+
+    /// <summary>
+    /// 获取XML文档注释
+    /// </summary>
+    protected string GetXmlDocumentation(SyntaxNode syntaxNode)
+    {
+        if (syntaxNode == null)
+            return string.Empty;
+
+        if (syntaxNode.IsKind(SyntaxKind.InterfaceDeclaration))
+            return string.Empty;
+        var leadingTrivia = syntaxNode.GetLeadingTrivia();
+        var xmlDocTrivia = leadingTrivia.FirstOrDefault(t => t.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
+                                                             t.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia));
+
+        if (xmlDocTrivia != default)
+        {
+            return xmlDocTrivia.ToFullString();
+        }
+
+        return string.Empty;
+    }
+
+    /// <summary>
+    /// 获取方法的声明语法
+    /// </summary>
+    protected MethodDeclarationSyntax? GetMethodDeclarationSyntax(IMethodSymbol method, InterfaceDeclarationSyntax interfaceDecl)
+    {
+        if (interfaceDecl == null)
+            return null;
+
+        if (method == null)
+            return null;
+        return interfaceDecl.Members
+            .OfType<MethodDeclarationSyntax>()
+            .FirstOrDefault(m => m.Identifier.ValueText == method.Name);
+    }
+
+    /// <summary>
+    /// 检查参数是否具有指定的特性
+    /// </summary>
+    protected bool HasAttribute(ParameterInfo parameter, params string[] attributeNames)
+    {
+        if (parameter == null)
+            return false;
+        if (parameter.Attributes == null || parameter.Attributes.Count == 0)
+            return false;
+        return parameter.Attributes
+            .Any(attr => attributeNames.Contains(attr.Name));
+    }
+
+    /// <summary>
+    /// 根据特性名称过滤参数
+    /// </summary>
+    protected IReadOnlyList<ParameterInfo> FilterParametersByAttribute(IReadOnlyList<ParameterInfo> parameters, string[] attributeNames, bool exclude = false)
+    {
+        return exclude
+            ? parameters.Where(p => !HasAttribute(p, attributeNames)).ToList()
+            : parameters.Where(p => HasAttribute(p, attributeNames)).ToList();
+    }
+
+    /// <summary>
+    /// 生成方法参数列表字符串
+    /// </summary>
+    protected string GenerateParameterList(IReadOnlyList<ParameterInfo> parameters)
+    {
+        if (parameters == null || !parameters.Any())
+            return string.Empty;
+
+        var parameterStrings = parameters.Select(parameter =>
+        {
+            var parameterStr = $"{parameter.Type} {parameter.Name}";
+
+            // 处理可选参数
+            if (parameter.HasDefaultValue && !string.IsNullOrEmpty(parameter.DefaultValueLiteral))
+            {
+                parameterStr += $" = {parameter.DefaultValueLiteral}";
+            }
+
+            return parameterStr;
+        });
+
+        return string.Join(", ", parameterStrings);
+    }
+    #endregion
 
     #region AnalyzeMethod
     /// <summary>
@@ -181,7 +267,7 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
     protected MethodAnalysisResult AnalyzeMethod(Compilation compilation, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl)
     {
         var methodSyntax = FindMethodSyntax(compilation, methodSymbol, interfaceDecl);
-        if (methodSyntax == null)
+        if (methodSyntax == null || methodSymbol == null)
             return MethodAnalysisResult.Invalid;
 
         var httpMethodAttr = FindHttpMethodAttribute(methodSyntax);
@@ -238,7 +324,6 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
                 return methodSymbolFromSyntax?.Equals(methodSymbol, SymbolEqualityComparer.Default) == true;
             });
     }
-
 
     private object? GetAttributeArgumentValue(AttributeSyntax attribute, int index)
     {
@@ -416,7 +501,7 @@ public class MethodAnalysisResult
     /// <summary>
     /// 方法参数列表
     /// </summary>
-    public List<ParameterInfo> Parameters { get; set; } = [];
+    public IReadOnlyList<ParameterInfo> Parameters { get; set; } = [];
 
     /// <summary>
     /// 无效的分析结果实例
@@ -445,7 +530,7 @@ public class ParameterInfo
     /// <summary>
     /// 参数特性列表
     /// </summary>
-    public List<ParameterAttributeInfo> Attributes { get; set; } = [];
+    public IReadOnlyList<ParameterAttributeInfo> Attributes { get; set; } = [];
 
     /// <summary>
     /// 是否具有默认值
@@ -484,5 +569,5 @@ public class ParameterAttributeInfo
     /// <summary>
     /// 命名参数字典
     /// </summary>
-    public Dictionary<string, object?> NamedArguments { get; set; } = [];
+    public IReadOnlyDictionary<string, object?> NamedArguments { get; set; } = new Dictionary<string, object?>();
 }
