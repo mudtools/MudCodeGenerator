@@ -64,6 +64,50 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
     }
 
 
+    /// <summary>
+    /// 获取包装类名称
+    /// </summary>
+    protected string GetWrapClassName(string wrapInterfaceName)
+    {
+        if (string.IsNullOrEmpty(wrapInterfaceName))
+            return "NullOrEmptyWrapInterfaceName";
+
+        if (wrapInterfaceName.StartsWith("I", StringComparison.Ordinal) && wrapInterfaceName.Length > 1)
+        {
+            return wrapInterfaceName.Substring(1);
+        }
+        return wrapInterfaceName + GeneratorConstants.DefaultWrapSuffix;
+    }
+
+    /// <summary>
+    /// 获取包装接口名称
+    /// </summary>
+    protected string GetWrapInterfaceName(INamedTypeSymbol interfaceSymbol, AttributeData wrapAttribute)
+    {
+        string GetDefalultWrapInterfaceName(string interfaceName)
+        {
+            if (string.IsNullOrEmpty(interfaceName))
+                return "NullOrEmptyWrapInterfaceName";
+
+            if (interfaceName.EndsWith("api", StringComparison.OrdinalIgnoreCase))
+                return interfaceName.Substring(0, interfaceName.Length - 3) + "Wrap";
+            return interfaceName + "Wrap";
+        }
+
+        if (interfaceSymbol == null) return null;
+        if (wrapAttribute == null) return GetDefalultWrapInterfaceName(interfaceSymbol.Name);
+
+        // 检查特性参数中是否有指定的包装接口名称
+        var wrapInterfaceArg = wrapAttribute.NamedArguments.FirstOrDefault(a => a.Key == "WrapInterface");
+        if (!string.IsNullOrEmpty(wrapInterfaceArg.Value.Value?.ToString()))
+        {
+            return wrapInterfaceArg.Value.Value.ToString();
+        }
+
+        // 默认在接口名称后添加"Wrap"
+        return GetDefalultWrapInterfaceName(interfaceSymbol.Name);
+    }
+
 
     /// <summary>
     /// 获取HttpClientApi特性

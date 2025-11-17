@@ -49,18 +49,6 @@ public class HttpClientApiWrapClassSourceGenerator : HttpClientApiWrapSourceGene
         return sb.ToString();
     }
 
-    /// <summary>
-    /// 获取包装类名称
-    /// </summary>
-    private string GetWrapClassName(string wrapInterfaceName)
-    {
-        if (wrapInterfaceName.StartsWith("I", StringComparison.Ordinal) && wrapInterfaceName.Length > 1)
-        {
-            return wrapInterfaceName.Substring(1);
-        }
-        return wrapInterfaceName + GeneratorConstants.DefaultWrapSuffix;
-    }
-
 
     /// <summary>
     /// 获取Token管理接口名称

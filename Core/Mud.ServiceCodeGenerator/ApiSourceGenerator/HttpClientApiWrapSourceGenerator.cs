@@ -104,25 +104,6 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
 
 
     /// <summary>
-    /// 获取包装接口名称
-    /// </summary>
-    protected string GetWrapInterfaceName(INamedTypeSymbol interfaceSymbol, AttributeData wrapAttribute)
-    {
-        if (interfaceSymbol == null) return null;
-        if (wrapAttribute == null) return interfaceSymbol.Name + "Wrap";
-
-        // 检查特性参数中是否有指定的包装接口名称
-        var wrapInterfaceArg = wrapAttribute.NamedArguments.FirstOrDefault(a => a.Key == "WrapInterface");
-        if (!string.IsNullOrEmpty(wrapInterfaceArg.Value.Value?.ToString()))
-        {
-            return wrapInterfaceArg.Value.Value.ToString();
-        }
-
-        // 默认在接口名称后添加"Wrap"
-        return interfaceSymbol.Name + "Wrap";
-    }
-
-    /// <summary>
     /// 生成文件头部（命名空间和头部注释）
     /// </summary>
     protected void GenerateFileHeader(StringBuilder sb, InterfaceDeclarationSyntax interfaceDecl)
