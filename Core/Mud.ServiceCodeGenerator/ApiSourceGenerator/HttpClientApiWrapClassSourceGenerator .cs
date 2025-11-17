@@ -72,8 +72,8 @@ public class HttpClientApiWrapClassSourceGenerator : HttpClientApiWrapSourceGene
     /// </summary>
     private void GenerateConstructor(StringBuilder sb, string className, string interfaceName, string tokenManageInterfaceName)
     {
-        var apiParameterName = char.ToLower(className[0]) + className.Substring(1) + "Api";
-        var tokenParameterName = char.ToLower(tokenManageInterfaceName[0]) + tokenManageInterfaceName.Substring(1);
+        var apiParameterName = char.ToLower(className[0], System.Globalization.CultureInfo.InvariantCulture) + className.Substring(1) + "Api";
+        var tokenParameterName = char.ToLower(tokenManageInterfaceName[0], System.Globalization.CultureInfo.InvariantCulture) + tokenManageInterfaceName.Substring(1);
 
         sb.AppendLine($"    public {className}({interfaceName} {apiParameterName}, {tokenManageInterfaceName} {tokenParameterName}, ILogger<{className}> logger)");
         sb.AppendLine("    {");

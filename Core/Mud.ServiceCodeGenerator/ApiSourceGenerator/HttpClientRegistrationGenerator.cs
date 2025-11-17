@@ -22,7 +22,7 @@ public class HttpClientRegistrationGenerator : WebApiSourceGenerator
 
         var httpClientApis = CollectHttpClientApis(compilation, interfaces, context);
         var httpClientWrapApis = CollectHttpClientWrapApis(compilation, interfaces, context);
-        
+
         if (httpClientApis.Count == 0 && httpClientWrapApis.Count == 0)
             return;
 
@@ -145,7 +145,7 @@ public class HttpClientRegistrationGenerator : WebApiSourceGenerator
     {
         if (interfaceSymbol == null)
             return null;
-        
+
         return interfaceSymbol.GetAttributes()
             .FirstOrDefault(a => GeneratorConstants.HttpClientApiWrapAttributeNames.Contains(a.AttributeClass?.Name));
     }
@@ -263,49 +263,5 @@ public class HttpClientRegistrationGenerator : WebApiSourceGenerator
 
         codeBuilder.AppendLine($"            // 注册 {wrapApi.WrapInterfaceName} 的包装实现类（瞬时服务）");
         codeBuilder.AppendLine($"            services.AddTransient<{fullyQualifiedWrapInterface}, {fullyQualifiedWrapClass}>();");
-    }
-
-    /// <summary>
-    /// 表示 HttpClient API 的元数据信息
-    /// </summary>
-    private sealed class HttpClientApiInfo
-    {
-        public HttpClientApiInfo(string interfaceName, string implementationName, string namespaceName, string baseUrl, int timeout)
-        {
-            InterfaceName = interfaceName ?? throw new ArgumentNullException(nameof(interfaceName));
-            ImplementationName = implementationName ?? throw new ArgumentNullException(nameof(implementationName));
-            Namespace = namespaceName ?? throw new ArgumentNullException(nameof(namespaceName));
-            BaseUrl = baseUrl ?? throw new ArgumentNullException(nameof(baseUrl));
-            Timeout = timeout;
-        }
-
-        public string InterfaceName { get; }
-        public string ImplementationName { get; }
-        public string Namespace { get; }
-        public string BaseUrl { get; }
-        public int Timeout { get; }
-    }
-
-    /// <summary>
-    /// 表示 HttpClient Wrap API 的元数据信息
-    /// </summary>
-    private sealed class HttpClientWrapApiInfo
-    {
-        public HttpClientWrapApiInfo(string originalInterfaceName, string wrapInterfaceName, string wrapClassName, string namespaceName, string baseUrl, int timeout)
-        {
-            OriginalInterfaceName = originalInterfaceName ?? throw new ArgumentNullException(nameof(originalInterfaceName));
-            WrapInterfaceName = wrapInterfaceName ?? throw new ArgumentNullException(nameof(wrapInterfaceName));
-            WrapClassName = wrapClassName ?? throw new ArgumentNullException(nameof(wrapClassName));
-            Namespace = namespaceName ?? throw new ArgumentNullException(nameof(namespaceName));
-            BaseUrl = baseUrl ?? throw new ArgumentNullException(nameof(baseUrl));
-            Timeout = timeout;
-        }
-
-        public string OriginalInterfaceName { get; }
-        public string WrapInterfaceName { get; }
-        public string WrapClassName { get; }
-        public string Namespace { get; }
-        public string BaseUrl { get; }
-        public int Timeout { get; }
     }
 }

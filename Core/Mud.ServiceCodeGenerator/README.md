@@ -8,6 +8,7 @@ Mud 服务代码生成器是一个基于 Roslyn 的源代码生成器，用于�
 2. **依赖注入代码生成** - 自动为类生成构造函数注入代码，包括日志、缓存、用户管理等常用服务
 3. **服务注册代码生成** - 自动生成服务注册扩展方法，简化依赖注入配置
 4. **HttpClient API 代码生成** - 自动为标记了 HTTP 方法特性的接口生成 HttpClient 实现类
+5. **HttpClient API 包装代码生成** - 为 HttpClient API 接口生成包装接口和实现类，简化 Token 管理等复杂逻辑
 
 ## 项目参数配置
 
@@ -1483,6 +1484,728 @@ obj/Debug/net8.0/generated/
 4. **错误处理**：在服务层处理 API 调用异常
 5. **日志记录**：利用生成的日志记录功能监控 API 调用
 
+
+## HttpClient API 包装代码生成
+
+HttpClientApiWrapSourceGenerator 及其子类为标记了 [HttpClientApiWrap] 特性的接口生成包装接口和实现类，用于简化 Token 管理等复杂逻辑。该生成器包含两个主要组件：
+
+1. **HttpClientApiInterfaceWrapSourceGenerator** - 生成包装接口（.Wrap.g.cs）
+2. **HttpClientApiWrapClassSourceGenerator** - 生成包装实现类（.WrapImpl.g.cs）
+
+### 功能特点
+
+- **自动 Token 管理**：自动处理标记了 [Token] 特性的参数
+- **错误处理和日志记录**：包含完整的异常处理和日志记录
+- **XML 注释保留**：自动保留原始方法的 XML 文档注释
+- **重载方法支持**：正确处理重载方法的 XML 注释
+- **灵活的配置**：支持自定义 Token 管理接口和包装接口名称
+
+### 基本用法
+
+#### 1. 定义 Token 管理接口
+
+```CSharp
+/// <summary>
+/// Token管理接口
+/// </summary>
+public interface ITokenManage
+{
+    Task<string> GetTokenAsync();
+}
+
+/// <summary>
+/// 钉钉Token管理接口
+/// </summary>
+public interface IDingTokenManage
+{
+    Task<string> GetTokenAsync();
+}
+```
+
+#### 2. 定义 HTTP API 接口并添加包装特性
+
+```CSharp
+/// <summary>
+/// 测试场景1：使用默认Token管理接口（ITokenManage）
+/// </summary>
+[HttpClientApi("https://api.dingtalk.com", Timeout = 60)]
+[HttpClientApiWrap("ITokenManage")]
+public interface ISingleTestApi
+{
+    /// <summary>
+    /// 获取用户信息
+    /// </summary>
+    /// <param name="token">访问令牌</param>
+    /// <param name="birthday">生日日期</param>
+    /// <returns>用户信息</returns>
+    [Get("/api/v1/user/{birthday}")]
+    Task<UserDto> GetUserAsync([Token][Header("x-token")] string token, [Path("yyyy-MM-dd")] DateTime birthday);
+
+    /// <summary>
+    /// 获取用户信息
+    /// </summary>
+    /// <param name="birthday">生日日期</param>
+    /// <param name="token">访问令牌</param>
+    /// <returns>用户信息</returns>
+    [Get("/api/v1/user/{birthday}")]
+    Task<UserDto> GetUserAsync([Path("yyyy-MM-dd")] DateTime birthday, [Token][Header("x-token")] string token);
+
+    /// <summary>
+    /// 搜索用户
+    /// </summary>
+    /// <param name="input">搜索条件</param>
+    /// <param name="age">年龄</param>
+    /// <param name="token">访问令牌</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>用户列表</returns>
+    [Get("/api/v1/user/{birthday}")]
+    Task<UserDto> GetUser1Async([Query] SysDeptQueryInput input, [Query] int? age, [Token][Header("x-token")] string token, CancellationToken cancellationToken = default);
+}
+```
+
+#### 3. 生成的包装接口代码
+
+自动生成的包装接口：
+
+```CSharp
+// 自动生成的代码 - ISingleTestApi.Wrap.g.cs
+using System;
+using System.Threading.Tasks;
+
+namespace YourNamespace
+{
+    /// <summary>
+    /// ISingleTestApi的包装接口
+    /// </summary>
+    public partial interface ISingleTestApiWrap
+    {
+        /// <summary>
+        /// 获取用户信息
+        /// </summary>
+        /// <param name="birthday">生日日期</param>
+        /// <returns>用户信息</returns>
+        Task<UserDto> GetUserAsync(DateTime birthday);
+
+        /// <summary>
+        /// 获取用户信息
+        /// </summary>
+        /// <param name="birthday">生日日期</param>
+        /// <returns>用户信息</returns>
+        Task<UserDto> GetUserAsync(DateTime birthday);
+
+        /// <summary>
+        /// 搜索用户
+        /// </summary>
+        /// <param name="input">搜索条件</param>
+        /// <param name="age">年龄</param>
+        /// <param name="cancellationToken">取消令牌</param>
+        /// <returns>用户列表</returns>
+        Task<UserDto> GetUser1Async(SysDeptQueryInput input, int? age, CancellationToken cancellationToken = default);
+    }
+}
+```
+
+#### 4. 生成的包装实现类代码
+
+自动生成的包装实现类：
+
+```CSharp
+// 自动生成的代码 - ISingleTestApi.WrapImpl.g.cs
+using System;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+
+namespace YourNamespace
+{
+    /// <summary>
+    /// ISingleTestApi的包装实现类
+    /// </summary>
+    internal partial class SingleTestApiWrap : ISingleTestApiWrap
+    {
+        private readonly ISingleTestApi _singleTestApi;
+        private readonly ITokenManage _tokenManage;
+        private readonly ILogger<SingleTestApiWrap> _logger;
+
+        public SingleTestApiWrap(ISingleTestApi singleTestApi, ITokenManage tokenManage, ILogger<SingleTestApiWrap> logger)
+        {
+            _singleTestApi = singleTestApi;
+            _tokenManage = tokenManage;
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// 获取用户信息
+        /// </summary>
+        /// <param name="birthday">生日日期</param>
+        /// <returns>用户信息</returns>
+        public async Task<UserDto> GetUserAsync(DateTime birthday)
+        {
+            try
+            {
+                var token = await _tokenManage.GetTokenAsync();
+
+                if (string.IsNullOrEmpty(token))
+                {
+                    _logger.LogWarning("获取到的Token为空！");
+                }
+
+                return await _singleTestApi.GetUserAsync(token, birthday);
+            }
+            catch (Exception x)
+            {
+                _logger.LogError(x, "执行GetUserAsync操作失败：{message}", x.Message);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 获取用户信息
+        /// </summary>
+        /// <param name="birthday">生日日期</param>
+        /// <returns>用户信息</returns>
+        public async Task<UserDto> GetUserAsync(DateTime birthday)
+        {
+            try
+            {
+                var token = await _tokenManage.GetTokenAsync();
+
+                if (string.IsNullOrEmpty(token))
+                {
+                    _logger.LogWarning("获取到的Token为空！");
+                }
+
+                return await _singleTestApi.GetUserAsync(birthday, token);
+            }
+            catch (Exception x)
+            {
+                _logger.LogError(x, "执行GetUserAsync操作失败：{message}", x.Message);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 搜索用户
+        /// </summary>
+        /// <param name="input">搜索条件</param>
+        /// <param name="age">年龄</param>
+        /// <param name="cancellationToken">取消令牌</param>
+        /// <returns>用户列表</returns>
+        public async Task<UserDto> GetUser1Async(SysDeptQueryInput input, int? age, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var token = await _tokenManage.GetTokenAsync();
+
+                if (string.IsNullOrEmpty(token))
+                {
+                    _logger.LogWarning("获取到的Token为空！");
+                }
+
+                return await _singleTestApi.GetUser1Async(input, age, token, cancellationToken);
+            }
+            catch (Exception x)
+            {
+                _logger.LogError(x, "执行GetUser1Async操作失败：{message}", x.Message);
+                throw;
+            }
+        }
+    }
+}
+```
+
+### 高级配置选项
+
+#### 1. 使用指定的 Token 管理接口
+
+```CSharp
+// 使用指定的Token管理接口
+[HttpClientApi("https://api.dingtalk.com", Timeout = 60)]
+[HttpClientApiWrap(TokenManage = "IDingTokenManage")]
+public interface ISingleTestApi2
+{
+    [Get("/api/v1/user/{birthday}")]
+    Task<UserDto> GetUserAsync([Token][Header("x-token")] string token, [Path("yyyy-MM-dd")] DateTime birthday);
+}
+```
+
+#### 2. 自定义包装接口名称
+
+```CSharp
+// 自定义包装接口名称
+[HttpClientApi("https://api.dingtalk.com", Timeout = 60)]
+[HttpClientApiWrap(TokenManage = "ITokenManage", WrapInterface = "IDingTalkUserWrap")]
+public interface ISingleTestApi3
+{
+    [Get("/api/v1/user/{birthday}")]
+    Task<UserDto> GetUserAsync([Token][Header("x-token")] string token, [Path("yyyy-MM-dd")] DateTime birthday);
+}
+```
+
+### 依赖注入注册
+
+使用 `HttpClientRegistrationGenerator` 自动生成依赖注入注册代码：
+
+```CSharp
+// 自动生成的注册代码 - HttpClientApiExtensions.g.cs
+public static class HttpClientApiExtensions
+{
+    /// <summary>
+    /// 注册所有标记了 [HttpClientApi] 特性的接口及其 HttpClient 实现
+    /// </summary>
+    public static IServiceCollection AddWebApiHttpClient(this IServiceCollection services)
+    {
+        // 注册基本HttpClient API
+        services.AddHttpClient<ISingleTestApi, SingleTestApi>(client =>
+        {
+            client.BaseAddress = new Uri("https://api.dingtalk.com");
+            client.Timeout = TimeSpan.FromSeconds(60);
+        });
+
+        // 注册包装API的瞬时服务
+        AddWebApiHttpClientWrap(services);
+
+        return services;
+    }
+
+    /// <summary>
+    /// 注册所有包装接口及其包装实现类的瞬时服务
+    /// </summary>
+    public static IServiceCollection AddWebApiHttpClientWrap(this IServiceCollection services)
+    {
+        // 注册包装接口和实现类
+        services.AddTransient<ISingleTestApiWrap, SingleTestApiWrap>();
+        
+        return services;
+    }
+}
+```
+
+### 使用方式
+
+#### 1. 在应用程序中注册服务
+
+```CSharp
+// 在 Program.cs 或 Startup.cs 中
+var builder = WebApplication.CreateBuilder(args);
+
+// 注册 Token 管理服务
+builder.Services.AddScoped<ITokenManage, YourTokenManageImplementation>();
+
+// 自动注册所有 HttpClient API 和包装服务
+builder.Services.AddWebApiHttpClient();
+```
+
+#### 2. 在服务中使用包装接口
+
+```CSharp
+public class UserService
+{
+    private readonly ISingleTestApiWrap _singleTestApiWrap;
+
+    public UserService(ISingleTestApiWrap singleTestApiWrap)
+    {
+        _singleTestApiWrap = singleTestApiWrap;
+    }
+
+    public async Task<UserDto> GetUserAsync(DateTime birthday)
+    {
+        // 无需手动处理 Token，包装类会自动处理
+        return await _singleTestApiWrap.GetUserAsync(birthday);
+    }
+}
+```
+
+### 功能优势
+
+1. **简化 Token 管理**：自动处理 Token 获取和传递
+2. **统一错误处理**：提供一致的异常处理和日志记录
+3. **代码复用**：避免在每个 API 调用中重复 Token 处理逻辑
+4. **易于测试**：可以轻松模拟 Token 管理接口进行单元测试
+5. **可扩展性**：支持自定义 Token 管理策略
+
+### 最佳实践
+
+1. **统一的 Token 管理**：为不同类型的 API 使用不同的 Token 管理接口
+2. **合理的日志级别**：根据业务需求设置适当的日志级别
+3. **异常处理策略**：在包装类中实现合适的异常处理策略
+4. **性能考虑**：考虑 Token 缓存机制以提高性能
+5. **安全性**：确保 Token 的存储和传输安全
+
+### 生成的代码结构
+
+```
+obj/Debug/net8.0/generated/
+├── Mud.ServiceCodeGenerator/
+    ├── HttpClientApiSourceGenerator/
+    │   └── YourNamespace.ISingleTestApi.g.cs
+    ├── HttpClientApiInterfaceWrapSourceGenerator/
+    │   └── YourNamespace.ISingleTestApi.Wrap.g.cs
+    ├── HttpClientApiWrapClassSourceGenerator/
+    │   └── YourNamespace.ISingleTestApi.WrapImpl.g.cs
+    └── HttpClientApiRegisterSourceGenerator/
+        └── HttpClientApiExtensions.g.cs
+```
+
+## HttpClient API 包装代码生成
+
+HttpClientApiWrapSourceGenerator 及其子类为标记了 [HttpClientApiWrap] 特性的接口生成包装接口和实现类，用于简化 Token 管理等复杂逻辑。该生成器包含两个主要组件：
+
+1. **HttpClientApiInterfaceWrapSourceGenerator** - 生成包装接口（.Wrap.g.cs）
+2. **HttpClientApiWrapClassSourceGenerator** - 生成包装实现类（.WrapImpl.g.cs）
+
+### 功能特点
+
+- **自动 Token 管理**：自动处理标记了 [Token] 特性的参数
+- **错误处理和日志记录**：包含完整的异常处理和日志记录
+- **XML 注释保留**：自动保留原始方法的 XML 文档注释
+- **重载方法支持**：正确处理重载方法的 XML 注释
+- **灵活的配置**：支持自定义 Token 管理接口和包装接口名称
+
+### 基本用法
+
+#### 1. 定义 Token 管理接口
+
+```CSharp
+/// <summary>
+/// Token管理接口
+/// </summary>
+public interface ITokenManage
+{
+    Task<string> GetTokenAsync();
+}
+
+/// <summary>
+/// 钉钉Token管理接口
+/// </summary>
+public interface IDingTokenManage
+{
+    Task<string> GetTokenAsync();
+}
+```
+
+#### 2. 定义 HTTP API 接口并添加包装特性
+
+```CSharp
+/// <summary>
+/// 测试场景1：使用默认Token管理接口（ITokenManage）
+/// </summary>
+[HttpClientApi("https://api.dingtalk.com", Timeout = 60)]
+[HttpClientApiWrap("ITokenManage")]
+public interface ISingleTestApi
+{
+    /// <summary>
+    /// 获取用户信息
+    /// </summary>
+    /// <param name="token">访问令牌</param>
+    /// <param name="birthday">生日日期</param>
+    /// <returns>用户信息</returns>
+    [Get("/api/v1/user/{birthday}")]
+    Task<UserDto> GetUserAsync([Token][Header("x-token")] string token, [Path("yyyy-MM-dd")] DateTime birthday);
+
+    /// <summary>
+    /// 获取用户信息
+    /// </summary>
+    /// <param name="birthday">生日日期</param>
+    /// <param name="token">访问令牌</param>
+    /// <returns>用户信息</returns>
+    [Get("/api/v1/user/{birthday}")]
+    Task<UserDto> GetUserAsync([Path("yyyy-MM-dd")] DateTime birthday, [Token][Header("x-token")] string token);
+
+    /// <summary>
+    /// 搜索用户
+    /// </summary>
+    /// <param name="input">搜索条件</param>
+    /// <param name="age">年龄</param>
+    /// <param name="token">访问令牌</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>用户列表</returns>
+    [Get("/api/v1/user/{birthday}")]
+    Task<UserDto> GetUser1Async([Query] SysDeptQueryInput input, [Query] int? age, [Token][Header("x-token")] string token, CancellationToken cancellationToken = default);
+}
+```
+
+#### 3. 生成的包装接口代码
+
+自动生成的包装接口：
+
+```CSharp
+// 自动生成的代码 - ISingleTestApi.Wrap.g.cs
+using System;
+using System.Threading.Tasks;
+
+namespace YourNamespace
+{
+    /// <summary>
+    /// ISingleTestApi的包装接口
+    /// </summary>
+    public partial interface ISingleTestApiWrap
+    {
+        /// <summary>
+        /// 获取用户信息
+        /// </summary>
+        /// <param name="birthday">生日日期</param>
+        /// <returns>用户信息</returns>
+        Task<UserDto> GetUserAsync(DateTime birthday);
+
+        /// <summary>
+        /// 获取用户信息
+        /// </summary>
+        /// <param name="birthday">生日日期</param>
+        /// <returns>用户信息</returns>
+        Task<UserDto> GetUserAsync(DateTime birthday);
+
+        /// <summary>
+        /// 搜索用户
+        /// </summary>
+        /// <param name="input">搜索条件</param>
+        /// <param name="age">年龄</param>
+        /// <param name="cancellationToken">取消令牌</param>
+        /// <returns>用户列表</returns>
+        Task<UserDto> GetUser1Async(SysDeptQueryInput input, int? age, CancellationToken cancellationToken = default);
+    }
+}
+```
+
+#### 4. 生成的包装实现类代码
+
+自动生成的包装实现类：
+
+```CSharp
+// 自动生成的代码 - ISingleTestApi.WrapImpl.g.cs
+using System;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+
+namespace YourNamespace
+{
+    /// <summary>
+    /// ISingleTestApi的包装实现类
+    /// </summary>
+    internal partial class SingleTestApiWrap : ISingleTestApiWrap
+    {
+        private readonly ISingleTestApi _singleTestApi;
+        private readonly ITokenManage _tokenManage;
+        private readonly ILogger<SingleTestApiWrap> _logger;
+
+        public SingleTestApiWrap(ISingleTestApi singleTestApi, ITokenManage tokenManage, ILogger<SingleTestApiWrap> logger)
+        {
+            _singleTestApi = singleTestApi;
+            _tokenManage = tokenManage;
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// 获取用户信息
+        /// </summary>
+        /// <param name="birthday">生日日期</param>
+        /// <returns>用户信息</returns>
+        public async Task<UserDto> GetUserAsync(DateTime birthday)
+        {
+            try
+            {
+                var token = await _tokenManage.GetTokenAsync();
+
+                if (string.IsNullOrEmpty(token))
+                {
+                    _logger.LogWarning("获取到的Token为空！");
+                }
+
+                return await _singleTestApi.GetUserAsync(token, birthday);
+            }
+            catch (Exception x)
+            {
+                _logger.LogError(x, "执行GetUserAsync操作失败：{message}", x.Message);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 获取用户信息
+        /// </summary>
+        /// <param name="birthday">生日日期</param>
+        /// <returns>用户信息</returns>
+        public async Task<UserDto> GetUserAsync(DateTime birthday)
+        {
+            try
+            {
+                var token = await _tokenManage.GetTokenAsync();
+
+                if (string.IsNullOrEmpty(token))
+                {
+                    _logger.LogWarning("获取到的Token为空！");
+                }
+
+                return await _singleTestApi.GetUserAsync(birthday, token);
+            }
+            catch (Exception x)
+            {
+                _logger.LogError(x, "执行GetUserAsync操作失败：{message}", x.Message);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 搜索用户
+        /// </summary>
+        /// <param name="input">搜索条件</param>
+        /// <param name="age">年龄</param>
+        /// <param name="cancellationToken">取消令牌</param>
+        /// <returns>用户列表</returns>
+        public async Task<UserDto> GetUser1Async(SysDeptQueryInput input, int? age, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var token = await _tokenManage.GetTokenAsync();
+
+                if (string.IsNullOrEmpty(token))
+                {
+                    _logger.LogWarning("获取到的Token为空！");
+                }
+
+                return await _singleTestApi.GetUser1Async(input, age, token, cancellationToken);
+            }
+            catch (Exception x)
+            {
+                _logger.LogError(x, "执行GetUser1Async操作失败：{message}", x.Message);
+                throw;
+            }
+        }
+    }
+}
+```
+
+### 高级配置选项
+
+#### 1. 使用指定的 Token 管理接口
+
+```CSharp
+// 使用指定的Token管理接口
+[HttpClientApi("https://api.dingtalk.com", Timeout = 60)]
+[HttpClientApiWrap(TokenManage = "IDingTokenManage")]
+public interface ISingleTestApi2
+{
+    [Get("/api/v1/user/{birthday}")]
+    Task<UserDto> GetUserAsync([Token][Header("x-token")] string token, [Path("yyyy-MM-dd")] DateTime birthday);
+}
+```
+
+#### 2. 自定义包装接口名称
+
+```CSharp
+// 自定义包装接口名称
+[HttpClientApi("https://api.dingtalk.com", Timeout = 60)]
+[HttpClientApiWrap(TokenManage = "ITokenManage", WrapInterface = "IDingTalkUserWrap")]
+public interface ISingleTestApi3
+{
+    [Get("/api/v1/user/{birthday}")]
+    Task<UserDto> GetUserAsync([Token][Header("x-token")] string token, [Path("yyyy-MM-dd")] DateTime birthday);
+}
+```
+
+### 依赖注入注册
+
+使用 `HttpClientRegistrationGenerator` 自动生成依赖注入注册代码：
+
+```CSharp
+// 自动生成的注册代码 - HttpClientApiExtensions.g.cs
+public static class HttpClientApiExtensions
+{
+    /// <summary>
+    /// 注册所有标记了 [HttpClientApi] 特性的接口及其 HttpClient 实现
+    /// </summary>
+    public static IServiceCollection AddWebApiHttpClient(this IServiceCollection services)
+    {
+        // 注册基本HttpClient API
+        services.AddHttpClient<ISingleTestApi, SingleTestApi>(client =>
+        {
+            client.BaseAddress = new Uri("https://api.dingtalk.com");
+            client.Timeout = TimeSpan.FromSeconds(60);
+        });
+
+        // 注册包装API的瞬时服务
+        AddWebApiHttpClientWrap(services);
+
+        return services;
+    }
+
+    /// <summary>
+    /// 注册所有包装接口及其包装实现类的瞬时服务
+    /// </summary>
+    public static IServiceCollection AddWebApiHttpClientWrap(this IServiceCollection services)
+    {
+        // 注册包装接口和实现类
+        services.AddTransient<ISingleTestApiWrap, SingleTestApiWrap>();
+        
+        return services;
+    }
+}
+```
+
+### 使用方式
+
+#### 1. 在应用程序中注册服务
+
+```CSharp
+// 在 Program.cs 或 Startup.cs 中
+var builder = WebApplication.CreateBuilder(args);
+
+// 注册 Token 管理服务
+builder.Services.AddScoped<ITokenManage, YourTokenManageImplementation>();
+
+// 自动注册所有 HttpClient API 和包装服务
+builder.Services.AddWebApiHttpClient();
+```
+
+#### 2. 在服务中使用包装接口
+
+```CSharp
+public class UserService
+{
+    private readonly ISingleTestApiWrap _singleTestApiWrap;
+
+    public UserService(ISingleTestApiWrap singleTestApiWrap)
+    {
+        _singleTestApiWrap = singleTestApiWrap;
+    }
+
+    public async Task<UserDto> GetUserAsync(DateTime birthday)
+    {
+        // 无需手动处理 Token，包装类会自动处理
+        return await _singleTestApiWrap.GetUserAsync(birthday);
+    }
+}
+```
+
+### 功能优势
+
+1. **简化 Token 管理**：自动处理 Token 获取和传递
+2. **统一错误处理**：提供一致的异常处理和日志记录
+3. **代码复用**：避免在每个 API 调用中重复 Token 处理逻辑
+4. **易于测试**：可以轻松模拟 Token 管理接口进行单元测试
+5. **可扩展性**：支持自定义 Token 管理策略
+
+### 最佳实践
+
+1. **统一的 Token 管理**：为不同类型的 API 使用不同的 Token 管理接口
+2. **合理的日志级别**：根据业务需求设置适当的日志级别
+3. **异常处理策略**：在包装类中实现合适的异常处理策略
+4. **性能考虑**：考虑 Token 缓存机制以提高性能
+5. **安全性**：确保 Token 的存储和传输安全
+
+### 生成的代码结构
+
+```
+obj/Debug/net8.0/generated/
+├── Mud.ServiceCodeGenerator/
+    ├── HttpClientApiSourceGenerator/
+    │   └── YourNamespace.ISingleTestApi.g.cs
+    ├── HttpClientApiInterfaceWrapSourceGenerator/
+    │   └── YourNamespace.ISingleTestApi.Wrap.g.cs
+    ├── HttpClientApiWrapClassSourceGenerator/
+    │   └── YourNamespace.ISingleTestApi.WrapImpl.g.cs
+    └── HttpClientApiRegisterSourceGenerator/
+        └── HttpClientApiExtensions.g.cs
+```
 
 ## 生成代码查看
 
