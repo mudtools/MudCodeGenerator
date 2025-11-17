@@ -289,8 +289,7 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
         }
 
         // 生成调用参数列表（包含Token和过滤后的参数）
-        var callParameters = new List<string> { "token" };
-        callParameters.AddRange(filteredParameters.Select(p => p.Name));
+        var callParameters = GenerateCorrectParameterCallList(methodInfo.Parameters, filteredParameters, "token");
         sb.Append(string.Join(", ", callParameters));
 
         sb.AppendLine(");");
@@ -363,6 +362,35 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
                 DiagnosticSeverity.Error,
                 true),
             interfaceDecl.GetLocation()));
+    }
+
+    /// <summary>
+    /// 生成正确的参数调用列表，确保token参数替换掉原来标记了[Token]特性的参数位置
+    /// </summary>
+    private List<string> GenerateCorrectParameterCallList(IReadOnlyList<ParameterInfo> originalParameters, IReadOnlyList<ParameterInfo> filteredParameters, string tokenParameterName)
+    {
+        var callParameters = new List<string>();
+
+        foreach (var originalParam in originalParameters)
+        {
+            // 检查当前参数是否是Token参数
+            if (HasAttribute(originalParam, GeneratorConstants.TokenAttributeNames))
+            {
+                // 如果是Token参数，用token参数替换
+                callParameters.Add(tokenParameterName);
+            }
+            else
+            {
+                // 如果不是Token参数，检查是否在过滤后的参数列表中
+                var matchingFilteredParam = filteredParameters.FirstOrDefault(p => p.Name == originalParam.Name);
+                if (matchingFilteredParam != null)
+                {
+                    callParameters.Add(matchingFilteredParam.Name);
+                }
+            }
+        }
+
+        return callParameters;
     }
 
     /// <summary>

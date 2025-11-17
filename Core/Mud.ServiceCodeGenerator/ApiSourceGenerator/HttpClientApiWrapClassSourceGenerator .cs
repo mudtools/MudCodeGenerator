@@ -1,7 +1,8 @@
 
 using System.Text;
 
-namespace Mud.ServiceCodeGenerator;
+namespace Mud.ServiceCodeGenerator.ApiSourceGenerator;
+
 [Generator]
 public class HttpClientApiWrapClassSourceGenerator : HttpClientApiWrapSourceGenerator
 {

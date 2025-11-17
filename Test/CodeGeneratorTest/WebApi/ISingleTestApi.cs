@@ -62,9 +62,8 @@ public interface ISingleTestApi
     [Get("/api/v1/user")]
     Task<UserDto> GetUser3Async([Query(Name = "bth", FormatString = "yyyy-MM-dd")] DateTime birthday, [Token][Header("x-token")] string token);
 
-
     [Get("/api/v2/dept")]
-    Task<SysDeptInfoOutput> GetDeptPageAsync([Token][Header("x-token")][Query] SysDeptQueryInput input, [Query] int? age, CancellationToken cancellationToken = default);
+    Task<SysDeptInfoOutput> GetDeptPageAsync([Token][Header("x-token")] string token, [Query] int? age, CancellationToken cancellationToken = default);
 
     [Post("/api/v2/dept/{id}/{age}")]
     Task<SysDeptInfoOutput> GetDeptPageAsync([Path] string id, [Query("birthday")] DateTime birthday, [Path] int? age, [Query] DataQueryInput input, CancellationToken cancellationToken = default);
