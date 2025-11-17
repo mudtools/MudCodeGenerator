@@ -3,23 +3,6 @@ using System.Text;
 
 namespace Mud.ServiceCodeGenerator;
 
-/// <summary>
-/// 生成器常量配置
-/// </summary>
-internal static class GeneratorConstants
-{
-    // 特性名称
-    public static readonly string[] HttpClientApiWrapAttributeNames = ["HttpClientApiWrapAttribute", "HttpClientApiWrap"];
-    public static readonly string[] TokenAttributeNames = ["TokenAttribute", "Token"];
-
-    // 默认值
-    public const string DefaultTokenManageInterface = "ITokenManage";
-    public const string DefaultWrapSuffix = "Wrap";
-
-    // 诊断ID
-    public const string GeneratorErrorDiagnosticId = "MCG001";
-    public const string GeneratorWarningDiagnosticId = "MCG002";
-}
 
 /// <summary>
 /// HttpClientApiWrap 源代码生成器

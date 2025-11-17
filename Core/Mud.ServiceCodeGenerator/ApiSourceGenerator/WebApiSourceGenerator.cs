@@ -11,23 +11,13 @@ namespace Mud.ServiceCodeGenerator;
 public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
 {
     /// <summary>
-    /// HttpClientApi特性名称数组
-    /// </summary>
-    private readonly string[] HttpClientApiAttributeName = ["HttpClientApiAttribute", "HttpClientApi"];
-
-    /// <summary>
-    /// 支持的HTTP方法名称数组
-    /// </summary>
-    protected static readonly string[] SupportedHttpMethods = ["Get", "GetAttribute", "Post", "PostAttribute", "Put", "PutAttribute", "Delete", "DeleteAttribute", "Patch", "PatchAttribute", "Head", "HeadAttribute", "Options", "OptionsAttribute"];
-
-    /// <summary>
     /// 初始化源代码生成器
     /// </summary>
     /// <param name="context">初始化上下文</param>
     public override void Initialize(IncrementalGeneratorInitializationContext context)
     {
         // 使用自定义方法查找标记了[HttpClientApi]的接口
-        var interfaceDeclarations = GetClassDeclarationProvider<InterfaceDeclarationSyntax>(context, HttpClientApiAttributeName);
+        var interfaceDeclarations = GetClassDeclarationProvider<InterfaceDeclarationSyntax>(context, GeneratorConstants.HttpClientApiAttributeNames);
 
         // 组合编译和接口声明
         var compilationAndInterfaces = context.CompilationProvider.Combine(interfaceDeclarations);
@@ -117,7 +107,7 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
         if (interfaceSymbol == null)
             return null;
         return interfaceSymbol.GetAttributes()
-            .FirstOrDefault(a => HttpClientApiAttributeName.Contains(a.AttributeClass?.Name));
+            .FirstOrDefault(a => GeneratorConstants.HttpClientApiAttributeNames.Contains(a.AttributeClass?.Name));
     }
 
     /// <summary>
@@ -162,7 +152,7 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
         if (method == null)
             return false;
         return method.GetAttributes()
-            .Any(attr => SupportedHttpMethods.Contains(attr.AttributeClass?.Name));
+            .Any(attr => GeneratorConstants.SupportedHttpMethods.Contains(attr.AttributeClass?.Name));
     }
 
     /// <summary>
@@ -175,7 +165,7 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
 
         return interfaceSymbol.GetMembers().OfType<IMethodSymbol>()
                               .Any(method => method.GetAttributes()
-                              .Any(attr => SupportedHttpMethods.Contains(attr.AttributeClass?.Name)));
+                              .Any(attr => GeneratorConstants.SupportedHttpMethods.Contains(attr.AttributeClass?.Name)));
     }
 
     protected AttributeSyntax? FindHttpMethodAttribute(MethodDeclarationSyntax methodSyntax)
@@ -184,7 +174,7 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
             return null;
         return methodSyntax.AttributeLists
             .SelectMany(a => a.Attributes)
-            .FirstOrDefault(a => SupportedHttpMethods.Contains(a.Name.ToString()));
+            .FirstOrDefault(a => GeneratorConstants.SupportedHttpMethods.Contains(a.Name.ToString()));
     }
 
     #region Common Utility Methods
@@ -476,116 +466,4 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
         #endregion
     }
 
-}
-
-/// <summary>
-/// 方法分析结果
-/// </summary>
-/// <remarks>
-/// 用于存储接口方法的分析信息，包括 HTTP 方法、URL 模板、参数等。
-/// </remarks>
-public class MethodAnalysisResult
-{
-    /// <summary>
-    /// 接口名称
-    /// </summary>
-    public string InterfaceName { get; set; } = string.Empty;
-
-    /// <summary>
-    /// 方法是否有效
-    /// </summary>
-    public bool IsValid { get; set; }
-
-    /// <summary>
-    /// 方法名称
-    /// </summary>
-    public string MethodName { get; set; } = string.Empty;
-
-    /// <summary>
-    /// HTTP 方法（GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS）
-    /// </summary>
-    public string HttpMethod { get; set; } = string.Empty;
-
-    /// <summary>
-    /// URL 模板，支持参数占位符
-    /// </summary>
-    public string UrlTemplate { get; set; } = string.Empty;
-
-    /// <summary>
-    /// 返回类型显示字符串
-    /// </summary>
-    public string ReturnType { get; set; } = string.Empty;
-
-    /// <summary>
-    /// 方法参数列表
-    /// </summary>
-    public IReadOnlyList<ParameterInfo> Parameters { get; set; } = [];
-
-    /// <summary>
-    /// 无效的分析结果实例
-    /// </summary>
-    public static MethodAnalysisResult Invalid => new() { IsValid = false };
-}
-
-/// <summary>
-/// 参数信息
-/// </summary>
-/// <remarks>
-/// 存储方法参数的详细信息，包括参数名、类型、特性和默认值。
-/// </remarks>
-public class ParameterInfo
-{
-    /// <summary>
-    /// 参数名称
-    /// </summary>
-    public string Name { get; set; } = string.Empty;
-
-    /// <summary>
-    /// 参数类型显示字符串
-    /// </summary>
-    public string Type { get; set; } = string.Empty;
-
-    /// <summary>
-    /// 参数特性列表
-    /// </summary>
-    public IReadOnlyList<ParameterAttributeInfo> Attributes { get; set; } = [];
-
-    /// <summary>
-    /// 是否具有默认值
-    /// </summary>
-    public bool HasDefaultValue { get; set; }
-
-    /// <summary>
-    /// 默认值
-    /// </summary>
-    public object? DefaultValue { get; set; }
-
-    /// <summary>
-    /// 默认值的字面量表示
-    /// </summary>
-    public string? DefaultValueLiteral { get; set; }
-}
-
-/// <summary>
-/// 参数特性信息
-/// </summary>
-/// <remarks>
-/// 存储参数特性的详细信息，包括特性名称、构造函数参数和命名参数。
-/// </remarks>
-public class ParameterAttributeInfo
-{
-    /// <summary>
-    /// 特性名称
-    /// </summary>
-    public string Name { get; set; } = string.Empty;
-
-    /// <summary>
-    /// 构造函数参数数组
-    /// </summary>
-    public object?[] Arguments { get; set; } = [];
-
-    /// <summary>
-    /// 命名参数字典
-    /// </summary>
-    public IReadOnlyDictionary<string, object?> NamedArguments { get; set; } = new Dictionary<string, object?>();
 }
