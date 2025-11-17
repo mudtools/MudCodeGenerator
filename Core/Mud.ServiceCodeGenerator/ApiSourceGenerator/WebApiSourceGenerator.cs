@@ -10,6 +10,26 @@ namespace Mud.ServiceCodeGenerator;
 /// </remarks>
 public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
 {
+    /// <inheritdoc/>
+    protected override System.Collections.ObjectModel.Collection<string> GetFileUsingNameSpaces()
+    {
+        return
+        [
+            "System",
+            "System.Web",
+            "System.Net.Http",
+            "System.Text",
+            "System.Text.Json",
+            "System.Threading.Tasks",
+            "System.Collections.Generic",
+            "System.Linq",
+            "Microsoft.Extensions.Logging",
+            "Microsoft.Extensions.Options"
+        ];
+    }
+
+    protected virtual string[] ApiWrapAttributeNames() => GeneratorConstants.HttpClientApiAttributeNames;
+
     /// <summary>
     /// 初始化源代码生成器
     /// </summary>
@@ -17,14 +37,14 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
     public override void Initialize(IncrementalGeneratorInitializationContext context)
     {
         // 使用自定义方法查找标记了[HttpClientApi]的接口
-        var interfaceDeclarations = GetClassDeclarationProvider<InterfaceDeclarationSyntax>(context, GeneratorConstants.HttpClientApiAttributeNames);
+        var interfaceDeclarations = GetClassDeclarationProvider<InterfaceDeclarationSyntax>(context, ApiWrapAttributeNames());
 
         // 组合编译和接口声明
         var compilationAndInterfaces = context.CompilationProvider.Combine(interfaceDeclarations);
 
         // 注册源生成
         context.RegisterSourceOutput(compilationAndInterfaces,
-             (spc, source) => Execute(source.Left, source.Right, spc));
+             (spc, source) => ExecuteGenerator(source.Left, source.Right, spc));
     }
 
     /// <summary>
@@ -33,7 +53,7 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
     /// <param name="compilation">编译信息</param>
     /// <param name="interfaces">接口声明数组</param>
     /// <param name="context">源代码生成上下文</param>
-    protected abstract void Execute(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context);
+    protected abstract void ExecuteGenerator(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context);
 
     /// <summary>
     /// 根据接口名称获取实现类名称
@@ -273,9 +293,9 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
     /// <param name="interfaceDecl"></param>
     /// <returns></returns>
     protected MethodAnalysisResult AnalyzeMethod(Compilation compilation, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl)
-    { 
+    {
         var methodSyntax = FindMethodSyntax(compilation, methodSymbol, interfaceDecl);
-        if (interfaceDecl == null ||methodSyntax == null || methodSymbol == null)
+        if (interfaceDecl == null || methodSyntax == null || methodSymbol == null)
             return MethodAnalysisResult.Invalid;
 
         var httpMethodAttr = FindHttpMethodAttribute(methodSyntax);
@@ -290,7 +310,7 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
             var parameterInfo = new ParameterInfo
             {
                 Name = p.Name,
-                Type = p.Type.ToDisplayString(),
+                Type = p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                 Attributes = p.GetAttributes().Select(attr => new ParameterAttributeInfo
                 {
                     Name = attr.AttributeClass?.Name ?? "",
@@ -358,12 +378,12 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
                 return genericType is INamedTypeSymbol genericNamedType &&
                        genericNamedType.IsGenericType &&
                        genericNamedType.Name == "Nullable"
-                    ? $"{genericNamedType.TypeArguments[0].ToDisplayString()}?"
-                    : genericType.ToDisplayString();
+                    ? $"{genericNamedType.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}?"
+                    : genericType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             }
         }
 
-        return returnType.ToDisplayString();
+        return returnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
     }
 
     /// <summary>

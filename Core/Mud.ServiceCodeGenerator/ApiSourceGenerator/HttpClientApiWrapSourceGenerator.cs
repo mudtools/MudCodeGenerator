@@ -10,44 +10,14 @@ namespace Mud.ServiceCodeGenerator;
 /// </summary>
 public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
 {
-    /// <inheritdoc/>
-    protected override System.Collections.ObjectModel.Collection<string> GetFileUsingNameSpaces()
-    {
-        return
-        [
-            "System",
-            "System.Text",
-            "System.Text.Json",
-            "System.Threading.Tasks",
-            "System.Collections.Generic",
-            "System.Linq",
-            "Microsoft.Extensions.Logging",
-            "Microsoft.Extensions.Options"
-        ];
-    }
 
-    /// <summary>
-    /// 初始化源代码生成器
-    /// </summary>
-    /// <param name="context">初始化上下文</param>
-    public override void Initialize(IncrementalGeneratorInitializationContext context)
-    {
-        // 使用自定义方法查找标记了[HttpClientApiWrap]的接口
-        var interfaceDeclarations = GetClassDeclarationProvider<InterfaceDeclarationSyntax>(context, GeneratorConstants.HttpClientApiWrapAttributeNames);
-
-        // 组合编译和接口声明
-        var compilationAndInterfaces = context.CompilationProvider.Combine(interfaceDeclarations);
-
-        // 注册源生成
-        context.RegisterSourceOutput(compilationAndInterfaces,
-             (spc, source) => Execute(source.Left, source.Right, spc));
-    }
+    protected override string[] ApiWrapAttributeNames() => GeneratorConstants.HttpClientApiWrapAttributeNames;
 
 
     /// <summary>
     /// 更新Execute方法以使用验证
     /// </summary>
-    protected override void Execute(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context)
+    protected override void ExecuteGenerator(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context)
     {
         if (compilation == null || interfaces.IsDefaultOrEmpty)
             return;
@@ -170,8 +140,8 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
             sb.AppendLine(methodDoc);
         }
 
-        // 方法签名 - 使用原始方法的返回类型
-        sb.Append($"    {methodSyntax.ReturnType} {methodInfo.MethodName}(");
+        // 方法签名 - 使用包含命名空间的返回类型
+        sb.Append($"    {methodInfo.ReturnType} {methodInfo.MethodName}(");
 
         // 过滤掉标记了[Token]特性的参数，保留其他所有参数
         var filteredParameters = FilterParametersByAttribute(methodInfo.Parameters, GeneratorConstants.TokenAttributeNames, exclude: true);
@@ -200,16 +170,15 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
         }
 
         // 方法签名 - 根据原始方法的返回类型决定是否添加async关键字
-        var originalMethodReturnType = methodSyntax.ReturnType.ToString();
-        var isAsyncMethod = originalMethodReturnType.StartsWith("Task", StringComparison.OrdinalIgnoreCase);
+        var isAsyncMethod = methodInfo.ReturnType.StartsWith("Task", StringComparison.OrdinalIgnoreCase);
 
         if (isAsyncMethod)
         {
-            sb.Append($"    public async {originalMethodReturnType} {methodInfo.MethodName}(");
+            sb.Append($"    public async {methodInfo.ReturnType} {methodInfo.MethodName}(");
         }
         else
         {
-            sb.Append($"    public {originalMethodReturnType} {methodInfo.MethodName}(");
+            sb.Append($"    public {methodInfo.ReturnType} {methodInfo.MethodName}(");
         }
 
         // 过滤掉标记了[Token]特性的参数，保留其他所有参数

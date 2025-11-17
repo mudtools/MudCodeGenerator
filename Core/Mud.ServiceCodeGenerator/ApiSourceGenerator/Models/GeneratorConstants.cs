@@ -19,6 +19,12 @@ internal static class GeneratorConstants
     /// </summary>
     public static readonly string[] SupportedHttpMethods = ["Get", "GetAttribute", "Post", "PostAttribute", "Put", "PutAttribute", "Delete", "DeleteAttribute", "Patch", "PatchAttribute", "Head", "HeadAttribute", "Options", "OptionsAttribute"];
 
+    public static readonly string[] PathAttributes = ["PathAttribute", "Path", "RouteAttribute", "Route"];
+    public const string QueryAttribute = "QueryAttribute";
+    public const string ArrayQueryAttribute = "ArrayQueryAttribute";
+    public const string HeaderAttribute = "HeaderAttribute";
+    public const string BodyAttribute = "BodyAttribute";
+
     // 默认值
     public const string DefaultTokenManageInterface = "ITokenManage";
     public const string DefaultWrapSuffix = "Wrap";

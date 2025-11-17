@@ -15,7 +15,7 @@ namespace Mud.ServiceCodeGenerator;
 public class HttpClientRegistrationGenerator : WebApiSourceGenerator
 {
     /// <inheritdoc/>
-    protected override void Execute(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context)
+    protected override void ExecuteGenerator(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context)
     {
         if (compilation == null || interfaces.IsDefaultOrEmpty)
             return;

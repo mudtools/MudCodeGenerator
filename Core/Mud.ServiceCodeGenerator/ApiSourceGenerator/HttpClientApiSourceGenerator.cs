@@ -12,32 +12,8 @@ namespace Mud.ServiceCodeGenerator;
 [Generator(LanguageNames.CSharp)]
 public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
 {
-    private static readonly string[] PathAttributes = ["PathAttribute", "Path", "RouteAttribute", "Route"];
-    private const string QueryAttribute = "QueryAttribute";
-    private const string ArrayQueryAttribute = "ArrayQueryAttribute";
-    private const string HeaderAttribute = "HeaderAttribute";
-    private const string BodyAttribute = "BodyAttribute";
-
     /// <inheritdoc/>
-    protected override System.Collections.ObjectModel.Collection<string> GetFileUsingNameSpaces()
-    {
-        return
-        [
-            "System",
-            "System.Web",
-            "System.Net.Http",
-            "System.Text",
-            "System.Text.Json",
-            "System.Threading.Tasks",
-            "System.Collections.Generic",
-            "System.Linq",
-            "Microsoft.Extensions.Logging",
-            "Microsoft.Extensions.Options"
-        ];
-    }
-
-    /// <inheritdoc/>
-    protected override void Execute(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context)
+    protected override void ExecuteGenerator(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context)
     {
         if (compilation == null || interfaces.IsDefaultOrEmpty)
             return;
@@ -259,7 +235,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
     private string BuildUrlString(MethodAnalysisResult methodInfo)
     {
         var pathParams = methodInfo.Parameters
-            .Where(p => p.Attributes.Any(attr => PathAttributes.Contains(attr.Name)))
+            .Where(p => p.Attributes.Any(attr => GeneratorConstants.PathAttributes.Contains(attr.Name)))
             .ToList();
 
         if (!pathParams.Any())
@@ -270,7 +246,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         {
             if (methodInfo.UrlTemplate.Contains($"{{{param.Name}}}"))
             {
-                var formatString = GetFormatString(param.Attributes.First(a => PathAttributes.Contains(a.Name)));
+                var formatString = GetFormatString(param.Attributes.First(a => GeneratorConstants.PathAttributes.Contains(a.Name)));
                 interpolatedUrl = FormatUrlParameter(interpolatedUrl, param.Name, formatString);
             }
         }
@@ -295,11 +271,11 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
     private void GenerateQueryParameters(StringBuilder codeBuilder, MethodAnalysisResult methodInfo)
     {
         var queryParams = methodInfo.Parameters
-            .Where(p => p.Attributes.Any(attr => attr.Name == QueryAttribute))
+            .Where(p => p.Attributes.Any(attr => attr.Name == GeneratorConstants.QueryAttribute))
             .ToList();
 
         var arrayQueryParams = methodInfo.Parameters
-            .Where(p => p.Attributes.Any(attr => attr.Name == ArrayQueryAttribute))
+            .Where(p => p.Attributes.Any(attr => attr.Name == GeneratorConstants.ArrayQueryAttribute))
             .ToList();
 
         if (!queryParams.Any() && !arrayQueryParams.Any())
@@ -325,7 +301,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
 
     private void GenerateSingleQueryParameter(StringBuilder codeBuilder, ParameterInfo param)
     {
-        var queryAttr = param.Attributes.First(a => a.Name == QueryAttribute);
+        var queryAttr = param.Attributes.First(a => a.Name == GeneratorConstants.QueryAttribute);
         var paramName = GetQueryParameterName(queryAttr, param.Name);
         var formatString = GetFormatString(queryAttr);
 
@@ -341,7 +317,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
 
     private void GenerateArrayQueryParameter(StringBuilder codeBuilder, ParameterInfo param)
     {
-        var arrayQueryAttr = param.Attributes.First(a => a.Name == ArrayQueryAttribute);
+        var arrayQueryAttr = param.Attributes.First(a => a.Name == GeneratorConstants.ArrayQueryAttribute);
         var paramName = GetQueryParameterName(arrayQueryAttr, param.Name);
         var separator = GetArrayQuerySeparator(arrayQueryAttr);
 
@@ -418,12 +394,12 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
     private void GenerateHeaderParameters(StringBuilder codeBuilder, MethodAnalysisResult methodInfo)
     {
         var headerParams = methodInfo.Parameters
-            .Where(p => p.Attributes.Any(attr => attr.Name == HeaderAttribute))
+            .Where(p => p.Attributes.Any(attr => attr.Name == GeneratorConstants.HeaderAttribute))
             .ToList();
 
         foreach (var param in headerParams)
         {
-            var headerAttr = param.Attributes.First(a => a.Name == HeaderAttribute);
+            var headerAttr = param.Attributes.First(a => a.Name == GeneratorConstants.HeaderAttribute);
             var headerName = headerAttr.Arguments.FirstOrDefault()?.ToString() ?? param.Name;
 
             codeBuilder.AppendLine($"            if (!string.IsNullOrEmpty({param.Name}))");
@@ -434,12 +410,12 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
     private void GenerateBodyParameter(StringBuilder codeBuilder, MethodAnalysisResult methodInfo)
     {
         var bodyParam = methodInfo.Parameters
-            .FirstOrDefault(p => p.Attributes.Any(attr => attr.Name == BodyAttribute));
+            .FirstOrDefault(p => p.Attributes.Any(attr => attr.Name == GeneratorConstants.BodyAttribute));
 
         if (bodyParam == null)
             return;
 
-        var bodyAttr = bodyParam.Attributes.First(a => a.Name == BodyAttribute);
+        var bodyAttr = bodyParam.Attributes.First(a => a.Name == GeneratorConstants.BodyAttribute);
         var contentType = GetBodyContentType(bodyAttr);
         var useStringContent = GetUseStringContentFlag(bodyAttr);
 
@@ -562,7 +538,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         {
             return attribute.Arguments[1] as string;
         }
-        else if (attribute.Arguments.Length == 1 && PathAttributes.Contains(attribute.Name))
+        else if (attribute.Arguments.Length == 1 && GeneratorConstants.PathAttributes.Contains(attribute.Name))
         {
             return attribute.Arguments[0] as string;
         }

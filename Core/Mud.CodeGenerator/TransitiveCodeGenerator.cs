@@ -28,7 +28,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
 
     protected const string CompilerGeneratedAttribute = "[global::System.Runtime.CompilerServices.CompilerGenerated]";
     protected string GeneratedCodeAttribute => $"[global::System.CodeDom.Compiler.GeneratedCode(\"Mud.ServiceCodeGenerator\", \"{GetAssemblyVersion()}\")]";
-    
+
     /// <summary>
     /// 获取当前程序集的版本号
     /// </summary>
@@ -44,7 +44,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
         catch
         {
             // 如果获取失败，返回默认版本号
-            return "1.2.3";
+            return "1.2.5";
         }
     }
     /// <summary>
