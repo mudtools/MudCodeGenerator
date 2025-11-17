@@ -21,17 +21,19 @@ public class HttpClientRegistrationGenerator : WebApiSourceGenerator
             return;
 
         var httpClientApis = CollectHttpClientApis(compilation, interfaces, context);
-        if (httpClientApis.Count == 0)
+        var httpClientWrapApis = CollectHttpClientWrapApis(compilation, interfaces, context);
+        
+        if (httpClientApis.Count == 0 && httpClientWrapApis.Count == 0)
             return;
 
-        var sourceCode = GenerateSourceCode(compilation, httpClientApis);
+        var sourceCode = GenerateSourceCode(compilation, httpClientApis, httpClientWrapApis);
         context.AddSource("HttpClientApiExtensions.g.cs", SourceText.From(sourceCode, Encoding.UTF8));
     }
 
     /// <inheritdoc/>
     protected override System.Collections.ObjectModel.Collection<string> GetFileUsingNameSpaces()
     {
-        return ["System", "Microsoft.Extensions.DependencyInjection", "System.Runtime.CompilerServices", "System.Net.Http"];
+        return ["System", "Microsoft.Extensions.DependencyInjection", "System.Runtime.CompilerServices", "System.Net.Http", "Microsoft.Extensions.Logging"];
     }
 
     private List<HttpClientApiInfo> CollectHttpClientApis(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context)
@@ -58,6 +60,32 @@ public class HttpClientRegistrationGenerator : WebApiSourceGenerator
         }
 
         return httpClientApis;
+    }
+
+    private List<HttpClientWrapApiInfo> CollectHttpClientWrapApis(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context)
+    {
+        var httpClientWrapApis = new List<HttpClientWrapApiInfo>();
+
+        foreach (var interfaceSyntax in interfaces)
+        {
+            if (interfaceSyntax == null)
+                continue;
+
+            try
+            {
+                var wrapApiInfo = ProcessWrapInterface(compilation, interfaceSyntax);
+                if (wrapApiInfo != null)
+                {
+                    httpClientWrapApis.Add(wrapApiInfo);
+                }
+            }
+            catch (Exception ex)
+            {
+                ReportInterfaceProcessingError(context, interfaceSyntax, ex);
+            }
+        }
+
+        return httpClientWrapApis;
     }
 
     private HttpClientApiInfo? ProcessInterface(Compilation compilation, InterfaceDeclarationSyntax interfaceSyntax)
@@ -89,6 +117,39 @@ public class HttpClientRegistrationGenerator : WebApiSourceGenerator
         return (baseUrl, timeout);
     }
 
+    private HttpClientWrapApiInfo? ProcessWrapInterface(Compilation compilation, InterfaceDeclarationSyntax interfaceSyntax)
+    {
+        var semanticModel = compilation.GetSemanticModel(interfaceSyntax.SyntaxTree);
+        if (semanticModel.GetDeclaredSymbol(interfaceSyntax) is not INamedTypeSymbol interfaceSymbol)
+            return null;
+
+        var httpClientApiWrapAttribute = GetHttpClientApiWrapAttribute(interfaceSymbol);
+        if (httpClientApiWrapAttribute == null)
+            return null;
+
+        var (baseUrl, timeout) = ExtractAttributeParameters(httpClientApiWrapAttribute);
+        var wrapInterfaceName = GetWrapInterfaceName(interfaceSymbol, httpClientApiWrapAttribute);
+        var wrapClassName = GetWrapClassName(wrapInterfaceName);
+        var namespaceName = GetNamespaceName(interfaceSyntax);
+
+        return new HttpClientWrapApiInfo(
+            interfaceSymbol.Name,
+            wrapInterfaceName,
+            wrapClassName,
+            namespaceName,
+            baseUrl,
+            timeout);
+    }
+
+    private AttributeData? GetHttpClientApiWrapAttribute(INamedTypeSymbol interfaceSymbol)
+    {
+        if (interfaceSymbol == null)
+            return null;
+        
+        return interfaceSymbol.GetAttributes()
+            .FirstOrDefault(a => GeneratorConstants.HttpClientApiWrapAttributeNames.Contains(a.AttributeClass?.Name));
+    }
+
     private void ReportInterfaceProcessingError(SourceProductionContext context, InterfaceDeclarationSyntax interfaceSyntax, Exception ex)
     {
         var errorDescriptor = new DiagnosticDescriptor(
@@ -102,14 +163,14 @@ public class HttpClientRegistrationGenerator : WebApiSourceGenerator
         ReportErrorDiagnostic(context, errorDescriptor, interfaceSyntax.Identifier.Text, ex);
     }
 
-    private string GenerateSourceCode(Compilation compilation, List<HttpClientApiInfo> apis)
+    private string GenerateSourceCode(Compilation compilation, List<HttpClientApiInfo> apis, List<HttpClientWrapApiInfo> wrapApis)
     {
         var codeBuilder = new StringBuilder();
-        GenerateExtensionClass(compilation, codeBuilder, apis);
+        GenerateExtensionClass(compilation, codeBuilder, apis, wrapApis);
         return codeBuilder.ToString();
     }
 
-    private void GenerateExtensionClass(Compilation compilation, StringBuilder codeBuilder, List<HttpClientApiInfo> apis)
+    private void GenerateExtensionClass(Compilation compilation, StringBuilder codeBuilder, List<HttpClientApiInfo> apis, List<HttpClientWrapApiInfo> wrapApis)
     {
         GenerateFileHeader(codeBuilder);
 
@@ -123,12 +184,12 @@ public class HttpClientRegistrationGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine($"    {GeneratedCodeAttribute}");
         codeBuilder.AppendLine("    internal static class HttpClientApiExtensions");
         codeBuilder.AppendLine("    {");
-        GenerateAddWebApiHttpClientMethod(codeBuilder, apis);
+        GenerateAddWebApiHttpClientMethod(codeBuilder, apis, wrapApis);
         codeBuilder.AppendLine("    }");
         codeBuilder.AppendLine("}");
     }
 
-    private void GenerateAddWebApiHttpClientMethod(StringBuilder codeBuilder, List<HttpClientApiInfo> apis)
+    private void GenerateAddWebApiHttpClientMethod(StringBuilder codeBuilder, List<HttpClientApiInfo> apis, List<HttpClientWrapApiInfo> wrapApis)
     {
         codeBuilder.AppendLine("        /// <summary>");
         codeBuilder.AppendLine("        /// 注册所有标记了 [HttpClientApi] 特性的接口及其 HttpClient 实现");
@@ -143,6 +204,34 @@ public class HttpClientRegistrationGenerator : WebApiSourceGenerator
         foreach (var api in apis)
         {
             GenerateHttpClientRegistration(codeBuilder, api);
+        }
+
+        codeBuilder.AppendLine("            return services;");
+        codeBuilder.AppendLine("        }");
+
+        // 生成独立的包装API注册函数
+        if (wrapApis.Count > 0)
+        {
+            GenerateAddWebApiHttpClientWrapMethod(codeBuilder, wrapApis);
+        }
+    }
+
+    private void GenerateAddWebApiHttpClientWrapMethod(StringBuilder codeBuilder, List<HttpClientWrapApiInfo> wrapApis)
+    {
+        codeBuilder.AppendLine();
+        codeBuilder.AppendLine("        /// <summary>");
+        codeBuilder.AppendLine("        /// 注册所有包装接口及其包装实现类的瞬时服务");
+        codeBuilder.AppendLine("        /// </summary>");
+        codeBuilder.AppendLine("        /// <param name=\"services\">服务集合</param>");
+        codeBuilder.AppendLine("        /// <returns>服务集合，用于链式调用</returns>");
+        codeBuilder.AppendLine($"        {CompilerGeneratedAttribute}");
+        codeBuilder.AppendLine($"        {GeneratedCodeAttribute}");
+        codeBuilder.AppendLine("        public static IServiceCollection AddWebApiHttpClientWrap(this IServiceCollection services)");
+        codeBuilder.AppendLine("        {");
+
+        foreach (var wrapApi in wrapApis)
+        {
+            GenerateHttpClientWrapRegistration(codeBuilder, wrapApi);
         }
 
         codeBuilder.AppendLine("            return services;");
@@ -167,6 +256,15 @@ public class HttpClientRegistrationGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine("            });");
     }
 
+    private void GenerateHttpClientWrapRegistration(StringBuilder codeBuilder, HttpClientWrapApiInfo wrapApi)
+    {
+        var fullyQualifiedWrapInterface = $"global::{wrapApi.Namespace}.{wrapApi.WrapInterfaceName}";
+        var fullyQualifiedWrapClass = $"global::{wrapApi.Namespace}.{wrapApi.WrapClassName}";
+
+        codeBuilder.AppendLine($"            // 注册 {wrapApi.WrapInterfaceName} 的包装实现类（瞬时服务）");
+        codeBuilder.AppendLine($"            services.AddTransient<{fullyQualifiedWrapInterface}, {fullyQualifiedWrapClass}>();");
+    }
+
     /// <summary>
     /// 表示 HttpClient API 的元数据信息
     /// </summary>
@@ -183,6 +281,29 @@ public class HttpClientRegistrationGenerator : WebApiSourceGenerator
 
         public string InterfaceName { get; }
         public string ImplementationName { get; }
+        public string Namespace { get; }
+        public string BaseUrl { get; }
+        public int Timeout { get; }
+    }
+
+    /// <summary>
+    /// 表示 HttpClient Wrap API 的元数据信息
+    /// </summary>
+    private sealed class HttpClientWrapApiInfo
+    {
+        public HttpClientWrapApiInfo(string originalInterfaceName, string wrapInterfaceName, string wrapClassName, string namespaceName, string baseUrl, int timeout)
+        {
+            OriginalInterfaceName = originalInterfaceName ?? throw new ArgumentNullException(nameof(originalInterfaceName));
+            WrapInterfaceName = wrapInterfaceName ?? throw new ArgumentNullException(nameof(wrapInterfaceName));
+            WrapClassName = wrapClassName ?? throw new ArgumentNullException(nameof(wrapClassName));
+            Namespace = namespaceName ?? throw new ArgumentNullException(nameof(namespaceName));
+            BaseUrl = baseUrl ?? throw new ArgumentNullException(nameof(baseUrl));
+            Timeout = timeout;
+        }
+
+        public string OriginalInterfaceName { get; }
+        public string WrapInterfaceName { get; }
+        public string WrapClassName { get; }
         public string Namespace { get; }
         public string BaseUrl { get; }
         public int Timeout { get; }
