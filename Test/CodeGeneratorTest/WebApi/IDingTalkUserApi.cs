@@ -10,7 +10,7 @@ namespace CodeGeneratorTest.WebApi;
 public interface IDingTalkUserApi
 {
     [Get("/api/v1/user/{id}")]
-    Task<UserDto> GetUserAsync([Token][Header("x-token")] string token, [Path] string id = "xxx");
+    Task<SysUserInfoOutput> GetUserAsync([Token][Header("x-token")] string token, [Path] string id = "xxx");
 
     /// <summary>
     /// 测试钉钉用户接口
@@ -19,19 +19,19 @@ public interface IDingTalkUserApi
     /// <param name="ids"></param>
     /// <returns></returns>
     [Get("/api/v1/user")]
-    Task<UserDto> GetUsers1Async([Token][Header("x-token")] string token, [Query] string[] ids);
+    Task<SysUserInfoOutput> GetUsers1Async([Token][Header("x-token")] string token, [Query] string[] ids);
 
     [Get("/api/v1/user")]
-    Task<UserDto> GetUsersAsync([Token][Header("x-token")] string token, [ArrayQuery] string[] ids);
+    Task<SysUserInfoOutput> GetUsersAsync([Token][Header("x-token")] string token, [ArrayQuery] string[] ids);
 
     [Get("/api/v1/user")]
-    Task<UserDto> GetUser1Async([Token][Header("x-token")] string token, [ArrayQuery("Ids", ";")] string[] ids);
+    Task<SysUserInfoOutput> GetUser1Async([Token][Header("x-token")] string token, [ArrayQuery("Ids", ";")] string[] ids);
 
     [Post("/api/v1/user")]
-    Task<UserDto> CreateUserAsync([Token][Header("x-token")] string token, [Body] UserDto user);
+    Task<SysUserInfoOutput> CreateUserAsync([Token][Header("x-token")] string token, [Body] SysUserInfoOutput user);
 
     [Put("/api/v1/user/{id}")]
-    Task<UserDto> UpdateUserAsync([Path] string id, [Token][Header("x-token")] string token, [Body] UserDto user);
+    Task<SysUserInfoOutput> UpdateUserAsync([Path] string id, [Token][Header("x-token")] string token, [Body] SysUserInfoOutput user);
 
     [Delete("/api/v1/user/{id}")]
     Task<bool> DeleteUserAsync([Token][Header("x-token")] string token, [Path] string id);
@@ -40,24 +40,18 @@ public interface IDingTalkUserApi
     Task<ProtectedData> GetProtectedDataAsync([Token][Header("X-API-Key")] string apiKey, [Header("X-API-Value")] string apiValue);
 
     [Post("/api/protected")]
-    Task<ProtectedData> GetProtectedDataAsync([Token][Header("X-API-Key")] string apiKey, [Header("X-API-Value")] string apiValue, [Body] UserDto user);
+    Task<ProtectedData> GetProtectedDataAsync([Token][Header("X-API-Key")] string apiKey, [Header("X-API-Value")] string apiValue, [Body] SysUserInfoOutput user);
 
     [Post("/api/protected")]
-    Task<ProtectedData> GetProtectedXmlDataAsync([Token][Header("X-API-Key")] string apiKey, [Header("X-API-Value")] string apiValue, [Body(ContentType = "application/xml", UseStringContent = true)] UserDto user);
+    Task<ProtectedData> GetProtectedXmlDataAsync([Token][Header("X-API-Key")] string apiKey, [Header("X-API-Value")] string apiValue, [Body(ContentType = "application/xml", UseStringContent = true)] SysUserInfoOutput user);
 
     [Get("/api/search")]
-    Task<List<UserDto>> SearchUsersAsync([Token][Header("x-token")] string token, [Query] UserSearchCriteria criteria);
+    Task<List<SysUserInfoOutput>> SearchUsersAsync([Token][Header("x-token")] string token, [Query] UserSearchCriteria criteria);
 
     [Post("/api/v1/user")]
-    Task<UserDto> CreateUserTestAsync([Token][Header("x-token")] string token, [Body] UserDto user, CancellationToken cancellationToken = default);
+    Task<SysUserInfoOutput> CreateUserTestAsync([Token][Header("x-token")] string token, [Body] SysUserInfoOutput user, CancellationToken cancellationToken = default);
 }
 
-public class UserDto
-{
-    public string Id { get; set; }
-    public string Name { get; set; }
-    public string Email { get; set; }
-}
 
 public class ProtectedData
 {

@@ -1,31 +1,33 @@
 ﻿namespace PublicPackageTest.WebApi;
 
+
 [HttpClientApi("https://api.dingtalk.com", Timeout = 60)]
+[HttpClientApiWrap(TokenManage = "ITokenManage")]
 public interface IDingTalkDeptApi
 {
     [Get("/api/v2/dept/{id}")]
-    Task<ResponseResult<SysDeptInfoOutput>> GetDeptAsync([Path] string id, CancellationToken cancellationToken = default);
+    Task<SysDeptInfoOutput> GetDeptAsync([Token][Header("X-API-Key")] string apiKey, [Path] string id);
 
     [Get("/api/v2/dept/{id}")]
-    Task<ResponseResult<SysDeptInfoOutput>> GetDeptAsync([Header("X-API-Key")] string apiKey, [Query] string tid, [Path] int id, CancellationToken cancellationToken = default);
+    Task<SysDeptInfoOutput> GetDeptAsync([Token][Header("X-API-Key")] string apiKey, [Query] string tid, [Path] int id);
 
     [Get("/api/v2/dept/{id}")]
-    Task<ResponseResult<SysDeptInfoOutput>> GetDeptAsync([Path] long id, [Query] string tid, CancellationToken cancellationToken = default);
+    Task<SysDeptInfoOutput> GetDeptAsync([Path] long id, [Token][Header("X-API-Key")] string apiKey, [Query] string tid);
 
     [Get("/api/v2/dept")]
-    Task<ResponseResult<List<SysDeptListOutput>>> GetDeptPageAsync([Query] ProjectQueryInput input, CancellationToken cancellationToken = default);
+    Task<List<SysDeptListOutput>> GetDeptPageAsync([Token][Header("X-API-Key")] string apiKey, [Query] ProjectQueryInput input);
 
     [Get("/api/v2/dept/{age}")]
-    Task<ResponseResult<List<SysDeptListOutput>>> GetDeptPageAsync([Query] string id, [Path] int? age, [Query] ProjectQueryInput input, CancellationToken cancellationToken = default);
+    Task<List<SysDeptListOutput>> GetDeptPageAsync([Token][Header("X-API-Key")] string apiKey, [Query] string id, [Path] int? age, [Query] ProjectQueryInput input);
 
     [Post("/api/v2/dept")]
-    Task<ResponseResult<SysDeptInfoOutput>> CreateDeptAsync([Body] SysDeptCrInput Dept, CancellationToken cancellationToken = default);
+    Task<SysDeptInfoOutput> CreateDeptAsync([Token][Header("X-API-Key")] string apiKey, [Body] SysDeptCrInput Dept);
 
     [Put("/api/v2/dept/{id}")]
-    Task<ResponseResult<bool>> UpdateDeptAsync([Path] string id, [Body] SysDeptUpInput Dept, CancellationToken cancellationToken = default);
+    Task<bool> UpdateDeptAsync([Token][Query("X-API-Key")] string apiKey, [Path] string id, [Body] SysDeptUpInput Dept);
 
     [Delete("/api/v2/dept/{id}")]
-    Task<ResponseResult<bool>> DeleteDeptAsync([Path] string id, CancellationToken cancellationToken = default);
+    Task<bool> DeleteDeptAsync([Token][Query("X-API-Key")] string apiKey, [Path] string id);
 }
 
 

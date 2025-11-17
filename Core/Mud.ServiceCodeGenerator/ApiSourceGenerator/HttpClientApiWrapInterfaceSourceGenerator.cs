@@ -2,6 +2,10 @@
 using System.Text;
 
 namespace Mud.ServiceCodeGenerator;
+
+/// <summary>
+/// 用于生成包装接口代码的代码生成器。
+/// </summary>
 [Generator]
 public class HttpClientApiInterfaceWrapSourceGenerator : HttpClientApiWrapSourceGenerator
 {
