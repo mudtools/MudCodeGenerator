@@ -349,6 +349,8 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
             HttpMethod = httpMethod,
             UrlTemplate = urlTemplate,
             ReturnType = GetReturnTypeDisplayString(methodSymbol.ReturnType),
+            AsyncInnerReturnType = GetAsyncInnerReturnType(methodSymbol.ReturnType),
+            IsAsyncMethod = IsAsyncReturnType(methodSymbol.ReturnType),
             Parameters = parameters
         };
     }
@@ -382,6 +384,15 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
 
     private string GetReturnTypeDisplayString(ITypeSymbol returnType)
     {
+        // 返回完整的原始返回类型
+        return returnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+    }
+
+    /// <summary>
+    /// 获取异步方法的内部返回类型
+    /// </summary>
+    private string GetAsyncInnerReturnType(ITypeSymbol returnType)
+    {
         if (returnType is INamedTypeSymbol namedType && namedType.IsGenericType)
         {
             if (namedType.Name == "Task" && namedType.TypeArguments.Length == 1)
@@ -395,7 +406,28 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
             }
         }
 
+        // 如果是 Task 而不是 Task<T>，返回 void
+        if (returnType is INamedTypeSymbol taskNamedType && 
+            taskNamedType.Name == "Task" && 
+            taskNamedType.TypeArguments.Length == 0)
+        {
+            return "void";
+        }
+
         return returnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+    }
+
+    /// <summary>
+    /// 判断返回类型是否为异步类型（Task 或 Task<T>）
+    /// </summary>
+    private bool IsAsyncReturnType(ITypeSymbol returnType)
+    {
+        if (returnType is INamedTypeSymbol namedType)
+        {
+            return namedType.Name == "Task" && 
+                   (namedType.TypeArguments.Length == 0 || namedType.TypeArguments.Length == 1);
+        }
+        return false;
     }
 
     /// <summary>

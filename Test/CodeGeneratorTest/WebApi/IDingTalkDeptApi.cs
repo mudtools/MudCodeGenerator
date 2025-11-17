@@ -5,10 +5,10 @@
 public interface IDingTalkDeptApi
 {
     [Get("/api/v2/dept/{id}")]
-    Task<SysDeptInfoOutput> GetDeptAsync([Token][Header("X-API-Key")] string apiKey, [Path] string id);
+    Task<SysDeptInfoOutput> GetDeptAsync([Token(FeishuTokenType.TenantAccessToken)][Header("X-API-Key")] string apiKey, [Path] string id);
 
     [Get("/api/v2/dept/{id}")]
-    Task<SysDeptInfoOutput> GetDeptAsync([Token][Header("X-API-Key")] string apiKey, [Query] string tid, [Path] int id);
+    Task<SysDeptInfoOutput> GetDeptAsync([Token(TokenType = FeishuTokenType.UserAccessToken)][Header("X-API-Key")] string apiKey, [Query] string tid, [Path] int id);
 
     [Get("/api/v2/dept/{id}")]
     Task<SysDeptInfoOutput> GetDeptAsync([Path] long id, [Token][Header("X-API-Key")] string apiKey, [Query] string tid);

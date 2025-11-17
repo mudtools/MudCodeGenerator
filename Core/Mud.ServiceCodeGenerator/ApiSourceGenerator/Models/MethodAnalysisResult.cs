@@ -40,6 +40,16 @@ public class MethodAnalysisResult
     public string ReturnType { get; set; } = string.Empty;
 
     /// <summary>
+    /// 是否是异步方法（返回类型为 Task 或 Task<T>）
+    /// </summary>
+    public bool IsAsyncMethod { get; set; }
+
+    /// <summary>
+    /// 异步方法的内部返回类型（如果是 Task<T>，这里是 T；如果是 Task，这里是 void）
+    /// </summary>
+    public string AsyncInnerReturnType { get; set; } = string.Empty;
+
+    /// <summary>
     /// 方法参数列表
     /// </summary>
     public IReadOnlyList<ParameterInfo> Parameters { get; set; } = [];

@@ -169,7 +169,9 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine($"        /// </summary>");
         codeBuilder.AppendLine($"        {CompilerGeneratedAttribute}");
         codeBuilder.AppendLine($"        {GeneratedCodeAttribute}");
-        codeBuilder.AppendLine($"        public async {methodSymbol.ReturnType} {methodSymbol.Name}({GetParameterList(methodSymbol)})");
+        // 根据方法返回类型决定是否添加 async 关键字
+        var asyncKeyword = methodInfo.IsAsyncMethod ? "async " : "";
+        codeBuilder.AppendLine($"        public {asyncKeyword}{methodSymbol.ReturnType} {methodSymbol.Name}({GetParameterList(methodSymbol)})");
         codeBuilder.AppendLine("        {");
 
         GenerateRequestSetup(codeBuilder, methodInfo);
@@ -535,7 +537,10 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine("                    return default;");
         codeBuilder.AppendLine("                }");
         codeBuilder.AppendLine();
-        codeBuilder.AppendLine($"                var result = await JsonSerializer.DeserializeAsync<{methodInfo.ReturnType}>(stream, _jsonSerializerOptions{cancellationTokenArg});");
+        
+        // 对于异步方法，使用内部返回类型；对于同步方法，使用完整返回类型
+        var deserializeType = methodInfo.IsAsyncMethod ? methodInfo.AsyncInnerReturnType : methodInfo.ReturnType;
+        codeBuilder.AppendLine($"                var result = await JsonSerializer.DeserializeAsync<{deserializeType}>(stream, _jsonSerializerOptions{cancellationTokenArg});");
         codeBuilder.AppendLine("                return result;");
     }
 

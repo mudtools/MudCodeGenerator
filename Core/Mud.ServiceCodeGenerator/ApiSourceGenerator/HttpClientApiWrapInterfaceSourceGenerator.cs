@@ -53,4 +53,36 @@ public class HttpClientApiInterfaceWrapSourceGenerator : HttpClientApiWrapSource
         return sb.ToString();
     }
 
+
+    /// <summary>
+    /// 生成包装方法声明（接口方法）
+    /// </summary>
+    protected override string GenerateWrapMethod(MethodAnalysisResult methodInfo, MethodDeclarationSyntax methodSyntax, string interfaceName, string tokenManageInterfaceName)
+    {
+        if (methodInfo == null || methodSyntax == null)
+            return string.Empty;
+
+        var sb = new StringBuilder();
+
+        // 添加方法注释
+        var methodDoc = GetMethodXmlDocumentation(methodSyntax, methodInfo);
+        if (!string.IsNullOrEmpty(methodDoc))
+        {
+            sb.AppendLine(methodDoc);
+        }
+
+        // 方法签名 - 使用包含命名空间的返回类型
+        sb.Append($"    {methodInfo.ReturnType} {methodInfo.MethodName}(");
+
+        // 过滤掉标记了[Token]特性的参数，保留其他所有参数
+        var filteredParameters = FilterParametersByAttribute(methodInfo.Parameters, GeneratorConstants.TokenAttributeNames, exclude: true);
+
+        // 生成参数列表
+        var parameterList = GenerateParameterList(filteredParameters);
+        sb.Append(parameterList);
+
+        sb.Append(");");
+
+        return sb.ToString();
+    }
 }

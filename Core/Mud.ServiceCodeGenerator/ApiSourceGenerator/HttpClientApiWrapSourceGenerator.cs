@@ -107,16 +107,7 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
             var methodSyntax = FindMethodSyntax(compilation, methodSymbol, interfaceDecl);
             if (methodSyntax != null)
             {
-                string wrapMethodCode;
-                if (isInterface)
-                {
-                    wrapMethodCode = GenerateWrapMethodDeclaration(methodInfo, methodSyntax);
-                }
-                else
-                {
-                    wrapMethodCode = GenerateWrapMethodImplementation(methodInfo, methodSyntax, interfaceName, tokenManageInterfaceName);
-                }
-
+                string wrapMethodCode = GenerateWrapMethod(methodInfo, methodSyntax, interfaceName, tokenManageInterfaceName);
                 if (!string.IsNullOrEmpty(wrapMethodCode))
                 {
                     sb.AppendLine(wrapMethodCode);
@@ -126,122 +117,13 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
         }
     }
 
-    /// <summary>
-    /// 生成包装方法声明（接口方法）
-    /// </summary>
-    private string GenerateWrapMethodDeclaration(MethodAnalysisResult methodInfo, MethodDeclarationSyntax methodSyntax)
-    {
-        var sb = new StringBuilder();
+    protected abstract string GenerateWrapMethod(MethodAnalysisResult methodInfo, MethodDeclarationSyntax methodSyntax, string interfaceName, string tokenManageInterfaceName);
 
-        // 添加方法注释
-        var methodDoc = GetMethodXmlDocumentation(methodSyntax, methodInfo);
-        if (!string.IsNullOrEmpty(methodDoc))
-        {
-            sb.AppendLine(methodDoc);
-        }
-
-        // 方法签名 - 使用包含命名空间的返回类型
-        sb.Append($"    {methodInfo.ReturnType} {methodInfo.MethodName}(");
-
-        // 过滤掉标记了[Token]特性的参数，保留其他所有参数
-        var filteredParameters = FilterParametersByAttribute(methodInfo.Parameters, GeneratorConstants.TokenAttributeNames, exclude: true);
-
-        // 生成参数列表
-        var parameterList = GenerateParameterList(filteredParameters);
-        sb.Append(parameterList);
-
-        sb.Append(");");
-
-        return sb.ToString();
-    }
-
-    /// <summary>
-    /// 生成包装方法实现（具体实现）
-    /// </summary>
-    private string GenerateWrapMethodImplementation(MethodAnalysisResult methodInfo, MethodDeclarationSyntax methodSyntax, string interfaceName, string tokenManageInterfaceName)
-    {
-        var sb = new StringBuilder();
-
-        // 添加方法注释
-        var methodDoc = GetMethodXmlDocumentation(methodSyntax, methodInfo);
-        if (!string.IsNullOrEmpty(methodDoc))
-        {
-            sb.AppendLine(methodDoc);
-        }
-
-        // 方法签名 - 根据原始方法的返回类型决定是否添加async关键字
-        var isAsyncMethod = methodInfo.ReturnType.StartsWith("Task", StringComparison.OrdinalIgnoreCase);
-
-        if (isAsyncMethod)
-        {
-            sb.Append($"    public async {methodInfo.ReturnType} {methodInfo.MethodName}(");
-        }
-        else
-        {
-            sb.Append($"    public {methodInfo.ReturnType} {methodInfo.MethodName}(");
-        }
-
-        // 过滤掉标记了[Token]特性的参数，保留其他所有参数
-        var filteredParameters = FilterParametersByAttribute(methodInfo.Parameters, GeneratorConstants.TokenAttributeNames, exclude: true);
-
-        // 生成参数列表
-        var parameterList = GenerateParameterList(filteredParameters);
-        sb.AppendLine($"{parameterList})");
-
-        sb.AppendLine("    {");
-
-        // 生成方法体
-        sb.AppendLine("        try");
-        sb.AppendLine("        {");
-
-        // 获取Token
-        if (isAsyncMethod)
-        {
-            sb.AppendLine($"            var token = await {PrivateFieldNamingHelper.GeneratePrivateFieldName(tokenManageInterfaceName)}.GetTokenAsync();");
-        }
-        else
-        {
-            sb.AppendLine($"            var token = {PrivateFieldNamingHelper.GeneratePrivateFieldName(tokenManageInterfaceName)}.GetToken();");
-        }
-        sb.AppendLine();
-
-        // Token空值检查
-        sb.AppendLine("            if (string.IsNullOrEmpty(token))");
-        sb.AppendLine("            {");
-        sb.AppendLine("                _logger.LogWarning(\"获取到的Token为空！\");");
-        sb.AppendLine("            }");
-        sb.AppendLine();
-
-        // 调用原始API方法
-        if (isAsyncMethod)
-        {
-            sb.Append($"            return await {PrivateFieldNamingHelper.GeneratePrivateFieldName(interfaceName)}.{methodInfo.MethodName}(");
-        }
-        else
-        {
-            sb.Append($"            return {PrivateFieldNamingHelper.GeneratePrivateFieldName(interfaceName)}.{methodInfo.MethodName}(");
-        }
-
-        // 生成调用参数列表（包含Token和过滤后的参数）
-        var callParameters = GenerateCorrectParameterCallList(methodInfo.Parameters, filteredParameters, "token");
-        sb.Append(string.Join(", ", callParameters));
-
-        sb.AppendLine(");");
-        sb.AppendLine("        }");
-        sb.AppendLine("        catch (Exception x)");
-        sb.AppendLine("        {");
-        sb.AppendLine($"            _logger.LogError(x, \"执行{methodInfo.MethodName}操作失败：{{message}}\", x.Message);");
-        sb.AppendLine("            throw;");
-        sb.AppendLine("        }");
-        sb.AppendLine("    }");
-
-        return sb.ToString();
-    }
 
     /// <summary>
     /// 获取方法的XML文档注释
     /// </summary>
-    private string GetMethodXmlDocumentation(MethodDeclarationSyntax methodSyntax, MethodAnalysisResult methodInfo)
+    protected string GetMethodXmlDocumentation(MethodDeclarationSyntax methodSyntax, MethodAnalysisResult methodInfo)
     {
         var xmlDoc = GetXmlDocumentation(methodSyntax);
         if (string.IsNullOrEmpty(xmlDoc))
@@ -298,34 +180,7 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
             interfaceDecl.GetLocation()));
     }
 
-    /// <summary>
-    /// 生成正确的参数调用列表，确保token参数替换掉原来标记了[Token]特性的参数位置
-    /// </summary>
-    private List<string> GenerateCorrectParameterCallList(IReadOnlyList<ParameterInfo> originalParameters, IReadOnlyList<ParameterInfo> filteredParameters, string tokenParameterName)
-    {
-        var callParameters = new List<string>();
 
-        foreach (var originalParam in originalParameters)
-        {
-            // 检查当前参数是否是Token参数
-            if (HasAttribute(originalParam, GeneratorConstants.TokenAttributeNames))
-            {
-                // 如果是Token参数，用token参数替换
-                callParameters.Add(tokenParameterName);
-            }
-            else
-            {
-                // 如果不是Token参数，检查是否在过滤后的参数列表中
-                var matchingFilteredParam = filteredParameters.FirstOrDefault(p => p.Name == originalParam.Name);
-                if (matchingFilteredParam != null)
-                {
-                    callParameters.Add(matchingFilteredParam.Name);
-                }
-            }
-        }
-
-        return callParameters;
-    }
 
     /// <summary>
     /// 报告诊断警告
