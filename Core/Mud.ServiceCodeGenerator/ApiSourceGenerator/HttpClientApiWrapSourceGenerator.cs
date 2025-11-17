@@ -133,7 +133,8 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
             if (!methodInfo.IsValid)
                 continue;
 
-            var methodSyntax = GetMethodDeclarationSyntax(methodSymbol, interfaceDecl);
+            // 使用更精确的方法查找，确保正确处理重载方法
+            var methodSyntax = FindMethodSyntax(compilation, methodSymbol, interfaceDecl);
             if (methodSyntax != null)
             {
                 string wrapMethodCode;

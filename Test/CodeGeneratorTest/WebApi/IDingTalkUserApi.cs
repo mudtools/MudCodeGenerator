@@ -10,7 +10,7 @@ namespace CodeGeneratorTest.WebApi;
 public interface IDingTalkUserApi
 {
     [Get("/api/v1/user/{id}")]
-    Task<UserDto> GetUserAsync([Token][Header("x-token")] string token, [Path] string id);
+    Task<UserDto> GetUserAsync([Token][Header("x-token")] string token, [Path] string id = "xxx");
 
     /// <summary>
     /// 测试钉钉用户接口

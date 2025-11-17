@@ -273,9 +273,9 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
     /// <param name="interfaceDecl"></param>
     /// <returns></returns>
     protected MethodAnalysisResult AnalyzeMethod(Compilation compilation, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl)
-    {
+    { 
         var methodSyntax = FindMethodSyntax(compilation, methodSymbol, interfaceDecl);
-        if (methodSyntax == null || methodSymbol == null)
+        if (interfaceDecl == null ||methodSyntax == null || methodSymbol == null)
             return MethodAnalysisResult.Invalid;
 
         var httpMethodAttr = FindHttpMethodAttribute(methodSyntax);
@@ -321,8 +321,11 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
         };
     }
 
-    private MethodDeclarationSyntax? FindMethodSyntax(Compilation compilation, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl)
+    protected MethodDeclarationSyntax? FindMethodSyntax(Compilation compilation, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl)
     {
+        if (interfaceDecl == null || methodSymbol == null)
+            return null;
+
         return interfaceDecl.Members
             .OfType<MethodDeclarationSyntax>()
             .FirstOrDefault(m =>

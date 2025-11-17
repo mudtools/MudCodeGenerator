@@ -46,7 +46,7 @@ public interface ISingleTestApi
     Task<UserDto> GetUser2Async([Token][Header("x-token")] string token, [Query("bth", "yyyy-MM-dd")] DateTime birthday);
 
     /// <summary>
-    /// 以下接口生成的url为：/api/v1/user?idKey=id值
+    /// 测试注释1。
     /// </summary>
     /// <param name="token"></param>
     /// <param name="id"></param>
@@ -56,7 +56,7 @@ public interface ISingleTestApi
 
 
     /// <summary>
-    /// 测试注释。
+    /// 测试注释2。
     /// </summary>
     /// <param name="birthday">生日</param>
     /// <param name="token">令牌</param>
