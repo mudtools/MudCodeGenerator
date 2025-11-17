@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/Src/">
+    <Project Path="Core/Mud.CodeGenerator/Mud.CodeGenerator.shproj" />
+    <Project Path="Core/Mud.EntityCodeGenerator/Mud.EntityCodeGenerator.csproj" />
+    <Project Path="Core/Mud.ServiceCodeGenerator/Mud.ServiceCodeGenerator.csproj" />
+  </Folder>
+  <Folder Name="/Test/">
+    <Project Path="Test/CodeBaseTest/CodeBaseTest.csproj" />
+    <Project Path="Test/CodeGeneratorTest/CodeGeneratorTest.csproj" />
+    <Project Path="Test/Mud.Common.CodeGenerator/Mud.Common.CodeGenerator.csproj" />
+    <Project Path="Test/PublicPackageTest/PublicPackageTest.csproj" />
+  </Folder>
+</Solution>

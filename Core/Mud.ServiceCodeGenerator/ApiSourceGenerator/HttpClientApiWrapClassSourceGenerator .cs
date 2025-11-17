@@ -1,7 +1,7 @@
 
 using System.Text;
 
-namespace Mud.ServiceCodeGenerator.ApiSourceGenerator;
+namespace Mud.ServiceCodeGenerator;
 
 /// <summary>
 /// 用于生成包装实现类代码的代码生成器。
