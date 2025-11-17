@@ -2,9 +2,9 @@
 
 public interface ITokenManage
 {
-    Task<string> GetTokenAsync();
+    Task<string> GetTokenAsync(CancellationToken cancellationToken = default);
 
-    Task<string> GetTenantAccessTokenAsync();
+    Task<string> GetTenantAccessTokenAsync(CancellationToken cancellationToken = default);
 
-    Task<string> GetUserAccessTokenAsync();
+    Task<string> GetUserAccessTokenAsync(CancellationToken cancellationToken = default);
 }

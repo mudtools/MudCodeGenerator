@@ -141,13 +141,18 @@ public class HttpClientApiWrapClassSourceGenerator : HttpClientApiWrapSourceGene
         var tokenParameter = methodInfo.Parameters.FirstOrDefault(p => HasAttribute(p, GeneratorConstants.TokenAttributeNames));
         var tokenMethodName = GetTokenMethodName(tokenParameter);
         
-        if (methodInfo.IsAsyncMethod)
+        // 检查是否有CancellationToken参数
+        var cancellationTokenParameter = methodInfo.Parameters.FirstOrDefault(p => p.Type.Contains("CancellationToken",StringComparison.OrdinalIgnoreCase));
+        var hasCancellationToken = cancellationTokenParameter != null;
+        
+        // Token获取方法都是异步的，需要使用await
+        if (hasCancellationToken)
         {
-            sb.AppendLine($"            var token = await {PrivateFieldNamingHelper.GeneratePrivateFieldName(tokenManageInterfaceName)}.{tokenMethodName}();");
+            sb.AppendLine($"            var token = await {PrivateFieldNamingHelper.GeneratePrivateFieldName(tokenManageInterfaceName)}.{tokenMethodName}({cancellationTokenParameter.Name});");
         }
         else
         {
-            sb.AppendLine($"            var token = {PrivateFieldNamingHelper.GeneratePrivateFieldName(tokenManageInterfaceName)}.{tokenMethodName}();");
+            sb.AppendLine($"            var token = await {PrivateFieldNamingHelper.GeneratePrivateFieldName(tokenManageInterfaceName)}.{tokenMethodName}();");
         }
         sb.AppendLine();
 

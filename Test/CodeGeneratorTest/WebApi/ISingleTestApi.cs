@@ -81,6 +81,18 @@ public interface ISingleTestApi
     /// </summary>
     [Get("/api/v1/user/test")]
     Task<SysUserInfoOutput> GetUserTestAsync([Token(TokenType.UserAccessToken)][Header("x-token")] string token);
+
+    /// <summary>
+    /// 测试TenantAccessToken类型（带CancellationToken）
+    /// </summary>
+    [Get("/api/v1/tenant/test/cancel")]
+    Task<SysUserInfoOutput> GetTenantTestWithCancellationAsync([Token(TokenType.TenantAccessToken)][Header("x-token")] string token, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 测试UserAccessToken类型（带CancellationToken）
+    /// </summary>
+    [Get("/api/v1/user/test/cancel")]
+    Task<SysUserInfoOutput> GetUserTestWithCancellationAsync([Token(TokenType.UserAccessToken)][Header("x-token")] string token, CancellationToken cancellationToken = default);
 }
 
 
