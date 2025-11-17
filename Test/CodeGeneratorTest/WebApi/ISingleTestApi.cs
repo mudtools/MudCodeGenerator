@@ -3,7 +3,7 @@
 /// <summary>
 /// 测试注释。
 /// </summary>
-[HttpClientApi("https://api.dingtalk.com", Timeout = 60)]
+[HttpClientApi("https://api.dingtalk.com", Timeout = 60, ContentType="application/xml")]
 [HttpClientApiWrap(TokenManage = "ITokenManage", WrapInterface = "ISingleUserTest")]
 public interface ISingleTestApi
 {

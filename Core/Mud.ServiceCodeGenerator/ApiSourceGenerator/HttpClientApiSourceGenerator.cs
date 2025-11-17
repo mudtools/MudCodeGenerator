@@ -105,14 +105,25 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine($"    {GeneratedCodeAttribute}");
         codeBuilder.AppendLine($"    internal partial class {className} : {interfaceSymbol.Name}");
         codeBuilder.AppendLine("    {");
-        GenerateClassFieldsAndConstructor(codeBuilder, className);
+        GenerateClassFieldsAndConstructor(codeBuilder, className, interfaceSymbol);
     }
 
-    private void GenerateClassFieldsAndConstructor(StringBuilder codeBuilder, string className)
+    private void GenerateClassFieldsAndConstructor(StringBuilder codeBuilder, string className, INamedTypeSymbol interfaceSymbol)
     {
         codeBuilder.AppendLine("        private readonly HttpClient _httpClient;");
         codeBuilder.AppendLine($"        private readonly ILogger<{className}> _logger;");
         codeBuilder.AppendLine("        private readonly JsonSerializerOptions _jsonSerializerOptions;");
+        
+        // 从HttpClientApi特性获取配置
+        var httpClientApiAttribute = GetHttpClientApiAttribute(interfaceSymbol);
+        var defaultContentType = "application/json; charset=utf-8";
+        
+        if (httpClientApiAttribute != null)
+        {
+            defaultContentType = GetContentTypeFromAttribute(httpClientApiAttribute);
+        }
+        
+        codeBuilder.AppendLine($"        private readonly string _defaultContentType = \"{defaultContentType}\";");
         codeBuilder.AppendLine();
         codeBuilder.AppendLine("        /// <summary>");
         codeBuilder.AppendLine($"        /// 构建 <see cref = \"{className}\"/> 类的实例。");
@@ -125,6 +136,15 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine("            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));");
         codeBuilder.AppendLine("            _logger = logger ?? throw new ArgumentNullException(nameof(logger));");
         codeBuilder.AppendLine("            _jsonSerializerOptions = option.Value;");
+        
+        if (httpClientApiAttribute != null)
+        {
+            var timeout = GetTimeoutFromAttribute(httpClientApiAttribute);
+            codeBuilder.AppendLine();
+            codeBuilder.AppendLine($"            // 配置HttpClient超时时间");
+            codeBuilder.AppendLine($"            _httpClient.Timeout = TimeSpan.FromSeconds({timeout});");
+        }
+        
         codeBuilder.AppendLine("        }");
     }
 
@@ -230,6 +250,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine(urlCode);
         codeBuilder.AppendLine($"            _logger.LogDebug(\"开始HTTP {methodInfo.HttpMethod}请求: {{Url}}\", url);");
         codeBuilder.AppendLine($"            using var request = new HttpRequestMessage(HttpMethod.{methodInfo.HttpMethod}, url);");
+        codeBuilder.AppendLine($"            request.Headers.Add(\"Content-Type\", _defaultContentType);");
     }
 
     private string BuildUrlString(MethodAnalysisResult methodInfo)
@@ -416,20 +437,36 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
             return;
 
         var bodyAttr = bodyParam.Attributes.First(a => a.Name == GeneratorConstants.BodyAttribute);
-        var contentType = GetBodyContentType(bodyAttr);
         var useStringContent = GetUseStringContentFlag(bodyAttr);
+        
+        // 优先使用参数级别的ContentType，如果没有设置则使用接口级别的默认ContentType
+        var contentType = GetBodyContentType(bodyAttr);
+        
+        // 检查参数是否明确指定了ContentType
+        var hasExplicitContentType = bodyAttr.NamedArguments.ContainsKey("ContentType");
+        
+        if (!hasExplicitContentType)
+        {
+            // 参数没有指定ContentType，使用接口级别的默认值
+            contentType = "_defaultContentType";
+        }
+        else
+        {
+            // 参数指定了ContentType，使用指定的值
+            contentType = $"\"{contentType}\"";
+        }
 
         codeBuilder.AppendLine($"            if ({bodyParam.Name} != null)");
         codeBuilder.AppendLine("            {");
 
         if (useStringContent)
         {
-            codeBuilder.AppendLine($"                request.Content = new StringContent({bodyParam.Name}.ToString() ?? \"\", Encoding.UTF8, \"{contentType}\");");
+            codeBuilder.AppendLine($"                request.Content = new StringContent({bodyParam.Name}.ToString() ?? \"\", Encoding.UTF8, {contentType});");
         }
         else
         {
             codeBuilder.AppendLine($"                var jsonContent = JsonSerializer.Serialize({bodyParam.Name}, _jsonSerializerOptions);");
-            codeBuilder.AppendLine($"                request.Content = new StringContent(jsonContent, Encoding.UTF8, \"{contentType}\");");
+            codeBuilder.AppendLine($"                request.Content = new StringContent(jsonContent, Encoding.UTF8, {contentType});");
         }
 
         codeBuilder.AppendLine("            }");

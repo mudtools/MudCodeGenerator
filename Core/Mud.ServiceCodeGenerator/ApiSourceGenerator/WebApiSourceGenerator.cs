@@ -154,6 +154,18 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
     }
 
     /// <summary>
+    /// 从特性获取ContentType
+    /// </summary>
+    protected string GetContentTypeFromAttribute(AttributeData attribute)
+    {
+        if (attribute == null)
+            return "application/json; charset=utf-8";
+        var contentTypeArg = attribute.NamedArguments.FirstOrDefault(a => a.Key == "ContentType");
+        var contentType = contentTypeArg.Value.Value?.ToString();
+        return string.IsNullOrEmpty(contentType) ? "application/json; charset=utf-8" : contentType;
+    }
+
+    /// <summary>
     /// 获取方法参数列表字符串
     /// </summary>
     protected string GetParameterList(IMethodSymbol methodSymbol)
