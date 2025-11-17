@@ -52,6 +52,12 @@ namespace Mud.ServiceCodeGenerator.Test
 
         [Mud.Common.CodeGenerator.Get("/api/v1/user/{birthday}")]
         Task<UserDto> GetUser1Async([Mud.Common.CodeGenerator.Token][Mud.Common.CodeGenerator.Header("x-token")] string token, [Mud.Common.CodeGenerator.Query] SysDeptQueryInput input, [Mud.Common.CodeGenerator.Query] int? age, System.Threading.CancellationToken cancellationToken = default);
+
+        [Mud.Common.CodeGenerator.Get("/api/v1/tenant/test")]
+        Task<UserDto> GetTenantTestAsync([Mud.Common.CodeGenerator.Token(Mud.Common.CodeGenerator.FeishuTokenType.TenantAccessToken)][Mud.Common.CodeGenerator.Header("x-token")] string token);
+
+        [Mud.Common.CodeGenerator.Get("/api/v1/user/test")]
+        Task<UserDto> GetUserTestAsync([Mud.Common.CodeGenerator.Token(Mud.Common.CodeGenerator.FeishuTokenType.UserAccessToken)][Mud.Common.CodeGenerator.Header("x-token")] string token);
     }
 
     /// <summary>
@@ -80,5 +86,28 @@ namespace Mud.ServiceCodeGenerator.Test
 
         [Mud.Common.CodeGenerator.Get("/api/v1/user/{birthday}")]
         Task<UserDto> GetUser1Async([Mud.Common.CodeGenerator.Token][Mud.Common.CodeGenerator.Header("x-token")] string token, [Mud.Common.CodeGenerator.Query] SysDeptQueryInput input, [Mud.Common.CodeGenerator.Query] int? age, System.Threading.CancellationToken cancellationToken = default);
+
+        [Mud.Common.CodeGenerator.Get("/api/v1/tenant/test")]
+        Task<UserDto> GetTenantTestAsync([Mud.Common.CodeGenerator.Token(Mud.Common.CodeGenerator.FeishuTokenType.TenantAccessToken)][Mud.Common.CodeGenerator.Header("x-token")] string token);
+
+        [Mud.Common.CodeGenerator.Get("/api/v1/user/test")]
+        Task<UserDto> GetUserTestAsync([Mud.Common.CodeGenerator.Token(Mud.Common.CodeGenerator.FeishuTokenType.UserAccessToken)][Mud.Common.CodeGenerator.Header("x-token")] string token);
+    }
+
+    /// <summary>
+    /// 测试场景4：测试不同的Token类型
+    /// </summary>
+    [Mud.Common.CodeGenerator.HttpClientApi("https://api.feishu.com", Timeout = 60)]
+    [Mud.Common.CodeGenerator.HttpClientApiWrap(TokenManage = "ITokenManage")]
+    public interface IFeishuTestApi
+    {
+        [Mud.Common.CodeGenerator.Get("/api/v1/tenant/info")]
+        Task<UserDto> GetTenantInfoAsync([Mud.Common.CodeGenerator.Token(Mud.Common.CodeGenerator.FeishuTokenType.TenantAccessToken)][Mud.Common.CodeGenerator.Header("X-API-Key")] string token);
+
+        [Mud.Common.CodeGenerator.Get("/api/v1/user/info")]
+        Task<UserDto> GetUserInfoAsync([Mud.Common.CodeGenerator.Token(Mud.Common.CodeGenerator.FeishuTokenType.UserAccessToken)][Mud.Common.CodeGenerator.Header("X-API-Key")] string token);
+
+        [Mud.Common.CodeGenerator.Get("/api/v1/mixed/test")]
+        Task<UserDto> GetMixedTestAsync([Mud.Common.CodeGenerator.Token][Mud.Common.CodeGenerator.Header("x-token")] string token);
     }
 }

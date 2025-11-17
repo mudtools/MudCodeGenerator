@@ -3,7 +3,7 @@
 /// <summary>
 /// 测试注释。
 /// </summary>
-[HttpClientApi("https://api.dingtalk.com", Timeout = 60, ContentType="application/xml")]
+[HttpClientApi("https://api.dingtalk.com", Timeout = 60, ContentType = "application/xml")]
 [HttpClientApiWrap(TokenManage = "ITokenManage", WrapInterface = "ISingleUserTest")]
 public interface ISingleTestApi
 {
@@ -69,6 +69,18 @@ public interface ISingleTestApi
 
     [Post("/api/v2/dept/{id}/{age}")]
     Task<SysDeptInfoOutput> GetDeptPageAsync([Path] string id, [Query("birthday")] DateTime birthday, [Path] int? age, [Query] DataQueryInput input, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 测试TenantAccessToken类型
+    /// </summary>
+    [Get("/api/v1/tenant/test")]
+    Task<SysUserInfoOutput> GetTenantTestAsync([Token(TokenType.TenantAccessToken)][Header("x-token")] string token);
+
+    /// <summary>
+    /// 测试UserAccessToken类型
+    /// </summary>
+    [Get("/api/v1/user/test")]
+    Task<SysUserInfoOutput> GetUserTestAsync([Token(TokenType.UserAccessToken)][Header("x-token")] string token);
 }
 
 

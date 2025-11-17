@@ -9,7 +9,7 @@ public sealed class TokenAttribute : Attribute
     /// <summary>
     /// <inheritdoc cref="TokenAttribute" />
     /// </summary>
-    public TokenAttribute() : this(FeishuTokenType.TenantAccessToken)
+    public TokenAttribute() : this(TokenType.TenantAccessToken)
     {
     }
 
@@ -17,7 +17,7 @@ public sealed class TokenAttribute : Attribute
     /// <inheritdoc cref="TokenAttribute" />
     /// </summary>
     /// <param name="tokenType">飞书Token类型。</param>
-    public TokenAttribute(FeishuTokenType tokenType)
+    public TokenAttribute(TokenType tokenType)
     {
         TokenType = tokenType;
     }
@@ -25,13 +25,13 @@ public sealed class TokenAttribute : Attribute
     /// <summary>
     /// 飞书Token类型。
     /// </summary>
-    public FeishuTokenType TokenType { get; set; } = FeishuTokenType.TenantAccessToken;
+    public TokenType TokenType { get; set; } = TokenType.TenantAccessToken;
 }
 
 /// <summary>
 /// 飞书Token类型。
 /// </summary>
-public enum FeishuTokenType
+public enum TokenType
 {
     /// <summary>
     /// 使用应用Token调用函数。

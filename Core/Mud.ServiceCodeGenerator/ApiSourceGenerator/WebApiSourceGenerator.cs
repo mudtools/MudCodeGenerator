@@ -329,7 +329,8 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
                     Arguments = attr.ConstructorArguments.Select(arg => arg.Value).ToArray(),
                     NamedArguments = attr.NamedArguments.ToDictionary(na => na.Key, na => na.Value.Value)
                 }).ToList(),
-                HasDefaultValue = p.HasExplicitDefaultValue
+                HasDefaultValue = p.HasExplicitDefaultValue,
+                TokenType = GetTokenType(p)
             };
 
             if (p.HasExplicitDefaultValue)
@@ -428,6 +429,35 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
                    (namedType.TypeArguments.Length == 0 || namedType.TypeArguments.Length == 1);
         }
         return false;
+    }
+
+    /// <summary>
+    /// 获取参数的 Token 类型
+    /// </summary>
+    private string GetTokenType(IParameterSymbol parameter)
+    {
+        var tokenAttribute = parameter.GetAttributes()
+            .FirstOrDefault(attr => GeneratorConstants.TokenAttributeNames.Contains(attr.AttributeClass?.Name));
+        
+        if (tokenAttribute != null && tokenAttribute.ConstructorArguments.Length > 0)
+        {
+            var tokenTypeValue = tokenAttribute.ConstructorArguments[0].Value;
+            if (tokenTypeValue != null)
+            {
+                // 处理枚举值转换
+                var enumValue = Convert.ToInt32(tokenTypeValue);
+                return enumValue switch
+                {
+                    0 => "TenantAccessToken",
+                    1 => "UserAccessToken", 
+                    2 => "Both",
+                    _ => "TenantAccessToken"
+                };
+            }
+        }
+        
+        // 默认返回 TenantAccessToken
+        return "TenantAccessToken";
     }
 
     /// <summary>

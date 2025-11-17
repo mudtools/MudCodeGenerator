@@ -137,14 +137,17 @@ public class HttpClientApiWrapClassSourceGenerator : HttpClientApiWrapSourceGene
         sb.AppendLine("        try");
         sb.AppendLine("        {");
 
-        // 获取Token
+        // 获取Token - 根据 Token 类型调用不同的方法
+        var tokenParameter = methodInfo.Parameters.FirstOrDefault(p => HasAttribute(p, GeneratorConstants.TokenAttributeNames));
+        var tokenMethodName = GetTokenMethodName(tokenParameter);
+        
         if (methodInfo.IsAsyncMethod)
         {
-            sb.AppendLine($"            var token = await {PrivateFieldNamingHelper.GeneratePrivateFieldName(tokenManageInterfaceName)}.GetTokenAsync();");
+            sb.AppendLine($"            var token = await {PrivateFieldNamingHelper.GeneratePrivateFieldName(tokenManageInterfaceName)}.{tokenMethodName}();");
         }
         else
         {
-            sb.AppendLine($"            var token = {PrivateFieldNamingHelper.GeneratePrivateFieldName(tokenManageInterfaceName)}.GetToken();");
+            sb.AppendLine($"            var token = {PrivateFieldNamingHelper.GeneratePrivateFieldName(tokenManageInterfaceName)}.{tokenMethodName}();");
         }
         sb.AppendLine();
 

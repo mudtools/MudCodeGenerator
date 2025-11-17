@@ -87,6 +87,25 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
 
 
     /// <summary>
+    /// 根据 Token 类型获取对应的方法名
+    /// </summary>
+    protected string GetTokenMethodName(ParameterInfo tokenParameter)
+    {
+        if (tokenParameter == null || string.IsNullOrEmpty(tokenParameter.TokenType))
+        {
+            return "GetTokenAsync";
+        }
+
+        return tokenParameter.TokenType switch
+        {
+            "TenantAccessToken" => "GetTenantAccessTokenAsync",
+            "UserAccessToken" => "GetUserAccessTokenAsync",
+            "Both" => "GetTokenAsync", // 默认方法
+            _ => "GetTokenAsync"
+        };
+    }
+
+    /// <summary>
     /// 生成包装方法（接口声明或实现）
     /// </summary>
     protected void GenerateWrapMethods(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl, INamedTypeSymbol interfaceSymbol, StringBuilder sb, bool isInterface, string tokenManageInterfaceName = null, string interfaceName = null)
