@@ -64,32 +64,6 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
     }
 
 
-    /// <summary>
-    /// 获取包装接口名称
-    /// </summary>
-    protected string GetWrapInterfaceName(INamedTypeSymbol interfaceSymbol, AttributeData wrapAttribute)
-    {
-        // 检查特性参数中是否有指定的包装接口名称
-        var wrapInterfaceArg = wrapAttribute.NamedArguments.FirstOrDefault(a => a.Key == "WrapInterface");
-        if (!string.IsNullOrEmpty(wrapInterfaceArg.Value.Value?.ToString()))
-        {
-            return wrapInterfaceArg.Value.Value.ToString();
-        }
-
-        // 根据接口名称生成默认包装接口名称
-        var interfaceName = interfaceSymbol.Name;
-        if (interfaceName.EndsWith("Api", StringComparison.OrdinalIgnoreCase))
-        {
-            return interfaceName.Substring(0, interfaceName.Length - 3);
-        }
-        else if (interfaceName.StartsWith("I", StringComparison.OrdinalIgnoreCase) && interfaceName.Length > 1)
-        {
-            return interfaceName.Substring(1);
-        }
-
-        return interfaceName + "Wrap";
-    }
-
 
     /// <summary>
     /// 获取HttpClientApi特性
