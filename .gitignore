@@ -27,3 +27,9 @@
 /obj
 /Test/PublicPackageTest/bin/Debug
 /Test/PublicPackageTest/obj
+/bin/Release/netstandard2.0
+/Test/CodeBaseTest/bin/Release
+/Test/CodeGeneratorTest/bin/Release
+/Test/Mud.Common.CodeGenerator/bin/Release
+/Test/PublicPackageTest/bin/Release/net10.0
+/Test/PublicPackageTest/bin/Release
