@@ -219,8 +219,6 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
         if (syntaxNode == null)
             return string.Empty;
 
-        if (syntaxNode.IsKind(SyntaxKind.InterfaceDeclaration))
-            return string.Empty;
         var leadingTrivia = syntaxNode.GetLeadingTrivia();
         var xmlDocTrivia = leadingTrivia.FirstOrDefault(t => t.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
                                                              t.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia));

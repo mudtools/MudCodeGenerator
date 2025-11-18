@@ -2,7 +2,11 @@
 
 /// <summary>
 /// 测试注释。
-/// </summary>
+/// </summary>  
+/// <remarks>
+/// <para>1222</para>
+/// <para>54354</para>
+/// </remarks>
 [HttpClientApi("https://api.dingtalk.com", Timeout = 60, ContentType = "application/xml")]
 [HttpClientApiWrap(TokenManage = "ITokenManage", WrapInterface = "ISingleUserTest")]
 public interface ISingleTestApi
