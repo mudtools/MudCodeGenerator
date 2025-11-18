@@ -408,8 +408,8 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
         }
 
         // 如果是 Task 而不是 Task<T>，返回 void
-        if (returnType is INamedTypeSymbol taskNamedType && 
-            taskNamedType.Name == "Task" && 
+        if (returnType is INamedTypeSymbol taskNamedType &&
+            taskNamedType.Name == "Task" &&
             taskNamedType.TypeArguments.Length == 0)
         {
             return "void";
@@ -425,7 +425,7 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
     {
         if (returnType is INamedTypeSymbol namedType)
         {
-            return namedType.Name == "Task" && 
+            return namedType.Name == "Task" &&
                    (namedType.TypeArguments.Length == 0 || namedType.TypeArguments.Length == 1);
         }
         return false;
@@ -438,7 +438,7 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
     {
         var tokenAttribute = parameter.GetAttributes()
             .FirstOrDefault(attr => GeneratorConstants.TokenAttributeNames.Contains(attr.AttributeClass?.Name));
-        
+
         if (tokenAttribute != null && tokenAttribute.ConstructorArguments.Length > 0)
         {
             var tokenTypeValue = tokenAttribute.ConstructorArguments[0].Value;
@@ -449,13 +449,13 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
                 return enumValue switch
                 {
                     0 => "TenantAccessToken",
-                    1 => "UserAccessToken", 
+                    1 => "UserAccessToken",
                     2 => "Both",
                     _ => "TenantAccessToken"
                 };
             }
         }
-        
+
         // 默认返回 TenantAccessToken
         return "TenantAccessToken";
     }

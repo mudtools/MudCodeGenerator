@@ -99,7 +99,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine($"namespace {namespaceName}");
         codeBuilder.AppendLine("{");
         codeBuilder.AppendLine($"    /// <summary>");
-        codeBuilder.AppendLine($"    /// {interfaceSymbol.Name}的HttpClient实现类");
+        codeBuilder.AppendLine($"    /// <inheritdoc cref=\"{interfaceSymbol.Name}\"/>");
         codeBuilder.AppendLine($"    /// </summary>");
         codeBuilder.AppendLine($"    {CompilerGeneratedAttribute}");
         codeBuilder.AppendLine($"    {GeneratedCodeAttribute}");
@@ -113,16 +113,16 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine("        private readonly HttpClient _httpClient;");
         codeBuilder.AppendLine($"        private readonly ILogger<{className}> _logger;");
         codeBuilder.AppendLine("        private readonly JsonSerializerOptions _jsonSerializerOptions;");
-        
+
         // 从HttpClientApi特性获取配置
         var httpClientApiAttribute = GetHttpClientApiAttribute(interfaceSymbol);
         var defaultContentType = "application/json; charset=utf-8";
-        
+
         if (httpClientApiAttribute != null)
         {
             defaultContentType = GetContentTypeFromAttribute(httpClientApiAttribute);
         }
-        
+
         codeBuilder.AppendLine($"        private readonly string _defaultContentType = \"{defaultContentType}\";");
         codeBuilder.AppendLine();
         codeBuilder.AppendLine("        /// <summary>");
@@ -136,7 +136,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine("            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));");
         codeBuilder.AppendLine("            _logger = logger ?? throw new ArgumentNullException(nameof(logger));");
         codeBuilder.AppendLine("            _jsonSerializerOptions = option.Value;");
-        
+
         if (httpClientApiAttribute != null)
         {
             var timeout = GetTimeoutFromAttribute(httpClientApiAttribute);
@@ -144,7 +144,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
             codeBuilder.AppendLine($"            // 配置HttpClient超时时间");
             codeBuilder.AppendLine($"            _httpClient.Timeout = TimeSpan.FromSeconds({timeout});");
         }
-        
+
         codeBuilder.AppendLine("        }");
     }
 
@@ -158,6 +158,13 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         }
     }
 
+    /// <summary>
+    /// <inheritdoc cref=""/>
+    /// </summary>
+    /// <param name="compilation"></param>
+    /// <param name="codeBuilder"></param>
+    /// <param name="methodSymbol"></param>
+    /// <param name="interfaceDecl"></param>
     private void GenerateMethodImplementation(Compilation compilation, StringBuilder codeBuilder, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl)
     {
         var methodInfo = AnalyzeMethod(compilation, methodSymbol, interfaceDecl);
@@ -165,7 +172,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
 
         codeBuilder.AppendLine();
         codeBuilder.AppendLine($"        /// <summary>");
-        codeBuilder.AppendLine($"        /// 实现 {methodSymbol.Name} 方法");
+        codeBuilder.AppendLine($"        /// <inheritdoc cref=\"{methodInfo.InterfaceName}.{methodSymbol.Name} \"/>");
         codeBuilder.AppendLine($"        /// </summary>");
         codeBuilder.AppendLine($"        {CompilerGeneratedAttribute}");
         codeBuilder.AppendLine($"        {GeneratedCodeAttribute}");
@@ -440,13 +447,13 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
 
         var bodyAttr = bodyParam.Attributes.First(a => a.Name == GeneratorConstants.BodyAttribute);
         var useStringContent = GetUseStringContentFlag(bodyAttr);
-        
+
         // 优先使用参数级别的ContentType，如果没有设置则使用接口级别的默认ContentType
         var contentType = GetBodyContentType(bodyAttr);
-        
+
         // 检查参数是否明确指定了ContentType
         var hasExplicitContentType = bodyAttr.NamedArguments.ContainsKey("ContentType");
-        
+
         if (!hasExplicitContentType)
         {
             // 参数没有指定ContentType，使用接口级别的默认值
@@ -537,7 +544,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine("                    return default;");
         codeBuilder.AppendLine("                }");
         codeBuilder.AppendLine();
-        
+
         // 对于异步方法，使用内部返回类型；对于同步方法，使用完整返回类型
         var deserializeType = methodInfo.IsAsyncMethod ? methodInfo.AsyncInnerReturnType : methodInfo.ReturnType;
         codeBuilder.AppendLine($"                var result = await JsonSerializer.DeserializeAsync<{deserializeType}>(stream, _jsonSerializerOptions{cancellationTokenArg});");
