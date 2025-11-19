@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Mud.ServiceCodeGenerator;
+namespace Mud.ServiceCodeGenerator.ApiSourceGenerator;
 
 /// <summary>
 /// 用于生成包装接口代码的代码生成器。
@@ -69,43 +69,21 @@ public class HttpClientApiInterfaceWrapSourceGenerator : HttpClientApiWrapSource
         if (bothTokenParameter != null)
         {
             // 为Both类型生成两个方法
-            var tenantMethod = GenerateBothWrapMethod(methodInfo, methodSyntax, "_Tenant_", bothTokenParameter);
-            var userMethod = GenerateBothWrapMethod(methodInfo, methodSyntax, "_User_", bothTokenParameter);
+            var tenantMethod = GenerateBothWrapMethod(methodInfo, methodSyntax, "_Tenant_");
+            var userMethod = GenerateBothWrapMethod(methodInfo, methodSyntax, "_User_");
             
             return $"{tenantMethod}\n\n{userMethod}";
         }
         else
         {
-            // 原有逻辑
-            var sb = new StringBuilder();
-
-            // 添加方法注释
-            var methodDoc = GetMethodXmlDocumentation(methodSyntax, methodInfo);
-            if (!string.IsNullOrEmpty(methodDoc))
-            {
-                sb.AppendLine(methodDoc);
-            }
-
-            // 方法签名 - 使用包含命名空间的返回类型
-            sb.Append($"    {methodInfo.ReturnType} {methodInfo.MethodName}(");
-
-            // 过滤掉标记了[Token]特性的参数，保留其他所有参数
-            var filteredParameters = FilterParametersByAttribute(methodInfo.Parameters, GeneratorConstants.TokenAttributeNames, exclude: true);
-
-            // 生成参数列表
-            var parameterList = GenerateParameterList(filteredParameters);
-            sb.Append(parameterList);
-
-            sb.Append(");");
-
-            return sb.ToString();
+            return GenerateSingleWrapMethod(methodInfo, methodSyntax);
         }
     }
 
     /// <summary>
-    /// 为TokenType.Both生成特定的方法声明
+    /// 生成单个包装方法声明
     /// </summary>
-    private string GenerateBothWrapMethod(MethodAnalysisResult methodInfo, MethodDeclarationSyntax methodSyntax, string prefix, ParameterInfo bothTokenParameter)
+    private string GenerateSingleWrapMethod(MethodAnalysisResult methodInfo, MethodDeclarationSyntax methodSyntax)
     {
         var sb = new StringBuilder();
 
@@ -116,27 +94,41 @@ public class HttpClientApiInterfaceWrapSourceGenerator : HttpClientApiWrapSource
             sb.AppendLine(methodDoc);
         }
 
-        // 方法签名 - 使用包含命名空间的返回类型，添加前缀到方法名
-        var methodName = methodInfo.MethodName;
-        if (methodName.EndsWith("Async"))
-        {
-            methodName = methodName.Insert(methodName.Length - 5, prefix);
-        }
-        else
-        {
-            methodName = prefix.Trim('_') + methodName;
-        }
-        
-        sb.Append($"    {methodInfo.ReturnType} {methodName}(");
-
         // 过滤掉标记了[Token]特性的参数，保留其他所有参数
         var filteredParameters = FilterParametersByAttribute(methodInfo.Parameters, GeneratorConstants.TokenAttributeNames, exclude: true);
 
-        // 生成参数列表
-        var parameterList = GenerateParameterList(filteredParameters);
-        sb.Append(parameterList);
+        // 生成方法签名 - 接口方法不需要async关键字
+        var methodSignature = GenerateMethodSignature(methodInfo, methodInfo.MethodName, filteredParameters, includeAsync: false);
+        sb.Append(methodSignature);
+        sb.Append(';');
 
-        sb.Append(");");
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// 为TokenType.Both生成特定的方法声明
+    /// </summary>
+    private string GenerateBothWrapMethod(MethodAnalysisResult methodInfo, MethodDeclarationSyntax methodSyntax, string prefix)
+    {
+        var sb = new StringBuilder();
+
+        // 添加方法注释
+        var methodDoc = GetMethodXmlDocumentation(methodSyntax, methodInfo);
+        if (!string.IsNullOrEmpty(methodDoc))
+        {
+            sb.AppendLine(methodDoc);
+        }
+
+        // 生成方法名
+        var methodName = GenerateBothMethodName(methodInfo.MethodName, prefix);
+        
+        // 过滤掉标记了[Token]特性的参数，保留其他所有参数
+        var filteredParameters = FilterParametersByAttribute(methodInfo.Parameters, GeneratorConstants.TokenAttributeNames, exclude: true);
+
+        // 生成方法签名 - 接口方法不需要async关键字
+        var methodSignature = GenerateMethodSignature(methodInfo, methodName, filteredParameters, includeAsync: false);
+        sb.Append(methodSignature);
+        sb.Append(';');
 
         return sb.ToString();
     }
