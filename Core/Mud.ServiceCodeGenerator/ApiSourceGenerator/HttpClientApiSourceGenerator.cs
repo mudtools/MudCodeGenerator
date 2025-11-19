@@ -108,6 +108,31 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         GenerateClassFieldsAndConstructor(codeBuilder, className, interfaceSymbol);
     }
 
+    /// <summary>
+    /// 从HttpClientApi特性获取内容类型
+    /// </summary>
+    /// <param name="httpClientApiAttribute">HttpClientApi特性</param>
+    /// <returns>内容类型</returns>
+    private string GetContentTypeFromAttribute(AttributeData? httpClientApiAttribute)
+    {
+        if (httpClientApiAttribute?.NamedArguments.FirstOrDefault(k => k.Key == "ContentType").Value.Value is string contentType)
+            return contentType;
+
+        return "application/json";
+    }
+
+    /// <summary>
+    /// 从HttpClientApi特性获取超时设置
+    /// </summary>
+    /// <param name="httpClientApiAttribute">HttpClientApi特性</param>
+    /// <returns>超时秒数</returns>
+    private int GetTimeoutFromAttribute(AttributeData? httpClientApiAttribute)
+    {
+        if (httpClientApiAttribute?.NamedArguments.FirstOrDefault(k => k.Key == "TimeoutSeconds").Value.Value is int timeout)
+            return timeout;
+
+        return 30; // 默认30秒超时
+    }
     private void GenerateClassFieldsAndConstructor(StringBuilder codeBuilder, string className, INamedTypeSymbol interfaceSymbol)
     {
         codeBuilder.AppendLine("        private readonly HttpClient _httpClient;");
@@ -116,7 +141,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
 
         // 从HttpClientApi特性获取配置
         var httpClientApiAttribute = GetHttpClientApiAttribute(interfaceSymbol);
-        var defaultContentType = "application/json; charset=utf-8";
+        var defaultContentType = "application/json";
 
         if (httpClientApiAttribute != null)
         {
@@ -146,6 +171,30 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         }
 
         codeBuilder.AppendLine("        }");
+        codeBuilder.AppendLine();
+
+        // 添加辅助方法来获取媒体类型（去除字符集信息）
+        codeBuilder.AppendLine("        /// <summary>");
+        codeBuilder.AppendLine("        /// 从Content-Type字符串中提取媒体类型部分，去除字符集信息。");
+        codeBuilder.AppendLine("        /// </summary>");
+        codeBuilder.AppendLine("        /// <param name=\"contentType\">完整的Content-Type字符串</param>");
+        codeBuilder.AppendLine("        /// <returns>媒体类型部分</returns>");
+        codeBuilder.AppendLine("        private static string GetMediaType(string contentType)");
+        codeBuilder.AppendLine("        {");
+        codeBuilder.AppendLine("            if (string.IsNullOrEmpty(contentType))");
+        codeBuilder.AppendLine("                return \"application/json\";");
+        codeBuilder.AppendLine();
+        codeBuilder.AppendLine("            // Content-Type可能包含字符集信息，如 \"application/json; charset=utf-8\"");
+        codeBuilder.AppendLine("            // 需要分号前的媒体类型部分");
+        codeBuilder.AppendLine("            var semicolonIndex = contentType.IndexOf(';');");
+        codeBuilder.AppendLine("            if (semicolonIndex >= 0)");
+        codeBuilder.AppendLine("            {");
+        codeBuilder.AppendLine("                return contentType.Substring(0, semicolonIndex).Trim();");
+        codeBuilder.AppendLine("            }");
+        codeBuilder.AppendLine();
+        codeBuilder.AppendLine("            return contentType.Trim();");
+        codeBuilder.AppendLine("        }");
+        codeBuilder.AppendLine();
     }
 
     private void GenerateMethods(Compilation compilation, StringBuilder codeBuilder, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDecl)
@@ -185,6 +234,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         GenerateRequestExecution(codeBuilder, methodInfo);
 
         codeBuilder.AppendLine("        }");
+        codeBuilder.AppendLine();
     }
 
     private void GenerateClassPartialMethods(StringBuilder codeBuilder, INamedTypeSymbol interfaceSymbol)
@@ -454,28 +504,41 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         if (!hasExplicitContentType)
         {
             // 参数没有指定ContentType，使用接口级别的默认值
-            contentType = "_defaultContentType";
+            // StringContent 的第三个参数只需要媒体类型，不需要字符集信息
+            codeBuilder.AppendLine($"            if ({bodyParam.Name} != null)");
+            codeBuilder.AppendLine("            {");
+
+            if (useStringContent)
+            {
+                codeBuilder.AppendLine($"                request.Content = new StringContent({bodyParam.Name}.ToString() ?? \"\", Encoding.UTF8, GetMediaType(_defaultContentType));");
+            }
+            else
+            {
+                codeBuilder.AppendLine($"                var jsonContent = JsonSerializer.Serialize({bodyParam.Name}, _jsonSerializerOptions);");
+                codeBuilder.AppendLine($"                request.Content = new StringContent(jsonContent, Encoding.UTF8, GetMediaType(_defaultContentType));");
+            }
+
+            codeBuilder.AppendLine("            }");
         }
         else
         {
-            // 参数指定了ContentType，使用指定的值
-            contentType = $"\"{contentType}\"";
-        }
+            // 参数指定了ContentType，直接使用指定的值
+            var contentTypeLiteral = $"\"{contentType}\"";
+            codeBuilder.AppendLine($"            if ({bodyParam.Name} != null)");
+            codeBuilder.AppendLine("            {");
 
-        codeBuilder.AppendLine($"            if ({bodyParam.Name} != null)");
-        codeBuilder.AppendLine("            {");
+            if (useStringContent)
+            {
+                codeBuilder.AppendLine($"                request.Content = new StringContent({bodyParam.Name}.ToString() ?? \"\", Encoding.UTF8, {contentTypeLiteral});");
+            }
+            else
+            {
+                codeBuilder.AppendLine($"                var jsonContent = JsonSerializer.Serialize({bodyParam.Name}, _jsonSerializerOptions);");
+                codeBuilder.AppendLine($"                request.Content = new StringContent(jsonContent, Encoding.UTF8, {contentTypeLiteral});");
+            }
 
-        if (useStringContent)
-        {
-            codeBuilder.AppendLine($"                request.Content = new StringContent({bodyParam.Name}.ToString() ?? \"\", Encoding.UTF8, {contentType});");
+            codeBuilder.AppendLine("            }");
         }
-        else
-        {
-            codeBuilder.AppendLine($"                var jsonContent = JsonSerializer.Serialize({bodyParam.Name}, _jsonSerializerOptions);");
-            codeBuilder.AppendLine($"                request.Content = new StringContent(jsonContent, Encoding.UTF8, {contentType});");
-        }
-
-        codeBuilder.AppendLine("            }");
     }
 
     private string GetBodyContentType(ParameterAttributeInfo bodyAttr)
