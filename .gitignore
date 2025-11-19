@@ -33,3 +33,5 @@
 /Test/Mud.Common.CodeGenerator/bin/Release
 /Test/PublicPackageTest/bin/Release/net10.0
 /Test/PublicPackageTest/bin/Release
+/Test/CodeGeneratorConsoleTest/bin/Debug
+/Test/CodeGeneratorConsoleTest/obj
