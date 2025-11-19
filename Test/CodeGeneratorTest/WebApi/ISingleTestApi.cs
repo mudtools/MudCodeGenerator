@@ -8,7 +8,7 @@
 /// <para>54354</para>
 /// </remarks>
 [HttpClientApi("https://api.dingtalk.com", Timeout = 60, ContentType = "application/xml")]
-[HttpClientApiWrap(TokenManage = "ITokenManage", WrapInterface = "ISingleUserTest")]
+[HttpClientApiWrap(TokenManage = "ITokenManage", WrapInterface = nameof(ISingleUserTest))]
 public interface ISingleTestApi
 {
     /// <summary>
@@ -18,7 +18,7 @@ public interface ISingleTestApi
     /// <param name="birthday">生日</param>
     /// <returns></returns>
     [Get("/api/v1/user/{birthday}")]
-    Task<SysUserInfoOutput> GetUserAsync([Token][Header("x-token")] string token, [Path("yyyy-MM-dd")] DateTime birthday);
+    Task<SysUserInfoOutput> GetUserAsync([Token(TokenType = TokenType.Both)][Header("x-token")] string token, [Path("yyyy-MM-dd")] DateTime birthday);
 
     /// <summary>
     /// 以下接口生成的url需要将birthday格式化处理：birthday.ToString("yyyy-MM-dd")
@@ -96,7 +96,7 @@ public interface ISingleTestApi
     /// 测试UserAccessToken类型（带CancellationToken）
     /// </summary>
     [Get("/api/v1/user/test/cancel")]
-    Task<SysUserInfoOutput> GetUserTestWithCancellationAsync([Token(TokenType.UserAccessToken)][Header("x-token")] string token, CancellationToken cancellationToken = default);
+    Task<SysUserInfoOutput> GetUserTestWithCancellationAsync([Token(TokenType.Both)][Header("x-token")] string token, CancellationToken cancellationToken = default);
 }
 
 

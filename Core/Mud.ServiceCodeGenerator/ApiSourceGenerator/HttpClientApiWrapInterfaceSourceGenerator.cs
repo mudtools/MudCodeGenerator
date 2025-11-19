@@ -1,4 +1,3 @@
-
 using System.Text;
 
 namespace Mud.ServiceCodeGenerator;
@@ -62,6 +61,52 @@ public class HttpClientApiInterfaceWrapSourceGenerator : HttpClientApiWrapSource
         if (methodInfo == null || methodSyntax == null)
             return string.Empty;
 
+        // 检查是否有TokenType.Both的Token参数
+        var bothTokenParameter = methodInfo.Parameters.FirstOrDefault(p => 
+            HasAttribute(p, GeneratorConstants.TokenAttributeNames) && 
+            p.TokenType.Equals("Both", StringComparison.OrdinalIgnoreCase));
+
+        if (bothTokenParameter != null)
+        {
+            // 为Both类型生成两个方法
+            var tenantMethod = GenerateBothWrapMethod(methodInfo, methodSyntax, "_Tenant_", bothTokenParameter);
+            var userMethod = GenerateBothWrapMethod(methodInfo, methodSyntax, "_User_", bothTokenParameter);
+            
+            return $"{tenantMethod}\n\n{userMethod}";
+        }
+        else
+        {
+            // 原有逻辑
+            var sb = new StringBuilder();
+
+            // 添加方法注释
+            var methodDoc = GetMethodXmlDocumentation(methodSyntax, methodInfo);
+            if (!string.IsNullOrEmpty(methodDoc))
+            {
+                sb.AppendLine(methodDoc);
+            }
+
+            // 方法签名 - 使用包含命名空间的返回类型
+            sb.Append($"    {methodInfo.ReturnType} {methodInfo.MethodName}(");
+
+            // 过滤掉标记了[Token]特性的参数，保留其他所有参数
+            var filteredParameters = FilterParametersByAttribute(methodInfo.Parameters, GeneratorConstants.TokenAttributeNames, exclude: true);
+
+            // 生成参数列表
+            var parameterList = GenerateParameterList(filteredParameters);
+            sb.Append(parameterList);
+
+            sb.Append(");");
+
+            return sb.ToString();
+        }
+    }
+
+    /// <summary>
+    /// 为TokenType.Both生成特定的方法声明
+    /// </summary>
+    private string GenerateBothWrapMethod(MethodAnalysisResult methodInfo, MethodDeclarationSyntax methodSyntax, string prefix, ParameterInfo bothTokenParameter)
+    {
         var sb = new StringBuilder();
 
         // 添加方法注释
@@ -71,8 +116,18 @@ public class HttpClientApiInterfaceWrapSourceGenerator : HttpClientApiWrapSource
             sb.AppendLine(methodDoc);
         }
 
-        // 方法签名 - 使用包含命名空间的返回类型
-        sb.Append($"    {methodInfo.ReturnType} {methodInfo.MethodName}(");
+        // 方法签名 - 使用包含命名空间的返回类型，添加前缀到方法名
+        var methodName = methodInfo.MethodName;
+        if (methodName.EndsWith("Async"))
+        {
+            methodName = methodName.Insert(methodName.Length - 5, prefix);
+        }
+        else
+        {
+            methodName = prefix.Trim('_') + methodName;
+        }
+        
+        sb.Append($"    {methodInfo.ReturnType} {methodName}(");
 
         // 过滤掉标记了[Token]特性的参数，保留其他所有参数
         var filteredParameters = FilterParametersByAttribute(methodInfo.Parameters, GeneratorConstants.TokenAttributeNames, exclude: true);

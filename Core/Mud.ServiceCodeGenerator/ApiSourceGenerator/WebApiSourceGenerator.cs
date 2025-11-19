@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 
 namespace Mud.ServiceCodeGenerator;
 
@@ -437,13 +437,15 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
         var tokenAttribute = parameter.GetAttributes()
             .FirstOrDefault(attr => GeneratorConstants.TokenAttributeNames.Contains(attr.AttributeClass?.Name));
 
-        if (tokenAttribute != null && tokenAttribute.ConstructorArguments.Length > 0)
+        if (tokenAttribute != null)
         {
-            var tokenTypeValue = tokenAttribute.ConstructorArguments[0].Value;
-            if (tokenTypeValue != null)
+            // 首先检查命名参数 TokenType
+            var namedTokenType = tokenAttribute.NamedArguments
+                .FirstOrDefault(na => na.Key.Equals("TokenType", StringComparison.OrdinalIgnoreCase)).Value.Value;
+                
+            if (namedTokenType != null)
             {
-                // 处理枚举值转换
-                var enumValue = Convert.ToInt32(tokenTypeValue);
+                var enumValue = Convert.ToInt32(namedTokenType);
                 return enumValue switch
                 {
                     0 => "TenantAccessToken",
@@ -451,6 +453,24 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
                     2 => "Both",
                     _ => "TenantAccessToken"
                 };
+            }
+
+            // 然后检查构造函数参数
+            if (tokenAttribute.ConstructorArguments.Length > 0)
+            {
+                var tokenTypeValue = tokenAttribute.ConstructorArguments[0].Value;
+                if (tokenTypeValue != null)
+                {
+                    // 处理枚举值转换
+                    var enumValue = Convert.ToInt32(tokenTypeValue);
+                    return enumValue switch
+                    {
+                        0 => "TenantAccessToken",
+                        1 => "UserAccessToken",
+                        2 => "Both",
+                        _ => "TenantAccessToken"
+                    };
+                }
             }
         }
 

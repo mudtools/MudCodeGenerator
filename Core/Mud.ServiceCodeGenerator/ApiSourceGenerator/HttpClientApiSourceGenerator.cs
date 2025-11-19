@@ -174,7 +174,6 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine($"        /// <summary>");
         codeBuilder.AppendLine($"        /// <inheritdoc cref=\"{methodInfo.InterfaceName}.{methodSymbol.Name} \"/>");
         codeBuilder.AppendLine($"        /// </summary>");
-        codeBuilder.AppendLine($"        {CompilerGeneratedAttribute}");
         codeBuilder.AppendLine($"        {GeneratedCodeAttribute}");
         // 根据方法返回类型决定是否添加 async 关键字
         var asyncKeyword = methodInfo.IsAsyncMethod ? "async " : "";
@@ -224,7 +223,6 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
             codeBuilder.AppendLine($"        /// <summary>");
             codeBuilder.AppendLine($"        /// {methodName} {description}。");
             codeBuilder.AppendLine($"        /// </summary>");
-            codeBuilder.AppendLine($"        {CompilerGeneratedAttribute}");
             codeBuilder.AppendLine($"        {GeneratedCodeAttribute}");
             codeBuilder.AppendLine($"        partial void On{StringExtensions.ConvertFunctionName(methodName, eventType)}({parameter}, string url);");
         }
@@ -246,7 +244,6 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
             codeBuilder.AppendLine($"        /// <summary>");
             codeBuilder.AppendLine($"        /// {interfaceName} {description}。");
             codeBuilder.AppendLine($"        /// </summary>");
-            codeBuilder.AppendLine($"        {CompilerGeneratedAttribute}");
             codeBuilder.AppendLine($"        {GeneratedCodeAttribute}");
             codeBuilder.AppendLine($"        partial void On{StringExtensions.ConvertFunctionName(interfaceName, "Api", eventType)}({parameter}, string url);");
         }
@@ -259,7 +256,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine(urlCode);
         codeBuilder.AppendLine($"            _logger.LogDebug(\"开始HTTP {methodInfo.HttpMethod}请求: {{Url}}\", url);");
         codeBuilder.AppendLine($"            using var request = new HttpRequestMessage(HttpMethod.{methodInfo.HttpMethod}, url);");
-        codeBuilder.AppendLine($"            request.Headers.Add(\"Content-Type\", _defaultContentType);");
+        //codeBuilder.AppendLine($"            request.Headers.Add(\"Content-Type\", _defaultContentType);");
     }
 
     private string BuildUrlString(MethodAnalysisResult methodInfo)

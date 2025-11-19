@@ -1,4 +1,3 @@
-
 using System.Text;
 
 namespace Mud.ServiceCodeGenerator;
@@ -105,6 +104,112 @@ public class HttpClientApiWrapClassSourceGenerator : HttpClientApiWrapSourceGene
         if (methodInfo == null || methodSyntax == null)
             return string.Empty;
 
+        // 检查是否有TokenType.Both的Token参数
+        var bothTokenParameter = methodInfo.Parameters.FirstOrDefault(p =>
+            HasAttribute(p, GeneratorConstants.TokenAttributeNames) &&
+            p.TokenType.Equals("Both", StringComparison.OrdinalIgnoreCase));
+
+        if (bothTokenParameter != null)
+        {
+            // 为Both类型生成两个方法实现
+            var tenantMethod = GenerateBothWrapMethodImplementation(methodInfo, methodSyntax, interfaceName, tokenManageInterfaceName, "_Tenant_", "GetTenantAccessTokenAsync");
+            var userMethod = GenerateBothWrapMethodImplementation(methodInfo, methodSyntax, interfaceName, tokenManageInterfaceName, "_User_", "GetUserAccessTokenAsync");
+
+            return $"{tenantMethod}\n\n{userMethod}";
+        }
+        else
+        {
+            // 原有逻辑
+            var sb = new StringBuilder();
+
+            // 添加方法注释
+            var methodDoc = GetMethodXmlDocumentation(methodSyntax, methodInfo);
+            if (!string.IsNullOrEmpty(methodDoc))
+            {
+                sb.AppendLine(methodDoc);
+            }
+
+            // 方法签名 - 根据原始方法的返回类型决定是否添加async关键字
+            if (methodInfo.IsAsyncMethod)
+            {
+                sb.Append($"    public async {methodInfo.ReturnType} {methodInfo.MethodName}(");
+            }
+            else
+            {
+                sb.Append($"    public {methodInfo.ReturnType} {methodInfo.MethodName}(");
+            }
+
+            // 过滤掉标记了[Token]特性的参数，保留其他所有参数
+            var filteredParameters = FilterParametersByAttribute(methodInfo.Parameters, GeneratorConstants.TokenAttributeNames, exclude: true);
+
+            // 生成参数列表
+            var parameterList = GenerateParameterList(filteredParameters);
+            sb.AppendLine($"{parameterList})");
+
+            sb.AppendLine("    {");
+
+            // 生成方法体
+            sb.AppendLine("        try");
+            sb.AppendLine("        {");
+
+            // 获取Token - 根据 Token 类型调用不同的方法
+            var tokenParameter = methodInfo.Parameters.FirstOrDefault(p => HasAttribute(p, GeneratorConstants.TokenAttributeNames));
+            var tokenMethodName = GetTokenMethodName(tokenParameter);
+
+            // 检查是否有CancellationToken参数
+            var cancellationTokenParameter = methodInfo.Parameters.FirstOrDefault(p => p.Type.Contains("CancellationToken"));
+            var hasCancellationToken = cancellationTokenParameter != null;
+
+            // Token获取方法都是异步的，需要使用await
+            if (hasCancellationToken)
+            {
+                sb.AppendLine($"            var token = await {PrivateFieldNamingHelper.GeneratePrivateFieldName(tokenManageInterfaceName)}.{tokenMethodName}({cancellationTokenParameter.Name});");
+            }
+            else
+            {
+                sb.AppendLine($"            var token = await {PrivateFieldNamingHelper.GeneratePrivateFieldName(tokenManageInterfaceName)}.{tokenMethodName}();");
+            }
+            sb.AppendLine();
+
+            // Token空值检查
+            sb.AppendLine("            if (string.IsNullOrEmpty(token))");
+            sb.AppendLine("            {");
+            sb.AppendLine("                _logger.LogWarning(\"获取到的Token为空！\");");
+            sb.AppendLine("            }");
+            sb.AppendLine();
+
+            // 调用原始API方法
+            if (methodInfo.IsAsyncMethod)
+            {
+                sb.Append($"            return await {PrivateFieldNamingHelper.GeneratePrivateFieldName(interfaceName)}.{methodInfo.MethodName}(");
+            }
+            else
+            {
+                sb.Append($"            return {PrivateFieldNamingHelper.GeneratePrivateFieldName(interfaceName)}.{methodInfo.MethodName}(");
+            }
+
+            // 生成调用参数列表（包含Token和过滤后的参数）
+            var callParameters = GenerateCorrectParameterCallList(methodInfo.Parameters, filteredParameters, "token");
+            sb.Append(string.Join(", ", callParameters));
+
+            sb.AppendLine(");");
+            sb.AppendLine("        }");
+            sb.AppendLine("        catch (Exception x)");
+            sb.AppendLine("        {");
+            sb.AppendLine($"            _logger.LogError(x, \"执行{methodInfo.MethodName}操作失败：{{message}}\", x.Message);");
+            sb.AppendLine("            throw;");
+            sb.AppendLine("        }");
+            sb.AppendLine("    }");
+
+            return sb.ToString();
+        }
+    }
+
+    /// <summary>
+    /// 为TokenType.Both生成特定的方法实现
+    /// </summary>
+    private string GenerateBothWrapMethodImplementation(MethodAnalysisResult methodInfo, MethodDeclarationSyntax methodSyntax, string interfaceName, string tokenManageInterfaceName, string prefix, string tokenMethodName)
+    {
         var sb = new StringBuilder();
 
         // 添加方法注释
@@ -114,14 +219,24 @@ public class HttpClientApiWrapClassSourceGenerator : HttpClientApiWrapSourceGene
             sb.AppendLine(methodDoc);
         }
 
-        // 方法签名 - 根据原始方法的返回类型决定是否添加async关键字
-        if (methodInfo.IsAsyncMethod)
+        // 方法签名 - 根据原始方法的返回类型决定是否添加async关键字，添加前缀到方法名
+        var methodName = methodInfo.MethodName;
+        if (methodName.EndsWith("Async"))
         {
-            sb.Append($"    public async {methodInfo.ReturnType} {methodInfo.MethodName}(");
+            methodName = methodName.Insert(methodName.Length - 5, prefix);
         }
         else
         {
-            sb.Append($"    public {methodInfo.ReturnType} {methodInfo.MethodName}(");
+            methodName = prefix.Trim('_') + methodName;
+        }
+
+        if (methodInfo.IsAsyncMethod)
+        {
+            sb.Append($"    public async {methodInfo.ReturnType} {methodName}(");
+        }
+        else
+        {
+            sb.Append($"    public {methodInfo.ReturnType} {methodName}(");
         }
 
         // 过滤掉标记了[Token]特性的参数，保留其他所有参数
@@ -137,14 +252,10 @@ public class HttpClientApiWrapClassSourceGenerator : HttpClientApiWrapSourceGene
         sb.AppendLine("        try");
         sb.AppendLine("        {");
 
-        // 获取Token - 根据 Token 类型调用不同的方法
-        var tokenParameter = methodInfo.Parameters.FirstOrDefault(p => HasAttribute(p, GeneratorConstants.TokenAttributeNames));
-        var tokenMethodName = GetTokenMethodName(tokenParameter);
-        
         // 检查是否有CancellationToken参数
-        var cancellationTokenParameter = methodInfo.Parameters.FirstOrDefault(p => p.Type.Contains("CancellationToken",StringComparison.OrdinalIgnoreCase));
+        var cancellationTokenParameter = methodInfo.Parameters.FirstOrDefault(p => p.Type.Contains("CancellationToken"));
         var hasCancellationToken = cancellationTokenParameter != null;
-        
+
         // Token获取方法都是异步的，需要使用await
         if (hasCancellationToken)
         {
