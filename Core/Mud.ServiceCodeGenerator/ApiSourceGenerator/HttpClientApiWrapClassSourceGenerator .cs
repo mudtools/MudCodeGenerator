@@ -32,7 +32,7 @@ public class HttpClientApiWrapClassSourceGenerator : HttpClientApiWrapSourceGene
         // 获取包装类名称和接口名称
         var wrapInterfaceName = GetWrapInterfaceName(interfaceSymbol, wrapAttribute);
         var wrapClassName = GetWrapClassName(wrapInterfaceName);
-        var tokenManageInterfaceName = GetTokenManageInterfaceName(interfaceSymbol, wrapAttribute);
+        var tokenManageInterfaceName = GetTokenManageInterfaceName(wrapAttribute);
 
         // 生成类开始部分
         GenerateClassOrInterfaceStart(sb, wrapClassName, wrapInterfaceName);
@@ -44,7 +44,7 @@ public class HttpClientApiWrapClassSourceGenerator : HttpClientApiWrapSourceGene
         GenerateConstructor(sb, wrapClassName, interfaceSymbol.Name, tokenManageInterfaceName);
 
         // 生成包装方法实现
-        GenerateWrapMethods(compilation, interfaceDecl, interfaceSymbol, sb, isInterface: false, tokenManageInterfaceName, interfaceSymbol.Name);
+        GenerateWrapMethods(compilation, interfaceDecl, interfaceSymbol, sb, tokenManageInterfaceName, interfaceSymbol.Name);
 
         sb.AppendLine("}");
 
@@ -161,7 +161,7 @@ public class HttpClientApiWrapClassSourceGenerator : HttpClientApiWrapSourceGene
 
         // 生成方法体
         sb.AppendLine("    {");
-        
+
         // 特殊处理Both类型的方法体 - 使用指定的token方法名
         sb.AppendLine("        try");
         sb.AppendLine("        {");

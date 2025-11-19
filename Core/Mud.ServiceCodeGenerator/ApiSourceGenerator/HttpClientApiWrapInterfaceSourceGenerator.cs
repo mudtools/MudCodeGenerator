@@ -45,7 +45,7 @@ public class HttpClientApiInterfaceWrapSourceGenerator : HttpClientApiWrapSource
         GenerateClassOrInterfaceStart(sb, wrapInterfaceName, "", isInterface: true);
 
         // 生成接口方法
-        GenerateWrapMethods(compilation, interfaceDecl, interfaceSymbol, sb, isInterface: true);
+        GenerateWrapMethods(compilation, interfaceDecl, interfaceSymbol, sb);
 
         sb.AppendLine("}");
 
@@ -62,8 +62,8 @@ public class HttpClientApiInterfaceWrapSourceGenerator : HttpClientApiWrapSource
             return string.Empty;
 
         // 检查是否有TokenType.Both的Token参数
-        var bothTokenParameter = methodInfo.Parameters.FirstOrDefault(p => 
-            HasAttribute(p, GeneratorConstants.TokenAttributeNames) && 
+        var bothTokenParameter = methodInfo.Parameters.FirstOrDefault(p =>
+            HasAttribute(p, GeneratorConstants.TokenAttributeNames) &&
             p.TokenType.Equals("Both", StringComparison.OrdinalIgnoreCase));
 
         if (bothTokenParameter != null)
@@ -71,7 +71,7 @@ public class HttpClientApiInterfaceWrapSourceGenerator : HttpClientApiWrapSource
             // 为Both类型生成两个方法
             var tenantMethod = GenerateBothWrapMethod(methodInfo, methodSyntax, "_Tenant_");
             var userMethod = GenerateBothWrapMethod(methodInfo, methodSyntax, "_User_");
-            
+
             return $"{tenantMethod}\n\n{userMethod}";
         }
         else
@@ -121,7 +121,7 @@ public class HttpClientApiInterfaceWrapSourceGenerator : HttpClientApiWrapSource
 
         // 生成方法名
         var methodName = GenerateBothMethodName(methodInfo.MethodName, prefix);
-        
+
         // 过滤掉标记了[Token]特性的参数，保留其他所有参数
         var filteredParameters = FilterParametersByAttribute(methodInfo.Parameters, GeneratorConstants.TokenAttributeNames, exclude: true);
 

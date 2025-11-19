@@ -61,6 +61,9 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     /// </summary>
     protected void GenerateFileHeader(StringBuilder sb, InterfaceDeclarationSyntax interfaceDecl)
     {
+        if (interfaceDecl == null || sb == null)
+            return;
+
         GenerateFileHeader(sb);
 
         // 获取命名空间
@@ -78,6 +81,8 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     /// </summary>
     protected void GenerateClassOrInterfaceStart(StringBuilder sb, string typeName, string interfaceName, bool isInterface = false)
     {
+        if (sb == null)
+            return;
         var parentName = isInterface ? " " : $" : {interfaceName}";
         sb.AppendLine($"{CompilerGeneratedAttribute}");
         sb.AppendLine($"{GeneratedCodeAttribute}");
@@ -108,9 +113,9 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     /// <summary>
     /// 生成包装方法（接口声明或实现）
     /// </summary>
-    protected void GenerateWrapMethods(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl, INamedTypeSymbol interfaceSymbol, StringBuilder sb, bool isInterface, string tokenManageInterfaceName = null, string interfaceName = null)
+    protected void GenerateWrapMethods(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl, INamedTypeSymbol interfaceSymbol, StringBuilder sb, string tokenManageInterfaceName = null, string interfaceName = null)
     {
-        if (interfaceSymbol == null) return;
+        if (interfaceSymbol == null || sb == null) return;
 
         var methods = interfaceSymbol.GetMembers()
                                      .OfType<IMethodSymbol>()
@@ -145,7 +150,7 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     protected string GetMethodXmlDocumentation(MethodDeclarationSyntax methodSyntax, MethodAnalysisResult methodInfo)
     {
         var xmlDoc = GetXmlDocumentation(methodSyntax);
-        if (string.IsNullOrEmpty(xmlDoc))
+        if (string.IsNullOrEmpty(xmlDoc) || methodInfo == null)
             return string.Empty;
 
         // 获取标记了Token特性的参数名称
@@ -248,8 +253,11 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     /// <summary>
     /// 获取Token管理接口名称
     /// </summary>
-    protected string GetTokenManageInterfaceName(INamedTypeSymbol interfaceSymbol, AttributeData wrapAttribute)
+    protected string GetTokenManageInterfaceName(AttributeData wrapAttribute)
     {
+        if (wrapAttribute == null)
+            return string.Empty;
+
         // 检查特性参数中是否有指定的Token管理接口名称
         var tokenManageArg = wrapAttribute.NamedArguments.FirstOrDefault(a => a.Key == "TokenManage");
         if (!string.IsNullOrEmpty(tokenManageArg.Value.Value?.ToString()))
@@ -266,21 +274,25 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     /// </summary>
     protected string GenerateMethodSignature(MethodAnalysisResult methodInfo, string methodName, IReadOnlyList<ParameterInfo> parameters, string accessibility = "public", bool includeAsync = true)
     {
+        if (methodInfo == null)
+            return string.Empty;
+
         var sb = new StringBuilder();
-        
+
+        sb.AppendLine($"    {GeneratedCodeAttribute}");
         // 添加访问修饰符和async关键字（如果需要）
         sb.Append($"    {accessibility}");
         if (includeAsync && methodInfo.IsAsyncMethod)
         {
             sb.Append(" async");
         }
-        
+
         sb.Append($" {methodInfo.ReturnType} {methodName}(");
-        
+
         // 生成参数列表
         var parameterList = GenerateParameterList(parameters);
         sb.Append($"{parameterList})");
-        
+
         return sb.ToString();
     }
 
@@ -289,7 +301,10 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     /// </summary>
     protected string GenerateBothMethodName(string originalMethodName, string prefix)
     {
-        if (originalMethodName.EndsWith("Async"))
+        if (string.IsNullOrEmpty(originalMethodName))
+            return string.Empty;
+
+        if (originalMethodName.EndsWith("Async", StringComparison.OrdinalIgnoreCase))
         {
             return originalMethodName.Insert(originalMethodName.Length - 5, prefix);
         }
@@ -304,6 +319,7 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     /// </summary>
     protected void GenerateTokenAcquisition(StringBuilder sb, string tokenManageInterfaceName, string tokenMethodName, IReadOnlyList<ParameterInfo> parameters)
     {
+        if (sb == null) return;
         // 检查是否有CancellationToken参数
         var cancellationTokenParameter = parameters.FirstOrDefault(p => p.Type.Contains("CancellationToken"));
         var hasCancellationToken = cancellationTokenParameter != null;
@@ -332,6 +348,7 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     /// </summary>
     protected void GenerateApiCall(StringBuilder sb, MethodAnalysisResult methodInfo, string interfaceName, string methodName, IReadOnlyList<ParameterInfo> originalParameters, IReadOnlyList<ParameterInfo> filteredParameters)
     {
+        if (sb == null || methodInfo == null) return;
         // 调用原始API方法
         if (methodInfo.IsAsyncMethod)
         {
@@ -353,6 +370,7 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     /// </summary>
     protected void GenerateExceptionHandling(StringBuilder sb, string methodName)
     {
+        if (sb == null) return;
         sb.AppendLine("        }");
         sb.AppendLine("        catch (Exception x)");
         sb.AppendLine("        {");
@@ -367,8 +385,9 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     /// </summary>
     protected string GenerateMethodBody(MethodAnalysisResult methodInfo, string interfaceName, string tokenManageInterfaceName, IReadOnlyList<ParameterInfo> originalParameters, IReadOnlyList<ParameterInfo> filteredParameters)
     {
+        if (methodInfo == null) return string.Empty;
         var sb = new StringBuilder();
-        
+
         // 获取Token - 根据 Token 类型调用不同的方法
         var tokenParameter = originalParameters.FirstOrDefault(p => HasAttribute(p, GeneratorConstants.TokenAttributeNames));
         var tokenMethodName = GetTokenMethodName(tokenParameter);
@@ -392,7 +411,7 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     /// <summary>
     /// 生成正确的参数调用列表，确保token参数替换掉原来标记了[Token]特性的参数位置
     /// </summary>
-    protected List<string> GenerateCorrectParameterCallList(IReadOnlyList<ParameterInfo> originalParameters, IReadOnlyList<ParameterInfo> filteredParameters, string tokenParameterName)
+    protected IReadOnlyList<string> GenerateCorrectParameterCallList(IReadOnlyList<ParameterInfo> originalParameters, IReadOnlyList<ParameterInfo> filteredParameters, string tokenParameterName)
     {
         var callParameters = new List<string>();
 
