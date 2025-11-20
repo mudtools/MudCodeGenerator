@@ -9,4 +9,9 @@ public abstract class ComWrapAttribute : Attribute
     /// COM对象所在的命名空间。
     /// </summary>
     public string ComNamespace { get; set; }
+
+    /// <summary>
+    /// COM对象类名
+    /// </summary>
+    public string ComClassName { get; set; }
 }

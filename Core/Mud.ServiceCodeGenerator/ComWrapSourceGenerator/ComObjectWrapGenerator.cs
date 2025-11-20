@@ -120,7 +120,8 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
     private void GenerateFields(StringBuilder sb, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
     {
         var comNamespace = GetComNamespace(interfaceDeclaration);
-        sb.AppendLine($"        private {comNamespace}.MailMergeField? _mailMergeField;");
+        var comClassName = GetComClassName(interfaceDeclaration);
+        sb.AppendLine($"        private {comNamespace}.{comClassName}? _comObject;");
         sb.AppendLine("        private bool _disposedValue;");
         sb.AppendLine();
     }
@@ -128,9 +129,10 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
     private void GenerateConstructor(StringBuilder sb, string className, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
     {
         var comNamespace = GetComNamespace(interfaceDeclaration);
-        sb.AppendLine($"        internal {className}({comNamespace}.MailMergeField mailMergeField)");
+        var comClassName = GetComClassName(interfaceDeclaration);
+        sb.AppendLine($"        internal {className}({comNamespace}.{comClassName} comObject)");
         sb.AppendLine("        {");
-        sb.AppendLine("            _mailMergeField = mailMergeField ?? throw new ArgumentNullException(nameof(mailMergeField));");
+        sb.AppendLine("            _comObject = comObject ?? throw new ArgumentNullException(nameof(comObject));");
         sb.AppendLine("            _disposedValue = false;");
         sb.AppendLine("        }");
         sb.AppendLine();
@@ -166,20 +168,20 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
         {
             GenerateEnumProperty(sb, propertySymbol, interfaceDeclaration, defaultValue);
         }
-        else if (propertySymbol.SetMethod == null && propertySymbol.GetMethod != null)
+        else         if (propertySymbol.SetMethod == null && propertySymbol.GetMethod != null)
         {
             // 只读属性
             if (propertyType == "IWordApplication?")
             {
-                sb.AppendLine($"        public {propertyType} {propertyName} => _mailMergeField != null ? new WordApplication(_mailMergeField.{propertyName}) : null;");
+                sb.AppendLine($"        public {propertyType} {propertyName} => _comObject != null ? new WordApplication(_comObject.{propertyName}) : null;");
             }
             else if (propertyType == "IWordRange?")
             {
-                sb.AppendLine($"        public {propertyType} {propertyName} => _mailMergeField?.{propertyName} != null ? new WordRange(_mailMergeField.{propertyName}) : null;");
+                sb.AppendLine($"        public {propertyType} {propertyName} => _comObject?.{propertyName} != null ? new WordRange(_comObject.{propertyName}) : null;");
             }
             else
             {
-                sb.AppendLine($"        public {propertyType} {propertyName} => _mailMergeField?.{propertyName};");
+                sb.AppendLine($"        public {propertyType} {propertyName} => _comObject?.{propertyName};");
             }
             sb.AppendLine();
         }
@@ -190,11 +192,11 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
             {
                 sb.AppendLine($"        public {propertyType} {propertyName}");
                 sb.AppendLine("        {");
-                sb.AppendLine($"            get => _mailMergeField?.{propertyName} ?? false;");
+                sb.AppendLine($"            get => _comObject?.{propertyName} ?? false;");
                 sb.AppendLine("            set");
                 sb.AppendLine("            {");
-                sb.AppendLine("                if (_mailMergeField != null)");
-                sb.AppendLine($"                    _mailMergeField.{propertyName} = value;");
+                sb.AppendLine("                if (_comObject != null)");
+                sb.AppendLine($"                    _comObject.{propertyName} = value;");
                 sb.AppendLine("            }");
                 sb.AppendLine("        }");
             }
@@ -202,11 +204,11 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
             {
                 sb.AppendLine($"        public {propertyType} {propertyName}");
                 sb.AppendLine("        {");
-                sb.AppendLine($"            get => _mailMergeField?.{propertyName};");
+                sb.AppendLine($"            get => _comObject?.{propertyName};");
                 sb.AppendLine("            set");
                 sb.AppendLine("            {");
-                sb.AppendLine("                if (_mailMergeField != null)");
-                sb.AppendLine($"                    _mailMergeField.{propertyName} = value;");
+                sb.AppendLine("                if (_comObject != null)");
+                sb.AppendLine($"                    _comObject.{propertyName} = value;");
                 sb.AppendLine("            }");
                 sb.AppendLine("        }");
             }
@@ -223,7 +225,7 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
         if (propertySymbol.SetMethod == null)
         {
             // 只读枚举属性
-            sb.AppendLine($"        public {propertyType} {propertyName} => _mailMergeField?.{propertyName}.EnumConvert({defaultValue}) ?? {defaultValue};");
+            sb.AppendLine($"        public {propertyType} {propertyName} => _comObject?.{propertyName}.EnumConvert({defaultValue}) ?? {defaultValue};");
             sb.AppendLine();
         }
         else
@@ -231,11 +233,11 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
             // 读写枚举属性
             sb.AppendLine($"        public {propertyType} {propertyName}");
             sb.AppendLine("        {");
-            sb.AppendLine($"            get => _mailMergeField?.{propertyName}.EnumConvert({defaultValue}) ?? {defaultValue};");
+            sb.AppendLine($"            get => _comObject?.{propertyName}.EnumConvert({defaultValue}) ?? {defaultValue};");
             sb.AppendLine("            set");
             sb.AppendLine("            {");
-            sb.AppendLine("                if (_mailMergeField != null)");
-            sb.AppendLine($"                    _mailMergeField.{propertyName} = value.EnumConvert({comNamespace}.WdFieldType.wdFieldEmpty);");
+            sb.AppendLine("                if (_comObject != null)");
+            sb.AppendLine($"                    _comObject.{propertyName} = value.EnumConvert({comNamespace}.WdFieldType.wdFieldEmpty);");
             sb.AppendLine("            }");
             sb.AppendLine("        }");
             sb.AppendLine();
@@ -273,8 +275,8 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
         // 对于带参数的方法，添加参数检查
         if (methodSymbol.Parameters.Length > 0)
         {
-            sb.AppendLine("            if (_mailMergeField == null)");
-            sb.AppendLine("                throw new ObjectDisposedException(nameof(_mailMergeField));");
+            sb.AppendLine("            if (_comObject == null)");
+            sb.AppendLine("                throw new ObjectDisposedException(nameof(_comObject));");
             sb.AppendLine();
         }
 
@@ -283,24 +285,24 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
 
         if (returnType == "void")
         {
-            sb.AppendLine($"                _mailMergeField?.{methodName}({string.Join(", ", methodSymbol.Parameters.Select(p => p.Name))});");
+            sb.AppendLine($"                _comObject?.{methodName}({string.Join(", ", methodSymbol.Parameters.Select(p => p.Name))});");
         }
         else if (returnType == "IWordRange?")
         {
-            sb.AppendLine($"                var comObj = _mailMergeField.{methodName}({string.Join(", ", methodSymbol.Parameters.Select(p => p.Name))});");
+            sb.AppendLine($"                var comObj = _comObject.{methodName}({string.Join(", ", methodSymbol.Parameters.Select(p => p.Name))});");
             sb.AppendLine("                if (comObj == null)");
             sb.AppendLine("                    return null;");
             sb.AppendLine("                return new WordRange(comObj);");
         }
         else
         {
-            sb.AppendLine($"                return _mailMergeField.{methodName}({string.Join(", ", methodSymbol.Parameters.Select(p => p.Name))});");
+            sb.AppendLine($"                return _comObject.{methodName}({string.Join(", ", methodSymbol.Parameters.Select(p => p.Name))});");
         }
 
         sb.AppendLine("            }");
         sb.AppendLine("            catch (Exception ex)");
         sb.AppendLine("            {");
-        sb.AppendLine($"                throw new InvalidOperationException(\"执行MailMergeField对象的{methodName}方法失败。\", ex);");
+        sb.AppendLine($"                throw new InvalidOperationException(\"执行COM对象的{methodName}方法失败。\", ex);");
         sb.AppendLine("            }");
         sb.AppendLine("        }");
         sb.AppendLine();
@@ -313,10 +315,10 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
         sb.AppendLine("        {");
         sb.AppendLine("            if (_disposedValue) return;");
         sb.AppendLine();
-        sb.AppendLine("            if (disposing && _mailMergeField != null)");
+        sb.AppendLine("            if (disposing && _comObject != null)");
         sb.AppendLine("            {");
-        sb.AppendLine("                Marshal.ReleaseComObject(_mailMergeField);");
-        sb.AppendLine("                _mailMergeField = null;");
+        sb.AppendLine("                Marshal.ReleaseComObject(_comObject);");
+        sb.AppendLine("                _comObject = null;");
         sb.AppendLine("            }");
         sb.AppendLine();
         sb.AppendLine("            _disposedValue = true;");
@@ -404,5 +406,38 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
         }
 
         return "UNKNOWN_NAMESPACE";
+    }
+
+    private string GetComClassName(InterfaceDeclarationSyntax interfaceDeclaration)
+    {
+        var comObjectWrapAttribute = interfaceDeclaration.AttributeLists
+            .SelectMany(al => al.Attributes)
+            .FirstOrDefault(attr => attr.Name.ToString() == "ComObjectWrap");
+
+        if (comObjectWrapAttribute != null)
+        {
+            var classNameArgument = comObjectWrapAttribute.ArgumentList?.Arguments
+                .FirstOrDefault(arg =>
+                    arg.NameEquals?.Name.Identifier.Text == "ComClassName" ||
+                    arg.Expression.ToString().Contains("ComClassName"));
+
+            if (classNameArgument != null)
+            {
+                var classNameValue = classNameArgument.Expression.ToString();
+                
+                // 处理 nameof() 表达式
+                if (classNameValue.StartsWith("nameof(",StringComparison.OrdinalIgnoreCase) && classNameValue.EndsWith(")",StringComparison.OrdinalIgnoreCase))
+                {
+                    // 提取 nameof() 中的参数，例如从 "nameof(Field)" 中提取 "Field"
+                    var nameofContent = classNameValue.Substring(7, classNameValue.Length - 8);
+                    return nameofContent.Trim();
+                }
+                
+                // 处理字符串字面量，移除引号
+                return classNameValue.Trim('"');
+            }
+        }
+
+        return "UNKNOWN_CLASS";
     }
 }

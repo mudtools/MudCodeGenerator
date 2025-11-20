@@ -2,6 +2,14 @@
 
 namespace MsWord;
 
+public class Field : IDisposable
+{
+    public void Dispose()
+    {
+        throw new NotImplementedException();
+    }
+}
+
 public class MailMergeField : IDisposable
 {
     public void Dispose()

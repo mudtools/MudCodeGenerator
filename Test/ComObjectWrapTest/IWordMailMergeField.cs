@@ -1,9 +1,21 @@
-﻿using Mud.Common.CodeGenerator;
+﻿using MsWord;
+using Mud.Common.CodeGenerator;
 
 namespace ComObjectWrapTest;
 
 
-[ComObjectWrap(ComNamespace = "MsWord")]
+[ComObjectWrap(ComNamespace = "MsWord", ComClassName = nameof(Field))]
+public interface IWordField : IDisposable
+{
+    IWordApplication? Application { get; }
+
+    object? Parent { get; }
+
+    bool locked { get; set; }
+}
+
+
+[ComObjectWrap(ComNamespace = "MsWord", ComClassName = "MailMergeField")]
 public interface IWordMailMergeField : IDisposable
 {
     IWordApplication? Application { get; }
