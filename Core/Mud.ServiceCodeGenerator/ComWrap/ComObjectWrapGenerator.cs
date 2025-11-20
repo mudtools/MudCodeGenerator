@@ -1,0 +1,613 @@
+using System.Collections.Immutable;
+using System.Text;
+
+namespace Mud.ServiceCodeGenerator.ComWrapSourceGenerator;
+
+/// <summary>
+/// COM对象包装源代码生成器
+/// </summary>
+/// <remarks>
+/// 为标记了ComObjectWrap特性的接口生成COM对象包装类，提供类型安全的COM对象访问
+/// </remarks>
+[Generator]
+public class ComObjectWrapGenerator : TransitiveCodeGenerator
+{
+    /// <inheritdoc/>
+    protected override System.Collections.ObjectModel.Collection<string> GetFileUsingNameSpaces()
+    {
+        return
+        [
+            "System",
+            "System.Runtime.InteropServices",
+            "Mud.Common.CodeGenerator.Extensions"
+        ];
+    }
+
+    /// <summary>
+    /// 获取COM对象包装特性名称数组
+    /// </summary>
+    /// <returns>特性名称数组</returns>
+    protected virtual string[] ComWrapAttributeNames() => ComWrapGeneratorConstants.ComObjectWrapAttributeNames;
+
+    /// <inheritdoc/>
+    public override void Initialize(IncrementalGeneratorInitializationContext context)
+    {
+        var interfaceDeclarations = GetClassDeclarationProvider<InterfaceDeclarationSyntax>(context, ComWrapAttributeNames());
+
+        var compilationAndInterfaces = context.CompilationProvider.Combine(interfaceDeclarations);
+
+        context.RegisterSourceOutput(compilationAndInterfaces,
+             (spc, source) => ExecuteGenerator(source.Left, source.Right!, spc));
+    }
+
+    /// <summary>
+    /// 执行源代码生成逻辑
+    /// </summary>
+    /// <param name="compilation">编译信息</param>
+    /// <param name="interfaces">接口声明数组</param>
+    /// <param name="context">源代码生成上下文</param>
+    protected void ExecuteGenerator(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context)
+    {
+        if (compilation == null) throw new ArgumentNullException(nameof(compilation));
+        if (interfaces == null) throw new ArgumentNullException(nameof(interfaces));
+
+        if (interfaces.IsDefaultOrEmpty)
+            if (interfaces.IsDefaultOrEmpty)
+                return;
+
+        foreach (var interfaceDeclaration in interfaces)
+        {
+            if (interfaceDeclaration is null)
+                continue;
+
+            var semanticModel = compilation.GetSemanticModel(interfaceDeclaration.SyntaxTree);
+            var interfaceSymbol = semanticModel.GetDeclaredSymbol(interfaceDeclaration);
+
+            if (interfaceSymbol is null)
+                continue;
+
+            var source = GenerateImplementationClass(interfaceDeclaration, interfaceSymbol);
+
+            if (!string.IsNullOrEmpty(source))
+            {
+                var hintName = $"{interfaceSymbol.Name}Impl.g.cs";
+                context.AddSource(hintName, source);
+            }
+        }
+    }
+
+    /// <summary>
+    /// 根据接口名称获取实现类名称
+    /// </summary>
+    /// <param name="interfaceName">接口名称</param>
+    /// <returns>实现类名称</returns>
+    /// <remarks>
+    /// 如果接口名称以"I"开头且第二个字符为大写，则移除"I"前缀；否则添加"Impl"后缀
+    /// </remarks>
+    protected string GetImplementationClassName(string interfaceName)
+    {
+        if (string.IsNullOrEmpty(interfaceName))
+            return "NullOrEmptyInterfaceName";
+
+        return interfaceName.StartsWith("I", StringComparison.Ordinal) && interfaceName.Length > 1 && char.IsUpper(interfaceName[1])
+            ? interfaceName.Substring(1)
+            : interfaceName + "Impl";
+    }
+
+    /// <summary>
+    /// 移除接口名前的"I"前缀
+    /// </summary>
+    /// <param name="interfaceTypeName">接口类型名</param>
+    /// <returns>去掉"I"前缀的类型名</returns>
+    private string RemoveInterfacePrefix(string interfaceTypeName)
+    {
+        if (string.IsNullOrEmpty(interfaceTypeName))
+            return interfaceTypeName;
+
+        // 处理可空类型，如 "IWordApplication?" → "WordApplication?"
+        if (interfaceTypeName.EndsWith("?"))
+        {
+            var nonNullType = interfaceTypeName.Substring(0, interfaceTypeName.Length - 1);
+            var className = RemoveInterfacePrefix(nonNullType);
+            return className + "?";
+        }
+
+        return interfaceTypeName.StartsWith("I", StringComparison.Ordinal) && interfaceTypeName.Length > 1 && char.IsUpper(interfaceTypeName[1])
+            ? interfaceTypeName.Substring(1)
+            : interfaceTypeName;
+    }
+
+    /// <summary>
+    /// 生成COM对象包装实现类
+    /// </summary>
+    /// <param name="interfaceDeclaration">接口声明语法</param>
+    /// <param name="interfaceSymbol">接口符号</param>
+    /// <returns>生成的源代码</returns>
+    protected string GenerateImplementationClass(InterfaceDeclarationSyntax interfaceDeclaration, INamedTypeSymbol interfaceSymbol)
+    {
+        if (interfaceDeclaration == null) throw new ArgumentNullException(nameof(interfaceDeclaration));
+        if (interfaceSymbol == null) throw new ArgumentNullException(nameof(interfaceSymbol));
+
+        var namespaceName = GetNamespaceName(interfaceDeclaration);
+        var interfaceName = interfaceSymbol.Name;
+        var className = GetImplementationClassName(interfaceName);
+
+        // 添加Imps命名空间
+        var impNamespace = $"{namespaceName}.Imps";
+
+        var sb = new StringBuilder();
+        GenerateFileHeader(sb);
+
+        sb.AppendLine();
+        sb.AppendLine($"namespace {impNamespace}");
+        sb.AppendLine("{");
+        sb.AppendLine($"    /// <summary>");
+        sb.AppendLine($"    /// {interfaceName} 的COM对象包装实现类");
+        sb.AppendLine($"    /// </summary>");
+        sb.AppendLine($"    {CompilerGeneratedAttribute}");
+        sb.AppendLine($"    {GeneratedCodeAttribute}");
+        sb.AppendLine($"    internal class {className} : {interfaceName}");
+        sb.AppendLine("    {");
+
+        // 生成字段
+        GenerateFields(sb, interfaceDeclaration);
+
+        // 生成构造函数
+        GenerateConstructor(sb, className, interfaceDeclaration);
+
+        // 生成属性
+        GenerateProperties(sb, interfaceSymbol, interfaceDeclaration);
+
+        // 生成方法
+        GenerateMethods(sb, interfaceSymbol, interfaceDeclaration);
+
+        // 生成IDisposable实现
+        GenerateIDisposableImplementation(sb, interfaceDeclaration);
+
+        sb.AppendLine("    }");
+        sb.AppendLine("}");
+
+        return sb.ToString();
+    }
+
+    #region Generate Implementation Members
+
+    /// <summary>
+    /// 生成私有字段
+    /// </summary>
+    /// <param name="sb">字符串构建器</param>
+    /// <param name="interfaceDeclaration">接口声明语法</param>
+    private void GenerateFields(StringBuilder sb, InterfaceDeclarationSyntax interfaceDeclaration)
+    {
+        var comNamespace = GetComNamespace(interfaceDeclaration);
+        var comClassName = GetComClassName(interfaceDeclaration);
+
+        sb.AppendLine($"        internal {comNamespace}.{comClassName}? {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)};");
+        sb.AppendLine("        private bool _disposedValue;");
+        sb.AppendLine();
+    }
+
+    /// <summary>
+    /// 生成构造函数
+    /// </summary>
+    /// <param name="sb">字符串构建器</param>
+    /// <param name="className">类名</param>
+    /// <param name="interfaceDeclaration">接口声明语法</param>
+    private void GenerateConstructor(StringBuilder sb, string className, InterfaceDeclarationSyntax interfaceDeclaration)
+    {
+        var comNamespace = GetComNamespace(interfaceDeclaration);
+        var comClassName = GetComClassName(interfaceDeclaration);
+        sb.AppendLine($"        internal {className}({comNamespace}.{comClassName} comObject)");
+        sb.AppendLine("        {");
+        sb.AppendLine($"            {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} = comObject ?? throw new ArgumentNullException(nameof(comObject));");
+        sb.AppendLine("            _disposedValue = false;");
+        sb.AppendLine("        }");
+        sb.AppendLine();
+    }
+
+    /// <summary>
+    /// 生成属性实现
+    /// </summary>
+    /// <param name="sb">字符串构建器</param>
+    /// <param name="interfaceSymbol">接口符号</param>
+    /// <param name="interfaceDeclaration">接口声明语法</param>
+    private void GenerateProperties(StringBuilder sb, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
+    {
+        sb.AppendLine("        #region 属性");
+        sb.AppendLine();
+
+        foreach (var member in interfaceSymbol.GetMembers())
+        {
+            if (member is IPropertySymbol propertySymbol && !ShouldIgnoreMember(member))
+            {
+                GenerateProperty(sb, propertySymbol, interfaceDeclaration);
+            }
+        }
+
+        sb.AppendLine("        #endregion");
+        sb.AppendLine();
+    }
+
+    /// <summary>
+    /// 生成单个属性实现
+    /// </summary>
+    /// <param name="sb">字符串构建器</param>
+    /// <param name="propertySymbol">属性符号</param>
+    /// <param name="interfaceDeclaration">接口声明语法</param>
+    private void GenerateProperty(StringBuilder sb, IPropertySymbol propertySymbol, InterfaceDeclarationSyntax interfaceDeclaration)
+    {
+        var propertyName = propertySymbol.Name;
+        var propertyType = propertySymbol.Type.ToDisplayString();
+        var isEnumType = IsEnumProperty(interfaceDeclaration, propertySymbol);
+        var isObjectType = IsObjectTypeProperty(interfaceDeclaration, propertySymbol);
+        var defaultValue = GetDefaultValue(interfaceDeclaration, propertySymbol);
+        var comClassName = GetComClassName(interfaceDeclaration);
+
+        if (isEnumType)
+        {
+            GenerateEnumProperty(sb, propertySymbol, interfaceDeclaration, defaultValue);
+        }
+        else if (propertySymbol.SetMethod == null && propertySymbol.GetMethod != null)
+        {
+            if (isObjectType)
+            {
+                var objectType = RemoveInterfacePrefix(propertyType);
+                sb.AppendLine($"        {GeneratedCodeAttribute}");
+                sb.AppendLine($"        public {propertyType} {propertyName} => {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName} != null ? new {objectType}({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName}) : null;");
+            }
+            else
+            {
+                sb.AppendLine($"        {GeneratedCodeAttribute}");
+                sb.AppendLine($"        public {propertyType} {propertyName} => {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName};");
+            }
+            sb.AppendLine();
+        }
+        else if (propertySymbol.SetMethod != null && propertySymbol.GetMethod != null)
+        {
+            // 读写属性
+            if (propertyType == "bool")
+            {
+                sb.AppendLine($"        {GeneratedCodeAttribute}");
+                sb.AppendLine($"        public {propertyType} {propertyName}");
+                sb.AppendLine("        {");
+                sb.AppendLine($"            get => {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName} ?? false;");
+                sb.AppendLine("            set");
+                sb.AppendLine("            {");
+                sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
+                sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value;");
+                sb.AppendLine("            }");
+                sb.AppendLine("        }");
+            }
+            else
+            {
+                sb.AppendLine($"        {GeneratedCodeAttribute}");
+                sb.AppendLine($"        public {propertyType} {propertyName}");
+                sb.AppendLine("        {");
+                sb.AppendLine($"            get => {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName};");
+                sb.AppendLine("            set");
+                sb.AppendLine("            {");
+                sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
+                sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value;");
+                sb.AppendLine("            }");
+                sb.AppendLine("        }");
+            }
+            sb.AppendLine();
+        }
+    }
+
+    /// <summary>
+    /// 生成枚举属性实现
+    /// </summary>
+    /// <param name="sb">字符串构建器</param>
+    /// <param name="propertySymbol">属性符号</param>
+    /// <param name="interfaceDeclaration">接口声明语法</param>
+    /// <param name="defaultValue">默认值</param>
+    private void GenerateEnumProperty(StringBuilder sb, IPropertySymbol propertySymbol, InterfaceDeclarationSyntax interfaceDeclaration, string defaultValue)
+    {
+        var propertyName = propertySymbol.Name;
+        var propertyType = propertySymbol.Type.ToDisplayString();
+        var comNamespace = GetComNamespace(interfaceDeclaration);
+        var comClassName = GetComClassName(interfaceDeclaration);
+
+        if (propertySymbol.SetMethod == null)
+        {
+            // 只读枚举属性
+            sb.AppendLine($"        {GeneratedCodeAttribute}");
+            sb.AppendLine($"        public {propertyType} {propertyName} => {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName}.EnumConvert({defaultValue}) ?? {defaultValue};");
+            sb.AppendLine();
+        }
+        else
+        {
+            // 读写枚举属性
+            sb.AppendLine($"        {GeneratedCodeAttribute}");
+            sb.AppendLine($"        public {propertyType} {propertyName}");
+            sb.AppendLine("        {");
+            sb.AppendLine($"            get => {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName}.EnumConvert({defaultValue}) ?? {defaultValue};");
+            sb.AppendLine("            set");
+            sb.AppendLine("            {");
+            sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
+            sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value.EnumConvert({comNamespace}.WdFieldType.wdFieldEmpty);");
+            sb.AppendLine("            }");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+        }
+    }
+
+    /// <summary>
+    /// 生成方法实现
+    /// </summary>
+    /// <param name="sb">字符串构建器</param>
+    /// <param name="interfaceSymbol">接口符号</param>
+    private void GenerateMethods(StringBuilder sb, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
+    {
+        sb.AppendLine("        #region 方法实现");
+        sb.AppendLine();
+
+        foreach (var member in interfaceSymbol.GetMembers())
+        {
+            if (member is IMethodSymbol methodSymbol &&
+                methodSymbol.MethodKind == MethodKind.Ordinary &&
+                !ShouldIgnoreMember(member))
+            {
+                GenerateMethod(sb, methodSymbol, interfaceDeclaration);
+            }
+        }
+
+        sb.AppendLine("        #endregion");
+        sb.AppendLine();
+    }
+
+    /// <summary>
+    /// 生成单个方法实现
+    /// </summary>
+    /// <param name="sb">字符串构建器</param>
+    /// <param name="methodSymbol">方法符号</param>
+    private void GenerateMethod(StringBuilder sb, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
+    {
+        var methodName = methodSymbol.Name;
+        var returnType = methodSymbol.ReturnType.ToDisplayString();
+        var parameters = string.Join(", ", methodSymbol.Parameters.Select(p => $"{p.Type.ToDisplayString()} {p.Name}"));
+        var comClassName = GetComClassName(interfaceDeclaration);
+
+        sb.AppendLine($"        {GeneratedCodeAttribute}");
+        sb.AppendLine($"        public {returnType} {methodName}({parameters})");
+        sb.AppendLine("        {");
+
+        // 对于带参数的方法，添加参数检查
+        if (methodSymbol.Parameters.Length > 0)
+        {
+            sb.AppendLine($"            if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} == null)");
+            sb.AppendLine($"                throw new ObjectDisposedException(nameof({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}));");
+            sb.AppendLine();
+        }
+
+        sb.AppendLine("            try");
+        sb.AppendLine("            {");
+
+        if (returnType == "void")
+        {
+            sb.AppendLine($"                {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{methodName}({string.Join(", ", methodSymbol.Parameters.Select(p => p.Name))});");
+        }
+        else if (returnType == "IWordRange?")
+        {
+            sb.AppendLine($"                var comObj = {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{methodName}({string.Join(", ", methodSymbol.Parameters.Select(p => p.Name))});");
+            sb.AppendLine("                if (comObj == null)");
+            sb.AppendLine("                    return null;");
+            sb.AppendLine("                return new WordRange(comObj);");
+        }
+        else
+        {
+            sb.AppendLine($"                return {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{methodName}({string.Join(", ", methodSymbol.Parameters.Select(p => p.Name))});");
+        }
+
+        sb.AppendLine("            }");
+        sb.AppendLine("            catch (Exception ex)");
+        sb.AppendLine("            {");
+        sb.AppendLine($"                throw new InvalidOperationException(\"执行COM对象的{methodName}方法失败。\", ex);");
+        sb.AppendLine("            }");
+        sb.AppendLine("        }");
+        sb.AppendLine();
+    }
+
+    /// <summary>
+    /// 生成IDisposable接口实现
+    /// </summary>
+    /// <param name="sb">字符串构建器</param>
+    private void GenerateIDisposableImplementation(StringBuilder sb, InterfaceDeclarationSyntax interfaceDeclaration)
+    {
+        var comClassName = GetComClassName(interfaceDeclaration);
+        sb.AppendLine("        #region IDisposable 实现");
+        sb.AppendLine($"        {GeneratedCodeAttribute}");
+        sb.AppendLine("        protected virtual void Dispose(bool disposing)");
+        sb.AppendLine("        {");
+        sb.AppendLine("            if (_disposedValue) return;");
+        sb.AppendLine();
+        sb.AppendLine($"            if (disposing && {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
+        sb.AppendLine("            {");
+        sb.AppendLine($"                Marshal.ReleaseComObject({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)});");
+        sb.AppendLine($"                {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} = null;");
+        sb.AppendLine("            }");
+        sb.AppendLine();
+        sb.AppendLine("            _disposedValue = true;");
+        sb.AppendLine("        }");
+        sb.AppendLine();
+        sb.AppendLine($"        {GeneratedCodeAttribute}");
+        sb.AppendLine("        public void Dispose()");
+        sb.AppendLine("        {");
+        sb.AppendLine("            Dispose(true);");
+        sb.AppendLine("            GC.SuppressFinalize(this);");
+        sb.AppendLine("        }");
+        sb.AppendLine("        #endregion");
+    }
+
+    #endregion
+
+    #region Helper Methods
+
+    /// <summary>
+    /// 检查成员是否应该被忽略
+    /// </summary>
+    /// <param name="member">成员符号</param>
+    /// <returns>如果应该忽略返回true，否则返回false</returns>
+    private bool ShouldIgnoreMember(ISymbol member)
+    {
+        return member.GetAttributes().Any(attr => attr.AttributeClass?.Name == ComWrapGeneratorConstants.IgnoreGeneratorAttribute);
+    }
+
+    /// <summary>
+    /// 检查属性是否为枚举类型属性
+    /// </summary>
+    /// <param name="interfaceDeclaration">接口声明语法</param>
+    /// <param name="propertySymbol">属性符号</param>
+    /// <returns>如果是枚举属性返回true，否则返回false</returns>
+    private bool IsEnumProperty(InterfaceDeclarationSyntax interfaceDeclaration, IPropertySymbol propertySymbol)
+    {
+        var propertyDeclaration = interfaceDeclaration.DescendantNodes()
+            .OfType<PropertyDeclarationSyntax>()
+            .FirstOrDefault(p => p.Identifier.Text == propertySymbol.Name);
+
+        if (propertyDeclaration != null)
+        {
+            return propertyDeclaration.AttributeLists
+                .SelectMany(al => al.Attributes)
+                .Any(attr => ComWrapGeneratorConstants.ComPropertyWrapAttributeNames.Contains(attr.Name.ToString()) &&
+                            attr.ArgumentList?.Arguments.Any(arg =>
+                                arg.Expression.ToString().Contains("PropertyType.EnumType") ||
+                                arg.NameEquals?.Name.Identifier.Text == "PropertyType" &&
+                                arg.Expression.ToString() == "PropertyType.EnumType") == true);
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 检查属性是否为对象类型属性
+    /// </summary>
+    /// <param name="interfaceDeclaration">接口声明语法</param>
+    /// <param name="propertySymbol">属性符号</param>
+    /// <returns>如果是对象类型属性返回true，否则返回false</returns>
+    private bool IsObjectTypeProperty(InterfaceDeclarationSyntax interfaceDeclaration, IPropertySymbol propertySymbol)
+    {
+        var propertyDeclaration = interfaceDeclaration.DescendantNodes()
+            .OfType<PropertyDeclarationSyntax>()
+            .FirstOrDefault(p => p.Identifier.Text == propertySymbol.Name);
+
+        if (propertyDeclaration != null)
+        {
+            return propertyDeclaration.AttributeLists
+                .SelectMany(al => al.Attributes)
+                .Any(attr => ComWrapGeneratorConstants.ComPropertyWrapAttributeNames.Contains(attr.Name.ToString()) &&
+                            attr.ArgumentList?.Arguments.Any(arg =>
+                                arg.Expression.ToString().Contains("PropertyType.ObjectType") ||
+                                (arg.NameEquals?.Name.Identifier.Text == "PropertyType" &&
+                                 arg.Expression.ToString() == "PropertyType.ObjectType")) == true);
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 获取属性的默认值
+    /// </summary>
+    /// <param name="interfaceDeclaration">接口声明语法</param>
+    /// <param name="propertySymbol">属性符号</param>
+    /// <returns>默认值字符串</returns>
+    private string GetDefaultValue(InterfaceDeclarationSyntax interfaceDeclaration, IPropertySymbol propertySymbol)
+    {
+        var propertyDeclaration = interfaceDeclaration.DescendantNodes()
+            .OfType<PropertyDeclarationSyntax>()
+            .FirstOrDefault(p => p.Identifier.Text == propertySymbol.Name);
+
+        if (propertyDeclaration != null)
+        {
+            var defaultValueArgument = propertyDeclaration.AttributeLists
+                .SelectMany(al => al.Attributes)
+                .Where(attr => ComWrapGeneratorConstants.ComPropertyWrapAttributeNames.Contains(attr.Name.ToString()))
+                .SelectMany(attr => attr.ArgumentList?.Arguments ?? Enumerable.Empty<AttributeArgumentSyntax>())
+                .FirstOrDefault(arg =>
+                    arg.NameEquals?.Name.Identifier.Text == "DefaultValue" ||
+                    arg.Expression.ToString().Contains("DefaultValue"));
+
+            if (defaultValueArgument != null)
+            {
+                // 移除引号
+                var defaultValue = defaultValueArgument.Expression.ToString();
+                return defaultValue.Trim('"');
+            }
+        }
+
+        return "default";
+    }
+
+    /// <summary>
+    /// 从ComObjectWrap特性中获取COM命名空间
+    /// </summary>
+    /// <param name="interfaceDeclaration">接口声明语法</param>
+    /// <returns>COM命名空间</returns>
+    private string GetComNamespace(InterfaceDeclarationSyntax interfaceDeclaration)
+    {
+        var comObjectWrapAttribute = interfaceDeclaration.AttributeLists
+            .SelectMany(al => al.Attributes)
+            .FirstOrDefault(attr => ComWrapGeneratorConstants.ComObjectWrapAttributeNames.Contains(attr.Name.ToString()));
+
+        if (comObjectWrapAttribute != null)
+        {
+            var namespaceArgument = comObjectWrapAttribute.ArgumentList?.Arguments
+                .FirstOrDefault(arg =>
+                    arg.NameEquals?.Name.Identifier.Text == "ComNamespace" ||
+                    arg.Expression.ToString().Contains("ComNamespace"));
+
+            if (namespaceArgument != null)
+            {
+                // 移除引号
+                var namespaceValue = namespaceArgument.Expression.ToString();
+                return namespaceValue.Trim('"');
+            }
+        }
+
+        return ComWrapGeneratorConstants.DefaultComNamespace;
+    }
+
+    /// <summary>
+    /// 从ComObjectWrap特性中获取COM类名
+    /// </summary>
+    /// <param name="interfaceDeclaration">接口声明语法</param>
+    /// <returns>COM类名</returns>
+    /// <remarks>
+    /// 支持字符串字面量和nameof()表达式两种形式
+    /// </remarks>
+    private string GetComClassName(InterfaceDeclarationSyntax interfaceDeclaration)
+    {
+        var comObjectWrapAttribute = interfaceDeclaration.AttributeLists
+            .SelectMany(al => al.Attributes)
+            .FirstOrDefault(attr => ComWrapGeneratorConstants.ComObjectWrapAttributeNames.Contains(attr.Name.ToString()));
+
+        if (comObjectWrapAttribute != null)
+        {
+            var classNameArgument = comObjectWrapAttribute.ArgumentList?.Arguments
+                .FirstOrDefault(arg =>
+                    arg.NameEquals?.Name.Identifier.Text == "ComClassName" ||
+                    arg.Expression.ToString().Contains("ComClassName"));
+
+            if (classNameArgument != null)
+            {
+                var classNameValue = classNameArgument.Expression.ToString();
+
+                // 处理 nameof() 表达式
+                if (classNameValue.StartsWith("nameof(", StringComparison.OrdinalIgnoreCase) && classNameValue.EndsWith(")", StringComparison.OrdinalIgnoreCase))
+                {
+                    // 提取 nameof() 中的参数，例如从 "nameof(Field)" 中提取 "Field"
+                    var nameofContent = classNameValue.Substring(7, classNameValue.Length - 8);
+                    return nameofContent.Trim();
+                }
+
+                // 处理字符串字面量，移除引号
+                return classNameValue.Trim('"');
+            }
+        }
+
+        return ComWrapGeneratorConstants.DefaultComClassName;
+    }
+
+    #endregion
+}

@@ -5,7 +5,7 @@ namespace ComObjectWrapTest;
 
 
 [ComObjectWrap(ComNamespace = "MsWord", ComClassName = nameof(Field))]
-public interface IWordField : IDisposable
+public partial interface IWordField : IDisposable
 {
     IWordApplication? Application { get; }
 
@@ -18,6 +18,7 @@ public interface IWordField : IDisposable
 [ComObjectWrap(ComNamespace = "MsWord", ComClassName = "MailMergeField")]
 public interface IWordMailMergeField : IDisposable
 {
+    [ComPropertyWrap(PropertyType = PropertyType.ObjectType)]
     IWordApplication? Application { get; }
 
     object? Parent { get; }
@@ -30,6 +31,7 @@ public interface IWordMailMergeField : IDisposable
     [ComPropertyWrap(PropertyType = PropertyType.EnumType, DefaultValue = "WdFieldType.wdFieldEmpty")]
     WdFieldType Test { get; }
 
+    [ComPropertyWrap(PropertyType = PropertyType.ObjectType)]
     IWordRange? Code { get; }
 
     void Delete();
