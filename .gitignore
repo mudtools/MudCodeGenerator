@@ -37,3 +37,7 @@
 /Test/CodeGeneratorConsoleTest/obj
 /bin/Release
 /Test/CodeGeneratorConsoleTest/bin/Release
+/Test/ComObjectWrapTest/obj
+/Test/ComObjectWrapTest/bin/Release
+/Test/ComWrapGeneratorTest/bin/Debug/net8.0
+/Test/ComWrapGeneratorTest/obj
