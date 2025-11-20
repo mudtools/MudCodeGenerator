@@ -35,3 +35,5 @@
 /Test/PublicPackageTest/bin/Release
 /Test/CodeGeneratorConsoleTest/bin/Debug
 /Test/CodeGeneratorConsoleTest/obj
+/bin/Release
+/Test/CodeGeneratorConsoleTest/bin/Release
