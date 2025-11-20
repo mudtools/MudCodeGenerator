@@ -4,10 +4,6 @@
 /// 指示封装的是一个普通的COM对象。
 /// </summary>
 [AttributeUsage(AttributeTargets.Interface, AllowMultiple = false, Inherited = false)]
-public class ComObjectWrapAttribute : Attribute
+public class ComObjectWrapAttribute : ComWrapAttribute
 {
-    /// <summary>
-    /// COM对象所在的命名空间。
-    /// </summary>
-    public string ComNamespace { get; set; }
 }

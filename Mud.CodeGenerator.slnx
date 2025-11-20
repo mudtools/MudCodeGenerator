@@ -8,6 +8,7 @@
     <Project Path="Test/CodeBaseTest/CodeBaseTest.csproj" />
     <Project Path="Test/CodeGeneratorConsoleTest/CodeGeneratorConsoleTest.csproj" Id="bede1808-8f1a-4dfe-83c1-416f7201fadb" />
     <Project Path="Test/CodeGeneratorTest/CodeGeneratorTest.csproj" />
+    <Project Path="Test/ComObjectWrapTest/ComObjectWrapTest.csproj" Id="3ca54799-3a37-4102-b7c9-a409550fcfd0" />
     <Project Path="Test/Mud.Common.CodeGenerator/Mud.Common.CodeGenerator.csproj" />
     <Project Path="Test/PublicPackageTest/PublicPackageTest.csproj" />
   </Folder>
