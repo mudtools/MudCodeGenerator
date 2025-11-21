@@ -6,5 +6,8 @@
 [AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false)]
 public sealed class FilePathAttribute : Attribute
 {
-
+    /// <summary>
+    /// 文件读取时的缓冲区大小。
+    /// </summary>
+    public int BufferSize { get; set; } = 81920;
 }

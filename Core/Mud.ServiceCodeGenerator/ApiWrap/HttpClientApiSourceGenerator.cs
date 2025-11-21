@@ -620,7 +620,12 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
             codeBuilder.AppendLine("                {");
             var cancellationTokenParam = GetCancellationTokenParam(methodInfo);
             var cancellationTokenArgForCopy = string.IsNullOrEmpty(cancellationTokenParam) ? "" : cancellationTokenParam;
-            codeBuilder.AppendLine($"                    await stream.CopyToAsync(fileStream{cancellationTokenArgForCopy});");
+            
+            // 从 FilePathAttribute 中读取 BufferSize 参数
+            var filePathAttr = filePathParam.Attributes.First(a => a.Name == GeneratorConstants.FilePathAttribute);
+            var bufferSize = GetBufferSizeFromAttribute(filePathAttr);
+            
+            codeBuilder.AppendLine($"                    await stream.CopyToAsync(fileStream, {bufferSize}{cancellationTokenArgForCopy});");
             codeBuilder.AppendLine("                }");
             
             // 对于有 FilePath 参数的方法，不返回任何值（void 或 Task）
@@ -738,5 +743,35 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
     {
         var cancellationTokenParam = methodInfo.Parameters.FirstOrDefault(p => p.Type.Contains("CancellationToken"));
         return cancellationTokenParam != null ? $", {cancellationTokenParam.Name}" : "";
+    }
+
+    /// <summary>
+    /// 从 FilePathAttribute 中获取 BufferSize 参数
+    /// </summary>
+    /// <param name="filePathAttr">FilePath特性</param>
+    /// <returns>缓冲区大小</returns>
+    private int GetBufferSizeFromAttribute(ParameterAttributeInfo filePathAttr)
+    {
+        // 首先检查命名参数
+        if (filePathAttr.NamedArguments.TryGetValue("BufferSize", out var bufferSizeValue))
+        {
+            if (int.TryParse(bufferSizeValue?.ToString(), out var bufferSize))
+            {
+                return bufferSize;
+            }
+        }
+
+        // 然后检查构造函数参数
+        if (filePathAttr.Arguments.Length > 0)
+        {
+            var firstArg = filePathAttr.Arguments[0];
+            if (int.TryParse(firstArg?.ToString(), out var bufferSize))
+            {
+                return bufferSize;
+            }
+        }
+
+        // 如果都没有设置，使用默认值 81920 (80KB)
+        return 81920;
     }
 }

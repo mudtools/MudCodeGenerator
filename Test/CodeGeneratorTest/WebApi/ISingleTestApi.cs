@@ -120,7 +120,7 @@ public interface ISingleTestApi
     /// 下载文件测试（带CancellationToken）
     /// </summary>
     [Get("/api/v1/file/download/cancel")]
-    Task DownloadLargeFileWithCancellationAsync([Token][Header("x-token")] string token, [Query("fileId")] string fileId, [FilePath] string filePath, CancellationToken cancellationToken = default);
+    Task DownloadLargeFileWithCancellationAsync([Token][Header("x-token")] string token, [Query("fileId")] string fileId, [FilePath(BufferSize = 40960)] string filePath, CancellationToken cancellationToken = default);
 
 }
 
