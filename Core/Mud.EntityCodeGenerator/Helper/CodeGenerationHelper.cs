@@ -1,6 +1,10 @@
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
+// -----------------------------------------------------------------------
+//  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
+//  Mud.CodeGenerator 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
+//  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
+//  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
+// -----------------------------------------------------------------------
+
 using System.Text;
 
 namespace Mud.EntityCodeGenerator.Helper;
@@ -31,23 +35,23 @@ public static class CodeGenerationHelper
         string summary = "")
     {
         var modifiers = new List<SyntaxToken> { SyntaxFactory.Token(SyntaxKind.PublicKeyword) };
-        
+
         if (isStatic)
             modifiers.Add(SyntaxFactory.Token(SyntaxKind.StaticKeyword));
 
         var parameterList = SyntaxFactory.ParameterList();
-        
+
         foreach (var (type, name, description) in parameters)
         {
             var parameter = SyntaxFactory.Parameter(SyntaxFactory.Identifier(name))
                 .WithType(SyntaxFactory.ParseTypeName(type));
-                
+
             if (isExtension && parameterList.Parameters.Count == 0)
             {
                 parameter = parameter.WithModifiers(
                     SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.ThisKeyword)));
             }
-            
+
             parameterList = parameterList.AddParameters(parameter);
         }
 
@@ -110,7 +114,7 @@ public static class CodeGenerationHelper
         List<string> baseTypes = null)
     {
         var modifiers = new List<SyntaxToken> { SyntaxFactory.Token(SyntaxKind.PublicKeyword) };
-        
+
         if (isStatic)
             modifiers.Add(SyntaxFactory.Token(SyntaxKind.StaticKeyword));
 
@@ -208,7 +212,7 @@ public static class CodeGenerationHelper
         sb.AppendLine($"/// <param name=\"{parameterName}\">输入的 <see cref=\"{sourceType}\"/> 实例。</param>");
         sb.AppendLine($"/// <param name=\"action\">映射后对目标实例执行的操作。</param>");
         sb.AppendLine($"/// <returns>映射后的 <see cref=\"{targetType}\"/> 实例。</returns>");
-        
+
         if (isExtension)
         {
             sb.AppendLine($"public static {targetType} {methodName}(this {sourceType} {parameterName}, Action<{targetType}>? action = null)");
@@ -217,7 +221,7 @@ public static class CodeGenerationHelper
         {
             sb.AppendLine($"public static {targetType} {methodName}(this {targetType} {parameterName}, {sourceType} source, Action<{targetType}>? action = null)");
         }
-        
+
         sb.AppendLine("{");
         sb.AppendLine($"    if({parameterName} == null) return null;");
         sb.AppendLine($"    var result = new {targetType}();");
