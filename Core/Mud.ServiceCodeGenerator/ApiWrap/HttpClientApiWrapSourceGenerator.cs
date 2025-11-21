@@ -356,10 +356,24 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     protected void GenerateApiCall(StringBuilder sb, MethodAnalysisResult methodInfo, string interfaceName, string methodName, IReadOnlyList<ParameterInfo> originalParameters, IReadOnlyList<ParameterInfo> filteredParameters)
     {
         if (sb == null || methodInfo == null) return;
+        
+        // 检查是否为文件下载场景（有FilePath参数）
+        var hasFilePathParam = originalParameters.Any(p => p.Attributes.Any(attr => attr.Name == GeneratorConstants.FilePathAttribute));
+        
         // 调用原始API方法
         if (methodInfo.IsAsyncMethod)
         {
-            sb.Append($"            return await {PrivateFieldNamingHelper.GeneratePrivateFieldName(interfaceName)}.{methodName}(");
+            // 对于异步方法，需要检查是否有返回值
+            if (hasFilePathParam || (methodInfo.AsyncInnerReturnType.Equals("void", StringComparison.OrdinalIgnoreCase)))
+            {
+                // 对于有FilePath参数或返回void的方法，不使用return
+                sb.Append($"            await {PrivateFieldNamingHelper.GeneratePrivateFieldName(interfaceName)}.{methodName}(");
+            }
+            else
+            {
+                // 对于有返回值的异步方法，使用return await
+                sb.Append($"            return await {PrivateFieldNamingHelper.GeneratePrivateFieldName(interfaceName)}.{methodName}(");
+            }
         }
         else
         {

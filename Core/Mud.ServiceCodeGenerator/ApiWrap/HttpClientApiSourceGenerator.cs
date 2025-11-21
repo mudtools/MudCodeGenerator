@@ -604,11 +604,38 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
 
     private void GenerateResponseProcessing(StringBuilder codeBuilder, MethodAnalysisResult methodInfo, string cancellationTokenArg)
     {
+        // 检查是否有 FilePath 参数，直接保存到文件
+        var filePathParam = methodInfo.Parameters.FirstOrDefault(p => p.Attributes.Any(attr => attr.Name == GeneratorConstants.FilePathAttribute));
+        var hasFilePathParam = filePathParam != null;
+
         // 检查是否为文件下载场景：异步方法且内部返回类型为 byte[]
         var isFileDownload = methodInfo.IsAsyncMethod && 
                              methodInfo.AsyncInnerReturnType.Equals("byte[]", StringComparison.OrdinalIgnoreCase);
 
-        if (isFileDownload)
+        if (hasFilePathParam)
+        {
+            // FilePath 参数场景：直接保存到指定路径
+            codeBuilder.AppendLine("                using (var stream = await response.Content.ReadAsStreamAsync())");
+            codeBuilder.AppendLine($"                using (var fileStream = File.Create({filePathParam.Name}))");
+            codeBuilder.AppendLine("                {");
+            var cancellationTokenParam = GetCancellationTokenParam(methodInfo);
+            var cancellationTokenArgForCopy = string.IsNullOrEmpty(cancellationTokenParam) ? "" : cancellationTokenParam;
+            codeBuilder.AppendLine($"                    await stream.CopyToAsync(fileStream{cancellationTokenArgForCopy});");
+            codeBuilder.AppendLine("                }");
+            
+            // 对于有 FilePath 参数的方法，不返回任何值（void 或 Task）
+            if (!methodInfo.IsAsyncMethod || (methodInfo.IsAsyncMethod && methodInfo.AsyncInnerReturnType.Equals("void", StringComparison.OrdinalIgnoreCase)))
+            {
+                codeBuilder.AppendLine("                return;");
+            }
+            else if (methodInfo.IsAsyncMethod && !string.IsNullOrEmpty(methodInfo.AsyncInnerReturnType) && !methodInfo.AsyncInnerReturnType.Equals("void", StringComparison.OrdinalIgnoreCase))
+            {
+                // 如果是异步方法且有非void返回类型，返回默认值
+                codeBuilder.AppendLine("                return default;");
+            }
+            // 对于 Task 类型的异步方法，不需要 return 语句
+        }
+        else if (isFileDownload)
         {
             // 文件下载场景：直接读取为字节数组
             codeBuilder.AppendLine("                byte[] fileBytes = await response.Content.ReadAsByteArrayAsync();");

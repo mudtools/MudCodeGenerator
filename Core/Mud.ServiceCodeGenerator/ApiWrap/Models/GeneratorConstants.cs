@@ -31,6 +31,7 @@ internal static class GeneratorConstants
     public const string ArrayQueryAttribute = "ArrayQueryAttribute";
     public const string HeaderAttribute = "HeaderAttribute";
     public const string BodyAttribute = "BodyAttribute";
+    public const string FilePathAttribute = "FilePathAttribute";
 
     // 默认值
     public const string DefaultTokenManageInterface = "ITokenManage";

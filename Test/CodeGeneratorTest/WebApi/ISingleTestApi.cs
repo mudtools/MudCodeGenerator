@@ -109,6 +109,19 @@ public interface ISingleTestApi
     /// </summary>
     [Get("/api/v1/file/download/cancel")]
     Task<byte[]> DownloadFileWithCancellationAsync([Token][Header("x-token")] string token, [Query("fileId")] string fileId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 下载文件测试
+    /// </summary>
+    [Get("/api/v1/file/download")]
+    Task DownloadLargeFileAsync([Token][Header("x-token")] string token, [Query("fileId")] string fileId, [FilePath] string filePath);
+
+    /// <summary>
+    /// 下载文件测试（带CancellationToken）
+    /// </summary>
+    [Get("/api/v1/file/download/cancel")]
+    Task DownloadLargeFileWithCancellationAsync([Token][Header("x-token")] string token, [Query("fileId")] string fileId, [FilePath] string filePath, CancellationToken cancellationToken = default);
+
 }
 
 
