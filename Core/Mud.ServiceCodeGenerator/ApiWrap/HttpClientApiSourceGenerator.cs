@@ -604,18 +604,32 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
 
     private void GenerateResponseProcessing(StringBuilder codeBuilder, MethodAnalysisResult methodInfo, string cancellationTokenArg)
     {
-        codeBuilder.AppendLine("                using var stream = await response.Content.ReadAsStreamAsync();");
-        codeBuilder.AppendLine();
-        codeBuilder.AppendLine("                if (stream.Length == 0)");
-        codeBuilder.AppendLine("                {");
-        codeBuilder.AppendLine("                    return default;");
-        codeBuilder.AppendLine("                }");
-        codeBuilder.AppendLine();
+        // 检查是否为文件下载场景：异步方法且内部返回类型为 byte[]
+        var isFileDownload = methodInfo.IsAsyncMethod && 
+                             methodInfo.AsyncInnerReturnType.Equals("byte[]", StringComparison.OrdinalIgnoreCase);
 
-        // 对于异步方法，使用内部返回类型；对于同步方法，使用完整返回类型
-        var deserializeType = methodInfo.IsAsyncMethod ? methodInfo.AsyncInnerReturnType : methodInfo.ReturnType;
-        codeBuilder.AppendLine($"                var result = await JsonSerializer.DeserializeAsync<{deserializeType}>(stream, _jsonSerializerOptions{cancellationTokenArg});");
-        codeBuilder.AppendLine("                return result;");
+        if (isFileDownload)
+        {
+            // 文件下载场景：直接读取为字节数组
+            codeBuilder.AppendLine("                byte[] fileBytes = await response.Content.ReadAsByteArrayAsync();");
+            codeBuilder.AppendLine("                return fileBytes;");
+        }
+        else
+        {
+            // 常规 JSON 反序列化场景
+            codeBuilder.AppendLine("                using var stream = await response.Content.ReadAsStreamAsync();");
+            codeBuilder.AppendLine();
+            codeBuilder.AppendLine("                if (stream.Length == 0)");
+            codeBuilder.AppendLine("                {");
+            codeBuilder.AppendLine("                    return default;");
+            codeBuilder.AppendLine("                }");
+            codeBuilder.AppendLine();
+
+            // 对于异步方法，使用内部返回类型；对于同步方法，使用完整返回类型
+            var deserializeType = methodInfo.IsAsyncMethod ? methodInfo.AsyncInnerReturnType : methodInfo.ReturnType;
+            codeBuilder.AppendLine($"                var result = await JsonSerializer.DeserializeAsync<{deserializeType}>(stream, _jsonSerializerOptions{cancellationTokenArg});");
+            codeBuilder.AppendLine("                return result;");
+        }
     }
 
     private void GenerateExceptionHandling(StringBuilder codeBuilder, MethodAnalysisResult methodInfo, string interfaceName)

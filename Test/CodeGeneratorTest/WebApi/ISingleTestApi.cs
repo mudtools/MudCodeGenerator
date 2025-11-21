@@ -97,6 +97,18 @@ public interface ISingleTestApi
     /// </summary>
     [Get("/api/v1/user/test/cancel")]
     Task<SysUserInfoOutput> GetUserTestWithCancellationAsync([Token(TokenType.Both)][Header("x-token")] string token, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 下载文件测试
+    /// </summary>
+    [Get("/api/v1/file/download")]
+    Task<byte[]> DownloadFileAsync([Token][Header("x-token")] string token, [Query("fileId")] string fileId);
+
+    /// <summary>
+    /// 下载文件测试（带CancellationToken）
+    /// </summary>
+    [Get("/api/v1/file/download/cancel")]
+    Task<byte[]> DownloadFileWithCancellationAsync([Token][Header("x-token")] string token, [Query("fileId")] string fileId, CancellationToken cancellationToken = default);
 }
 
 
