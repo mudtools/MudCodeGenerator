@@ -99,6 +99,7 @@ public class HttpClientRegistrationGenerator : WebApiSourceGenerator
             return null;
 
         var (baseUrl, timeout) = ExtractAttributeParameters(httpClientApiAttribute);
+        var registryGroupName = GetRegistryGroupNameFromAttribute(httpClientApiAttribute);
         var implementationName = GetImplementationClassName(interfaceSymbol.Name);
         var namespaceName = GetNamespaceName(interfaceSyntax);
 
@@ -107,7 +108,8 @@ public class HttpClientRegistrationGenerator : WebApiSourceGenerator
             implementationName,
             namespaceName,
             baseUrl,
-            timeout);
+            timeout,
+            registryGroupName);
     }
 
     private (string BaseUrl, int Timeout) ExtractAttributeParameters(AttributeData httpClientApiAttribute)
@@ -127,6 +129,10 @@ public class HttpClientRegistrationGenerator : WebApiSourceGenerator
         if (httpClientApiWrapAttribute == null)
             return null;
 
+        // 从原始的 HttpClientApi 特性中获取 RegistryGroupName
+        var httpClientApiAttribute = GetHttpClientApiAttribute(interfaceSymbol);
+        var registryGroupName = GetRegistryGroupNameFromAttribute(httpClientApiAttribute);
+        
         var (baseUrl, timeout) = ExtractAttributeParameters(httpClientApiWrapAttribute);
         var wrapInterfaceName = GetWrapInterfaceName(interfaceSymbol, httpClientApiWrapAttribute);
         var wrapClassName = GetWrapClassName(wrapInterfaceName);
@@ -138,7 +144,8 @@ public class HttpClientRegistrationGenerator : WebApiSourceGenerator
             wrapClassName,
             namespaceName,
             baseUrl,
-            timeout);
+            timeout,
+            registryGroupName);
     }
 
     private AttributeData? GetHttpClientApiWrapAttribute(INamedTypeSymbol interfaceSymbol)
@@ -191,23 +198,59 @@ public class HttpClientRegistrationGenerator : WebApiSourceGenerator
 
     private void GenerateAddWebApiHttpClientMethod(StringBuilder codeBuilder, List<HttpClientApiInfo> apis, List<HttpClientWrapApiInfo> wrapApis)
     {
-        codeBuilder.AppendLine("        /// <summary>");
-        codeBuilder.AppendLine("        /// 注册所有标记了 [HttpClientApi] 特性的接口及其 HttpClient 实现");
-        codeBuilder.AppendLine("        /// </summary>");
-        codeBuilder.AppendLine("        /// <param name=\"services\">服务集合</param>");
-        codeBuilder.AppendLine("        /// <returns>服务集合，用于链式调用</returns>");
-        codeBuilder.AppendLine($"        {CompilerGeneratedAttribute}");
-        codeBuilder.AppendLine($"        {GeneratedCodeAttribute}");
-        codeBuilder.AppendLine("        public static IServiceCollection AddWebApiHttpClient(this IServiceCollection services)");
-        codeBuilder.AppendLine("        {");
+        // 按RegistryGroupName分组APIs
+        var groupedApis = apis.Where(api => !string.IsNullOrEmpty(api.RegistryGroupName))
+                              .GroupBy(api => api.RegistryGroupName!)
+                              .ToList();
+        
+        // 未分组的APIs
+        var ungroupedApis = apis.Where(api => string.IsNullOrEmpty(api.RegistryGroupName)).ToList();
 
-        foreach (var api in apis)
+        // 生成默认注册函数（用于未分组的APIs）
+        if (ungroupedApis.Count > 0)
         {
-            GenerateHttpClientRegistration(codeBuilder, api);
+            codeBuilder.AppendLine("        /// <summary>");
+            codeBuilder.AppendLine("        /// 注册所有未分组的标记了 [HttpClientApi] 特性的接口及其 HttpClient 实现");
+            codeBuilder.AppendLine("        /// </summary>");
+            codeBuilder.AppendLine("        /// <param name=\"services\">服务集合</param>");
+            codeBuilder.AppendLine("        /// <returns>服务集合，用于链式调用</returns>");
+            codeBuilder.AppendLine($"        {CompilerGeneratedAttribute}");
+            codeBuilder.AppendLine($"        {GeneratedCodeAttribute}");
+            codeBuilder.AppendLine("        public static IServiceCollection AddWebApiHttpClient(this IServiceCollection services)");
+            codeBuilder.AppendLine("        {");
+
+            foreach (var api in ungroupedApis)
+            {
+                GenerateHttpClientRegistration(codeBuilder, api);
+            }
+
+            codeBuilder.AppendLine("            return services;");
+            codeBuilder.AppendLine("        }");
         }
 
-        codeBuilder.AppendLine("            return services;");
-        codeBuilder.AppendLine("        }");
+        // 生成分组注册函数
+        foreach (var group in groupedApis)
+        {
+            var groupName = group.Key;
+            codeBuilder.AppendLine();
+            codeBuilder.AppendLine("        /// <summary>");
+            codeBuilder.AppendLine($"        /// 注册所有标记了 [HttpClientApi] 特性且 RegistryGroupName = \"{groupName}\" 的接口及其 HttpClient 实现");
+            codeBuilder.AppendLine("        /// </summary>");
+            codeBuilder.AppendLine("        /// <param name=\"services\">服务集合</param>");
+            codeBuilder.AppendLine("        /// <returns>服务集合，用于链式调用</returns>");
+            codeBuilder.AppendLine($"        {CompilerGeneratedAttribute}");
+            codeBuilder.AppendLine($"        {GeneratedCodeAttribute}");
+            codeBuilder.AppendLine($"        public static IServiceCollection Add{groupName}WebApiHttpClient(this IServiceCollection services)");
+            codeBuilder.AppendLine("        {");
+
+            foreach (var api in group)
+            {
+                GenerateHttpClientRegistration(codeBuilder, api);
+            }
+
+            codeBuilder.AppendLine("            return services;");
+            codeBuilder.AppendLine("        }");
+        }
 
         // 生成独立的包装API注册函数
         if (wrapApis.Count > 0)
@@ -218,24 +261,60 @@ public class HttpClientRegistrationGenerator : WebApiSourceGenerator
 
     private void GenerateAddWebApiHttpClientWrapMethod(StringBuilder codeBuilder, List<HttpClientWrapApiInfo> wrapApis)
     {
-        codeBuilder.AppendLine();
-        codeBuilder.AppendLine("        /// <summary>");
-        codeBuilder.AppendLine("        /// 注册所有包装接口及其包装实现类的瞬时服务");
-        codeBuilder.AppendLine("        /// </summary>");
-        codeBuilder.AppendLine("        /// <param name=\"services\">服务集合</param>");
-        codeBuilder.AppendLine("        /// <returns>服务集合，用于链式调用</returns>");
-        codeBuilder.AppendLine($"        {CompilerGeneratedAttribute}");
-        codeBuilder.AppendLine($"        {GeneratedCodeAttribute}");
-        codeBuilder.AppendLine("        public static IServiceCollection AddWebApiHttpClientWrap(this IServiceCollection services)");
-        codeBuilder.AppendLine("        {");
+        // 按RegistryGroupName分组Wrap APIs
+        var groupedWrapApis = wrapApis.Where(api => !string.IsNullOrEmpty(api.RegistryGroupName))
+                                     .GroupBy(api => api.RegistryGroupName!)
+                                     .ToList();
+        
+        // 未分组的Wrap APIs
+        var ungroupedWrapApis = wrapApis.Where(api => string.IsNullOrEmpty(api.RegistryGroupName)).ToList();
 
-        foreach (var wrapApi in wrapApis)
+        // 生成默认包装注册函数（用于未分组的Wrap APIs）
+        if (ungroupedWrapApis.Count > 0)
         {
-            GenerateHttpClientWrapRegistration(codeBuilder, wrapApi);
+            codeBuilder.AppendLine();
+            codeBuilder.AppendLine("        /// <summary>");
+            codeBuilder.AppendLine("        /// 注册所有未分组的包装接口及其包装实现类的瞬时服务");
+            codeBuilder.AppendLine("        /// </summary>");
+            codeBuilder.AppendLine("        /// <param name=\"services\">服务集合</param>");
+            codeBuilder.AppendLine("        /// <returns>服务集合，用于链式调用</returns>");
+            codeBuilder.AppendLine($"        {CompilerGeneratedAttribute}");
+            codeBuilder.AppendLine($"        {GeneratedCodeAttribute}");
+            codeBuilder.AppendLine("        public static IServiceCollection AddWebApiHttpClientWrap(this IServiceCollection services)");
+            codeBuilder.AppendLine("        {");
+
+            foreach (var wrapApi in ungroupedWrapApis)
+            {
+                GenerateHttpClientWrapRegistration(codeBuilder, wrapApi);
+            }
+
+            codeBuilder.AppendLine("            return services;");
+            codeBuilder.AppendLine("        }");
         }
 
-        codeBuilder.AppendLine("            return services;");
-        codeBuilder.AppendLine("        }");
+        // 生成分组包装注册函数
+        foreach (var group in groupedWrapApis)
+        {
+            var groupName = group.Key;
+            codeBuilder.AppendLine();
+            codeBuilder.AppendLine("        /// <summary>");
+            codeBuilder.AppendLine($"        /// 注册所有 RegistryGroupName = \"{groupName}\" 的包装接口及其包装实现类的瞬时服务");
+            codeBuilder.AppendLine("        /// </summary>");
+            codeBuilder.AppendLine("        /// <param name=\"services\">服务集合</param>");
+            codeBuilder.AppendLine("        /// <returns>服务集合，用于链式调用</returns>");
+            codeBuilder.AppendLine($"        {CompilerGeneratedAttribute}");
+            codeBuilder.AppendLine($"        {GeneratedCodeAttribute}");
+            codeBuilder.AppendLine($"        public static IServiceCollection Add{groupName}WebApiHttpClientWrap(this IServiceCollection services)");
+            codeBuilder.AppendLine("        {");
+
+            foreach (var wrapApi in group)
+            {
+                GenerateHttpClientWrapRegistration(codeBuilder, wrapApi);
+            }
+
+            codeBuilder.AppendLine("            return services;");
+            codeBuilder.AppendLine("        }");
+        }
     }
 
     private void GenerateHttpClientRegistration(StringBuilder codeBuilder, HttpClientApiInfo api)

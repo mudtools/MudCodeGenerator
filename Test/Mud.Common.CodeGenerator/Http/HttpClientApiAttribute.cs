@@ -8,7 +8,7 @@
 /// 支持配置内容类型、超时时间和服务注册分组等选项。
 /// </remarks>
 [AttributeUsage(AttributeTargets.Interface, AllowMultiple = false)]
-internal class HttpClientApiAttribute : Attribute
+public class HttpClientApiAttribute : Attribute
 {
     /// <summary>
     /// 初始化 <see cref="HttpClientApiAttribute"/> 类的新实例
@@ -27,7 +27,6 @@ internal class HttpClientApiAttribute : Attribute
     /// <remarks>
     /// 设置基地址已被弃用，建议通过其他方式配置API端点
     /// </remarks>
-    [Obsolete("基地址配置方式已弃用，请使用其他配置方式", false)]
     public HttpClientApiAttribute(string baseAddress)
     {
         BaseAddress = baseAddress;

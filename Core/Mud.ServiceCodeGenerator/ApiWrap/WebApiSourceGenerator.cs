@@ -154,6 +154,17 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
     }
 
     /// <summary>
+    /// 从特性获取注册组名称
+    /// </summary>
+    protected string? GetRegistryGroupNameFromAttribute(AttributeData attribute)
+    {
+        if (attribute == null)
+            return null;
+        var registryGroupNameArg = attribute.NamedArguments.FirstOrDefault(a => a.Key == "RegistryGroupName");
+        return registryGroupNameArg.Value.Value?.ToString();
+    }
+
+    /// <summary>
     /// 从特性获取ContentType
     /// </summary>
     protected string GetContentTypeFromAttribute(AttributeData attribute)

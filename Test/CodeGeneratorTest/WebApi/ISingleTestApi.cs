@@ -7,7 +7,7 @@
 /// <para>1222</para>
 /// <para>54354</para>
 /// </remarks>
-[HttpClientApi("https://api.dingtalk.com", Timeout = 60, ContentType = "application/xml")]
+[HttpClientApi("https://api.dingtalk.com", Timeout = 60, RegistryGroupName = "Test", ContentType = "application/xml")]
 [HttpClientApiWrap(TokenManage = "ITokenManage", WrapInterface = nameof(ISingleUserTest))]
 public interface ISingleTestApi
 {

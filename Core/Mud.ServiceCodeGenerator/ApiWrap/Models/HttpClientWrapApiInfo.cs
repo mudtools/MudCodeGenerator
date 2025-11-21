@@ -5,7 +5,7 @@
 /// </summary>
 public sealed class HttpClientWrapApiInfo
 {
-    public HttpClientWrapApiInfo(string originalInterfaceName, string wrapInterfaceName, string wrapClassName, string namespaceName, string baseUrl, int timeout)
+    public HttpClientWrapApiInfo(string originalInterfaceName, string wrapInterfaceName, string wrapClassName, string namespaceName, string baseUrl, int timeout, string? registryGroupName = null)
     {
         OriginalInterfaceName = originalInterfaceName ?? throw new ArgumentNullException(nameof(originalInterfaceName));
         WrapInterfaceName = wrapInterfaceName ?? throw new ArgumentNullException(nameof(wrapInterfaceName));
@@ -13,6 +13,7 @@ public sealed class HttpClientWrapApiInfo
         Namespace = namespaceName ?? throw new ArgumentNullException(nameof(namespaceName));
         BaseUrl = baseUrl ?? throw new ArgumentNullException(nameof(baseUrl));
         Timeout = timeout;
+        RegistryGroupName = registryGroupName;
     }
 
     public string OriginalInterfaceName { get; }
@@ -21,4 +22,5 @@ public sealed class HttpClientWrapApiInfo
     public string Namespace { get; }
     public string BaseUrl { get; }
     public int Timeout { get; }
+    public string? RegistryGroupName { get; }
 }

@@ -5,7 +5,7 @@ namespace CodeGeneratorTest.WebApi;
 /// <summary>
 /// 钉钉用户接口
 /// </summary>
-[HttpClientApi("https://api.dingtalk.com", Timeout = 60, Group = "Dingtalk")]
+[HttpClientApi("https://api.dingtalk.com", Timeout = 60, RegistryGroupName = "Dingtalk")]
 [HttpClientApiWrap(TokenManage = "ITokenManage", WrapInterface = "IDingTalkUser")]
 public interface IDingTalkUserApi
 {
