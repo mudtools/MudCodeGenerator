@@ -15,6 +15,7 @@ Mud 代码生成器是一套基于 Roslyn 的源代码生成器，用于根据�
 
 2. **Mud.ServiceCodeGenerator** - 服务代码生成器，用于自动生成服务层相关代码
    - 服务类代码生成 - 根据实体类自动生成服务接口和服务实现类
+   - HttpClient API注册生成 - 自动为标记了 [HttpClientApi] 特性的接口生成依赖注入注册代码，支持按组注册
    - 依赖注入代码生成 - 自动为类生成构造函数注入代码，包括日志、缓存、用户管理等常用服务
 
 ### 模块概览
@@ -612,6 +613,145 @@ public partial class UserService
     // 只有_userRepository会被构造函数注入
 }
 ```
+
+### 4. HttpClient API注册生成
+
+Mud.ServiceCodeGenerator 还提供 HttpClient API 注册生成功能，可以自动为标记了 `[HttpClientApi]` 特性的接口生成依赖注入注册代码。
+
+#### 基本使用
+
+在接口上添加 `[HttpClientApi]` 特性：
+
+```CSharp
+[HttpClientApi("https://api.dingtalk.com", Timeout = 60)]
+public interface IDingtalkApi
+{
+    [HttpGet("user/get")]
+    Task<UserInfo> GetUserInfoAsync([FromQuery] string userId);
+}
+
+[HttpClientApi("https://api.wechat.com", Timeout = 30, RegistryGroupName = "Wechat")]
+public interface IWechatApi
+{
+    [HttpPost("message/send")]
+    Task SendTextMessageAsync([FromBody] TextMessageRequest request);
+}
+```
+
+编译后将自动生成扩展方法 `AddWebApiHttpClient()` 用于注册所有 HttpClient 服务：
+
+```CSharp
+// 在 Startup.cs 或 Program.cs 中注册服务
+public void ConfigureServices(IServiceCollection services)
+{
+    // 注册所有未分组的 HttpClient API
+    services.AddWebApiHttpClient();
+    
+    // 注册指定分组的 HttpClient API
+    services.AddWechatWebApiHttpClient();
+}
+```
+
+#### 按组注册功能
+
+通过 `RegistryGroupName` 参数可以将 API 按业务模块分组，生成独立的注册方法：
+
+```CSharp
+[HttpClientApi("https://api.dingtalk.com", Timeout = 60, RegistryGroupName = "Dingtalk")]
+public interface IDingtalkApi
+{
+    [HttpGet("user/get")]
+    Task<UserInfo> GetUserInfoAsync([FromQuery] string userId);
+}
+
+[HttpClientApi("https://oapi.dingtalk.com", Timeout = 60, RegistryGroupName = "Dingtalk")]
+public interface IDingtalkOAuthApi
+{
+    [HttpPost("oauth2/gettoken")]
+    Task<OAuthToken> GetTokenAsync([FromBody] OAuthRequest request);
+}
+
+[HttpClientApi("https://api.wechat.com", Timeout = 30, RegistryGroupName = "Wechat")]
+public interface IWechatApi
+{
+    [HttpPost("message/send")]
+    Task SendTextMessageAsync([FromBody] TextMessageRequest request);
+}
+```
+
+生成的注册方法：
+
+```CSharp
+// 注册所有钉钉相关 API
+public static IServiceCollection AddDingtalkWebApiHttpClient(this IServiceCollection services)
+{
+    services.AddHttpClient<IDingtalkApi, DingtalkApi>(client =>
+    {
+        client.BaseAddress = new Uri("https://api.dingtalk.com");
+        client.Timeout = TimeSpan.FromSeconds(60);
+    });
+    
+    services.AddHttpClient<IDingtalkOAuthApi, DingtalkOAuthApi>(client =>
+    {
+        client.BaseAddress = new Uri("https://oapi.dingtalk.com");
+        client.Timeout = TimeSpan.FromSeconds(60);
+    });
+    
+    return services;
+}
+
+// 注册所有微信相关 API
+public static IServiceCollection AddWechatWebApiHttpClient(this IServiceCollection services)
+{
+    services.AddHttpClient<IWechatApi, WechatApi>(client =>
+    {
+        client.BaseAddress = new Uri("https://api.wechat.com");
+        client.Timeout = TimeSpan.FromSeconds(30);
+    });
+    
+    return services;
+}
+
+// 注册未分组的 API
+public static IServiceCollection AddWebApiHttpClient(this IServiceCollection services)
+{
+    // 注册所有没有 RegistryGroupName 的 API
+    return services;
+}
+```
+
+#### 包装API支持
+
+对于标记了 `[HttpClientApiWrap]` 特性的接口，也会生成相应的包装注册方法：
+
+```CSharp
+[HttpClientApi("https://api.dingtalk.com", Timeout = 60, RegistryGroupName = "Dingtalk")]
+[HttpClientApiWrap(WrapInterface = "IDingtalkService")]
+public interface IDingtalkApi
+{
+    // API 方法
+}
+```
+
+将生成：
+- `AddDingtalkWebApiHttpClient()` - 注册原始 HttpClient API
+- `AddDingtalkWebApiHttpClientWrap()` - 注册包装接口服务
+
+#### HttpClientApi特性参数
+
+| 参数名 | 类型 | 必需 | 默认值 | 说明 |
+|--------|------|------|--------|------|
+| baseUrl | string | 是 | - | API 基础地址 |
+| Timeout | int | 否 | 100 | 请求超时时间（秒） |
+| RegistryGroupName | string | 否 | null | 注册分组名称 |
+| ContentType | string | 否 | application/json | 默认内容类型 |
+
+#### 使用场景
+
+1. **多业务模块隔离**：不同业务模块的 API 可以分别注册，提高代码组织性
+2. **按需加载**：可以根据需要只注册特定模块的 API 服务
+3. **环境配置**：不同环境可以注册不同的 API 分组
+4. **测试场景**：测试时可以只注册测试相关的 API，避免不必要的依赖
 
 ## 项目结构
 
