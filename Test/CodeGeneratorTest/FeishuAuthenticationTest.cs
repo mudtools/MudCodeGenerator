@@ -1,6 +1,5 @@
 ﻿using CodeGeneratorTest.WebApi;
 using Microsoft.Extensions.Logging;
-using System.Net.Http;
 using System.Text.Json;
 
 namespace CodeGeneratorTest;

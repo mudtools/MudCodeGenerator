@@ -563,7 +563,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
 
     private void GenerateRequestExecution(StringBuilder codeBuilder, MethodAnalysisResult methodInfo)
     {
-        var cancellationTokenArg = GetCancellationTokenParam(methodInfo);
+        var (cancellationTokenArg, _) = GetCancellationTokenParams(methodInfo);
         var interfaceName = GetImplementationClassName(methodInfo.InterfaceName);
 
         codeBuilder.AppendLine("            try");
@@ -595,9 +595,10 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
 
     private void GenerateErrorResponseHandling(StringBuilder codeBuilder, MethodAnalysisResult methodInfo, string interfaceName)
     {
+         var (_, cancellationTokenArgForRead) = GetCancellationTokenParams(methodInfo);
         codeBuilder.AppendLine($"                    On{StringExtensions.ConvertFunctionName(interfaceName, "Api", "RequestFail")}(response, url);");
         codeBuilder.AppendLine($"                    On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "Fail")}(response, url);");
-        codeBuilder.AppendLine("                    var errorContent = await response.Content.ReadAsStringAsync();");
+        codeBuilder.AppendLine($"                    var errorContent = await response.Content.ReadAsStringAsync({cancellationTokenArgForRead});");
         codeBuilder.AppendLine("                    _logger.LogError(\"HTTP请求失败: {StatusCode}, 响应: {Response}\", (int)response.StatusCode, errorContent);");
         codeBuilder.AppendLine("                    throw new HttpRequestException($\"HTTP请求失败: {(int)response.StatusCode}\");");
     }
@@ -609,25 +610,24 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         var hasFilePathParam = filePathParam != null;
 
         // 检查是否为文件下载场景：异步方法且内部返回类型为 byte[]
-        var isFileDownload = methodInfo.IsAsyncMethod && 
+        var isFileDownload = methodInfo.IsAsyncMethod &&
                              methodInfo.AsyncInnerReturnType.Equals("byte[]", StringComparison.OrdinalIgnoreCase);
-
+        var (cancellationTokenArgForCopy, cancellationTokenArgForRead) = GetCancellationTokenParams(methodInfo);
         if (hasFilePathParam)
         {
+          
             // FilePath 参数场景：直接保存到指定路径
-            codeBuilder.AppendLine("                using (var stream = await response.Content.ReadAsStreamAsync())");
+            codeBuilder.AppendLine($"                using (var stream = await response.Content.ReadAsStreamAsync({cancellationTokenArgForRead}))");
             codeBuilder.AppendLine($"                using (var fileStream = File.Create({filePathParam.Name}))");
             codeBuilder.AppendLine("                {");
-            var cancellationTokenParam = GetCancellationTokenParam(methodInfo);
-            var cancellationTokenArgForCopy = string.IsNullOrEmpty(cancellationTokenParam) ? "" : cancellationTokenParam;
-            
+
             // 从 FilePathAttribute 中读取 BufferSize 参数
             var filePathAttr = filePathParam.Attributes.First(a => a.Name == GeneratorConstants.FilePathAttribute);
             var bufferSize = GetBufferSizeFromAttribute(filePathAttr);
-            
+
             codeBuilder.AppendLine($"                    await stream.CopyToAsync(fileStream, {bufferSize}{cancellationTokenArgForCopy});");
             codeBuilder.AppendLine("                }");
-            
+
             // 对于有 FilePath 参数的方法，不返回任何值（void 或 Task）
             if (!methodInfo.IsAsyncMethod || (methodInfo.IsAsyncMethod && methodInfo.AsyncInnerReturnType.Equals("void", StringComparison.OrdinalIgnoreCase)))
             {
@@ -643,13 +643,13 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         else if (isFileDownload)
         {
             // 文件下载场景：直接读取为字节数组
-            codeBuilder.AppendLine("                byte[] fileBytes = await response.Content.ReadAsByteArrayAsync();");
+            codeBuilder.AppendLine($"                byte[] fileBytes = await response.Content.ReadAsByteArrayAsync({cancellationTokenArgForRead});");
             codeBuilder.AppendLine("                return fileBytes;");
         }
         else
         {
             // 常规 JSON 反序列化场景
-            codeBuilder.AppendLine("                using var stream = await response.Content.ReadAsStreamAsync();");
+            codeBuilder.AppendLine($"                using var stream = await response.Content.ReadAsStreamAsync({cancellationTokenArgForRead});");
             codeBuilder.AppendLine();
             codeBuilder.AppendLine("                if (stream.Length == 0)");
             codeBuilder.AppendLine("                {");
@@ -739,11 +739,16 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
             : null;
     }
 
-    private string GetCancellationTokenParam(MethodAnalysisResult methodInfo)
+    private (string withComma, string withoutComma) GetCancellationTokenParams(MethodAnalysisResult methodInfo)
     {
         var cancellationTokenParam = methodInfo.Parameters.FirstOrDefault(p => p.Type.Contains("CancellationToken"));
-        return cancellationTokenParam != null ? $", {cancellationTokenParam.Name}" : "";
-    }
+        var paramValue = cancellationTokenParam?.Name;
+        
+        return (
+            withComma: paramValue != null ? $", {paramValue}" : "",
+            withoutComma: paramValue ?? ""
+        );
+    }  
 
     /// <summary>
     /// 从 FilePathAttribute 中获取 BufferSize 参数
