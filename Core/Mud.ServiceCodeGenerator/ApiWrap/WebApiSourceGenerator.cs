@@ -401,10 +401,17 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
 
         var parameters = methodSymbol.Parameters.Select(p =>
         {
+            // 创建一个包含可空类型符号的显示格式
+            var parameterFormat = new SymbolDisplayFormat(
+                typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
+                genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
+                miscellaneousOptions: SymbolDisplayMiscellaneousOptions.UseSpecialTypes | SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+            );
+
             var parameterInfo = new ParameterInfo
             {
                 Name = p.Name,
-                Type = p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                Type = p.Type.ToDisplayString(parameterFormat),
                 Attributes = p.GetAttributes().Select(attr => new ParameterAttributeInfo
                 {
                     Name = attr.AttributeClass?.Name ?? "",
