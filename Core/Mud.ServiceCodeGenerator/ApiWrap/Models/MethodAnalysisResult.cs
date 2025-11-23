@@ -62,6 +62,16 @@ public class MethodAnalysisResult
     public IReadOnlyList<ParameterInfo> Parameters { get; set; } = [];
 
     /// <summary>
+    /// 是否忽略生成实现 [IgnoreImplement]
+    /// </summary>
+    public bool IgnoreImplement { get; set; }
+
+    /// <summary>
+    /// 是否忽略生成包装接口 [IgnoreWrapInterface]
+    /// </summary>
+    public bool IgnoreWrapInterface { get; set; }
+
+    /// <summary>
     /// 无效的分析结果实例
     /// </summary>
     public static MethodAnalysisResult Invalid => new() { IsValid = false };

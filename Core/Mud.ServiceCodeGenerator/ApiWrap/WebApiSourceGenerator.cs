@@ -288,6 +288,18 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
     }
 
     /// <summary>
+    /// 检查方法是否具有指定的特性
+    /// </summary>
+    protected bool HasMethodAttribute(IMethodSymbol methodSymbol, params string[] attributeNames)
+    {
+        if (methodSymbol == null)
+            return false;
+        
+        return methodSymbol.GetAttributes()
+            .Any(attr => attributeNames.Contains(attr.AttributeClass?.Name));
+    }
+
+    /// <summary>
     /// 生成方法参数列表字符串
     /// </summary>
     protected string GenerateParameterList(IReadOnlyList<ParameterInfo> parameters)
@@ -368,7 +380,9 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
             ReturnType = GetReturnTypeDisplayString(methodSymbol.ReturnType),
             AsyncInnerReturnType = GetAsyncInnerReturnType(methodSymbol.ReturnType),
             IsAsyncMethod = IsAsyncReturnType(methodSymbol.ReturnType),
-            Parameters = parameters
+            Parameters = parameters,
+            IgnoreImplement = HasMethodAttribute(methodSymbol, GeneratorConstants.IgnoreImplementAttributeNames),
+            IgnoreWrapInterface = HasMethodAttribute(methodSymbol, GeneratorConstants.IgnoreWrapInterfaceAttributeNames)
         };
     }
 

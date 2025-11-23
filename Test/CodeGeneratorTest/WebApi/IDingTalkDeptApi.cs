@@ -1,13 +1,13 @@
 ﻿namespace CodeGeneratorTest.WebApi;
 
 [HttpClientApi("https://api.dingtalk.com", Timeout = 60, RegistryGroupName = "Dingtalk")]
-[HttpClientApiWrap(TokenManage = "ITokenManage")]
+[HttpClientApiWrap(TokenManage = "ITokenManage", WrapInterface = nameof(DingTalkDept))]
 public interface IDingTalkDeptApi
 {
     [Get("/api/v2/dept/{id}")]
     [IgnoreImplement]
     [IgnoreWrapInterface]
-    Task<SysDeptInfoOutput> GetDeptAsync([Token(TokenType.TenantAccessToken)][Header("X-API-Key")] string apiKey, [Path] string id);
+    Task<SysDeptInfoOutput> GetDeptXXXAsync([Token(TokenType.TenantAccessToken)][Header("X-API-Key")] string apiKey, [Path] string id);
 
     [Get("/api/v2/dept/{id}")]
     Task<SysDeptInfoOutput> GetDeptAsync([Token(TokenType = TokenType.UserAccessToken)][Header("X-API-Key")] string apiKey, [Query] string tid, [Path] int id);

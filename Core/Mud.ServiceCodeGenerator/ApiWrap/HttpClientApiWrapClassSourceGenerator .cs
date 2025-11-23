@@ -96,6 +96,10 @@ public class HttpClientApiWrapClassSourceGenerator : HttpClientApiWrapSourceGene
         if (methodInfo == null || methodSyntax == null)
             return string.Empty;
 
+        // 检查是否忽略生成包装接口
+        if (methodInfo.IgnoreWrapInterface)
+            return string.Empty;
+
         // 检查是否有TokenType.Both的Token参数
         var bothTokenParameter = methodInfo.Parameters.FirstOrDefault(p =>
             HasAttribute(p, GeneratorConstants.TokenAttributeNames) &&

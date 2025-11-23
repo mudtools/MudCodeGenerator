@@ -225,6 +225,9 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
     {
         var methodInfo = AnalyzeMethod(compilation, methodSymbol, interfaceDecl);
         if (!methodInfo.IsValid) return;
+        
+        // 检查是否忽略生成实现
+        if (methodInfo.IgnoreImplement) return;
 
         codeBuilder.AppendLine();
         codeBuilder.AppendLine($"        /// <summary>");

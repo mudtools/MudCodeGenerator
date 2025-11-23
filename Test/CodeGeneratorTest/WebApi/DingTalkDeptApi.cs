@@ -1,8 +1,6 @@
-﻿using System.Net.Http;
+﻿namespace CodeGeneratorTest.WebApi;
 
-namespace CodeGeneratorTest.WebApi;
-
-partial class DingTalkDeptApi
+partial class DingTalkDeptApi : IDingTalkDeptApi
 {
     partial void OnCreateDeptBefore(HttpRequestMessage request, string url)
     {
@@ -21,5 +19,10 @@ partial class DingTalkDeptApi
             // Log error or throw custom exception
             throw new HttpRequestException($"Request to {url} failed with status code {response.StatusCode}");
         }
+    }
+
+    public async Task<SysDeptInfoOutput> GetDeptXXXAsync([Token(TokenType.TenantAccessToken)][Header("X-API-Key")] string apiKey, [Path] string id)
+    {
+        return null;
     }
 }
