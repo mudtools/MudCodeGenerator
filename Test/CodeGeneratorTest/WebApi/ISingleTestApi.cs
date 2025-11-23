@@ -18,7 +18,7 @@ public interface ISingleTestApi
     /// <param name="birthday">生日</param>
     /// <returns></returns>
     [Get("/api/v1/user/{birthday}")]
-    Task<SysUserInfoOutput> GetUserAsync([Token(TokenType = TokenType.Both)][Header("x-token")] string token, [Path("yyyy-MM-dd")] DateTime birthday);
+    Task<SysUserInfoOutput?> GetUserAsync([Token(TokenType = TokenType.Both)][Header("x-token")] string token, [Path("yyyy-MM-dd")] DateTime birthday);
 
     /// <summary>
     /// 以下接口生成的url需要将birthday格式化处理：birthday.ToString("yyyy-MM-dd")
@@ -27,7 +27,7 @@ public interface ISingleTestApi
     /// <param name="birthday"></param>
     /// <returns></returns>
     [Get("/api/v1/user/{birthday}")]
-    Task<SysUserInfoOutput> GetUser1Async([Token][Header("x-token")] string token, [Path(FormatString = "yyyy-MM-dd")] DateTime birthday);
+    Task<SysUserInfoOutput?> GetUser1Async([Token][Header("x-token")] string token, [Path(FormatString = "yyyy-MM-dd")] DateTime birthday);
 
     /// <summary>
     /// 以下接口生成的url为：/api/v1/user?idKey=id值
@@ -56,7 +56,7 @@ public interface ISingleTestApi
     /// <param name="id"></param>
     /// <returns></returns>
     [Get("/api/v1/user")]
-    Task<SysUserInfoOutput> GetUser3Async([Token][Header("x-token")] string token, [Query(Name = "idKey")] string id);
+    Task<SysUserInfoOutput?> GetUser3Async([Token][Header("x-token")] string token, [Query(Name = "idKey")] string id);
 
 
     /// <summary>

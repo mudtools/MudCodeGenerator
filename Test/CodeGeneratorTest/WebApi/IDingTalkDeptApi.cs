@@ -5,6 +5,8 @@
 public interface IDingTalkDeptApi
 {
     [Get("/api/v2/dept/{id}")]
+    [IgnoreImplement]
+    [IgnoreWrapInterface]
     Task<SysDeptInfoOutput> GetDeptAsync([Token(TokenType.TenantAccessToken)][Header("X-API-Key")] string apiKey, [Path] string id);
 
     [Get("/api/v2/dept/{id}")]

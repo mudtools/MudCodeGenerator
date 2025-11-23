@@ -401,8 +401,14 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
 
     private string GetReturnTypeDisplayString(ITypeSymbol returnType)
     {
-        // 返回完整的原始返回类型
-        return returnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        // 创建一个包含可空类型符号的显示格式
+        var format = new SymbolDisplayFormat(
+            typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
+            genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
+            miscellaneousOptions: SymbolDisplayMiscellaneousOptions.UseSpecialTypes | SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+        );
+        
+        return returnType.ToDisplayString(format);
     }
 
     /// <summary>
@@ -410,6 +416,13 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
     /// </summary>
     private string GetAsyncInnerReturnType(ITypeSymbol returnType)
     {
+        // 创建一个包含可空类型符号的显示格式
+        var format = new SymbolDisplayFormat(
+            typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
+            genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
+            miscellaneousOptions: SymbolDisplayMiscellaneousOptions.UseSpecialTypes | SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+        );
+        
         if (returnType is INamedTypeSymbol namedType && namedType.IsGenericType)
         {
             if (namedType.Name == "Task" && namedType.TypeArguments.Length == 1)
@@ -418,8 +431,8 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
                 return genericType is INamedTypeSymbol genericNamedType &&
                        genericNamedType.IsGenericType &&
                        genericNamedType.Name == "Nullable"
-                    ? $"{genericNamedType.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}?"
-                    : genericType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                    ? $"{genericNamedType.TypeArguments[0].ToDisplayString(format)}?"
+                    : genericType.ToDisplayString(format);
             }
         }
 
@@ -431,7 +444,7 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
             return "void";
         }
 
-        return returnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        return returnType.ToDisplayString(format);
     }
 
     /// <summary>

@@ -17,6 +17,8 @@ public class HttpClientApiWrapClassSourceGenerator : HttpClientApiWrapSourceGene
 {
     protected override void GenerateWrapCode(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl, INamedTypeSymbol interfaceSymbol, AttributeData wrapAttribute, SourceProductionContext context)
     {
+        if (interfaceDecl == null || interfaceSymbol == null )
+            return;
         // 生成包装实现类代码
         var wrapImplementationCode = GenerateWrapImplementation(compilation, interfaceDecl, interfaceSymbol, wrapAttribute);
         if (!string.IsNullOrEmpty(wrapImplementationCode))
