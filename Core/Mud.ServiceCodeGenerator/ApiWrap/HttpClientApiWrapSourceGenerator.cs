@@ -10,16 +10,13 @@ using System.Text;
 
 namespace Mud.ServiceCodeGenerator.ApiSourceGenerator;
 
-
 /// <summary>
 /// HttpClientApiWrap 源代码生成器
 /// 为标记有HttpClientApiWrap特性的接口生成二次包装实现类
 /// </summary>
 public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
 {
-
     protected override string[] ApiWrapAttributeNames() => GeneratorConstants.HttpClientApiWrapAttributeNames;
-
 
     /// <summary>
     /// 更新Execute方法以使用验证
@@ -62,7 +59,6 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
             .FirstOrDefault(a => GeneratorConstants.HttpClientApiWrapAttributeNames.Contains(a.AttributeClass?.Name));
     }
 
-
     /// <summary>
     /// 生成文件头部（命名空间和头部注释）
     /// </summary>
@@ -96,7 +92,6 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
         sb.AppendLine($"{(isInterface ? "public partial interface" : "internal partial class")} {typeName}{parentName}");
         sb.AppendLine("{");
     }
-
 
     /// <summary>
     /// 根据 Token 类型获取对应的方法名
@@ -134,6 +129,10 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
             if (!methodInfo.IsValid)
                 continue;
 
+            // 检查是否忽略生成包装接口
+            if (methodInfo.IgnoreWrapInterface)
+                continue;
+
             // 使用更精确的方法查找，确保正确处理重载方法
             var methodSyntax = FindMethodSyntax(compilation, methodSymbol, interfaceDecl);
             if (methodSyntax != null)
@@ -150,6 +149,116 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
 
     protected abstract string GenerateWrapMethod(MethodAnalysisResult methodInfo, MethodDeclarationSyntax methodSyntax, string interfaceName, string tokenManageInterfaceName);
 
+    /// <summary>
+    /// 生成包装方法的通用逻辑
+    /// </summary>
+    protected string GenerateWrapMethodCommon(MethodAnalysisResult methodInfo, MethodDeclarationSyntax methodSyntax, string interfaceName, string tokenManageInterfaceName, bool isInterface)
+    {
+        if (methodInfo == null || methodSyntax == null)
+            return string.Empty;
+
+        // 检查是否有TokenType.Both的Token参数
+        var bothTokenParameter = methodInfo.Parameters.FirstOrDefault(p =>
+            HasAttribute(p, GeneratorConstants.TokenAttributeNames) &&
+            p.TokenType.Equals("Both", StringComparison.OrdinalIgnoreCase));
+
+        if (bothTokenParameter != null)
+        {
+            // 为Both类型生成两个方法
+            var tenantMethod = GenerateBothWrapMethod(methodInfo, methodSyntax, interfaceName, tokenManageInterfaceName, "_Tenant_", "GetTenantAccessTokenAsync", isInterface);
+            var userMethod = GenerateBothWrapMethod(methodInfo, methodSyntax, interfaceName, tokenManageInterfaceName, "_User_", "GetUserAccessTokenAsync", isInterface);
+
+            return $"{tenantMethod}\r\n\r\n{userMethod}";
+        }
+        else
+        {
+            return GenerateSingleWrapMethod(methodInfo, methodSyntax, interfaceName, tokenManageInterfaceName, isInterface);
+        }
+    }
+
+    /// <summary>
+    /// 生成单个包装方法
+    /// </summary>
+    private string GenerateSingleWrapMethod(MethodAnalysisResult methodInfo, MethodDeclarationSyntax methodSyntax, string interfaceName, string tokenManageInterfaceName, bool isInterface)
+    {
+        var sb = new StringBuilder();
+
+        // 添加方法注释
+        var methodDoc = GetMethodXmlDocumentation(methodSyntax, methodInfo);
+        if (!string.IsNullOrEmpty(methodDoc))
+        {
+            sb.AppendLine(methodDoc);
+        }
+
+        // 过滤掉标记了[Token]特性的参数，保留其他所有参数
+        var filteredParameters = FilterParametersByAttribute(methodInfo.Parameters, GeneratorConstants.TokenAttributeNames, exclude: true);
+
+        // 生成方法签名 - 接口方法不需要async关键字
+        var methodSignature = GenerateMethodSignature(methodInfo, methodInfo.MethodName, filteredParameters, includeAsync: !isInterface);
+        sb.AppendLine(methodSignature);
+
+        if (!isInterface)
+        {
+            // 生成方法体
+            sb.AppendLine("    {");
+            var methodBody = GenerateMethodBody(methodInfo, interfaceName, tokenManageInterfaceName, methodInfo.Parameters, filteredParameters);
+            sb.Append(methodBody);
+        }
+        else
+        {
+            sb.Append(';');
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// 为TokenType.Both生成特定的方法
+    /// </summary>
+    private string GenerateBothWrapMethod(MethodAnalysisResult methodInfo, MethodDeclarationSyntax methodSyntax, string interfaceName, string tokenManageInterfaceName, string prefix, string tokenMethodName, bool isInterface)
+    {
+        var sb = new StringBuilder();
+
+        // 添加方法注释
+        var methodDoc = GetMethodXmlDocumentation(methodSyntax, methodInfo);
+        if (!string.IsNullOrEmpty(methodDoc))
+        {
+            sb.AppendLine(methodDoc);
+        }
+
+        // 生成方法名
+        var methodName = GenerateBothMethodName(methodInfo.MethodName, prefix);
+
+        // 过滤掉标记了[Token]特性的参数，保留其他所有参数
+        var filteredParameters = FilterParametersByAttribute(methodInfo.Parameters, GeneratorConstants.TokenAttributeNames, exclude: true);
+
+        // 生成方法签名 - 接口方法不需要async关键字
+        var methodSignature = GenerateMethodSignature(methodInfo, methodName, filteredParameters, includeAsync: !isInterface);
+        sb.AppendLine(methodSignature);
+
+        if (!isInterface)
+        {
+            // 生成方法体
+            sb.AppendLine("    {");
+            sb.AppendLine("        try");
+            sb.AppendLine("        {");
+
+            // 生成Token获取逻辑 - 使用指定的token方法名
+            GenerateTokenAcquisition(sb, tokenManageInterfaceName, tokenMethodName, methodInfo.Parameters);
+
+            // 生成API调用逻辑
+            GenerateApiCall(sb, methodInfo, interfaceName, methodInfo.MethodName, methodInfo.Parameters, filteredParameters);
+
+            // 生成异常处理逻辑
+            GenerateExceptionHandling(sb, methodInfo.MethodName);
+        }
+        else
+        {
+            sb.Append(';');
+        }
+
+        return sb.ToString();
+    }
 
     /// <summary>
     /// 获取方法的XML文档注释
@@ -210,8 +319,6 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
                 true),
             interfaceDecl.GetLocation()));
     }
-
-
 
     /// <summary>
     /// 报告诊断警告
@@ -356,10 +463,10 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
     protected void GenerateApiCall(StringBuilder sb, MethodAnalysisResult methodInfo, string interfaceName, string methodName, IReadOnlyList<ParameterInfo> originalParameters, IReadOnlyList<ParameterInfo> filteredParameters)
     {
         if (sb == null || methodInfo == null) return;
-        
+
         // 检查是否为文件下载场景（有FilePath参数）
         var hasFilePathParam = originalParameters.Any(p => p.Attributes.Any(attr => attr.Name == GeneratorConstants.FilePathAttribute));
-        
+
         // 调用原始API方法
         if (methodInfo.IsAsyncMethod)
         {
@@ -427,35 +534,6 @@ public abstract class HttpClientApiWrapSourceGenerator : WebApiSourceGenerator
         GenerateExceptionHandling(sb, methodInfo.MethodName);
 
         return sb.ToString();
-    }
-
-    /// <summary>
-    /// 生成正确的参数调用列表，确保token参数替换掉原来标记了[Token]特性的参数位置
-    /// </summary>
-    protected IReadOnlyList<string> GenerateCorrectParameterCallList(IReadOnlyList<ParameterInfo> originalParameters, IReadOnlyList<ParameterInfo> filteredParameters, string tokenParameterName)
-    {
-        var callParameters = new List<string>();
-
-        foreach (var originalParam in originalParameters)
-        {
-            // 检查当前参数是否是Token参数
-            if (HasAttribute(originalParam, GeneratorConstants.TokenAttributeNames))
-            {
-                // 如果是Token参数，用token参数替换
-                callParameters.Add(tokenParameterName);
-            }
-            else
-            {
-                // 如果不是Token参数，检查是否在过滤后的参数列表中
-                var matchingFilteredParam = filteredParameters.FirstOrDefault(p => p.Name == originalParam.Name);
-                if (matchingFilteredParam != null)
-                {
-                    callParameters.Add(matchingFilteredParam.Name);
-                }
-            }
-        }
-
-        return callParameters;
     }
 
     #endregion

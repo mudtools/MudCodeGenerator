@@ -17,7 +17,7 @@ public class HttpClientApiWrapClassSourceGenerator : HttpClientApiWrapSourceGene
 {
     protected override void GenerateWrapCode(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl, INamedTypeSymbol interfaceSymbol, AttributeData wrapAttribute, SourceProductionContext context)
     {
-        if (interfaceDecl == null || interfaceSymbol == null )
+        if (interfaceDecl == null || interfaceSymbol == null)
             return;
         // 生成包装实现类代码
         var wrapImplementationCode = GenerateWrapImplementation(compilation, interfaceDecl, interfaceSymbol, wrapAttribute);
@@ -93,101 +93,7 @@ public class HttpClientApiWrapClassSourceGenerator : HttpClientApiWrapSourceGene
     /// </summary>
     protected override string GenerateWrapMethod(MethodAnalysisResult methodInfo, MethodDeclarationSyntax methodSyntax, string interfaceName, string tokenManageInterfaceName)
     {
-        if (methodInfo == null || methodSyntax == null)
-            return string.Empty;
-
-        // 检查是否忽略生成包装接口
-        if (methodInfo.IgnoreWrapInterface)
-            return string.Empty;
-
-        // 检查是否有TokenType.Both的Token参数
-        var bothTokenParameter = methodInfo.Parameters.FirstOrDefault(p =>
-            HasAttribute(p, GeneratorConstants.TokenAttributeNames) &&
-            p.TokenType.Equals("Both", StringComparison.OrdinalIgnoreCase));
-
-        if (bothTokenParameter != null)
-        {
-            // 为Both类型生成两个方法实现
-            var tenantMethod = GenerateBothWrapMethodImplementation(methodInfo, methodSyntax, interfaceName, tokenManageInterfaceName, "_Tenant_", "GetTenantAccessTokenAsync");
-            var userMethod = GenerateBothWrapMethodImplementation(methodInfo, methodSyntax, interfaceName, tokenManageInterfaceName, "_User_", "GetUserAccessTokenAsync");
-
-            return $"{tenantMethod}\n\n{userMethod}";
-        }
-        else
-        {
-            return GenerateSingleWrapMethodImplementation(methodInfo, methodSyntax, interfaceName, tokenManageInterfaceName);
-        }
-    }
-
-    /// <summary>
-    /// 生成单个包装方法实现
-    /// </summary>
-    private string GenerateSingleWrapMethodImplementation(MethodAnalysisResult methodInfo, MethodDeclarationSyntax methodSyntax, string interfaceName, string tokenManageInterfaceName)
-    {
-        var sb = new StringBuilder();
-
-        // 添加方法注释
-        var methodDoc = GetMethodXmlDocumentation(methodSyntax, methodInfo);
-        if (!string.IsNullOrEmpty(methodDoc))
-        {
-            sb.AppendLine(methodDoc);
-        }
-
-        // 过滤掉标记了[Token]特性的参数，保留其他所有参数
-        var filteredParameters = FilterParametersByAttribute(methodInfo.Parameters, GeneratorConstants.TokenAttributeNames, exclude: true);
-
-        // 生成方法签名 - 实现类需要async关键字
-        var methodSignature = GenerateMethodSignature(methodInfo, methodInfo.MethodName, filteredParameters);
-        sb.AppendLine(methodSignature);
-
-        // 生成方法体
-        sb.AppendLine("    {");
-        var methodBody = GenerateMethodBody(methodInfo, interfaceName, tokenManageInterfaceName, methodInfo.Parameters, filteredParameters);
-        sb.Append(methodBody);
-
-        return sb.ToString();
-    }
-
-    /// <summary>
-    /// 为TokenType.Both生成特定的方法实现
-    /// </summary>
-    private string GenerateBothWrapMethodImplementation(MethodAnalysisResult methodInfo, MethodDeclarationSyntax methodSyntax, string interfaceName, string tokenManageInterfaceName, string prefix, string tokenMethodName)
-    {
-        var sb = new StringBuilder();
-
-        // 添加方法注释
-        var methodDoc = GetMethodXmlDocumentation(methodSyntax, methodInfo);
-        if (!string.IsNullOrEmpty(methodDoc))
-        {
-            sb.AppendLine(methodDoc);
-        }
-
-        // 生成方法名
-        var methodName = GenerateBothMethodName(methodInfo.MethodName, prefix);
-
-        // 过滤掉标记了[Token]特性的参数，保留其他所有参数
-        var filteredParameters = FilterParametersByAttribute(methodInfo.Parameters, GeneratorConstants.TokenAttributeNames, exclude: true);
-
-        // 生成方法签名 - 实现类需要async关键字
-        var methodSignature = GenerateMethodSignature(methodInfo, methodName, filteredParameters);
-        sb.AppendLine(methodSignature);
-
-        // 生成方法体
-        sb.AppendLine("    {");
-
-        // 特殊处理Both类型的方法体 - 使用指定的token方法名
-        sb.AppendLine("        try");
-        sb.AppendLine("        {");
-
-        // 生成Token获取逻辑 - 使用指定的token方法名
-        GenerateTokenAcquisition(sb, tokenManageInterfaceName, tokenMethodName, methodInfo.Parameters);
-
-        // 生成API调用逻辑
-        GenerateApiCall(sb, methodInfo, interfaceName, methodInfo.MethodName, methodInfo.Parameters, filteredParameters);
-
-        // 生成异常处理逻辑
-        GenerateExceptionHandling(sb, methodInfo.MethodName);
-
-        return sb.ToString();
+        // 使用基类的公共逻辑，isInterface=false表示生成实现类方法
+        return GenerateWrapMethodCommon(methodInfo, methodSyntax, interfaceName, tokenManageInterfaceName, isInterface: false);
     }
 }

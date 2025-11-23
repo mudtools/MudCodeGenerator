@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using System.Collections.Immutable;
+using System.Globalization;
 
 namespace Mud.ServiceCodeGenerator;
 
@@ -80,7 +81,6 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
             : interfaceName + "Impl";
     }
 
-
     /// <summary>
     /// 获取包装类名称
     /// </summary>
@@ -125,7 +125,6 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
         return GetDefalultWrapInterfaceName(interfaceSymbol.Name);
     }
 
-
     /// <summary>
     /// 获取HttpClientApi特性
     /// </summary>
@@ -161,6 +160,19 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
     }
 
     /// <summary>
+    /// 从特性获取超时设置（专用方法，重载基础方法）
+    /// </summary>
+    /// <param name="httpClientApiAttribute">HttpClientApi特性</param>
+    /// <returns>超时秒数</returns>
+    protected int GetHttpClientApiTimeoutFromAttribute(AttributeData? httpClientApiAttribute)
+    {
+        if (httpClientApiAttribute?.NamedArguments.FirstOrDefault(k => k.Key == "TimeoutSeconds").Value.Value is int timeout)
+            return timeout;
+
+        return 30; // 默认30秒超时
+    }
+
+    /// <summary>
     /// 从特性获取注册组名称
     /// </summary>
     protected string? GetRegistryGroupNameFromAttribute(AttributeData attribute)
@@ -181,6 +193,19 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
         var contentTypeArg = attribute.NamedArguments.FirstOrDefault(a => a.Key == "ContentType");
         var contentType = contentTypeArg.Value.Value?.ToString();
         return string.IsNullOrEmpty(contentType) ? "application/json; charset=utf-8" : contentType;
+    }
+
+    /// <summary>
+    /// 从特性获取内容类型（专用方法，重载基础方法）
+    /// </summary>
+    /// <param name="httpClientApiAttribute">HttpClientApi特性</param>
+    /// <returns>内容类型</returns>
+    protected string GetHttpClientApiContentTypeFromAttribute(AttributeData? httpClientApiAttribute)
+    {
+        if (httpClientApiAttribute?.NamedArguments.FirstOrDefault(k => k.Key == "ContentType").Value.Value is string contentType)
+            return contentType;
+
+        return "application/json";
     }
 
     /// <summary>
@@ -294,7 +319,7 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
     {
         if (methodSymbol == null)
             return false;
-        
+
         return methodSymbol.GetAttributes()
             .Any(attr => attributeNames.Contains(attr.AttributeClass?.Name));
     }
@@ -321,6 +346,35 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
         });
 
         return string.Join(", ", parameterStrings);
+    }
+
+    /// <summary>
+    /// 生成正确的参数调用列表，确保token参数替换掉原来标记了[Token]特性的参数位置
+    /// </summary>
+    protected IReadOnlyList<string> GenerateCorrectParameterCallList(IReadOnlyList<ParameterInfo> originalParameters, IReadOnlyList<ParameterInfo> filteredParameters, string tokenParameterName)
+    {
+        var callParameters = new List<string>();
+
+        foreach (var originalParam in originalParameters)
+        {
+            // 检查当前参数是否是Token参数
+            if (HasAttribute(originalParam, GeneratorConstants.TokenAttributeNames))
+            {
+                // 如果是Token参数，用token参数替换
+                callParameters.Add(tokenParameterName);
+            }
+            else
+            {
+                // 如果不是Token参数，检查是否在过滤后的参数列表中
+                var matchingFilteredParam = filteredParameters.FirstOrDefault(p => p.Name == originalParam.Name);
+                if (matchingFilteredParam != null)
+                {
+                    callParameters.Add(matchingFilteredParam.Name);
+                }
+            }
+        }
+
+        return callParameters;
     }
     #endregion
 
@@ -421,7 +475,7 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
             genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
             miscellaneousOptions: SymbolDisplayMiscellaneousOptions.UseSpecialTypes | SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
         );
-        
+
         return returnType.ToDisplayString(format);
     }
 
@@ -436,7 +490,7 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
             genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
             miscellaneousOptions: SymbolDisplayMiscellaneousOptions.UseSpecialTypes | SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
         );
-        
+
         if (returnType is INamedTypeSymbol namedType && namedType.IsGenericType)
         {
             if (namedType.Name == "Task" && namedType.TypeArguments.Length == 1)
@@ -490,7 +544,7 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
 
             if (namedTokenType != null)
             {
-                var enumValue = Convert.ToInt32(namedTokenType);
+                var enumValue = Convert.ToInt32(namedTokenType, CultureInfo.InvariantCulture);
                 return enumValue switch
                 {
                     0 => "TenantAccessToken",
@@ -507,7 +561,7 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
                 if (tokenTypeValue != null)
                 {
                     // 处理枚举值转换
-                    var enumValue = Convert.ToInt32(tokenTypeValue);
+                    var enumValue = Convert.ToInt32(tokenTypeValue, CultureInfo.InvariantCulture);
                     return enumValue switch
                     {
                         0 => "TenantAccessToken",
@@ -581,7 +635,7 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
             .FirstOrDefault();
 
         // 如果找到匹配成员，使用成员名；否则使用数值
-        var valueRepresentation = matchingMember ?? Convert.ToInt64(defaultValue).ToString();
+        var valueRepresentation = matchingMember ?? Convert.ToInt64(defaultValue, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture);
 
         return $"{enumTypeName}.{valueRepresentation}";
     }
@@ -622,8 +676,7 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
             '\v' => "\\v",
             _ => value.ToString()
         };
-
-        #endregion
     }
 
+    #endregion
 }
