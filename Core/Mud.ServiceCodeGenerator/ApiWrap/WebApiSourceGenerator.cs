@@ -489,21 +489,34 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
         // 分析接口特性
         var interfaceSymbol = compilation.GetSemanticModel(interfaceDecl.SyntaxTree).GetDeclaredSymbol(interfaceDecl) as INamedTypeSymbol;
         var interfaceAttributes = new HashSet<string>();
+        var interfaceHeaderAttributes = new List<InterfaceHeaderAttribute>();
         
         if (interfaceSymbol != null)
         {
-            // 检查并处理[Header]特性
+            // 检查并处理所有[Header]特性
             var headerAttributes = interfaceSymbol.GetAttributes()
-                .Where(attr => (attr.AttributeClass?.Name == "HeaderAttribute" || attr.AttributeClass?.Name == "Header") && 
-                               attr.ConstructorArguments.Length > 0 && 
-                               attr.ConstructorArguments[0].Value?.ToString() == "Authorization");
+                .Where(attr => (attr.AttributeClass?.Name == "HeaderAttribute" || attr.AttributeClass?.Name == "Header"));
             
             foreach (var headerAttr in headerAttributes)
             {
-                // 优先使用AliasAs属性
-                var aliasAs = headerAttr.NamedArguments.FirstOrDefault(arg => arg.Key == "AliasAs").Value.Value?.ToString();
-                var headerName = string.IsNullOrEmpty(aliasAs) ? "Authorization" : aliasAs;
-                interfaceAttributes.Add($"Header:{headerName}");
+                // 获取Header名称
+                var headerName = GetHeaderName(headerAttr);
+                
+                // 创建接口Header特性信息
+                var interfaceHeaderAttr = new InterfaceHeaderAttribute
+                {
+                    Name = headerName,
+                    Value = GetHeaderValue(headerAttr),
+                    Replace = GetHeaderReplace(headerAttr)
+                };
+                
+                interfaceHeaderAttributes.Add(interfaceHeaderAttr);
+                
+                // 保持与现有逻辑的兼容性，如果是Authorization Header，继续添加到InterfaceAttributes中
+                if (headerName == "Authorization")
+                {
+                    interfaceAttributes.Add($"Header:{headerName}");
+                }
             }
             
             // 检查并处理[Query]特性
@@ -534,7 +547,8 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
             Parameters = parameters,
             IgnoreImplement = HasMethodAttribute(methodSymbol, GeneratorConstants.IgnoreImplementAttributeNames),
             IgnoreWrapInterface = HasMethodAttribute(methodSymbol, GeneratorConstants.IgnoreWrapInterfaceAttributeNames),
-            InterfaceAttributes = interfaceAttributes
+            InterfaceAttributes = interfaceAttributes,
+            InterfaceHeaderAttributes = interfaceHeaderAttributes
         };
     }
 
@@ -774,6 +788,76 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
             '\v' => "\\v",
             _ => value.ToString()
         };
+    }
+
+    #endregion
+
+    #region Header Attribute Helper Methods
+
+    /// <summary>
+    /// 获取Header特性的名称
+    /// </summary>
+    /// <param name="headerAttr">Header特性</param>
+    /// <returns>Header名称</returns>
+    private string GetHeaderName(AttributeData headerAttr)
+    {
+        // 优先使用AliasAs属性
+        var aliasAs = headerAttr.NamedArguments.FirstOrDefault(arg => arg.Key == "AliasAs").Value.Value?.ToString();
+        if (!string.IsNullOrEmpty(aliasAs))
+            return aliasAs;
+
+        // 检查构造函数参数
+        if (headerAttr.ConstructorArguments.Length > 0)
+        {
+            var nameArg = headerAttr.ConstructorArguments[0].Value?.ToString();
+            if (!string.IsNullOrEmpty(nameArg))
+                return nameArg;
+        }
+
+        // 检查Name属性
+        var nameProperty = headerAttr.NamedArguments.FirstOrDefault(arg => arg.Key == "Name").Value.Value?.ToString();
+        if (!string.IsNullOrEmpty(nameProperty))
+            return nameProperty;
+
+        return "Unknown";
+    }
+
+    /// <summary>
+    /// 获取Header特性的值
+    /// </summary>
+    /// <param name="headerAttr">Header特性</param>
+    /// <returns>Header值</returns>
+    private object? GetHeaderValue(AttributeData headerAttr)
+    {
+        // 检查构造函数参数（第二个参数）
+        if (headerAttr.ConstructorArguments.Length > 1)
+        {
+            return headerAttr.ConstructorArguments[1].Value;
+        }
+
+        // 检查Value属性
+        var valueProperty = headerAttr.NamedArguments.FirstOrDefault(arg => arg.Key == "Value").Value.Value;
+        if (valueProperty != null)
+            return valueProperty;
+
+        return null;
+    }
+
+    /// <summary>
+    /// 获取Header特性的Replace设置
+    /// </summary>
+    /// <param name="headerAttr">Header特性</param>
+    /// <returns>是否替换已存在的Header</returns>
+    private bool GetHeaderReplace(AttributeData headerAttr)
+    {
+        // 检查Replace属性
+        var replaceProperty = headerAttr.NamedArguments.FirstOrDefault(arg => arg.Key == "Replace").Value.Value;
+        if (replaceProperty != null)
+        {
+            return bool.TryParse(replaceProperty.ToString(), out var result) ? result : false;
+        }
+
+        return false;
     }
 
     #endregion

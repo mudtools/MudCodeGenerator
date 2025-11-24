@@ -5,6 +5,8 @@ namespace CodeGeneratorTest.WebApi;
 /// </summary>
 [HttpClientApi(TokenManage = nameof(ITokenManager))]
 [Header("Authorization", AliasAs = "X-Token")]
+[Header("xx1", "xxValue1")]
+[Header("xx2", "xxValue3")]
 public interface ITestTokenApi
 {
     /// <summary>

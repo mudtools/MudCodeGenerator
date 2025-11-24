@@ -270,6 +270,24 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
             codeBuilder.AppendLine($"            request.Headers.Add(\"{headerName}\", access_token);");
         }
 
+        // 添加接口上定义的所有Header特性（只添加有固定值的Header）
+        if (methodInfo.InterfaceHeaderAttributes?.Any() == true)
+        {
+            var fixedValueHeaders = methodInfo.InterfaceHeaderAttributes
+                .Where(h => !string.IsNullOrEmpty(h.Name) && h.Value != null)
+                .ToList();
+            
+            if (fixedValueHeaders.Any())
+            {
+                codeBuilder.AppendLine($"            // 添加接口定义的Header特性");
+                foreach (var interfaceHeader in fixedValueHeaders)
+                {
+                    var headerValue = interfaceHeader.Value?.ToString() ?? "null";
+                    codeBuilder.AppendLine($"            request.Headers.Add(\"{interfaceHeader.Name}\", \"{headerValue}\");");
+                }
+            }
+        }
+
         GenerateRequestExecution(codeBuilder, methodInfo);
 
         codeBuilder.AppendLine("        }");

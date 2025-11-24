@@ -7,6 +7,26 @@
 
 namespace Mud.ServiceCodeGenerator;
 
+/// <summary>
+/// 接口Header特性信息
+/// </summary>
+public class InterfaceHeaderAttribute
+{
+    /// <summary>
+    /// Header名称
+    /// </summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Header值
+    /// </summary>
+    public object? Value { get; set; }
+
+    /// <summary>
+    /// 是否替换已存在的Header
+    /// </summary>
+    public bool Replace { get; set; }
+}
 
 /// <summary>
 /// 方法分析结果
@@ -75,6 +95,11 @@ public class MethodAnalysisResult
     /// 接口特性列表（用于存储Header:Authorization、Query:Authorization等）
     /// </summary>
     public HashSet<string> InterfaceAttributes { get; set; } = [];
+
+    /// <summary>
+    /// 接口Header特性列表（用于存储所有Header特性的名称和值）
+    /// </summary>
+    public List<InterfaceHeaderAttribute> InterfaceHeaderAttributes { get; set; } = [];
 
     /// <summary>
     /// 无效的分析结果实例
