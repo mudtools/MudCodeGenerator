@@ -6,12 +6,10 @@
 // -----------------------------------------------------------------------
 
 using Microsoft.CodeAnalysis.Text;
-using Mud.ServiceCodeGenerator.ApiWrap.Helpers;
-using Mud.ServiceCodeGenerator.ApiWrap.Strategies;
 using System.Collections.Immutable;
 using System.Text;
 
-namespace Mud.ServiceCodeGenerator.ApiWrap;
+namespace Mud.ServiceCodeGenerator;
 
 /// <summary>
 /// HttpClient API 源生成器
@@ -21,17 +19,6 @@ namespace Mud.ServiceCodeGenerator.ApiWrap;
 [Generator(LanguageNames.CSharp)]
 public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
 {
-    private readonly ParameterProcessorManager _parameterProcessorManager;
-    private readonly MethodGenerationStrategyManager _methodStrategyManager;
-
-    /// <summary>
-    /// 初始化 HttpClient API 源生成器
-    /// </summary>
-    public HttpClientApiSourceGenerator()
-    {
-        _parameterProcessorManager = new ParameterProcessorManager();
-        _methodStrategyManager = new MethodGenerationStrategyManager();
-    }
     /// <inheritdoc/>
     protected override void ExecuteGenerator(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context)
     {
@@ -46,32 +33,57 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
 
     private void ProcessInterface(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl, SourceProductionContext context)
     {
-        HttpApiGenerationExceptionHandler.SafeExecute(() =>
+        try
         {
             var model = compilation.GetSemanticModel(interfaceDecl.SyntaxTree);
             if (model.GetDeclaredSymbol(interfaceDecl) is not INamedTypeSymbol interfaceSymbol)
-                return false;
-
-            // 验证接口配置
-            if (!HttpApiConfigurationValidator.ValidateInterfaceConfiguration(interfaceSymbol, context))
-                return false;
+                return;
 
             if (!HasValidHttpMethods(interfaceSymbol))
             {
-                HttpApiGenerationExceptionHandler.ReportWarning(context, interfaceDecl.Identifier.Text, "HTTPCLIENT002",
+                ReportWarning(context, interfaceDecl.Identifier.Text, "HTTPCLIENT002",
                     $"接口{interfaceDecl.Identifier.Text}不包含有效的HTTP方法特性，跳过生成");
-                return false;
+                return;
             }
 
-            var sourceCode = GenerateImplementationClass(compilation, interfaceSymbol, interfaceDecl, context);
+            var sourceCode = GenerateImplementationClass(compilation, interfaceSymbol, interfaceDecl);
             var className = GetImplementationClassName(interfaceSymbol.Name);
             context.AddSource($"{className}.g.cs", SourceText.From(sourceCode, Encoding.UTF8));
-
-            return true;
-        }, interfaceDecl, context);
+        }
+        catch (Exception ex)
+        {
+            HandleInterfaceProcessingException(ex, interfaceDecl, context);
+        }
     }
 
-    private string GenerateImplementationClass(Compilation compilation, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDecl, SourceProductionContext context)
+    private void HandleInterfaceProcessingException(Exception ex, InterfaceDeclarationSyntax interfaceDecl, SourceProductionContext context)
+    {
+        var descriptor = ex switch
+        {
+            InvalidOperationException => new DiagnosticDescriptor(
+                "HTTPCLIENT003", "HttpClient API语法错误",
+                $"接口{interfaceDecl.Identifier.Text}的语法分析失败: {ex.Message}",
+                "Generation", DiagnosticSeverity.Error, true),
+            ArgumentException => new DiagnosticDescriptor(
+                "HTTPCLIENT004", "HttpClient API参数错误",
+                $"接口{interfaceDecl.Identifier.Text}的参数配置错误: {ex.Message}",
+                "Generation", DiagnosticSeverity.Error, true),
+            _ => new DiagnosticDescriptor(
+                "HTTPCLIENT001", "HttpClient API生成错误",
+                $"生成接口{interfaceDecl.Identifier.Text}的实现时发生错误: {ex.Message}",
+                "Generation", DiagnosticSeverity.Error, true)
+        };
+
+        ReportErrorDiagnostic(context, descriptor, interfaceDecl.Identifier.Text, ex);
+    }
+
+    private void ReportWarning(SourceProductionContext context, string interfaceName, string id, string message)
+    {
+        var descriptor = new DiagnosticDescriptor(id, "HttpClient API警告", message, "Generation", DiagnosticSeverity.Warning, true);
+        ReportWarningDiagnostic(context, descriptor, interfaceName);
+    }
+
+    private string GenerateImplementationClass(Compilation compilation, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDecl)
     {
         var className = GetImplementationClassName(interfaceSymbol.Name);
         var namespaceName = GetNamespaceName(interfaceDecl);
@@ -79,7 +91,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         var codeBuilder = new StringBuilder();
         GenerateClassStructure(codeBuilder, className, namespaceName, interfaceSymbol);
         GenerateClassFieldsAndConstructor(codeBuilder, className, interfaceSymbol, compilation);
-        GenerateMethods(compilation, codeBuilder, interfaceSymbol, interfaceDecl, context);
+        GenerateMethods(compilation, codeBuilder, interfaceSymbol, interfaceDecl);
 
         codeBuilder.AppendLine("    }");
         codeBuilder.AppendLine("}");
@@ -98,8 +110,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine($"    /// <inheritdoc cref=\"{interfaceSymbol.Name}\"/>");
         codeBuilder.AppendLine($"    /// </summary>");
         codeBuilder.AppendLine($"    {CompilerGeneratedAttribute}");
-        codeBuilder.AppendLine($"    [global::System.Runtime.CompilerServices.CompilerGenerated]");
-        codeBuilder.AppendLine($"    [global::System.CodeDom.Compiler.GeneratedCode(\"Mud.ServiceCodeGenerator\", \"1.0.0\")]");
+        codeBuilder.AppendLine($"    {GeneratedCodeAttribute}");
         codeBuilder.AppendLine($"    internal partial class {className} : {interfaceSymbol.Name}");
         codeBuilder.AppendLine("    {");
     }
@@ -183,130 +194,86 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine();
     }
 
-    private void GenerateMethods(Compilation compilation, StringBuilder codeBuilder, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDecl, SourceProductionContext context)
+    private void GenerateMethods(Compilation compilation, StringBuilder codeBuilder, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDecl)
     {
         GenerateClassPartialMethods(codeBuilder, interfaceSymbol);
 
         foreach (var methodSymbol in interfaceSymbol.GetMembers().OfType<IMethodSymbol>())
         {
-            GenerateMethodImplementation(compilation, codeBuilder, methodSymbol, interfaceDecl, context);
+            GenerateMethodImplementation(compilation, codeBuilder, methodSymbol, interfaceDecl);
         }
     }
 
     /// <summary>
-    /// 生成方法实现
+    /// <inheritdoc cref=""/>
     /// </summary>
-    /// <param name="compilation">编译信息</param>
-    /// <param name="codeBuilder">代码构建器</param>
-    /// <param name="methodSymbol">方法符号</param>
-    /// <param name="interfaceDecl">接口声明</param>
-    /// <param name="context">源生成上下文</param>
-    private void GenerateMethodImplementation(Compilation compilation, StringBuilder codeBuilder, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl, SourceProductionContext context)
+    /// <param name="compilation"></param>
+    /// <param name="codeBuilder"></param>
+    /// <param name="methodSymbol"></param>
+    /// <param name="interfaceDecl"></param>
+    private void GenerateMethodImplementation(Compilation compilation, StringBuilder codeBuilder, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl)
     {
         var methodInfo = AnalyzeMethod(compilation, methodSymbol, interfaceDecl);
         if (!methodInfo.IsValid) return;
 
-        // 验证方法配置
-        if (!HttpApiConfigurationValidator.ValidateMethodConfiguration(methodInfo, context))
-            return;
-
         // 检查是否忽略生成实现
         if (methodInfo.IgnoreImplement) return;
 
-        // 验证参数配置
-        if (!HttpApiConfigurationValidator.ValidateParametersConfiguration(methodInfo.Parameters, methodInfo.MethodName, context))
-            return;
-
         // 获取接口符号以检查Token管理
         var model = compilation.GetSemanticModel(interfaceDecl.SyntaxTree);
-        var interfaceSymbol = model.GetDeclaredSymbol(interfaceDecl);
+        var interfaceSymbol = model.GetDeclaredSymbol(interfaceDecl) as INamedTypeSymbol;
         var httpClientApiAttribute = GetHttpClientApiAttribute(interfaceSymbol);
         var tokenManage = GetTokenManageFromAttribute(httpClientApiAttribute);
         var hasTokenManager = !string.IsNullOrEmpty(tokenManage);
+        var tokenManagerType = hasTokenManager ? GetTokenManagerType(compilation, tokenManage!) : null;
         var hasAuthorizationHeader = HasInterfaceAttribute(interfaceSymbol!, "Header", "Authorization");
         var hasAuthorizationQuery = HasInterfaceAttribute(interfaceSymbol!, "Query", "Authorization");
 
-        // 使用重构后的代码生成方法
-        GenerateMethodSignature(codeBuilder, methodInfo, methodSymbol);
-        GenerateMethodBody(compilation, codeBuilder, methodInfo, hasTokenManager, hasAuthorizationHeader, hasAuthorizationQuery);
-    }
-
-    /// <summary>
-    /// 生成方法签名
-    /// </summary>
-    private static void GenerateMethodSignature(StringBuilder codeBuilder, MethodAnalysisResult methodInfo, IMethodSymbol methodSymbol)
-    {
         codeBuilder.AppendLine();
-        codeBuilder.AppendLine("        /// <summary>");
-        codeBuilder.AppendLine($"        /// <inheritdoc cref=\"{methodInfo.InterfaceName}.{methodSymbol.Name}\"/>");
-        codeBuilder.AppendLine("        /// </summary>");
-        codeBuilder.AppendLine($"        {CompilerGeneratedAttribute}");
-
+        codeBuilder.AppendLine($"        /// <summary>");
+        codeBuilder.AppendLine($"        /// <inheritdoc cref=\"{methodInfo.InterfaceName}.{methodSymbol.Name} \"/>");
+        codeBuilder.AppendLine($"        /// </summary>");
+        codeBuilder.AppendLine($"        {GeneratedCodeAttribute}");
+        // 根据方法返回类型决定是否添加 async 关键字
         var asyncKeyword = methodInfo.IsAsyncMethod ? "async " : "";
-        var parameters = string.Join(", ", methodSymbol.Parameters.Select(p => $"{p.Type} {p.Name}"));
-
-        codeBuilder.AppendLine($"        public {asyncKeyword}{methodSymbol.ReturnType} {methodSymbol.Name}({parameters})");
+        codeBuilder.AppendLine($"        public {asyncKeyword}{methodSymbol.ReturnType} {methodSymbol.Name}({GetParameterList(methodSymbol)})");
         codeBuilder.AppendLine("        {");
-    }
 
-    /// <summary>
-    /// 生成方法体
-    /// </summary>
-    private void GenerateMethodBody(Compilation compilation, StringBuilder codeBuilder, MethodAnalysisResult methodInfo, bool hasTokenManager, bool hasAuthorizationHeader, bool hasAuthorizationQuery)
-    {
         // 如果需要Token管理器，获取access_token
         if (hasTokenManager && (hasAuthorizationHeader || hasAuthorizationQuery))
         {
-            GenerateTokenAcquisition(codeBuilder, hasAuthorizationHeader, hasAuthorizationQuery);
+            codeBuilder.AppendLine($"            var access_token = await _tokenManager.GetTokenAsync();");
+            codeBuilder.AppendLine($"            if (string.IsNullOrEmpty(access_token))");
+            codeBuilder.AppendLine($"            {{");
+            codeBuilder.AppendLine($"                throw new InvalidOperationException(\"无法获取访问令牌\");");
+            codeBuilder.AppendLine($"            }}");
+            codeBuilder.AppendLine();
         }
 
         GenerateRequestSetup(codeBuilder, methodInfo);
-        GenerateParameterHandling(compilation, codeBuilder, methodInfo);
+        GenerateParameterHandling(codeBuilder, methodInfo);
 
         // 添加Authorization header
         if (hasTokenManager && hasAuthorizationHeader)
         {
-            GenerateAuthorizationHeader(codeBuilder, methodInfo);
+            // 从接口特性中获取实际的header名称
+            var headerName = "Authorization";
+            if (methodInfo.InterfaceAttributes?.Any() == true)
+            {
+                var headerAttr = methodInfo.InterfaceAttributes.FirstOrDefault(attr => attr.StartsWith("Header:"));
+                if (!string.IsNullOrEmpty(headerAttr))
+                {
+                    headerName = headerAttr.Substring(7); // 去掉"Header:"前缀
+                }
+            }
+            codeBuilder.AppendLine($"            // 添加Authorization header as {headerName}");
+            codeBuilder.AppendLine($"            request.Headers.Add(\"{headerName}\", access_token);");
         }
 
-        GenerateRequestExecution(compilation, codeBuilder, methodInfo);
+        GenerateRequestExecution(codeBuilder, methodInfo);
 
         codeBuilder.AppendLine("        }");
         codeBuilder.AppendLine();
-    }
-
-    /// <summary>
-    /// 生成Token获取代码
-    /// </summary>
-    private static void GenerateTokenAcquisition(StringBuilder codeBuilder, bool hasAuthorizationHeader, bool hasAuthorizationQuery)
-    {
-        if (!hasAuthorizationHeader && !hasAuthorizationQuery) return;
-
-        codeBuilder.AppendLine("            var access_token = await _tokenManager.GetTokenAsync();");
-        codeBuilder.AppendLine("            if (string.IsNullOrEmpty(access_token))");
-        codeBuilder.AppendLine("            {");
-        codeBuilder.AppendLine("                throw new InvalidOperationException(\"无法获取访问令牌\");");
-        codeBuilder.AppendLine("            }");
-        codeBuilder.AppendLine();
-    }
-
-    /// <summary>
-    /// 生成Authorization header
-    /// </summary>
-    private static void GenerateAuthorizationHeader(StringBuilder codeBuilder, MethodAnalysisResult methodInfo)
-    {
-        var headerName = "Authorization";
-        if (methodInfo.InterfaceAttributes?.Any() == true)
-        {
-            var headerAttr = methodInfo.InterfaceAttributes.FirstOrDefault(attr => attr.StartsWith("Header:", StringComparison.Ordinal));
-            if (!string.IsNullOrEmpty(headerAttr))
-            {
-                headerName = headerAttr.Substring(7); // 去掉"Header:"前缀
-            }
-        }
-
-        codeBuilder.AppendLine($"            // 添加Authorization header as {headerName}");
-        codeBuilder.AppendLine($"            request.Headers.Add(\"{headerName}\", access_token);");
     }
 
     private void GenerateClassPartialMethods(StringBuilder codeBuilder, INamedTypeSymbol interfaceSymbol)
@@ -345,7 +312,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
             codeBuilder.AppendLine($"        /// <summary>");
             codeBuilder.AppendLine($"        /// {methodName} {description}。");
             codeBuilder.AppendLine($"        /// </summary>");
-            codeBuilder.AppendLine($"        {CompilerGeneratedAttribute}");
+            codeBuilder.AppendLine($"        {GeneratedCodeAttribute}");
             codeBuilder.AppendLine($"        partial void On{StringExtensions.ConvertFunctionName(methodName, eventType)}({parameter}, string url);");
         }
     }
@@ -366,7 +333,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
             codeBuilder.AppendLine($"        /// <summary>");
             codeBuilder.AppendLine($"        /// {interfaceName} {description}。");
             codeBuilder.AppendLine($"        /// </summary>");
-            codeBuilder.AppendLine($"        {CompilerGeneratedAttribute}");
+            codeBuilder.AppendLine($"        {GeneratedCodeAttribute}");
             codeBuilder.AppendLine($"        partial void On{StringExtensions.ConvertFunctionName(interfaceName, "Api", eventType)}({parameter}, string url);");
         }
     }
@@ -378,6 +345,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine(urlCode);
         codeBuilder.AppendLine($"            _logger.LogDebug(\"开始HTTP {methodInfo.HttpMethod}请求: {{Url}}\", url);");
         codeBuilder.AppendLine($"            using var request = new HttpRequestMessage(HttpMethod.{methodInfo.HttpMethod}, url);");
+        //codeBuilder.AppendLine($"            request.Headers.Add(\"Content-Type\", _defaultContentType);");
     }
 
     private string BuildUrlString(MethodAnalysisResult methodInfo)
@@ -409,31 +377,225 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
             : url.Replace($"{{{paramName}}}", $"{{{paramName}.ToString(\"{formatString}\")}}");
     }
 
-    private void GenerateParameterHandling(Compilation compilation, StringBuilder codeBuilder, MethodAnalysisResult methodInfo)
+    private void GenerateParameterHandling(StringBuilder codeBuilder, MethodAnalysisResult methodInfo)
     {
-        var context = new ParameterGenerationContext
-        {
-            Compilation = compilation,
-            IndentLevel = 3,
-            HttpRequestVariable = "request",
-            UrlVariable = "url",
-            HasCancellationToken = methodInfo.Parameters.Any(p => p.Type.Contains("CancellationToken"))
-        };
-
-        var generatedCode = _parameterProcessorManager.ProcessParameters(methodInfo.Parameters, context);
-        codeBuilder.Append(generatedCode);
+        GenerateQueryParameters(codeBuilder, methodInfo);
+        GenerateHeaderParameters(codeBuilder, methodInfo);
+        GenerateBodyParameter(codeBuilder, methodInfo);
     }
 
+    private void GenerateQueryParameters(StringBuilder codeBuilder, MethodAnalysisResult methodInfo)
+    {
+        var queryParams = methodInfo.Parameters
+            .Where(p => p.Attributes.Any(attr => attr.Name == GeneratorConstants.QueryAttribute))
+            .ToList();
 
+        var arrayQueryParams = methodInfo.Parameters
+            .Where(p => p.Attributes.Any(attr => attr.Name == GeneratorConstants.ArrayQueryAttribute))
+            .ToList();
 
-    private void GenerateRequestExecution(Compilation compilation, StringBuilder codeBuilder, MethodAnalysisResult methodInfo)
+        // 检查接口是否有[Query("Authorization")]特性（支持AliasAs）
+        var hasAuthorizationQuery = methodInfo.InterfaceAttributes?.Any(attr => attr.StartsWith("Query:")) == true;
+
+        if (!queryParams.Any() && !arrayQueryParams.Any() && !hasAuthorizationQuery)
+            return;
+
+        codeBuilder.AppendLine($"            var queryParams = HttpUtility.ParseQueryString(string.Empty);");
+
+        foreach (var param in queryParams)
+        {
+            GenerateSingleQueryParameter(codeBuilder, param);
+        }
+
+        foreach (var param in arrayQueryParams)
+        {
+            GenerateArrayQueryParameter(codeBuilder, param);
+        }
+
+        // 添加Authorization query参数
+        if (hasAuthorizationQuery)
+        {
+            // 从接口特性中获取实际的query参数名称
+            var queryName = "Authorization";
+            if (methodInfo.InterfaceAttributes?.Any() == true)
+            {
+                var queryAttr = methodInfo.InterfaceAttributes.FirstOrDefault(attr => attr.StartsWith("Query:"));
+                if (!string.IsNullOrEmpty(queryAttr))
+                {
+                    queryName = queryAttr.Substring(6); // 去掉"Query:"前缀
+                }
+            }
+            codeBuilder.AppendLine($"            // 添加Authorization query参数 as {queryName}");
+            codeBuilder.AppendLine($"            queryParams.Add(\"{queryName}\", access_token);");
+        }
+
+        codeBuilder.AppendLine("            if (queryParams.Count > 0)");
+        codeBuilder.AppendLine("            {");
+        codeBuilder.AppendLine("                url += \"?\" + queryParams.ToString();");
+        codeBuilder.AppendLine("            }");
+    }
+
+    private void GenerateSingleQueryParameter(StringBuilder codeBuilder, ParameterInfo param)
+    {
+        var queryAttr = param.Attributes.First(a => a.Name == GeneratorConstants.QueryAttribute);
+        var paramName = GetQueryParameterName(queryAttr, param.Name);
+        var formatString = GetFormatString(queryAttr);
+
+        if (IsSimpleType(param.Type))
+        {
+            GenerateSimpleQueryParameter(codeBuilder, param, paramName, formatString);
+        }
+        else
+        {
+            GenerateComplexQueryParameter(codeBuilder, param, paramName);
+        }
+    }
+
+    private void GenerateArrayQueryParameter(StringBuilder codeBuilder, ParameterInfo param)
+    {
+        var arrayQueryAttr = param.Attributes.First(a => a.Name == GeneratorConstants.ArrayQueryAttribute);
+        var paramName = GetQueryParameterName(arrayQueryAttr, param.Name);
+        var separator = GetArrayQuerySeparator(arrayQueryAttr);
+
+        codeBuilder.AppendLine($"            if ({param.Name} != null && {param.Name}.Length > 0)");
+        codeBuilder.AppendLine("            {");
+
+        if (string.IsNullOrEmpty(separator))
+        {
+            // 使用重复键名格式：user_ids=id0&user_ids=id1&user_ids=id2
+            codeBuilder.AppendLine($"                foreach (var item in {param.Name})");
+            codeBuilder.AppendLine("                {");
+            codeBuilder.AppendLine($"                    if (item != null)");
+            codeBuilder.AppendLine("                    {");
+            codeBuilder.AppendLine($"                        var encodedValue = HttpUtility.UrlEncode(item.ToString());");
+            codeBuilder.AppendLine($"                        queryParams.Add(\"{paramName}\", encodedValue);");
+            codeBuilder.AppendLine("                    }");
+            codeBuilder.AppendLine("                }");
+        }
+        else
+        {
+            // 使用分隔符连接格式：user_ids=id0;id1;id2
+            codeBuilder.AppendLine($"                var joinedValues = string.Join(\"{separator}\", {param.Name}.Where(item => item != null).Select(item => HttpUtility.UrlEncode(item.ToString())));");
+            codeBuilder.AppendLine($"                queryParams.Add(\"{paramName}\", joinedValues);");
+        }
+
+        codeBuilder.AppendLine("            }");
+    }
+
+    private void GenerateSimpleQueryParameter(StringBuilder codeBuilder, ParameterInfo param, string paramName, string? formatString)
+    {
+        if (IsArrayType(param.Type))
+        {
+            // 处理数组类型：使用默认分号分隔符格式
+            codeBuilder.AppendLine($"            if ({param.Name} != null && {param.Name}.Length > 0)");
+            codeBuilder.AppendLine("            {");
+            codeBuilder.AppendLine($"                var joinedValues = string.Join(\";\", {param.Name}.Where(item => item != null).Select(item => HttpUtility.UrlEncode(item.ToString())));");
+            codeBuilder.AppendLine($"                queryParams.Add(\"{paramName}\", joinedValues);");
+            codeBuilder.AppendLine("            }");
+        }
+        else if (IsStringType(param.Type))
+        {
+            codeBuilder.AppendLine($"            if (!string.IsNullOrEmpty({param.Name}))");
+            codeBuilder.AppendLine("            {");
+            codeBuilder.AppendLine($"                var encodedValue = HttpUtility.UrlEncode({param.Name});");
+            codeBuilder.AppendLine($"                queryParams.Add(\"{paramName}\", encodedValue);");
+            codeBuilder.AppendLine("            }");
+        }
+        else
+        {
+            codeBuilder.AppendLine($"            if ({param.Name} != null)");
+            var formatExpression = !string.IsNullOrEmpty(formatString)
+                ? $".ToString(\"{formatString}\")"
+                : ".ToString()";
+            codeBuilder.AppendLine($"                queryParams.Add(\"{paramName}\", {param.Name}{formatExpression});");
+        }
+    }
+
+    private void GenerateComplexQueryParameter(StringBuilder codeBuilder, ParameterInfo param, string paramName)
+    {
+        codeBuilder.AppendLine($"            if ({param.Name} != null)");
+        codeBuilder.AppendLine("            {");
+        codeBuilder.AppendLine($"                var properties = {param.Name}.GetType().GetProperties();");
+        codeBuilder.AppendLine("                foreach (var prop in properties)");
+        codeBuilder.AppendLine("                {");
+        codeBuilder.AppendLine($"                    var value = prop.GetValue({param.Name});");
+        codeBuilder.AppendLine("                    if (value != null)");
+        codeBuilder.AppendLine("                    {");
+        codeBuilder.AppendLine($"                        queryParams.Add(prop.Name, HttpUtility.UrlEncode(value.ToString()));");
+        codeBuilder.AppendLine("                    }");
+        codeBuilder.AppendLine("                }");
+        codeBuilder.AppendLine("            }");
+    }
+
+    private void GenerateHeaderParameters(StringBuilder codeBuilder, MethodAnalysisResult methodInfo)
+    {
+        var headerParams = methodInfo.Parameters
+            .Where(p => p.Attributes.Any(attr => attr.Name == GeneratorConstants.HeaderAttribute))
+            .ToList();
+
+        foreach (var param in headerParams)
+        {
+            var headerAttr = param.Attributes.First(a => a.Name == GeneratorConstants.HeaderAttribute);
+            var headerName = headerAttr.Arguments.FirstOrDefault()?.ToString() ?? param.Name;
+
+            codeBuilder.AppendLine($"            if (!string.IsNullOrEmpty({param.Name}))");
+            codeBuilder.AppendLine($"                request.Headers.Add(\"{headerName}\", {param.Name});");
+        }
+    }
+
+    private void GenerateBodyParameter(StringBuilder codeBuilder, MethodAnalysisResult methodInfo)
+    {
+        var bodyParam = methodInfo.Parameters
+            .FirstOrDefault(p => p.Attributes.Any(attr => attr.Name == GeneratorConstants.BodyAttribute));
+
+        if (bodyParam == null)
+            return;
+
+        var bodyAttr = bodyParam.Attributes.First(a => a.Name == GeneratorConstants.BodyAttribute);
+        var useStringContent = GetUseStringContentFlag(bodyAttr);
+        var contentType = GetBodyContentType(bodyAttr);
+
+        // 检查参数是否明确指定了ContentType
+        var hasExplicitContentType = bodyAttr.NamedArguments.ContainsKey("ContentType");
+        var contentTypeExpression = hasExplicitContentType ? $"\"{contentType}\"" : "GetMediaType(_defaultContentType)";
+
+        codeBuilder.AppendLine($"            if ({bodyParam.Name} != null)");
+        codeBuilder.AppendLine("            {");
+
+        if (useStringContent)
+        {
+            codeBuilder.AppendLine($"                request.Content = new StringContent({bodyParam.Name}.ToString() ?? \"\", Encoding.UTF8, {contentTypeExpression});");
+        }
+        else
+        {
+            codeBuilder.AppendLine($"                var jsonContent = JsonSerializer.Serialize({bodyParam.Name}, _jsonSerializerOptions);");
+            codeBuilder.AppendLine($"                request.Content = new StringContent(jsonContent, Encoding.UTF8, {contentTypeExpression});");
+        }
+
+        codeBuilder.AppendLine("            }");
+    }
+
+    private string GetBodyContentType(ParameterAttributeInfo bodyAttr)
+    {
+        return bodyAttr.NamedArguments.TryGetValue("ContentType", out var contentTypeArg)
+            ? (contentTypeArg?.ToString() ?? "application/json")
+            : "application/json";
+    }
+
+    private bool GetUseStringContentFlag(ParameterAttributeInfo bodyAttr)
+    {
+        return bodyAttr.NamedArguments.TryGetValue("UseStringContent", out var useStringContentArg)
+            && bool.Parse(useStringContentArg?.ToString() ?? "false");
+    }
+
+    private void GenerateRequestExecution(StringBuilder codeBuilder, MethodAnalysisResult methodInfo)
     {
         var (cancellationTokenArg, _) = GetCancellationTokenParams(methodInfo);
         var interfaceName = GetImplementationClassName(methodInfo.InterfaceName);
 
         codeBuilder.AppendLine("            try");
         codeBuilder.AppendLine("            {");
-        GenerateRequestExecutionCore(compilation, codeBuilder, methodInfo, interfaceName, cancellationTokenArg);
+        GenerateRequestExecutionCore(codeBuilder, methodInfo, interfaceName, cancellationTokenArg);
         codeBuilder.AppendLine("            }");
         codeBuilder.AppendLine("            catch (System.Exception ex)");
         codeBuilder.AppendLine("            {");
@@ -441,7 +603,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine("            }");
     }
 
-    private void GenerateRequestExecutionCore(Compilation compilation, StringBuilder codeBuilder, MethodAnalysisResult methodInfo, string interfaceName, string cancellationTokenArg)
+    private void GenerateRequestExecutionCore(StringBuilder codeBuilder, MethodAnalysisResult methodInfo, string interfaceName, string cancellationTokenArg)
     {
         codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(interfaceName, "Api", "RequestBefore")}(request, url);");
         codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "Before")}(request, url);");
@@ -455,7 +617,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(interfaceName, "Api", "RequestAfter")}(response, url);");
         codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "After")}(response, url);");
 
-        GenerateResponseProcessing(compilation, codeBuilder, methodInfo);
+        GenerateResponseProcessing(codeBuilder, methodInfo, cancellationTokenArg);
     }
 
     private void GenerateErrorResponseHandling(StringBuilder codeBuilder, MethodAnalysisResult methodInfo, string interfaceName)
@@ -468,21 +630,140 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine("                    throw new HttpRequestException($\"HTTP请求失败: {(int)response.StatusCode}\");");
     }
 
-    private void GenerateResponseProcessing(Compilation compilation, StringBuilder codeBuilder, MethodAnalysisResult methodInfo)
+    private void GenerateResponseProcessing(StringBuilder codeBuilder, MethodAnalysisResult methodInfo, string cancellationTokenArg)
     {
-        var context = new MethodGenerationContext
-        {
-            Compilation = compilation,
-            ClassName = GetImplementationClassName(methodInfo.InterfaceName),
-            IndentLevel = 3,
-            CancellationTokenParameter = GetCancellationTokenParameter(methodInfo),
-            HasTokenManager = false, // 这些信息需要从上层方法传递
-            HasAuthorizationHeader = false,
-            HasAuthorizationQuery = false
-        };
+        // 检查是否有 FilePath 参数，直接保存到文件
+        var filePathParam = methodInfo.Parameters.FirstOrDefault(p => p.Attributes.Any(attr => attr.Name == GeneratorConstants.FilePathAttribute));
+        var hasFilePathParam = filePathParam != null;
 
-        var generatedCode = _methodStrategyManager.GenerateResponseCode(methodInfo, context);
-        codeBuilder.Append(generatedCode);
+        // 检查是否为文件下载场景：异步方法且内部返回类型为 byte[]
+        var isFileDownload = methodInfo.IsAsyncMethod &&
+                             methodInfo.AsyncInnerReturnType.Equals("byte[]", StringComparison.OrdinalIgnoreCase);
+        var (cancellationTokenArgForCopy, cancellationTokenArgForRead) = GetCancellationTokenParams(methodInfo);
+        if (hasFilePathParam)
+        {
+
+            // FilePath 参数场景：直接保存到指定路径
+            codeBuilder.AppendLine($"                using (var stream = await response.Content.ReadAsStreamAsync({cancellationTokenArgForRead}))");
+            codeBuilder.AppendLine($"                using (var fileStream = File.Create({filePathParam.Name}))");
+            codeBuilder.AppendLine("                {");
+
+            // 从 FilePathAttribute 中读取 BufferSize 参数
+            var filePathAttr = filePathParam.Attributes.First(a => a.Name == GeneratorConstants.FilePathAttribute);
+            var bufferSize = GetBufferSizeFromAttribute(filePathAttr);
+
+            codeBuilder.AppendLine($"                    await stream.CopyToAsync(fileStream, {bufferSize}{cancellationTokenArgForCopy});");
+            codeBuilder.AppendLine("                }");
+
+            // 对于有 FilePath 参数的方法，不返回任何值（void 或 Task）
+            if (!methodInfo.IsAsyncMethod || (methodInfo.IsAsyncMethod && methodInfo.AsyncInnerReturnType.Equals("void", StringComparison.OrdinalIgnoreCase)))
+            {
+                codeBuilder.AppendLine("                return;");
+            }
+            else if (methodInfo.IsAsyncMethod && !string.IsNullOrEmpty(methodInfo.AsyncInnerReturnType) && !methodInfo.AsyncInnerReturnType.Equals("void", StringComparison.OrdinalIgnoreCase))
+            {
+                // 如果是异步方法且有非void返回类型，返回默认值
+                codeBuilder.AppendLine("                return default;");
+            }
+            // 对于 Task 类型的异步方法，不需要 return 语句
+        }
+        else if (isFileDownload)
+        {
+            // 文件下载场景：直接读取为字节数组
+            codeBuilder.AppendLine($"                byte[] fileBytes = await response.Content.ReadAsByteArrayAsync({cancellationTokenArgForRead});");
+            codeBuilder.AppendLine("                return fileBytes;");
+        }
+        else
+        {
+            // 常规 JSON 反序列化场景
+            codeBuilder.AppendLine($"                using var stream = await response.Content.ReadAsStreamAsync({cancellationTokenArgForRead});");
+            codeBuilder.AppendLine();
+            codeBuilder.AppendLine("                if (stream.Length == 0)");
+            codeBuilder.AppendLine("                {");
+            codeBuilder.AppendLine("                    return default;");
+            codeBuilder.AppendLine("                }");
+            codeBuilder.AppendLine();
+
+            // 对于异步方法，使用内部返回类型；对于同步方法，使用完整返回类型
+            var deserializeType = methodInfo.IsAsyncMethod ? methodInfo.AsyncInnerReturnType : methodInfo.ReturnType;
+            codeBuilder.AppendLine($"                var result = await JsonSerializer.DeserializeAsync<{deserializeType}>(stream, _jsonSerializerOptions{cancellationTokenArg});");
+            codeBuilder.AppendLine("                return result;");
+        }
+    }
+
+    private void GenerateExceptionHandling(StringBuilder codeBuilder, MethodAnalysisResult methodInfo, string interfaceName)
+    {
+        codeBuilder.AppendLine("                _logger.LogError(ex, \"HTTP请求异常: {{Url}}\", url);");
+        codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(interfaceName, "Api", "RequestError")}(ex, url);");
+        codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "Error")}(ex, url);");
+        codeBuilder.AppendLine("                throw;");
+    }
+
+
+    private bool IsSimpleType(string typeName)
+    {
+        var simpleTypes = new[] { "string", "int", "long", "float", "double", "decimal", "bool",
+                                  "DateTime", "System.DateTime", "Guid", "System.Guid",
+                                  "string[]", "int[]", "long[]", "float[]", "double[]", "decimal[]",
+                                  "DateTime[]", "System.DateTime[]", "Guid[]", "System.Guid[]",};
+        return simpleTypes.Contains(typeName) || typeName.EndsWith("?", StringComparison.OrdinalIgnoreCase) && simpleTypes.Contains(typeName.TrimEnd('?'));
+    }
+
+    private bool IsStringType(string typeName)
+    {
+        return typeName.Equals("string", StringComparison.OrdinalIgnoreCase) ||
+               typeName.Equals("string?", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsArrayType(string typeName)
+    {
+        return typeName.EndsWith("[]", StringComparison.OrdinalIgnoreCase) || typeName.EndsWith("[]?", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string? GetFormatString(ParameterAttributeInfo attribute)
+    {
+        // 检查构造函数参数
+        if (attribute.Arguments.Length > 1)
+        {
+            return attribute.Arguments[1] as string;
+        }
+        else if (attribute.Arguments.Length == 1 && GeneratorConstants.PathAttributes.Contains(attribute.Name))
+        {
+            return attribute.Arguments[0] as string;
+        }
+
+        // 检查命名参数
+        return attribute.NamedArguments.TryGetValue("FormatString", out var formatString)
+            ? formatString as string
+            : null;
+    }
+
+    private string GetQueryParameterName(ParameterAttributeInfo attribute, string defaultName)
+    {
+        if (attribute.Arguments.Length > 0)
+        {
+            var nameArg = attribute.Arguments[0] as string;
+            if (!string.IsNullOrEmpty(nameArg))
+                return nameArg;
+        }
+
+        return attribute.NamedArguments.TryGetValue("Name", out var nameNamedArg)
+            ? nameNamedArg as string ?? defaultName
+            : defaultName;
+    }
+
+    private string? GetArrayQuerySeparator(ParameterAttributeInfo attribute)
+    {
+        // 检查构造函数参数
+        if (attribute.Arguments.Length > 1)
+        {
+            return attribute.Arguments[1] as string;
+        }
+
+        // 检查命名参数
+        return attribute.NamedArguments.TryGetValue("Separator", out var separator)
+            ? separator as string
+            : null;
     }
 
     private (string withComma, string withoutComma) GetCancellationTokenParams(MethodAnalysisResult methodInfo)
@@ -496,46 +777,33 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         );
     }
 
-    private static string GetCancellationTokenParameter(MethodAnalysisResult methodInfo)
-    {
-        var cancellationTokenParam = methodInfo.Parameters.FirstOrDefault(p => p.Type.Contains("CancellationToken"));
-        return cancellationTokenParam?.Name ?? string.Empty;
-    }
-
     /// <summary>
-    /// 获取参数特性的格式字符串
+    /// 从 FilePathAttribute 中获取 BufferSize 参数
     /// </summary>
-    /// <param name="attribute">参数特性信息</param>
-    /// <returns>格式字符串</returns>
-    private static string? GetFormatString(ParameterAttributeInfo attribute)
+    /// <param name="filePathAttr">FilePath特性</param>
+    /// <returns>缓冲区大小</returns>
+    private int GetBufferSizeFromAttribute(ParameterAttributeInfo filePathAttr)
     {
-        // 检查构造函数参数
-        if (attribute.Arguments.Length > 1)
+        // 首先检查命名参数
+        if (filePathAttr.NamedArguments.TryGetValue("BufferSize", out var bufferSizeValue))
         {
-            return attribute.Arguments[1] as string;
-        }
-        else if (attribute.Arguments.Length == 1 && GeneratorConstants.PathAttributes.Contains(attribute.Name))
-        {
-            return attribute.Arguments[0] as string;
-        }
-
-        // 检查命名参数
-        if (attribute.NamedArguments.TryGetValue("Format", out var formatValue))
-        {
-            return formatValue as string;
+            if (int.TryParse(bufferSizeValue?.ToString(), out var bufferSize))
+            {
+                return bufferSize;
+            }
         }
 
-        return null;
+        // 然后检查构造函数参数
+        if (filePathAttr.Arguments.Length > 0)
+        {
+            var firstArg = filePathAttr.Arguments[0];
+            if (int.TryParse(firstArg?.ToString(), out var bufferSize))
+            {
+                return bufferSize;
+            }
+        }
+
+        // 如果都没有设置，使用默认值 81920 (80KB)
+        return 81920;
     }
-
-    private void GenerateExceptionHandling(StringBuilder codeBuilder, MethodAnalysisResult methodInfo, string interfaceName)
-    {
-        codeBuilder.AppendLine("                _logger.LogError(ex, \"HTTP请求异常: {{Url}}\", url);");
-        codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(interfaceName, "Api", "RequestError")}(ex, url);");
-        codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "Error")}(ex, url);");
-        codeBuilder.AppendLine("                throw;");
-    }
-
-
-
 }
