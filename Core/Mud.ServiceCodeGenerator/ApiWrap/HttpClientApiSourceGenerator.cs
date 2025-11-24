@@ -131,8 +131,6 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         // 检查是否需要Token管理器
         var hasTokenManager = !string.IsNullOrEmpty(tokenManage);
         var tokenManagerType = hasTokenManager ? GetTokenManagerType(compilation, tokenManage!) : null;
-        var hasAuthorizationHeader = HasInterfaceAttribute(interfaceSymbol, "Header", "Authorization");
-        var hasAuthorizationQuery = HasInterfaceAttribute(interfaceSymbol, "Query", "Authorization");
 
         if (hasTokenManager)
         {

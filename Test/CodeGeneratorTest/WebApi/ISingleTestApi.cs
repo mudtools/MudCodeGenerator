@@ -8,7 +8,7 @@
 /// <para>54354</para>
 /// </remarks>
 [HttpClientApi("https://api.dingtalk.com", Timeout = 60, RegistryGroupName = "Test", ContentType = "application/xml")]
-[HttpClientApiWrap(TokenManage = "ITokenManage", WrapInterface = nameof(ISingleUserTest))]
+[HttpClientApiWrap(TokenManage = nameof(ITokenManage), WrapInterface = nameof(ISingleUserTest))]
 public interface ISingleTestApi
 {
     /// <summary>
