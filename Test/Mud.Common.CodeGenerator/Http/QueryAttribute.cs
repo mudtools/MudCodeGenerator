@@ -1,4 +1,4 @@
-﻿namespace Mud.Common.CodeGenerator;
+namespace Mud.Common.CodeGenerator;
 
 /// <summary>
 ///     HTTP 声明式查询参数特性
@@ -48,4 +48,13 @@ public sealed class QueryAttribute : Attribute
     /// 参数值的格式化字符串。
     /// </summary>
     public string? FormatString { get; set; }
+    
+    /// <summary>
+    ///     别名
+    /// </summary>
+    /// <remarks>
+    ///     <para>特性用于参数时有效。</para>
+    ///     <para>该属性优先级高于 <see cref="Name" /> 属性设置的值。</para>
+    /// </remarks>
+    public string? AliasAs { get; set; }
 }

@@ -217,7 +217,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
     {
         var methodInfo = AnalyzeMethod(compilation, methodSymbol, interfaceDecl);
         if (!methodInfo.IsValid) return;
-        
+
         // 检查是否忽略生成实现
         if (methodInfo.IgnoreImplement) return;
 
@@ -254,12 +254,22 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
 
         GenerateRequestSetup(codeBuilder, methodInfo);
         GenerateParameterHandling(codeBuilder, methodInfo);
-        
+
         // 添加Authorization header
         if (hasTokenManager && hasAuthorizationHeader)
         {
-            codeBuilder.AppendLine("            // 添加Authorization header");
-            codeBuilder.AppendLine("            request.Headers.Add(\"Authorization\", access_token);");
+            // 从接口特性中获取实际的header名称
+            var headerName = "Authorization";
+            if (methodInfo.InterfaceAttributes?.Any() == true)
+            {
+                var headerAttr = methodInfo.InterfaceAttributes.FirstOrDefault(attr => attr.StartsWith("Header:"));
+                if (!string.IsNullOrEmpty(headerAttr))
+                {
+                    headerName = headerAttr.Substring(7); // 去掉"Header:"前缀
+                }
+            }
+            codeBuilder.AppendLine($"            // 添加Authorization header as {headerName}");
+            codeBuilder.AppendLine($"            request.Headers.Add(\"{headerName}\", access_token);");
         }
 
         GenerateRequestExecution(codeBuilder, methodInfo);
@@ -386,8 +396,8 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
             .Where(p => p.Attributes.Any(attr => attr.Name == GeneratorConstants.ArrayQueryAttribute))
             .ToList();
 
-        // 检查接口是否有[Query("Authorization")]特性
-        var hasAuthorizationQuery = methodInfo.InterfaceAttributes?.Contains("Query:Authorization") == true;
+        // 检查接口是否有[Query("Authorization")]特性（支持AliasAs）
+        var hasAuthorizationQuery = methodInfo.InterfaceAttributes?.Any(attr => attr.StartsWith("Query:")) == true;
 
         if (!queryParams.Any() && !arrayQueryParams.Any() && !hasAuthorizationQuery)
             return;
@@ -407,8 +417,18 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         // 添加Authorization query参数
         if (hasAuthorizationQuery)
         {
-            codeBuilder.AppendLine("            // 添加Authorization query参数");
-            codeBuilder.AppendLine("            queryParams.Add(\"Authorization\", access_token);");
+            // 从接口特性中获取实际的query参数名称
+            var queryName = "Authorization";
+            if (methodInfo.InterfaceAttributes?.Any() == true)
+            {
+                var queryAttr = methodInfo.InterfaceAttributes.FirstOrDefault(attr => attr.StartsWith("Query:"));
+                if (!string.IsNullOrEmpty(queryAttr))
+                {
+                    queryName = queryAttr.Substring(6); // 去掉"Query:"前缀
+                }
+            }
+            codeBuilder.AppendLine($"            // 添加Authorization query参数 as {queryName}");
+            codeBuilder.AppendLine($"            queryParams.Add(\"{queryName}\", access_token);");
         }
 
         codeBuilder.AppendLine("            if (queryParams.Count > 0)");
@@ -604,7 +624,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
 
     private void GenerateErrorResponseHandling(StringBuilder codeBuilder, MethodAnalysisResult methodInfo, string interfaceName)
     {
-         var (_, cancellationTokenArgForRead) = GetCancellationTokenParams(methodInfo);
+        var (_, cancellationTokenArgForRead) = GetCancellationTokenParams(methodInfo);
         codeBuilder.AppendLine($"                    On{StringExtensions.ConvertFunctionName(interfaceName, "Api", "RequestFail")}(response, url);");
         codeBuilder.AppendLine($"                    On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "Fail")}(response, url);");
         codeBuilder.AppendLine($"                    var errorContent = await response.Content.ReadAsStringAsync({cancellationTokenArgForRead});");
@@ -624,7 +644,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         var (cancellationTokenArgForCopy, cancellationTokenArgForRead) = GetCancellationTokenParams(methodInfo);
         if (hasFilePathParam)
         {
-          
+
             // FilePath 参数场景：直接保存到指定路径
             codeBuilder.AppendLine($"                using (var stream = await response.Content.ReadAsStreamAsync({cancellationTokenArgForRead}))");
             codeBuilder.AppendLine($"                using (var fileStream = File.Create({filePathParam.Name}))");
@@ -752,12 +772,12 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
     {
         var cancellationTokenParam = methodInfo.Parameters.FirstOrDefault(p => p.Type.Contains("CancellationToken"));
         var paramValue = cancellationTokenParam?.Name;
-        
+
         return (
             withComma: paramValue != null ? $", {paramValue}" : "",
             withoutComma: paramValue ?? ""
         );
-    }  
+    }
 
     /// <summary>
     /// 从 FilePathAttribute 中获取 BufferSize 参数

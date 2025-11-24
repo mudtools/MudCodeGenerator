@@ -24,7 +24,7 @@ public interface ITestTokenApi
 /// 测试Query Authorization的API接口
 /// </summary>
 [HttpClientApi(TokenManage = nameof(ITokenManager))]
-[Query("Authorization")]
+[Query("Authorization", AliasAs = "X-Token")]
 public interface ITestTokenQueryApi
 {
     /// <summary>

@@ -492,16 +492,32 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
         
         if (interfaceSymbol != null)
         {
-            // 检查[Header("Authorization")]特性
-            if (HasInterfaceAttribute(interfaceSymbol, "Header", "Authorization"))
+            // 检查并处理[Header]特性
+            var headerAttributes = interfaceSymbol.GetAttributes()
+                .Where(attr => (attr.AttributeClass?.Name == "HeaderAttribute" || attr.AttributeClass?.Name == "Header") && 
+                               attr.ConstructorArguments.Length > 0 && 
+                               attr.ConstructorArguments[0].Value?.ToString() == "Authorization");
+            
+            foreach (var headerAttr in headerAttributes)
             {
-                interfaceAttributes.Add("Header:Authorization");
+                // 优先使用AliasAs属性
+                var aliasAs = headerAttr.NamedArguments.FirstOrDefault(arg => arg.Key == "AliasAs").Value.Value?.ToString();
+                var headerName = string.IsNullOrEmpty(aliasAs) ? "Authorization" : aliasAs;
+                interfaceAttributes.Add($"Header:{headerName}");
             }
             
-            // 检查[Query("Authorization")]特性
-            if (HasInterfaceAttribute(interfaceSymbol, "Query", "Authorization"))
+            // 检查并处理[Query]特性
+            var queryAttributes = interfaceSymbol.GetAttributes()
+                .Where(attr => (attr.AttributeClass?.Name == "QueryAttribute" || attr.AttributeClass?.Name == "Query") && 
+                               attr.ConstructorArguments.Length > 0 && 
+                               attr.ConstructorArguments[0].Value?.ToString() == "Authorization");
+            
+            foreach (var queryAttr in queryAttributes)
             {
-                interfaceAttributes.Add("Query:Authorization");
+                // 优先使用AliasAs属性
+                var aliasAs = queryAttr.NamedArguments.FirstOrDefault(arg => arg.Key == "AliasAs").Value.Value?.ToString();
+                var queryName = string.IsNullOrEmpty(aliasAs) ? "Authorization" : aliasAs;
+                interfaceAttributes.Add($"Query:{queryName}");
             }
         }
 
