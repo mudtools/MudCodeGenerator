@@ -90,6 +90,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
 
         var codeBuilder = new StringBuilder();
         GenerateClassStructure(codeBuilder, className, namespaceName, interfaceSymbol);
+        GenerateClassFieldsAndConstructor(codeBuilder, className, interfaceSymbol, compilation);
         GenerateMethods(compilation, codeBuilder, interfaceSymbol, interfaceDecl);
 
         codeBuilder.AppendLine("    }");
@@ -112,11 +113,10 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine($"    {GeneratedCodeAttribute}");
         codeBuilder.AppendLine($"    internal partial class {className} : {interfaceSymbol.Name}");
         codeBuilder.AppendLine("    {");
-        GenerateClassFieldsAndConstructor(codeBuilder, className, interfaceSymbol);
     }
 
 
-    private void GenerateClassFieldsAndConstructor(StringBuilder codeBuilder, string className, INamedTypeSymbol interfaceSymbol)
+    private void GenerateClassFieldsAndConstructor(StringBuilder codeBuilder, string className, INamedTypeSymbol interfaceSymbol, Compilation compilation)
     {
         codeBuilder.AppendLine("        private readonly HttpClient _httpClient;");
         codeBuilder.AppendLine($"        private readonly ILogger<{className}> _logger;");
@@ -126,6 +126,18 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         var httpClientApiAttribute = GetHttpClientApiAttribute(interfaceSymbol);
         var defaultContentType = GetHttpClientApiContentTypeFromAttribute(httpClientApiAttribute);
         var timeout = GetHttpClientApiTimeoutFromAttribute(httpClientApiAttribute);
+        var tokenManage = GetTokenManageFromAttribute(httpClientApiAttribute);
+
+        // 检查是否需要Token管理器
+        var hasTokenManager = !string.IsNullOrEmpty(tokenManage);
+        var tokenManagerType = hasTokenManager ? GetTokenManagerType(compilation, tokenManage!) : null;
+        var hasAuthorizationHeader = HasInterfaceAttribute(interfaceSymbol, "Header", "Authorization");
+        var hasAuthorizationQuery = HasInterfaceAttribute(interfaceSymbol, "Query", "Authorization");
+
+        if (hasTokenManager)
+        {
+            codeBuilder.AppendLine($"        private readonly {tokenManagerType} _tokenManager;");
+        }
 
         codeBuilder.AppendLine($"        private readonly string _defaultContentType = \"{defaultContentType}\";");
         codeBuilder.AppendLine();
@@ -135,11 +147,25 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine("        /// <param name=\"httpClient\">HttpClient实例</param>");
         codeBuilder.AppendLine("        /// <param name=\"logger\">日志记录器</param>");
         codeBuilder.AppendLine("        /// <param name=\"option\">Json序列化参数</param>");
-        codeBuilder.AppendLine($"        public {className}(HttpClient httpClient, ILogger<{className}> logger, IOptions<JsonSerializerOptions> option)");
+
+        if (hasTokenManager)
+        {
+            codeBuilder.AppendLine($"        /// <param name=\"tokenManager\">Token管理器</param>");
+            codeBuilder.AppendLine($"        public {className}(HttpClient httpClient, ILogger<{className}> logger, IOptions<JsonSerializerOptions> option, {tokenManagerType} tokenManager)");
+        }
+        else
+        {
+            codeBuilder.AppendLine($"        public {className}(HttpClient httpClient, ILogger<{className}> logger, IOptions<JsonSerializerOptions> option)");
+        }
+
         codeBuilder.AppendLine("        {");
         codeBuilder.AppendLine("            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));");
         codeBuilder.AppendLine("            _logger = logger ?? throw new ArgumentNullException(nameof(logger));");
         codeBuilder.AppendLine("            _jsonSerializerOptions = option.Value;");
+        if (hasTokenManager)
+        {
+            codeBuilder.AppendLine("            _tokenManager = tokenManager ?? throw new ArgumentNullException(nameof(tokenManager));");
+        }
         codeBuilder.AppendLine();
         codeBuilder.AppendLine($"            // 配置HttpClient超时时间");
         codeBuilder.AppendLine($"            _httpClient.Timeout = TimeSpan.FromSeconds({timeout});");
@@ -195,6 +221,16 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         // 检查是否忽略生成实现
         if (methodInfo.IgnoreImplement) return;
 
+        // 获取接口符号以检查Token管理
+        var model = compilation.GetSemanticModel(interfaceDecl.SyntaxTree);
+        var interfaceSymbol = model.GetDeclaredSymbol(interfaceDecl) as INamedTypeSymbol;
+        var httpClientApiAttribute = GetHttpClientApiAttribute(interfaceSymbol);
+        var tokenManage = GetTokenManageFromAttribute(httpClientApiAttribute);
+        var hasTokenManager = !string.IsNullOrEmpty(tokenManage);
+        var tokenManagerType = hasTokenManager ? GetTokenManagerType(compilation, tokenManage!) : null;
+        var hasAuthorizationHeader = HasInterfaceAttribute(interfaceSymbol!, "Header", "Authorization");
+        var hasAuthorizationQuery = HasInterfaceAttribute(interfaceSymbol!, "Query", "Authorization");
+
         codeBuilder.AppendLine();
         codeBuilder.AppendLine($"        /// <summary>");
         codeBuilder.AppendLine($"        /// <inheritdoc cref=\"{methodInfo.InterfaceName}.{methodSymbol.Name} \"/>");
@@ -205,8 +241,27 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         codeBuilder.AppendLine($"        public {asyncKeyword}{methodSymbol.ReturnType} {methodSymbol.Name}({GetParameterList(methodSymbol)})");
         codeBuilder.AppendLine("        {");
 
+        // 如果需要Token管理器，获取access_token
+        if (hasTokenManager && (hasAuthorizationHeader || hasAuthorizationQuery))
+        {
+            codeBuilder.AppendLine($"            var access_token = await _tokenManager.GetTokenAsync();");
+            codeBuilder.AppendLine($"            if (string.IsNullOrEmpty(access_token))");
+            codeBuilder.AppendLine($"            {{");
+            codeBuilder.AppendLine($"                throw new InvalidOperationException(\"无法获取访问令牌\");");
+            codeBuilder.AppendLine($"            }}");
+            codeBuilder.AppendLine();
+        }
+
         GenerateRequestSetup(codeBuilder, methodInfo);
         GenerateParameterHandling(codeBuilder, methodInfo);
+        
+        // 添加Authorization header
+        if (hasTokenManager && hasAuthorizationHeader)
+        {
+            codeBuilder.AppendLine("            // 添加Authorization header");
+            codeBuilder.AppendLine("            request.Headers.Add(\"Authorization\", access_token);");
+        }
+
         GenerateRequestExecution(codeBuilder, methodInfo);
 
         codeBuilder.AppendLine("        }");
@@ -331,7 +386,10 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
             .Where(p => p.Attributes.Any(attr => attr.Name == GeneratorConstants.ArrayQueryAttribute))
             .ToList();
 
-        if (!queryParams.Any() && !arrayQueryParams.Any())
+        // 检查接口是否有[Query("Authorization")]特性
+        var hasAuthorizationQuery = methodInfo.InterfaceAttributes?.Contains("Query:Authorization") == true;
+
+        if (!queryParams.Any() && !arrayQueryParams.Any() && !hasAuthorizationQuery)
             return;
 
         codeBuilder.AppendLine($"            var queryParams = HttpUtility.ParseQueryString(string.Empty);");
@@ -344,6 +402,13 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
         foreach (var param in arrayQueryParams)
         {
             GenerateArrayQueryParameter(codeBuilder, param);
+        }
+
+        // 添加Authorization query参数
+        if (hasAuthorizationQuery)
+        {
+            codeBuilder.AppendLine("            // 添加Authorization query参数");
+            codeBuilder.AppendLine("            queryParams.Add(\"Authorization\", access_token);");
         }
 
         codeBuilder.AppendLine("            if (queryParams.Count > 0)");

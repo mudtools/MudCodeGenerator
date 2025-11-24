@@ -72,6 +72,11 @@ public class MethodAnalysisResult
     public bool IgnoreWrapInterface { get; set; }
 
     /// <summary>
+    /// 接口特性列表（用于存储Header:Authorization、Query:Authorization等）
+    /// </summary>
+    public HashSet<string> InterfaceAttributes { get; set; } = [];
+
+    /// <summary>
     /// 无效的分析结果实例
     /// </summary>
     public static MethodAnalysisResult Invalid => new() { IsValid = false };

@@ -209,6 +209,61 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
     }
 
     /// <summary>
+    /// 从特性获取Token管理器接口名称
+    /// </summary>
+    /// <param name="httpClientApiAttribute">HttpClientApi特性</param>
+    /// <returns>Token管理器接口名称</returns>
+    protected string? GetTokenManageFromAttribute(AttributeData? httpClientApiAttribute)
+    {
+        if (httpClientApiAttribute?.NamedArguments.FirstOrDefault(k => k.Key == "TokenManage").Value.Value is string tokenManage)
+            return tokenManage;
+
+        return null;
+    }
+
+    /// <summary>
+    /// 获取Token管理器接口的完整命名空间
+    /// </summary>
+    /// <param name="compilation">编译对象</param>
+    /// <param name="tokenManageInterfaceName">Token管理器接口名称</param>
+    /// <returns>Token管理器接口的完整类型名称</returns>
+    protected string GetTokenManagerType(Compilation compilation, string tokenManageInterfaceName)
+    {
+        if (compilation != null)
+        {
+            var tokenManagerSymbol = compilation.GetTypeByMetadataName(tokenManageInterfaceName);
+            if (tokenManagerSymbol != null)
+            {
+                return tokenManagerSymbol.ToDisplayString();
+            }
+        }
+
+        // 如果没有找到，返回原始名称
+        return tokenManageInterfaceName;
+    }
+
+    /// <summary>
+    /// 检查接口是否具有指定的特性
+    /// </summary>
+    /// <param name="interfaceSymbol">接口符号</param>
+    /// <param name="attributeType">特性类型（Header或Query）</param>
+    /// <param name="attributeValue">特性值（如Authorization）</param>
+    /// <returns>是否具有指定的特性</returns>
+    protected bool HasInterfaceAttribute(INamedTypeSymbol interfaceSymbol, string attributeType, string attributeValue)
+    {
+        if (interfaceSymbol == null)
+            return false;
+
+        var attributeName = attributeType + "Attribute";
+        
+        return interfaceSymbol.GetAttributes()
+            .Any(attr => 
+                (attr.AttributeClass?.Name == attributeName || attr.AttributeClass?.Name == attributeType) &&
+                attr.ConstructorArguments.Length > 0 &&
+                attr.ConstructorArguments[0].Value?.ToString() == attributeValue);
+    }
+
+    /// <summary>
     /// 获取方法参数列表字符串
     /// </summary>
     protected string GetParameterList(IMethodSymbol methodSymbol)
@@ -431,6 +486,25 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
             return parameterInfo;
         }).ToList();
 
+        // 分析接口特性
+        var interfaceSymbol = compilation.GetSemanticModel(interfaceDecl.SyntaxTree).GetDeclaredSymbol(interfaceDecl) as INamedTypeSymbol;
+        var interfaceAttributes = new HashSet<string>();
+        
+        if (interfaceSymbol != null)
+        {
+            // 检查[Header("Authorization")]特性
+            if (HasInterfaceAttribute(interfaceSymbol, "Header", "Authorization"))
+            {
+                interfaceAttributes.Add("Header:Authorization");
+            }
+            
+            // 检查[Query("Authorization")]特性
+            if (HasInterfaceAttribute(interfaceSymbol, "Query", "Authorization"))
+            {
+                interfaceAttributes.Add("Query:Authorization");
+            }
+        }
+
         return new MethodAnalysisResult
         {
             InterfaceName = interfaceDecl.Identifier.Text,
@@ -443,7 +517,8 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
             IsAsyncMethod = IsAsyncReturnType(methodSymbol.ReturnType),
             Parameters = parameters,
             IgnoreImplement = HasMethodAttribute(methodSymbol, GeneratorConstants.IgnoreImplementAttributeNames),
-            IgnoreWrapInterface = HasMethodAttribute(methodSymbol, GeneratorConstants.IgnoreWrapInterfaceAttributeNames)
+            IgnoreWrapInterface = HasMethodAttribute(methodSymbol, GeneratorConstants.IgnoreWrapInterfaceAttributeNames),
+            InterfaceAttributes = interfaceAttributes
         };
     }
 
