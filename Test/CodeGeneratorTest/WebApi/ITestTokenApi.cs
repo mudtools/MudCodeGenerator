@@ -4,7 +4,7 @@ namespace CodeGeneratorTest.WebApi;
 /// 测试Token功能的API接口
 /// </summary>
 [HttpClientApi(TokenManage = nameof(ITokenManager))]
-[Header("Authorization")]
+[Header("Authorization", AliasAs = "X-Token")]
 public interface ITestTokenApi
 {
     /// <summary>
