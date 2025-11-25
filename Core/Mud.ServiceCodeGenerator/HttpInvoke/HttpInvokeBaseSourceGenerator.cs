@@ -310,6 +310,41 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     #region Common Utility Methods
 
     /// <summary>
+    /// 递归获取接口及其所有父接口的所有方法（去重）
+    /// </summary>
+    protected IEnumerable<IMethodSymbol> GetAllInterfaceMethods(INamedTypeSymbol interfaceSymbol)
+    {
+        if (interfaceSymbol == null)
+            return [];
+        var visitedInterfaces = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+        return GetAllInterfaceMethodsRecursive(interfaceSymbol, visitedInterfaces);
+    }
+
+    private IEnumerable<IMethodSymbol> GetAllInterfaceMethodsRecursive(INamedTypeSymbol interfaceSymbol, HashSet<INamedTypeSymbol> visitedInterfaces)
+    {
+        // 避免循环引用
+        if (visitedInterfaces.Contains(interfaceSymbol))
+            yield break;
+
+        visitedInterfaces.Add(interfaceSymbol);
+
+        // 首先处理当前接口的方法
+        foreach (var method in interfaceSymbol.GetMembers().OfType<IMethodSymbol>())
+        {
+            yield return method;
+        }
+
+        // 然后递归处理所有父接口
+        foreach (var baseInterface in interfaceSymbol.Interfaces)
+        {
+            foreach (var baseMethod in GetAllInterfaceMethodsRecursive(baseInterface, visitedInterfaces))
+            {
+                yield return baseMethod;
+            }
+        }
+    }
+
+    /// <summary>
     /// 获取XML文档注释
     /// </summary>
     protected string GetXmlDocumentation(SyntaxNode syntaxNode)
@@ -552,19 +587,79 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
         };
     }
 
+    /// <summary>
+    /// 查询方法的语法对象。
+    /// </summary>
+    /// <param name="compilation"></param>
+    /// <param name="methodSymbol"></param>
+    /// <param name="interfaceDecl"></param>
+    /// <returns></returns>
     protected MethodDeclarationSyntax? FindMethodSyntax(Compilation compilation, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl)
     {
-        if (interfaceDecl == null || methodSymbol == null)
+        if (interfaceDecl == null || methodSymbol == null || compilation == null)
             return null;
 
-        return interfaceDecl.Members
-            .OfType<MethodDeclarationSyntax>()
-            .FirstOrDefault(m =>
+        // 获取当前接口及其所有基接口的语法节点
+        var allInterfaces = GetAllBaseInterfaceSyntaxNodes(compilation, interfaceDecl);
+
+        foreach (var interfaceSyntax in allInterfaces)
+        {
+            var method = interfaceSyntax.Members
+                .OfType<MethodDeclarationSyntax>()
+                .FirstOrDefault(m =>
+                {
+                    var model = compilation.GetSemanticModel(m.SyntaxTree);
+                    var methodSymbolFromSyntax = model.GetDeclaredSymbol(m);
+                    return methodSymbolFromSyntax?.Equals(methodSymbol, SymbolEqualityComparer.Default) == true;
+                });
+
+            if (method != null)
+                return method;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// 获取接口及其所有基接口的语法节点
+    /// </summary>
+    private IEnumerable<InterfaceDeclarationSyntax> GetAllBaseInterfaceSyntaxNodes(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl)
+    {
+        yield return interfaceDecl;
+
+        var semanticModel = compilation.GetSemanticModel(interfaceDecl.SyntaxTree);
+        var interfaceSymbol = semanticModel.GetDeclaredSymbol(interfaceDecl);
+
+        if (interfaceSymbol == null)
+            yield break;
+
+        foreach (var baseInterface in interfaceSymbol.Interfaces)
+        {
+            var baseInterfaceSyntax = GetInterfaceDeclarationSyntax(compilation, baseInterface);
+            if (baseInterfaceSyntax != null)
             {
-                var model = compilation.GetSemanticModel(m.SyntaxTree);
-                var methodSymbolFromSyntax = model.GetDeclaredSymbol(m);
-                return methodSymbolFromSyntax?.Equals(methodSymbol, SymbolEqualityComparer.Default) == true;
-            });
+                yield return baseInterfaceSyntax;
+
+                // 递归获取更深层的基接口
+                foreach (var deeperBase in GetAllBaseInterfaceSyntaxNodes(compilation, baseInterfaceSyntax))
+                {
+                    yield return deeperBase;
+                }
+            }
+        }
+    }
+
+    private InterfaceDeclarationSyntax? GetInterfaceDeclarationSyntax(Compilation compilation, INamedTypeSymbol interfaceSymbol)
+    {
+        foreach (var syntaxReference in interfaceSymbol.DeclaringSyntaxReferences)
+        {
+            var syntax = syntaxReference.GetSyntax();
+            if (syntax is InterfaceDeclarationSyntax interfaceDecl)
+            {
+                return interfaceDecl;
+            }
+        }
+        return null;
     }
 
     private object? GetAttributeArgumentValue(AttributeSyntax attribute, int index)

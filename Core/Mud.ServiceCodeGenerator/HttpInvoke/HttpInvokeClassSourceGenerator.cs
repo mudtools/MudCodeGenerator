@@ -197,12 +197,15 @@ public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenera
     private void GenerateMethods(Compilation compilation, StringBuilder codeBuilder, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDecl)
     {
         GenerateClassPartialMethods(codeBuilder, interfaceSymbol);
-
-        foreach (var methodSymbol in interfaceSymbol.GetMembers().OfType<IMethodSymbol>())
+        //System.Diagnostics.Debugger.Launch();
+        // 获取接口及其所有父接口的所有方法
+        var allMethods = GetAllInterfaceMethods(interfaceSymbol);
+        foreach (var methodSymbol in allMethods)
         {
             GenerateMethodImplementation(compilation, codeBuilder, methodSymbol, interfaceDecl);
         }
     }
+
 
     /// <summary>
     /// <inheritdoc cref=""/>
@@ -296,7 +299,7 @@ public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenera
 
     private void GenerateClassPartialMethods(StringBuilder codeBuilder, INamedTypeSymbol interfaceSymbol)
     {
-        var methods = interfaceSymbol.GetMembers().OfType<IMethodSymbol>().ToList();
+        var methods = GetAllInterfaceMethods(interfaceSymbol);
         var processedMethods = new HashSet<string>();
 
         foreach (var methodSymbol in methods)

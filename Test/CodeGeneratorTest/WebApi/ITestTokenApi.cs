@@ -1,5 +1,14 @@
 namespace CodeGeneratorTest.WebApi;
 
+public interface ITestBaseTokenApi
+{
+    /// <summary>
+    /// 获取用户信息
+    /// </summary>
+    [Get("api/users/{id}")]
+    Task<UserInfo> GetBaeUserAsync([Path] string id);
+}
+
 /// <summary>
 /// 测试Token功能的API接口
 /// </summary>
@@ -7,7 +16,7 @@ namespace CodeGeneratorTest.WebApi;
 [Header("Authorization", AliasAs = "X-Token")]
 [Header("xx1", "xxValue1")]
 [Header("xx2", "xxValue3")]
-public interface ITestTokenApi
+public interface ITestTokenApi : ITestBaseTokenApi
 {
     /// <summary>
     /// 获取用户信息

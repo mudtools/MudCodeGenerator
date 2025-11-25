@@ -119,12 +119,13 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
     {
         if (interfaceSymbol == null || sb == null) return;
 
-        var methods = interfaceSymbol.GetMembers()
-                                     .OfType<IMethodSymbol>()
-                                     .Where(m => IsValidMethod(m));
+        var allMethods = GetAllInterfaceMethods(interfaceSymbol);
 
-        foreach (var methodSymbol in methods)
+        foreach (var methodSymbol in allMethods)
         {
+            if (!IsValidMethod(methodSymbol))
+                continue;
+
             var methodInfo = AnalyzeMethod(compilation, methodSymbol, interfaceDecl);
             if (!methodInfo.IsValid)
                 continue;
