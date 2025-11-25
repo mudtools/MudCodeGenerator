@@ -16,6 +16,18 @@ public interface ITestBaseTokenApi
 [Header("Authorization", AliasAs = "X-Token")]
 [Header("xx1", "xxValue1")]
 [Header("xx2", "xxValue3")]
+public interface ITestNullTokenApi : ITestBaseTokenApi
+{
+
+}
+
+/// <summary>
+/// 测试Token功能的API接口
+/// </summary>
+[HttpClientApi(TokenManage = nameof(ITokenManager))]
+[Header("Authorization", AliasAs = "X-Token")]
+[Header("xx1", "xxValue1")]
+[Header("xx2", "xxValue3")]
 public interface ITestTokenApi : ITestBaseTokenApi
 {
     /// <summary>

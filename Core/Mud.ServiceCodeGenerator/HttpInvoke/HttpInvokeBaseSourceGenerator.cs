@@ -293,9 +293,11 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
         if (interfaceSymbol == null)
             return false;
 
-        return interfaceSymbol.GetMembers().OfType<IMethodSymbol>()
-                              .Any(method => method.GetAttributes()
-                              .Any(attr => GeneratorConstants.SupportedHttpMethods.Contains(attr.AttributeClass?.Name)));
+        // 获取接口及其所有父接口的所有方法
+        var allMethods = GetAllInterfaceMethods(interfaceSymbol);
+        System.Diagnostics.Debugger.Launch();
+        return allMethods.Any(method => method.GetAttributes()
+                         .Any(attr => GeneratorConstants.SupportedHttpMethods.Contains(attr.AttributeClass?.Name)));
     }
 
     protected AttributeSyntax? FindHttpMethodAttribute(MethodDeclarationSyntax methodSyntax)

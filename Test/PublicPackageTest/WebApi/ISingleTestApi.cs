@@ -1,11 +1,23 @@
 ﻿namespace PublicPackageTest.WebApi;
 
+public interface ISingleTest
+{
+    /// <summary>
+    /// 根据用户ID获取用户对象。
+    /// </summary>
+    /// <param name="token">令牌</param>
+    /// <param name="birthday">生日</param>
+    /// <returns></returns>
+    [Get("/api/v1/user/{birthday}")]
+    Task<SysUserInfoOutput> GetBaseUserAsync([Token][Header("x-token")] string token, [Path("yyyy-MM-dd")] DateTime birthday);
+}
+
 /// <summary>
 /// 测试注释。
 /// </summary>
 [HttpClientApi("https://api.dingtalk.com", Timeout = 60)]
 [HttpClientApiWrap(TokenManage = "ITokenManage", WrapInterface = "ISingleUserTest")]
-public interface ISingleTestApi
+public interface ISingleTestApi : ISingleTest
 {
     /// <summary>
     /// 根据用户ID获取用户对象。
