@@ -12,7 +12,7 @@ namespace Mud.ServiceCodeGenerator;
 /// <summary>
 /// 服务类代码生成器基类。
 /// </summary>
-public abstract class ServiceCodeGenerator : TransitiveCodeGenerator
+public abstract class ServiceCodeBaseGenerator : TransitiveCodeGenerator
 {
     /// <summary>
     /// 服务类生成特性。

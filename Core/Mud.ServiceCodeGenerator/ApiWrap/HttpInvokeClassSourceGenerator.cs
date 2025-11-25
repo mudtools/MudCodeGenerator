@@ -17,7 +17,7 @@ namespace Mud.ServiceCodeGenerator;
 /// <para>支持 HTTP 方法：Get, Post, Put, Delete, Patch, Head, Options。</para>
 /// </summary>
 [Generator(LanguageNames.CSharp)]
-public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
+public partial class HttpInvokeClassSourceGenerator : HttpInvokeSourceGenerator
 {
     /// <inheritdoc/>
     protected override void ExecuteGenerator(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context)
@@ -276,7 +276,7 @@ public partial class HttpClientApiSourceGenerator : WebApiSourceGenerator
             var fixedValueHeaders = methodInfo.InterfaceHeaderAttributes
                 .Where(h => !string.IsNullOrEmpty(h.Name) && h.Value != null)
                 .ToList();
-            
+
             if (fixedValueHeaders.Any())
             {
                 codeBuilder.AppendLine($"            // 添加接口定义的Header特性");

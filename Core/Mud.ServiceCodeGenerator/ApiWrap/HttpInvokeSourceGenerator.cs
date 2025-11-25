@@ -11,12 +11,12 @@ using System.Globalization;
 namespace Mud.ServiceCodeGenerator;
 
 /// <summary>
-/// Web API 源代码生成器基类
+/// 生成Http调用代码的源代码生成器基类
 /// </summary>
 /// <remarks>
 /// 提供Web API相关的公共功能，包括HttpClient特性处理、HTTP方法验证等
 /// </remarks>
-public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
+public abstract class HttpInvokeSourceGenerator : TransitiveCodeGenerator
 {
     /// <inheritdoc/>
     protected override System.Collections.ObjectModel.Collection<string> GetFileUsingNameSpaces()
@@ -255,9 +255,9 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
             return false;
 
         var attributeName = attributeType + "Attribute";
-        
+
         return interfaceSymbol.GetAttributes()
-            .Any(attr => 
+            .Any(attr =>
                 (attr.AttributeClass?.Name == attributeName || attr.AttributeClass?.Name == attributeType) &&
                 attr.ConstructorArguments.Length > 0 &&
                 attr.ConstructorArguments[0].Value?.ToString() == attributeValue);
@@ -490,18 +490,18 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
         var interfaceSymbol = compilation.GetSemanticModel(interfaceDecl.SyntaxTree).GetDeclaredSymbol(interfaceDecl) as INamedTypeSymbol;
         var interfaceAttributes = new HashSet<string>();
         var interfaceHeaderAttributes = new List<InterfaceHeaderAttribute>();
-        
+
         if (interfaceSymbol != null)
         {
             // 检查并处理所有[Header]特性
             var headerAttributes = interfaceSymbol.GetAttributes()
                 .Where(attr => (attr.AttributeClass?.Name == "HeaderAttribute" || attr.AttributeClass?.Name == "Header"));
-            
+
             foreach (var headerAttr in headerAttributes)
             {
                 // 获取Header名称
                 var headerName = GetHeaderName(headerAttr);
-                
+
                 // 创建接口Header特性信息
                 var interfaceHeaderAttr = new InterfaceHeaderAttribute
                 {
@@ -509,22 +509,22 @@ public abstract class WebApiSourceGenerator : TransitiveCodeGenerator
                     Value = GetHeaderValue(headerAttr),
                     Replace = GetHeaderReplace(headerAttr)
                 };
-                
+
                 interfaceHeaderAttributes.Add(interfaceHeaderAttr);
-                
+
                 // 保持与现有逻辑的兼容性，如果是Authorization Header，继续添加到InterfaceAttributes中
                 if (headerName == "Authorization")
                 {
                     interfaceAttributes.Add($"Header:{headerName}");
                 }
             }
-            
+
             // 检查并处理[Query]特性
             var queryAttributes = interfaceSymbol.GetAttributes()
-                .Where(attr => (attr.AttributeClass?.Name == "QueryAttribute" || attr.AttributeClass?.Name == "Query") && 
-                               attr.ConstructorArguments.Length > 0 && 
+                .Where(attr => (attr.AttributeClass?.Name == "QueryAttribute" || attr.AttributeClass?.Name == "Query") &&
+                               attr.ConstructorArguments.Length > 0 &&
                                attr.ConstructorArguments[0].Value?.ToString() == "Authorization");
-            
+
             foreach (var queryAttr in queryAttributes)
             {
                 // 优先使用AliasAs属性

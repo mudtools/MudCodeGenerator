@@ -12,7 +12,7 @@ namespace Mud.ServiceCodeGenerator;
 /// <summary>
 /// 数据仓库接口代码生成器。
 /// </summary>
-public class ServiceInterfaceCodeGenerator : ServiceCodeGenerator
+public class ServiceInterfaceCodeGenerator : ServiceCodeBaseGenerator
 {
     /// <inheritdoc/>
     protected override (CompilationUnitSyntax? unitSyntax, string? className) GenerateCode(ClassDeclarationSyntax classNode)

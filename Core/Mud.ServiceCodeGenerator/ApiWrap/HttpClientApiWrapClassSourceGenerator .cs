@@ -13,7 +13,7 @@ namespace Mud.ServiceCodeGenerator.ApiSourceGenerator;
 /// 用于生成包装实现类代码的代码生成器。
 /// </summary>
 [Generator]
-public class HttpClientApiWrapClassSourceGenerator : HttpClientApiWrapSourceGenerator
+public class HttpInvokeWrapClassSourceGenerator : HttpInvokeWrapSourceGenerator
 {
     protected override void GenerateWrapCode(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl, INamedTypeSymbol interfaceSymbol, AttributeData wrapAttribute, SourceProductionContext context)
     {
