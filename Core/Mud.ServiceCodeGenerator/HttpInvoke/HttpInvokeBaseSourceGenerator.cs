@@ -16,7 +16,7 @@ namespace Mud.ServiceCodeGenerator;
 /// <remarks>
 /// 提供Web API相关的公共功能，包括HttpClient特性处理、HTTP方法验证等
 /// </remarks>
-public abstract class HttpInvokeSourceGenerator : TransitiveCodeGenerator
+public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
 {
     /// <inheritdoc/>
     protected override System.Collections.ObjectModel.Collection<string> GetFileUsingNameSpaces()

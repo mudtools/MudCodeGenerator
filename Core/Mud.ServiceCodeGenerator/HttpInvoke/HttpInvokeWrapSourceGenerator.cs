@@ -14,7 +14,7 @@ namespace Mud.ServiceCodeGenerator.ApiSourceGenerator;
 /// HttpClientApiWrap 源代码生成器
 /// 为标记有HttpClientApiWrap特性的接口生成二次包装实现类
 /// </summary>
-public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeSourceGenerator
+public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenerator
 {
     protected override string[] ApiWrapAttributeNames() => GeneratorConstants.HttpClientApiWrapAttributeNames;
 

@@ -18,7 +18,7 @@ namespace Mud.ServiceCodeGenerator;
 /// 基于 Roslyn 技术，自动为标记了 [HttpClientApi] 特性的接口生成依赖注入注册代码
 /// </remarks>
 [Generator(LanguageNames.CSharp)]
-public class HttpInvokeRegistrationGenerator : HttpInvokeSourceGenerator
+public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
 {
     /// <inheritdoc/>
     protected override void ExecuteGenerator(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context)

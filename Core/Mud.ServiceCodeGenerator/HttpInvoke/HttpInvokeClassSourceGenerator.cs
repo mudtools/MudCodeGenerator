@@ -17,7 +17,7 @@ namespace Mud.ServiceCodeGenerator;
 /// <para>支持 HTTP 方法：Get, Post, Put, Delete, Patch, Head, Options。</para>
 /// </summary>
 [Generator(LanguageNames.CSharp)]
-public partial class HttpInvokeClassSourceGenerator : HttpInvokeSourceGenerator
+public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenerator
 {
     /// <inheritdoc/>
     protected override void ExecuteGenerator(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context)
