@@ -16,6 +16,16 @@ public interface ISingleTest
 /// 测试注释。
 /// </summary>
 [HttpClientApi("https://api.dingtalk.com", Timeout = 60)]
+[HttpClientApiWrap(TokenManage = "ITokenManage", WrapInterface = "ISingleNullUserTest")]
+public interface ISingleNullTestApi : ISingleTest
+{
+
+}
+
+/// <summary>
+/// 测试注释。
+/// </summary>
+[HttpClientApi("https://api.dingtalk.com", Timeout = 60)]
 [HttpClientApiWrap(TokenManage = "ITokenManage", WrapInterface = "ISingleUserTest")]
 public interface ISingleTestApi : ISingleTest
 {

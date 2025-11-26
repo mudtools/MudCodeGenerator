@@ -54,8 +54,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Mud.EntityCodeGenerator" Version="1.3.1" />
-		<PackageReference Include="Mud.ServiceCodeGenerator" Version="1.3.1" />
+		<PackageReference Include="Mud.EntityCodeGenerator" Version="1.3.2" />
+		<PackageReference Include="Mud.ServiceCodeGenerator" Version="1.3.2" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -295,7 +295,7 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
 
         // 获取接口及其所有父接口的所有方法
         var allMethods = GetAllInterfaceMethods(interfaceSymbol);
-        System.Diagnostics.Debugger.Launch();
+        //System.Diagnostics.Debugger.Launch();
         return allMethods.Any(method => method.GetAttributes()
                          .Any(attr => GeneratorConstants.SupportedHttpMethods.Contains(attr.AttributeClass?.Name)));
     }
