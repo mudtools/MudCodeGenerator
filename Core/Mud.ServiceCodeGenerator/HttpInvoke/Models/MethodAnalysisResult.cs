@@ -37,9 +37,23 @@ public class InterfaceHeaderAttribute
 public class MethodAnalysisResult
 {
     /// <summary>
-    /// 接口名称
+    /// 方法实际所属的接口名称（用于引用注释）
     /// </summary>
-    public string InterfaceName { get; set; } = string.Empty;
+    public string MethodOwnerInterfaceName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 当前正在处理的接口名称（用于接口级别的partial方法）
+    /// </summary>
+    public string CurrentInterfaceName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 接口名称（保持向后兼容，等同于MethodOwnerInterfaceName）
+    /// </summary>
+    public string InterfaceName 
+    { 
+        get => MethodOwnerInterfaceName; 
+        set => MethodOwnerInterfaceName = value; 
+    }
 
     /// <summary>
     /// 方法是否有效

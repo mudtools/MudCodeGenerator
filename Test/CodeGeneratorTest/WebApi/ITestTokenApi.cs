@@ -3,7 +3,7 @@ namespace CodeGeneratorTest.WebApi;
 public interface ITestBaseTokenApi
 {
     /// <summary>
-    /// 获取用户信息
+    /// 基类接口中获取用户信息
     /// </summary>
     [Get("api/users/{id}")]
     Task<UserInfo> GetBaeUserAsync([Path] string id);

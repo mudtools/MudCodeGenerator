@@ -234,7 +234,7 @@ public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenera
 
         codeBuilder.AppendLine();
         codeBuilder.AppendLine($"        /// <summary>");
-        codeBuilder.AppendLine($"        /// <inheritdoc cref=\"{methodInfo.InterfaceName}.{methodSymbol.Name} \"/>");
+        codeBuilder.AppendLine($"        /// <inheritdoc cref=\"{methodInfo.MethodOwnerInterfaceName}.{methodSymbol.Name} \"/>");
         codeBuilder.AppendLine($"        /// </summary>");
         codeBuilder.AppendLine($"        {GeneratedCodeAttribute}");
         // 根据方法返回类型决定是否添加 async 关键字
@@ -612,7 +612,7 @@ public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenera
     private void GenerateRequestExecution(StringBuilder codeBuilder, MethodAnalysisResult methodInfo)
     {
         var (cancellationTokenArg, _) = GetCancellationTokenParams(methodInfo);
-        var interfaceName = GetImplementationClassName(methodInfo.InterfaceName);
+        var interfaceName = GetImplementationClassName(methodInfo.CurrentInterfaceName);
 
         codeBuilder.AppendLine("            try");
         codeBuilder.AppendLine("            {");
