@@ -158,8 +158,16 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     {
         if (httpClientApiAttribute == null)
             return null;
+
+        // 优先检查命名参数 BaseAddress
+        var baseAddressArg = httpClientApiAttribute.NamedArguments.FirstOrDefault(a => a.Key == "BaseAddress");
+        if (baseAddressArg.Value.Value is string namedBaseAddress && !string.IsNullOrEmpty(namedBaseAddress))
+            return namedBaseAddress;
+
+        // 检查构造函数参数（兼容旧版本）
         if (httpClientApiAttribute.ConstructorArguments.Length > 0 && httpClientApiAttribute.ConstructorArguments[0].Value is string baseAddress)
             return baseAddress;
+
         return null;
     }
 
@@ -170,8 +178,28 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     {
         if (attribute == null)
             return 100;
+
+        // 优先检查 TimeoutSeconds 命名参数
+        var timeoutSecondsArg = attribute.NamedArguments.FirstOrDefault(a => a.Key == "TimeoutSeconds");
+        if (timeoutSecondsArg.Value.Value is int timeoutSecondsValue)
+            return timeoutSecondsValue;
+
+        // 检查 Timeout 命名参数（兼容其他特性）
         var timeoutArg = attribute.NamedArguments.FirstOrDefault(a => a.Key == "Timeout");
         return timeoutArg.Value.Value is int value ? value : 100; // 默认100秒
+    }
+
+    /// <summary>
+    /// 从特性获取超时时间（专用方法，查找TimeoutSeconds参数）
+    /// </summary>
+    /// <param name="httpClientApiAttribute">HttpClientApi特性</param>
+    /// <returns>超时秒数</returns>
+    protected int GetHttpClientApiTimeoutFromAttribute(AttributeData? httpClientApiAttribute)
+    {
+        if (httpClientApiAttribute?.NamedArguments.FirstOrDefault(k => k.Key == "TimeoutSeconds").Value.Value is int timeout)
+            return timeout;
+
+        return 30; // 默认30秒超时
     }
 
 
@@ -738,40 +766,25 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
         var tokenAttribute = parameter.GetAttributes()
             .FirstOrDefault(attr => GeneratorConstants.TokenAttributeNames.Contains(attr.AttributeClass?.Name));
 
-        if (tokenAttribute != null)
+        if (tokenAttribute == null)
+            return "TenantAccessToken";
+
+        // 首先检查命名参数 TokenType
+        var namedTokenType = tokenAttribute.NamedArguments
+            .FirstOrDefault(na => na.Key.Equals("TokenType", StringComparison.OrdinalIgnoreCase)).Value.Value;
+
+        if (namedTokenType != null)
         {
-            // 首先检查命名参数 TokenType
-            var namedTokenType = tokenAttribute.NamedArguments
-                .FirstOrDefault(na => na.Key.Equals("TokenType", StringComparison.OrdinalIgnoreCase)).Value.Value;
+            return ConvertTokenEnumValueToString(Convert.ToInt32(namedTokenType, CultureInfo.InvariantCulture));
+        }
 
-            if (namedTokenType != null)
+        // 然后检查构造函数参数
+        if (tokenAttribute.ConstructorArguments.Length > 0)
+        {
+            var tokenTypeValue = tokenAttribute.ConstructorArguments[0].Value;
+            if (tokenTypeValue != null)
             {
-                var enumValue = Convert.ToInt32(namedTokenType, CultureInfo.InvariantCulture);
-                return enumValue switch
-                {
-                    0 => "TenantAccessToken",
-                    1 => "UserAccessToken",
-                    2 => "Both",
-                    _ => "TenantAccessToken"
-                };
-            }
-
-            // 然后检查构造函数参数
-            if (tokenAttribute.ConstructorArguments.Length > 0)
-            {
-                var tokenTypeValue = tokenAttribute.ConstructorArguments[0].Value;
-                if (tokenTypeValue != null)
-                {
-                    // 处理枚举值转换
-                    var enumValue = Convert.ToInt32(tokenTypeValue, CultureInfo.InvariantCulture);
-                    return enumValue switch
-                    {
-                        0 => "TenantAccessToken",
-                        1 => "UserAccessToken",
-                        2 => "Both",
-                        _ => "TenantAccessToken"
-                    };
-                }
+                return ConvertTokenEnumValueToString(Convert.ToInt32(tokenTypeValue, CultureInfo.InvariantCulture));
             }
         }
 
@@ -885,31 +898,61 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     #region Header Attribute Helper Methods
 
     /// <summary>
+    /// 从特性中获取字符串参数值，按优先级顺序检查命名参数、构造函数参数
+    /// </summary>
+    /// <param name="attribute">特性数据</param>
+    /// <param name="namedParameterNames">命名参数名称列表（按优先级排序）</param>
+    /// <param name="constructorParameterIndex">构造函数参数索引</param>
+    /// <param name="defaultValue">默认值</param>
+    /// <returns>参数值</returns>
+    private static string? GetStringValueFromAttribute(AttributeData attribute, string[] namedParameterNames, int constructorParameterIndex = -1, string? defaultValue = null)
+    {
+        if (attribute == null)
+            return defaultValue;
+
+        // 检查命名参数
+        foreach (var paramName in namedParameterNames)
+        {
+            var namedArg = attribute.NamedArguments.FirstOrDefault(arg => arg.Key.Equals(paramName, StringComparison.OrdinalIgnoreCase));
+            if (namedArg.Key != null && namedArg.Value.Value?.ToString() is string namedValue && !string.IsNullOrEmpty(namedValue))
+                return namedValue;
+        }
+
+        // 检查构造函数参数
+        if (constructorParameterIndex >= 0 && attribute.ConstructorArguments.Length > constructorParameterIndex)
+        {
+            var constructorArg = attribute.ConstructorArguments[constructorParameterIndex].Value?.ToString();
+            if (!string.IsNullOrEmpty(constructorArg))
+                return constructorArg;
+        }
+
+        return defaultValue;
+    }
+
+    /// <summary>
+    /// 将Token类型枚举值转换为字符串
+    /// </summary>
+    /// <param name="enumValue">枚举值</param>
+    /// <returns>Token类型字符串</returns>
+    private static string ConvertTokenEnumValueToString(int enumValue)
+    {
+        return enumValue switch
+        {
+            0 => "TenantAccessToken",
+            1 => "UserAccessToken", 
+            2 => "Both",
+            _ => "TenantAccessToken"
+        };
+    }
+
+    /// <summary>
     /// 获取Header特性的名称
     /// </summary>
     /// <param name="headerAttr">Header特性</param>
     /// <returns>Header名称</returns>
     private string GetHeaderName(AttributeData headerAttr)
     {
-        // 优先使用AliasAs属性
-        var aliasAs = headerAttr.NamedArguments.FirstOrDefault(arg => arg.Key == "AliasAs").Value.Value?.ToString();
-        if (!string.IsNullOrEmpty(aliasAs))
-            return aliasAs;
-
-        // 检查构造函数参数
-        if (headerAttr.ConstructorArguments.Length > 0)
-        {
-            var nameArg = headerAttr.ConstructorArguments[0].Value?.ToString();
-            if (!string.IsNullOrEmpty(nameArg))
-                return nameArg;
-        }
-
-        // 检查Name属性
-        var nameProperty = headerAttr.NamedArguments.FirstOrDefault(arg => arg.Key == "Name").Value.Value?.ToString();
-        if (!string.IsNullOrEmpty(nameProperty))
-            return nameProperty;
-
-        return "Unknown";
+        return GetStringValueFromAttribute(headerAttr, ["AliasAs", "Name"], 0, "Unknown") ?? "Unknown";
     }
 
     /// <summary>
@@ -919,18 +962,39 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     /// <returns>Header值</returns>
     private object? GetHeaderValue(AttributeData headerAttr)
     {
+        // 优先检查Value命名参数
+        var valueProperty = headerAttr.NamedArguments.FirstOrDefault(arg => arg.Key == "Value").Value.Value;
+        if (valueProperty != null)
+            return valueProperty;
+
         // 检查构造函数参数（第二个参数）
         if (headerAttr.ConstructorArguments.Length > 1)
         {
             return headerAttr.ConstructorArguments[1].Value;
         }
 
-        // 检查Value属性
-        var valueProperty = headerAttr.NamedArguments.FirstOrDefault(arg => arg.Key == "Value").Value.Value;
-        if (valueProperty != null)
-            return valueProperty;
-
         return null;
+    }
+
+    /// <summary>
+    /// 从特性中获取布尔值参数
+    /// </summary>
+    /// <param name="attribute">特性数据</param>
+    /// <param name="parameterName">参数名称</param>
+    /// <param name="defaultValue">默认值</param>
+    /// <returns>布尔值</returns>
+    private static bool GetBoolValueFromAttribute(AttributeData attribute, string parameterName, bool defaultValue = false)
+    {
+        if (attribute == null)
+            return defaultValue;
+
+        var namedArg = attribute.NamedArguments.FirstOrDefault(arg => arg.Key.Equals(parameterName, StringComparison.OrdinalIgnoreCase));
+        if (namedArg.Key != null && namedArg.Value.Value != null)
+        {
+            return bool.TryParse(namedArg.Value.Value.ToString(), out var result) ? result : defaultValue;
+        }
+
+        return defaultValue;
     }
 
     /// <summary>
@@ -940,14 +1004,7 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     /// <returns>是否替换已存在的Header</returns>
     private bool GetHeaderReplace(AttributeData headerAttr)
     {
-        // 检查Replace属性
-        var replaceProperty = headerAttr.NamedArguments.FirstOrDefault(arg => arg.Key == "Replace").Value.Value;
-        if (replaceProperty != null)
-        {
-            return bool.TryParse(replaceProperty.ToString(), out var result) ? result : false;
-        }
-
-        return false;
+        return GetBoolValueFromAttribute(headerAttr, "Replace", false);
     }
 
     #endregion
