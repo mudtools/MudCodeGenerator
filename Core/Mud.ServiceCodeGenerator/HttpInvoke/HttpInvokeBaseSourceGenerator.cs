@@ -45,20 +45,23 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     /// <param name="context">初始化上下文</param>
     public override void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        // 使用自定义方法查找标记了[HttpClientApi]的接口
-        var interfaceDeclarations = GetClassDeclarationProvider<InterfaceDeclarationSyntax>(context, ApiWrapAttributeNames());
+        // 查找标记了[HttpClientApi]的接口声明
+        var httpClientApiInterfaces = GetClassDeclarationProvider<InterfaceDeclarationSyntax>(context, ApiWrapAttributeNames());
 
-        var compilationAndOptionsProvider = context.CompilationProvider
-                                         .Combine(context.AnalyzerConfigOptionsProvider)
-                                         .Select((s, _) => s);
+        // 获取编译信息和分析器配置选项
+        var compilationWithOptions = context.CompilationProvider
+            .Combine(context.AnalyzerConfigOptionsProvider);
 
-        // 组合编译和接口声明
-        var compilationAndInterfaces = context.CompilationProvider.Combine(interfaceDeclarations);
-        var providers = compilationAndInterfaces.Combine(compilationAndOptionsProvider);
+        // 组合所有需要的数据：编译信息、接口声明、配置选项
+        var completeDataProvider = compilationWithOptions.Combine(httpClientApiInterfaces);
 
-        // 注册源生成
-        context.RegisterSourceOutput(providers,
-            (context, provider) => ExecuteGenerator(provider.Left.Left, provider.Left.Right, context, provider.Right.Right));
+        // 注册源代码生成器
+        context.RegisterSourceOutput(completeDataProvider,
+            (ctx, provider) => ExecuteGenerator(
+                compilation: provider.Left.Left,
+                interfaces: provider.Right,
+                context: ctx,
+                configOptionsProvider: provider.Left.Right));
     }
 
     /// <summary>
