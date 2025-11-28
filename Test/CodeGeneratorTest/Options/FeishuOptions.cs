@@ -22,6 +22,11 @@ public class FeishuOptions
     /// </summary>
     public string? BaseUrl { get; set; }
 
+     /// <summary>
+    /// 是否启用日志记录，默认为true
+    /// </summary>
+    public bool EnableLogging { get; set; } = true;
+
     /// <summary>
     /// HTTP 请求超时时间（秒）。
     /// <para>默认值：30秒</para>
