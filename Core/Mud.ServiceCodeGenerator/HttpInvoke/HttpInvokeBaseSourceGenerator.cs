@@ -387,21 +387,6 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     }
 
     /// <summary>
-    /// 获取方法的声明语法
-    /// </summary>
-    protected MethodDeclarationSyntax? GetMethodDeclarationSyntax(IMethodSymbol method, InterfaceDeclarationSyntax interfaceDecl)
-    {
-        if (interfaceDecl == null)
-            return null;
-
-        if (method == null)
-            return null;
-        return interfaceDecl.Members
-            .OfType<MethodDeclarationSyntax>()
-            .FirstOrDefault(m => m.Identifier.ValueText == method.Name);
-    }
-
-    /// <summary>
     /// 检查参数是否具有指定的特性
     /// </summary>
     protected bool HasAttribute(ParameterInfo parameter, params string[] attributeNames)
@@ -939,7 +924,7 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
         return enumValue switch
         {
             0 => "TenantAccessToken",
-            1 => "UserAccessToken", 
+            1 => "UserAccessToken",
             2 => "Both",
             _ => "TenantAccessToken"
         };
