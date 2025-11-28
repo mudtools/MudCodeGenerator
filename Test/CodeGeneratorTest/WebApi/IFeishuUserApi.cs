@@ -1,6 +1,3 @@
-using CodeGeneratorTest.Options;
-using Microsoft.Extensions.Logging;
-
 namespace CodeGeneratorTest.WebApi;
 
 /// <summary>

@@ -5,6 +5,7 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
+using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Immutable;
 using System.Globalization;
 
@@ -47,12 +48,17 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
         // 使用自定义方法查找标记了[HttpClientApi]的接口
         var interfaceDeclarations = GetClassDeclarationProvider<InterfaceDeclarationSyntax>(context, ApiWrapAttributeNames());
 
+        var compilationAndOptionsProvider = context.CompilationProvider
+                                         .Combine(context.AnalyzerConfigOptionsProvider)
+                                         .Select((s, _) => s);
+
         // 组合编译和接口声明
         var compilationAndInterfaces = context.CompilationProvider.Combine(interfaceDeclarations);
+        var providers = compilationAndInterfaces.Combine(compilationAndOptionsProvider);
 
         // 注册源生成
-        context.RegisterSourceOutput(compilationAndInterfaces,
-             (spc, source) => ExecuteGenerator(source.Left, source.Right, spc));
+        context.RegisterSourceOutput(providers,
+            (context, provider) => ExecuteGenerator(provider.Left.Left, provider.Left.Right, context, provider.Right.Right));
     }
 
     /// <summary>
@@ -61,7 +67,11 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     /// <param name="compilation">编译信息</param>
     /// <param name="interfaces">接口声明数组</param>
     /// <param name="context">源代码生成上下文</param>
-    protected abstract void ExecuteGenerator(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context);
+    protected abstract void ExecuteGenerator(
+        Compilation compilation,
+        ImmutableArray<InterfaceDeclarationSyntax> interfaces,
+        SourceProductionContext context,
+        AnalyzerConfigOptionsProvider configOptionsProvider);
 
     /// <summary>
     /// 根据接口名称获取实现类名称
@@ -231,7 +241,7 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
         if (string.IsNullOrEmpty(url))
             return false;
 
-        return url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || 
+        return url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
                url.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
     }
 
