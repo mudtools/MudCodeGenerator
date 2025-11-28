@@ -121,11 +121,13 @@ public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenera
         codeBuilder.AppendLine("        private readonly HttpClient _httpClient;");
         codeBuilder.AppendLine($"        private readonly ILogger<{className}> _logger;");
         codeBuilder.AppendLine("        private readonly JsonSerializerOptions _jsonSerializerOptions;");
+        codeBuilder.AppendLine("        private readonly FeishuOptions _feishuOptions;");
 
         // 从HttpClientApi特性获取配置
         var httpClientApiAttribute = GetHttpClientApiAttribute(interfaceSymbol);
         var defaultContentType = GetHttpClientApiContentTypeFromAttribute(httpClientApiAttribute);
-        var timeout = GetHttpClientApiTimeoutFromAttribute(httpClientApiAttribute);
+        var timeoutFromAttribute = GetHttpClientApiTimeoutFromAttribute(httpClientApiAttribute);
+        var baseAddressFromAttribute = GetHttpClientApiBaseAddressFromAttribute(httpClientApiAttribute);
         var tokenManage = GetTokenManageFromAttribute(httpClientApiAttribute);
 
         // 检查是否需要Token管理器
@@ -145,28 +147,42 @@ public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenera
         codeBuilder.AppendLine("        /// <param name=\"httpClient\">HttpClient实例</param>");
         codeBuilder.AppendLine("        /// <param name=\"logger\">日志记录器</param>");
         codeBuilder.AppendLine("        /// <param name=\"option\">Json序列化参数</param>");
+        codeBuilder.AppendLine("        /// <param name=\"feishuOptions\">飞书配置选项</param>");
 
         if (hasTokenManager)
         {
             codeBuilder.AppendLine($"        /// <param name=\"tokenManager\">Token管理器</param>");
-            codeBuilder.AppendLine($"        public {className}(HttpClient httpClient, ILogger<{className}> logger, IOptions<JsonSerializerOptions> option, {tokenManagerType} tokenManager)");
+            codeBuilder.AppendLine($"        public {className}(HttpClient httpClient, ILogger<{className}> logger, IOptions<JsonSerializerOptions> option, IOptions<FeishuOptions> feishuOptions, {tokenManagerType} tokenManager)");
         }
         else
         {
-            codeBuilder.AppendLine($"        public {className}(HttpClient httpClient, ILogger<{className}> logger, IOptions<JsonSerializerOptions> option)");
+            codeBuilder.AppendLine($"        public {className}(HttpClient httpClient, ILogger<{className}> logger, IOptions<JsonSerializerOptions> option, IOptions<FeishuOptions> feishuOptions)");
         }
 
         codeBuilder.AppendLine("        {");
         codeBuilder.AppendLine("            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));");
         codeBuilder.AppendLine("            _logger = logger ?? throw new ArgumentNullException(nameof(logger));");
         codeBuilder.AppendLine("            _jsonSerializerOptions = option.Value;");
+        codeBuilder.AppendLine("            _feishuOptions = feishuOptions?.Value ?? throw new ArgumentNullException(nameof(feishuOptions));");
         if (hasTokenManager)
         {
             codeBuilder.AppendLine("            _tokenManager = tokenManager ?? throw new ArgumentNullException(nameof(tokenManager));");
         }
         codeBuilder.AppendLine();
+        
+        // 设置 BaseAddress
+        codeBuilder.AppendLine("            // 设置 HttpClient BaseAddress（用于相对路径请求）");
+        codeBuilder.AppendLine("            var finalBaseAddress = GetFinalBaseAddress();");
+        codeBuilder.AppendLine("            if (!string.IsNullOrEmpty(finalBaseAddress))");
+        codeBuilder.AppendLine("            {");
+        codeBuilder.AppendLine("                _httpClient.BaseAddress = new Uri(finalBaseAddress);");
+        codeBuilder.AppendLine("            }");
+        codeBuilder.AppendLine();
+
+        // 设置超时时间
         codeBuilder.AppendLine($"            // 配置HttpClient超时时间");
-        codeBuilder.AppendLine($"            _httpClient.Timeout = TimeSpan.FromSeconds({timeout});");
+        codeBuilder.AppendLine($"            var finalTimeout = GetFinalTimeout();");
+        codeBuilder.AppendLine($"            _httpClient.Timeout = TimeSpan.FromSeconds(finalTimeout);");
         codeBuilder.AppendLine("        }");
         codeBuilder.AppendLine();
 
@@ -190,6 +206,38 @@ public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenera
         codeBuilder.AppendLine("            }");
         codeBuilder.AppendLine();
         codeBuilder.AppendLine("            return contentType.Trim();");
+        codeBuilder.AppendLine("        }");
+        codeBuilder.AppendLine();
+        codeBuilder.AppendLine("        /// <summary>");
+        codeBuilder.AppendLine("        /// 获取最终的超时时间，优先使用 HttpClientApi 特性中的设置，否则使用 FeishuOptions.TimeOut");
+        codeBuilder.AppendLine("        /// </summary>");
+        codeBuilder.AppendLine("        /// <returns>超时秒数</returns>");
+        codeBuilder.AppendLine($"        private int GetFinalTimeout()");
+        codeBuilder.AppendLine("        {");
+        codeBuilder.AppendLine($"            // 优先使用 HttpClientApi 特性中的超时设置");
+        codeBuilder.AppendLine($"            if ({timeoutFromAttribute} > 0)");
+        codeBuilder.AppendLine($"                return {timeoutFromAttribute};");
+        codeBuilder.AppendLine();
+        codeBuilder.AppendLine($"            // 否则使用 FeishuOptions.TimeOut");
+        codeBuilder.AppendLine($"            if (!string.IsNullOrEmpty(_feishuOptions.TimeOut) && int.TryParse(_feishuOptions.TimeOut, out var feishuTimeout))");
+        codeBuilder.AppendLine($"                return feishuTimeout;");
+        codeBuilder.AppendLine();
+        codeBuilder.AppendLine($"            // 60");
+        codeBuilder.AppendLine($"            return 60;");
+        codeBuilder.AppendLine("        }");
+        codeBuilder.AppendLine();
+        codeBuilder.AppendLine("        /// <summary>");
+        codeBuilder.AppendLine("        /// 获取最终的 BaseAddress，优先使用 HttpClientApi 特性中的设置，否则使用 FeishuOptions.BaseUrl");
+        codeBuilder.AppendLine("        /// </summary>");
+        codeBuilder.AppendLine("        /// <returns>BaseAddress</returns>");
+        codeBuilder.AppendLine($"        private string? GetFinalBaseAddress()");
+        codeBuilder.AppendLine("        {");
+        codeBuilder.AppendLine($"            // 优先使用 HttpClientApi 特性中的 BaseAddress");
+        codeBuilder.AppendLine($"            if (!string.IsNullOrEmpty(\"{baseAddressFromAttribute}\"))");
+        codeBuilder.AppendLine($"                return \"{baseAddressFromAttribute}\";");
+        codeBuilder.AppendLine();
+        codeBuilder.AppendLine($"            // 否则使用 FeishuOptions.BaseUrl");
+        codeBuilder.AppendLine($"            return _feishuOptions.BaseUrl;");
         codeBuilder.AppendLine("        }");
         codeBuilder.AppendLine();
     }
@@ -364,7 +412,24 @@ public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenera
     {
         var urlCode = BuildUrlString(methodInfo);
         codeBuilder.AppendLine(urlCode);
-        codeBuilder.AppendLine($"            _logger.LogDebug(\"开始HTTP {methodInfo.HttpMethod}请求: {{Url}}\", url);");
+        
+        // 检查是否需要 BaseAddress（仅当 URL 为相对路径时）
+        var isAbsoluteUrl = methodInfo.UrlTemplate.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || 
+                           methodInfo.UrlTemplate.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+        
+        if (!isAbsoluteUrl)
+        {
+            codeBuilder.AppendLine("            // 检查 BaseAddress 是否已设置（相对路径 URL 需要 BaseAddress）");
+            codeBuilder.AppendLine("            if (_httpClient.BaseAddress == null)");
+            codeBuilder.AppendLine("            {");
+            codeBuilder.AppendLine("                throw new InvalidOperationException(\"BaseAddress 配置缺失，相对路径 URL 需要在 HttpClientApi 特性或 FeishuOptions.BaseUrl 中设置有效的基地址\");");
+            codeBuilder.AppendLine("            }");
+        }
+        
+        codeBuilder.AppendLine($"            if (_feishuOptions.EnableLogging)");
+        codeBuilder.AppendLine($"            {{");
+        codeBuilder.AppendLine($"                _logger.LogDebug(\"开始HTTP {methodInfo.HttpMethod}请求: {{Url}}\", url);");
+        codeBuilder.AppendLine($"            }}");
         codeBuilder.AppendLine($"            using var request = new HttpRequestMessage(HttpMethod.{methodInfo.HttpMethod}, url);");
         //codeBuilder.AppendLine($"            request.Headers.Add(\"Content-Type\", _defaultContentType);");
     }
@@ -375,20 +440,52 @@ public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenera
             .Where(p => p.Attributes.Any(attr => GeneratorConstants.PathAttributes.Contains(attr.Name)))
             .ToList();
 
-        if (!pathParams.Any())
-            return $"            var url = \"{methodInfo.UrlTemplate}\";";
+        var urlTemplate = methodInfo.UrlTemplate;
+        
+        // 检查是否为绝对 URL
+        var isAbsoluteUrl = urlTemplate.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || 
+                           urlTemplate.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
 
-        var interpolatedUrl = methodInfo.UrlTemplate;
-        foreach (var param in pathParams)
+        string urlCode;
+        
+        if (!pathParams.Any())
         {
-            if (methodInfo.UrlTemplate.Contains($"{{{param.Name}}}"))
+            if (isAbsoluteUrl)
             {
-                var formatString = GetFormatString(param.Attributes.First(a => GeneratorConstants.PathAttributes.Contains(a.Name)));
-                interpolatedUrl = FormatUrlParameter(interpolatedUrl, param.Name, formatString);
+                // 绝对 URL 直接使用
+                urlCode = $"            var url = \"{urlTemplate}\";";
+            }
+            else
+            {
+                // 相对 URL 需要与 BaseAddress 组合
+                urlCode = $"            var url = \"{urlTemplate}\";";
+            }
+        }
+        else
+        {
+            var interpolatedUrl = urlTemplate;
+            foreach (var param in pathParams)
+            {
+                if (urlTemplate.Contains($"{{{param.Name}}}"))
+                {
+                    var formatString = GetFormatString(param.Attributes.First(a => GeneratorConstants.PathAttributes.Contains(a.Name)));
+                    interpolatedUrl = FormatUrlParameter(interpolatedUrl, param.Name, formatString);
+                }
+            }
+
+            if (isAbsoluteUrl)
+            {
+                // 绝对 URL 直接使用插值结果
+                urlCode = $"            var url = $\"{interpolatedUrl}\";";
+            }
+            else
+            {
+                // 相对 URL 需要与 BaseAddress 组合
+                urlCode = $"            var url = $\"{interpolatedUrl}\";";
             }
         }
 
-        return $"            var url = $\"{interpolatedUrl}\";";
+        return urlCode;
     }
 
     private string FormatUrlParameter(string url, string paramName, string? formatString)
@@ -629,7 +726,10 @@ public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenera
         codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(interfaceName, "Api", "RequestBefore")}(request, url);");
         codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "Before")}(request, url);");
         codeBuilder.AppendLine($"                using var response = await _httpClient.SendAsync(request{cancellationTokenArg});");
-        codeBuilder.AppendLine("                _logger.LogDebug(\"HTTP请求完成: {StatusCode}\", (int)response.StatusCode);");
+        codeBuilder.AppendLine("                if (_feishuOptions.EnableLogging)");
+        codeBuilder.AppendLine("                {");
+        codeBuilder.AppendLine("                    _logger.LogDebug(\"HTTP请求完成: {StatusCode}\", (int)response.StatusCode);");
+        codeBuilder.AppendLine("                }");
         codeBuilder.AppendLine();
         codeBuilder.AppendLine("                if (!response.IsSuccessStatusCode)");
         codeBuilder.AppendLine("                {");
@@ -647,7 +747,10 @@ public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenera
         codeBuilder.AppendLine($"                    On{StringExtensions.ConvertFunctionName(interfaceName, "Api", "RequestFail")}(response, url);");
         codeBuilder.AppendLine($"                    On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "Fail")}(response, url);");
         codeBuilder.AppendLine($"                    var errorContent = await response.Content.ReadAsStringAsync({cancellationTokenArgForRead});");
-        codeBuilder.AppendLine("                    _logger.LogError(\"HTTP请求失败: {StatusCode}, 响应: {Response}\", (int)response.StatusCode, errorContent);");
+        codeBuilder.AppendLine("                    if (_feishuOptions.EnableLogging)");
+        codeBuilder.AppendLine("                    {");
+        codeBuilder.AppendLine("                        _logger.LogError(\"HTTP请求失败: {StatusCode}, 响应: {Response}\", (int)response.StatusCode, errorContent);");
+        codeBuilder.AppendLine("                    }");
         codeBuilder.AppendLine("                    throw new HttpRequestException($\"HTTP请求失败: {(int)response.StatusCode}\");");
     }
 
@@ -714,7 +817,10 @@ public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenera
 
     private void GenerateExceptionHandling(StringBuilder codeBuilder, MethodAnalysisResult methodInfo, string interfaceName)
     {
-        codeBuilder.AppendLine("                _logger.LogError(ex, \"HTTP请求异常: {{Url}}\", url);");
+        codeBuilder.AppendLine("                if (_feishuOptions.EnableLogging)");
+        codeBuilder.AppendLine("                {");
+        codeBuilder.AppendLine("                    _logger.LogError(ex, \"HTTP请求异常: {{Url}}\", url);");
+        codeBuilder.AppendLine("                }");
         codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(interfaceName, "Api", "RequestError")}(ex, url);");
         codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "Error")}(ex, url);");
         codeBuilder.AppendLine("                throw;");

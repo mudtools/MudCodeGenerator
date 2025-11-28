@@ -17,7 +17,7 @@ public interface ISingleTestApi
     /// <param name="token">令牌</param>
     /// <param name="birthday">生日</param>
     /// <returns></returns>
-    [Get("/api/v1/user/{birthday}")]
+    [Get("https://api.eishu.com/api/v1/user/{birthday}")]
     Task<SysUserInfoOutput?> GetUserAsync([Token(TokenType = TokenType.Both)][Header("x-token")] string token, [Path("yyyy-MM-dd")] DateTime birthday);
 
     /// <summary>

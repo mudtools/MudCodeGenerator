@@ -173,6 +173,69 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     }
 
     /// <summary>
+    /// 从特性获取 BaseAddress
+    /// </summary>
+    /// <param name="httpClientApiAttribute">HttpClientApi特性</param>
+    /// <returns>BaseAddress</returns>
+    protected string? GetHttpClientApiBaseAddressFromAttribute(AttributeData? httpClientApiAttribute)
+    {
+        if (httpClientApiAttribute?.ConstructorArguments.Length > 0 && httpClientApiAttribute.ConstructorArguments[0].Value is string baseAddress)
+            return baseAddress;
+
+        return null;
+    }
+
+    /// <summary>
+    /// 获取最终的超时时间，优先使用 HttpClientApi 特性中的设置，否则使用 FeishuOptions.TimeOut
+    /// </summary>
+    /// <param name="httpClientApiAttribute">HttpClientApi特性</param>
+    /// <param name="feishuOptionsTimeout">FeishuOptions.TimeOut 字符串</param>
+    /// <returns>超时秒数</returns>
+    protected int GetFinalTimeout(AttributeData? httpClientApiAttribute, string? feishuOptionsTimeout)
+    {
+        // 优先使用 HttpClientApi 特性中的超时设置
+        if (httpClientApiAttribute?.NamedArguments.FirstOrDefault(k => k.Key == "TimeoutSeconds").Value.Value is int timeout)
+            return timeout;
+
+        // 否则使用 FeishuOptions.TimeOut
+        if (!string.IsNullOrEmpty(feishuOptionsTimeout) && int.TryParse(feishuOptionsTimeout, out var feishuTimeout))
+            return feishuTimeout;
+
+        // 默认30秒超时
+        return 30;
+    }
+
+    /// <summary>
+    /// 获取最终的 BaseAddress，优先使用 HttpClientApi 特性中的设置，否则使用 FeishuOptions.BaseUrl
+    /// </summary>
+    /// <param name="httpClientApiAttribute">HttpClientApi特性</param>
+    /// <param name="feishuOptionsBaseUrl">FeishuOptions.BaseUrl</param>
+    /// <returns>BaseAddress</returns>
+    protected string? GetFinalBaseAddress(AttributeData? httpClientApiAttribute, string? feishuOptionsBaseUrl)
+    {
+        // 优先使用 HttpClientApi 特性中的 BaseAddress
+        if (httpClientApiAttribute?.ConstructorArguments.Length > 0 && httpClientApiAttribute.ConstructorArguments[0].Value is string baseAddress)
+            return baseAddress;
+
+        // 否则使用 FeishuOptions.BaseUrl
+        return feishuOptionsBaseUrl;
+    }
+
+    /// <summary>
+    /// 检查 URL 是否为绝对路径（以 http 或 https 开头）
+    /// </summary>
+    /// <param name="url">URL 字符串</param>
+    /// <returns>是否为绝对路径</returns>
+    protected bool IsAbsoluteUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url))
+            return false;
+
+        return url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || 
+               url.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// 从特性获取注册组名称
     /// </summary>
     protected string? GetRegistryGroupNameFromAttribute(AttributeData attribute)

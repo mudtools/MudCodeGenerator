@@ -56,13 +56,3 @@ public interface ITestTokenQueryApi
     [Get("api/users/{id}")]
     Task<UserInfo> GetUserAsync([Path] string id);
 }
-
-/// <summary>
-/// 用户信息模型
-/// </summary>
-public class UserInfo
-{
-    public string Id { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-}
