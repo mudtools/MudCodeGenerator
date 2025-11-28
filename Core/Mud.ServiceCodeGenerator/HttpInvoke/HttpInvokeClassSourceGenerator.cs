@@ -135,8 +135,8 @@ public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenera
         // 从HttpClientApi特性获取配置
         var httpClientApiAttribute = GetHttpClientApiAttribute(interfaceSymbol);
         var defaultContentType = GetHttpClientApiContentTypeFromAttribute(httpClientApiAttribute);
-        var timeoutFromAttribute = GetHttpClientApiTimeoutFromAttribute(httpClientApiAttribute);
-        var baseAddressFromAttribute = GetHttpClientApiBaseAddressFromAttribute(httpClientApiAttribute);
+        var timeoutFromAttribute = GetTimeoutFromAttribute(httpClientApiAttribute);
+        var baseAddressFromAttribute = GetBaseAddressFromAttribute(httpClientApiAttribute);
         var tokenManage = GetTokenManageFromAttribute(httpClientApiAttribute);
 
         // 检查是否需要Token管理器
@@ -224,15 +224,15 @@ public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenera
         codeBuilder.AppendLine($"        private int GetFinalTimeout()");
         codeBuilder.AppendLine("        {");
         codeBuilder.AppendLine($"            // 优先使用 HttpClientApi 特性中的超时设置");
-        codeBuilder.AppendLine($"            if ({timeoutFromAttribute} > 0)");
-        codeBuilder.AppendLine($"                return {timeoutFromAttribute};");
+        codeBuilder.AppendLine($"            var attributeTimeout = {timeoutFromAttribute};");
+        codeBuilder.AppendLine($"            if (attributeTimeout > 0)");
+        codeBuilder.AppendLine($"                return attributeTimeout;");
         codeBuilder.AppendLine();
-        codeBuilder.AppendLine($"            // 否则使用 {httpClientOptionsName}.TimeOut");
-        codeBuilder.AppendLine($"            if (!string.IsNullOrEmpty({PrivateFieldNamingHelper.GeneratePrivateFieldName(httpClientOptionsName)}.TimeOut) && int.TryParse({PrivateFieldNamingHelper.GeneratePrivateFieldName(httpClientOptionsName)}.TimeOut, out var timeout))");
-        codeBuilder.AppendLine($"                return timeout;");
-        codeBuilder.AppendLine();
-        codeBuilder.AppendLine($"            // 60");
-        codeBuilder.AppendLine($"            return 60;");
+        codeBuilder.AppendLine($"            // 尝试使用 {httpClientOptionsName}.TimeOut");
+        codeBuilder.AppendLine($"            var optionsTimeout = {PrivateFieldNamingHelper.GeneratePrivateFieldName(httpClientOptionsName)}.TimeOut;");
+        codeBuilder.AppendLine($"            return !string.IsNullOrEmpty(optionsTimeout) && int.TryParse(optionsTimeout, out var parsedTimeout)");
+        codeBuilder.AppendLine($"                ? parsedTimeout");
+        codeBuilder.AppendLine($"                : 60; // 默认60秒超时");
         codeBuilder.AppendLine("        }");
         codeBuilder.AppendLine();
         codeBuilder.AppendLine("        /// <summary>");
@@ -242,11 +242,10 @@ public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenera
         codeBuilder.AppendLine($"        private string? GetFinalBaseAddress()");
         codeBuilder.AppendLine("        {");
         codeBuilder.AppendLine($"            // 优先使用 HttpClientApi 特性中的 BaseAddress");
-        codeBuilder.AppendLine($"            if (!string.IsNullOrEmpty(\"{baseAddressFromAttribute}\"))");
-        codeBuilder.AppendLine($"                return \"{baseAddressFromAttribute}\";");
-        codeBuilder.AppendLine();
-        codeBuilder.AppendLine($"            // 否则使用 {httpClientOptionsName}.BaseUrl");
-        codeBuilder.AppendLine($"            return {PrivateFieldNamingHelper.GeneratePrivateFieldName(httpClientOptionsName)}.BaseUrl;");
+        codeBuilder.AppendLine($"            var attributeAddress = \"{baseAddressFromAttribute}\";");
+        codeBuilder.AppendLine($"            return !string.IsNullOrEmpty(attributeAddress)");
+        codeBuilder.AppendLine($"                ? attributeAddress");
+        codeBuilder.AppendLine($"                : {PrivateFieldNamingHelper.GeneratePrivateFieldName(httpClientOptionsName)}.BaseUrl;");
         codeBuilder.AppendLine("        }");
         codeBuilder.AppendLine();
     }

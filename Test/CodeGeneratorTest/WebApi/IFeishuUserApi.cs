@@ -3,7 +3,7 @@ namespace CodeGeneratorTest.WebApi;
 /// <summary>
 /// 飞书用户API接口
 /// </summary>
-[HttpClientApi]
+[HttpClientApi(Timeout = 120)]
 public interface IFeishuUserApi
 {
     /// <summary>

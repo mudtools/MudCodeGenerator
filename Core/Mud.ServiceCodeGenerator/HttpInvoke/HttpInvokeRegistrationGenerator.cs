@@ -124,7 +124,7 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
 
     private (string BaseUrl, int Timeout) ExtractAttributeParameters(AttributeData httpClientApiAttribute)
     {
-        var baseUrl = GetBaseUrlFromAttribute(httpClientApiAttribute);
+        var baseUrl = GetBaseAddressFromAttribute(httpClientApiAttribute);
         var timeout = GetTimeoutFromAttribute(httpClientApiAttribute);
         return (baseUrl, timeout);
     }

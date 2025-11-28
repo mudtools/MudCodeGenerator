@@ -150,15 +150,17 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     }
 
     /// <summary>
-    /// 从特性获取基地址
+    /// 从特性获取 BaseAddress
     /// </summary>
-    protected string GetBaseUrlFromAttribute(AttributeData attribute)
+    /// <param name="httpClientApiAttribute">HttpClientApi特性</param>
+    /// <returns>BaseAddress</returns>
+    protected string? GetBaseAddressFromAttribute(AttributeData? httpClientApiAttribute)
     {
-        if (attribute == null)
-            return string.Empty;
-
-        var baseUrlArg = attribute.ConstructorArguments.FirstOrDefault();
-        return baseUrlArg.Value?.ToString() ?? string.Empty;
+        if (httpClientApiAttribute == null)
+            return null;
+        if (httpClientApiAttribute.ConstructorArguments.Length > 0 && httpClientApiAttribute.ConstructorArguments[0].Value is string baseAddress)
+            return baseAddress;
+        return null;
     }
 
     /// <summary>
@@ -172,81 +174,6 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
         return timeoutArg.Value.Value is int value ? value : 100; // 默认100秒
     }
 
-    /// <summary>
-    /// 从特性获取超时设置（专用方法，重载基础方法）
-    /// </summary>
-    /// <param name="httpClientApiAttribute">HttpClientApi特性</param>
-    /// <returns>超时秒数</returns>
-    protected int GetHttpClientApiTimeoutFromAttribute(AttributeData? httpClientApiAttribute)
-    {
-        if (httpClientApiAttribute?.NamedArguments.FirstOrDefault(k => k.Key == "TimeoutSeconds").Value.Value is int timeout)
-            return timeout;
-
-        return 30; // 默认30秒超时
-    }
-
-    /// <summary>
-    /// 从特性获取 BaseAddress
-    /// </summary>
-    /// <param name="httpClientApiAttribute">HttpClientApi特性</param>
-    /// <returns>BaseAddress</returns>
-    protected string? GetHttpClientApiBaseAddressFromAttribute(AttributeData? httpClientApiAttribute)
-    {
-        if (httpClientApiAttribute?.ConstructorArguments.Length > 0 && httpClientApiAttribute.ConstructorArguments[0].Value is string baseAddress)
-            return baseAddress;
-
-        return null;
-    }
-
-    /// <summary>
-    /// 获取最终的超时时间，优先使用 HttpClientApi 特性中的设置，否则使用 FeishuOptions.TimeOut
-    /// </summary>
-    /// <param name="httpClientApiAttribute">HttpClientApi特性</param>
-    /// <param name="feishuOptionsTimeout">FeishuOptions.TimeOut 字符串</param>
-    /// <returns>超时秒数</returns>
-    protected int GetFinalTimeout(AttributeData? httpClientApiAttribute, string? feishuOptionsTimeout)
-    {
-        // 优先使用 HttpClientApi 特性中的超时设置
-        if (httpClientApiAttribute?.NamedArguments.FirstOrDefault(k => k.Key == "TimeoutSeconds").Value.Value is int timeout)
-            return timeout;
-
-        // 否则使用 FeishuOptions.TimeOut
-        if (!string.IsNullOrEmpty(feishuOptionsTimeout) && int.TryParse(feishuOptionsTimeout, out var feishuTimeout))
-            return feishuTimeout;
-
-        // 默认30秒超时
-        return 30;
-    }
-
-    /// <summary>
-    /// 获取最终的 BaseAddress，优先使用 HttpClientApi 特性中的设置，否则使用 FeishuOptions.BaseUrl
-    /// </summary>
-    /// <param name="httpClientApiAttribute">HttpClientApi特性</param>
-    /// <param name="feishuOptionsBaseUrl">FeishuOptions.BaseUrl</param>
-    /// <returns>BaseAddress</returns>
-    protected string? GetFinalBaseAddress(AttributeData? httpClientApiAttribute, string? feishuOptionsBaseUrl)
-    {
-        // 优先使用 HttpClientApi 特性中的 BaseAddress
-        if (httpClientApiAttribute?.ConstructorArguments.Length > 0 && httpClientApiAttribute.ConstructorArguments[0].Value is string baseAddress)
-            return baseAddress;
-
-        // 否则使用 FeishuOptions.BaseUrl
-        return feishuOptionsBaseUrl;
-    }
-
-    /// <summary>
-    /// 检查 URL 是否为绝对路径（以 http 或 https 开头）
-    /// </summary>
-    /// <param name="url">URL 字符串</param>
-    /// <returns>是否为绝对路径</returns>
-    protected bool IsAbsoluteUrl(string url)
-    {
-        if (string.IsNullOrEmpty(url))
-            return false;
-
-        return url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
-               url.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
-    }
 
     /// <summary>
     /// 从特性获取注册组名称
@@ -260,28 +187,17 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     }
 
     /// <summary>
-    /// 从特性获取ContentType
-    /// </summary>
-    protected string GetContentTypeFromAttribute(AttributeData attribute)
-    {
-        if (attribute == null)
-            return "application/json; charset=utf-8";
-        var contentTypeArg = attribute.NamedArguments.FirstOrDefault(a => a.Key == "ContentType");
-        var contentType = contentTypeArg.Value.Value?.ToString();
-        return string.IsNullOrEmpty(contentType) ? "application/json; charset=utf-8" : contentType;
-    }
-
-    /// <summary>
     /// 从特性获取内容类型（专用方法，重载基础方法）
     /// </summary>
     /// <param name="httpClientApiAttribute">HttpClientApi特性</param>
     /// <returns>内容类型</returns>
-    protected string GetHttpClientApiContentTypeFromAttribute(AttributeData? httpClientApiAttribute)
+    protected string GetHttpClientApiContentTypeFromAttribute(AttributeData? attribute)
     {
-        if (httpClientApiAttribute?.NamedArguments.FirstOrDefault(k => k.Key == "ContentType").Value.Value is string contentType)
-            return contentType;
-
-        return "application/json";
+        if (attribute == null)
+            return "application/json";
+        var contentTypeArg = attribute.NamedArguments.FirstOrDefault(a => a.Key == "ContentType");
+        var contentType = contentTypeArg.Value.Value?.ToString();
+        return string.IsNullOrEmpty(contentType) ? "application/json" : contentType;
     }
 
     /// <summary>
