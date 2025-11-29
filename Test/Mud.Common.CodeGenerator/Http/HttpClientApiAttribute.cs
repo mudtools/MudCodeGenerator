@@ -69,7 +69,17 @@ public class HttpClientApiAttribute : Attribute
     public string RegistryGroupName { get; set; }
 
     /// <summary>
-    /// 用于获取WEB API访问令牌的Token管理接口。
+    /// 生成的客户端类用于获取WEB API访问令牌的Token管理接口。
     /// </summary>
     public string TokenManage { get; set; }
+
+    /// <summary>
+    /// 生成的客户端类是否为抽象类
+    /// </summary>
+    public bool IsAbstract { get; set; }
+
+    /// <summary>
+    /// 生成的客户端类继承自哪个类
+    /// </summary>
+    public string InheritedFrom { get; set; }
 }
