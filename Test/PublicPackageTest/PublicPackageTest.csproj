@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>net462;net47;net48;net8.0;net9.0;net10.0</TargetFrameworks>
+		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
@@ -17,6 +17,8 @@
 		<BoAttributes>CustomBo1Attribute,CustomBo2Attribute</BoAttributes>
 		<!-- 是否将生成的属性名首字母小写，默认为true -->
 		<PropertyNameLowerCaseFirstLetter>false</PropertyNameLowerCaseFirstLetter>
+		<!-- HttpClient配置选项类名称 -->
+		<HttpClientOptionsName>FeishuOptions</HttpClientOptionsName>
 		<UsingNameSpaces>FreeSql.DataAnnotations,PublicPackageTest.Entites,PublicPackageTest.Entites.Dto</UsingNameSpaces>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 	</PropertyGroup>
@@ -31,6 +33,7 @@
 		<CompilerVisibleProperty Include="BoAttributes" />
 		<CompilerVisibleProperty Include="PropertyNameLowerCaseFirstLetter" />
 		<CompilerVisibleProperty Include="UsingNameSpaces" />
+		<CompilerVisibleProperty Include="HttpClientOptionsName" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -54,8 +57,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Mud.EntityCodeGenerator" Version="1.3.1" />
-		<PackageReference Include="Mud.ServiceCodeGenerator" Version="1.3.1" />
+		<PackageReference Include="Mud.EntityCodeGenerator" Version="1.3.4" />
+		<PackageReference Include="Mud.ServiceCodeGenerator" Version="1.3.4" />
 	</ItemGroup>
 
 	<ItemGroup>
