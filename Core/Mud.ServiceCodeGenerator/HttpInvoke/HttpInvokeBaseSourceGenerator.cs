@@ -242,6 +242,32 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     }
 
     /// <summary>
+    /// 从特性获取IsAbstract属性值
+    /// </summary>
+    /// <param name="httpClientApiAttribute">HttpClientApi特性</param>
+    /// <returns>是否为抽象类</returns>
+    protected bool GetIsAbstractFromAttribute(AttributeData? httpClientApiAttribute)
+    {
+        if (httpClientApiAttribute?.NamedArguments.FirstOrDefault(k => k.Key == "IsAbstract").Value.Value is bool isAbstract)
+            return isAbstract;
+
+        return false; // 默认值为false
+    }
+
+    /// <summary>
+    /// 从特性获取InheritedFrom属性值
+    /// </summary>
+    /// <param name="httpClientApiAttribute">HttpClientApi特性</param>
+    /// <returns>父类名称</returns>
+    protected string? GetInheritedFromFromAttribute(AttributeData? httpClientApiAttribute)
+    {
+        if (httpClientApiAttribute?.NamedArguments.FirstOrDefault(k => k.Key == "InheritedFrom").Value.Value is string inheritedFrom)
+            return inheritedFrom;
+
+        return null; // 默认值为空字符串
+    }
+
+    /// <summary>
     /// 获取Token管理器接口的完整命名空间
     /// </summary>
     /// <param name="compilation">编译对象</param>

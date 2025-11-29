@@ -7,6 +7,7 @@
 
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Text;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Text;
 
@@ -110,6 +111,20 @@ public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenera
 
     private void GenerateClassStructure(StringBuilder codeBuilder, string className, string namespaceName, INamedTypeSymbol interfaceSymbol)
     {
+        // 获取HttpClientApi特性中的属性值
+        var httpClientApiAttribute = GetHttpClientApiAttribute(interfaceSymbol);
+        var isAbstract = GetIsAbstractFromAttribute(httpClientApiAttribute);
+        var inheritedFrom = GetInheritedFromFromAttribute(httpClientApiAttribute);
+        
+        // 构建类声明
+        var classKeyword = isAbstract ? "abstract class" : "class";
+        var inheritanceList = new List<string> { interfaceSymbol.Name };
+        
+        if (!string.IsNullOrEmpty(inheritedFrom))
+        {
+            inheritanceList.Insert(0, inheritedFrom);
+        }
+
         GenerateFileHeader(codeBuilder);
 
         codeBuilder.AppendLine();
@@ -120,20 +135,17 @@ public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenera
         codeBuilder.AppendLine($"    /// </summary>");
         codeBuilder.AppendLine($"    {CompilerGeneratedAttribute}");
         codeBuilder.AppendLine($"    {GeneratedCodeAttribute}");
-        codeBuilder.AppendLine($"    internal partial class {className} : {interfaceSymbol.Name}");
+        codeBuilder.AppendLine($"    internal partial {classKeyword} {className} : {string.Join(", ", inheritanceList)}");
         codeBuilder.AppendLine("    {");
     }
 
 
     private void GenerateClassFieldsAndConstructor(StringBuilder codeBuilder, string className, INamedTypeSymbol interfaceSymbol, Compilation compilation)
     {
-        codeBuilder.AppendLine("        private readonly HttpClient _httpClient;");
-        codeBuilder.AppendLine($"        private readonly ILogger<{className}> _logger;");
-        codeBuilder.AppendLine("        private readonly JsonSerializerOptions _jsonSerializerOptions;");
-        codeBuilder.AppendLine($"        private readonly {httpClientOptionsName} {PrivateFieldNamingHelper.GeneratePrivateFieldName(httpClientOptionsName)};");
-
         // 从HttpClientApi特性获取配置
         var httpClientApiAttribute = GetHttpClientApiAttribute(interfaceSymbol);
+        var isAbstract = GetIsAbstractFromAttribute(httpClientApiAttribute);
+        var inheritedFrom = GetInheritedFromFromAttribute(httpClientApiAttribute);
         var defaultContentType = GetHttpClientApiContentTypeFromAttribute(httpClientApiAttribute);
         var timeoutFromAttribute = GetTimeoutFromAttribute(httpClientApiAttribute);
         var baseAddressFromAttribute = GetBaseAddressFromAttribute(httpClientApiAttribute);
@@ -142,6 +154,14 @@ public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenera
         // 检查是否需要Token管理器
         var hasTokenManager = !string.IsNullOrEmpty(tokenManage);
         var tokenManagerType = hasTokenManager ? GetTokenManagerType(compilation, tokenManage!) : null;
+
+        // 根据IsAbstract决定Logger类型
+        var loggerType = isAbstract ? "ILogger" : $"ILogger<{className}>";
+
+        codeBuilder.AppendLine("        private readonly HttpClient _httpClient;");
+        codeBuilder.AppendLine($"        private readonly {loggerType} _logger;");
+        codeBuilder.AppendLine("        private readonly JsonSerializerOptions _jsonSerializerOptions;");
+        codeBuilder.AppendLine($"        private readonly {httpClientOptionsName} {PrivateFieldNamingHelper.GeneratePrivateFieldName(httpClientOptionsName)};");
 
         if (hasTokenManager)
         {
@@ -158,14 +178,17 @@ public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenera
         codeBuilder.AppendLine("        /// <param name=\"option\">Json序列化参数</param>");
         codeBuilder.AppendLine($"        /// <param name=\"{PrivateFieldNamingHelper.GeneratePrivateFieldName(httpClientOptionsName, FieldNamingStyle.PureCamel)}\">飞书配置选项</param>");
 
+        // 构建构造函数参数列表
+        var constructorLoggerType = isAbstract ? "ILogger" : $"ILogger<{className}>";
+        
         if (hasTokenManager)
         {
             codeBuilder.AppendLine($"        /// <param name=\"tokenManager\">Token管理器</param>");
-            codeBuilder.AppendLine($"        public {className}(HttpClient httpClient, ILogger<{className}> logger, IOptions<JsonSerializerOptions> option, IOptions<{httpClientOptionsName}> {PrivateFieldNamingHelper.GeneratePrivateFieldName(httpClientOptionsName, FieldNamingStyle.PureCamel)}, {tokenManagerType} tokenManager)");
+            codeBuilder.AppendLine($"        public {className}(HttpClient httpClient, {constructorLoggerType} logger, IOptions<JsonSerializerOptions> option, IOptions<{httpClientOptionsName}> {PrivateFieldNamingHelper.GeneratePrivateFieldName(httpClientOptionsName, FieldNamingStyle.PureCamel)}, {tokenManagerType} tokenManager)");
         }
         else
         {
-            codeBuilder.AppendLine($"        public {className}(HttpClient httpClient, ILogger<{className}> logger, IOptions<JsonSerializerOptions> option, IOptions<{httpClientOptionsName}> {PrivateFieldNamingHelper.GeneratePrivateFieldName(httpClientOptionsName, FieldNamingStyle.PureCamel)})");
+            codeBuilder.AppendLine($"        public {className}(HttpClient httpClient, {constructorLoggerType} logger, IOptions<JsonSerializerOptions> option, IOptions<{httpClientOptionsName}> {PrivateFieldNamingHelper.GeneratePrivateFieldName(httpClientOptionsName, FieldNamingStyle.PureCamel)})");
         }
 
         codeBuilder.AppendLine("        {");
@@ -179,19 +202,27 @@ public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenera
         }
         codeBuilder.AppendLine();
 
-        // 设置 BaseAddress
-        codeBuilder.AppendLine("            // 设置 HttpClient BaseAddress（用于相对路径请求）");
-        codeBuilder.AppendLine("            var finalBaseAddress = GetFinalBaseAddress();");
-        codeBuilder.AppendLine("            if (!string.IsNullOrEmpty(finalBaseAddress))");
-        codeBuilder.AppendLine("            {");
-        codeBuilder.AppendLine("                _httpClient.BaseAddress = new Uri(finalBaseAddress);");
-        codeBuilder.AppendLine("            }");
-        codeBuilder.AppendLine();
+        // 根据InheritedFrom决定是否设置BaseAddress和Timeout
+        if (string.IsNullOrEmpty(inheritedFrom))
+        {
+            // 设置 BaseAddress
+            codeBuilder.AppendLine("            // 设置 HttpClient BaseAddress（用于相对路径请求）");
+            codeBuilder.AppendLine("            var finalBaseAddress = GetFinalBaseAddress();");
+            codeBuilder.AppendLine("            if (!string.IsNullOrEmpty(finalBaseAddress))");
+            codeBuilder.AppendLine("            {");
+            codeBuilder.AppendLine("                _httpClient.BaseAddress = new Uri(finalBaseAddress);");
+            codeBuilder.AppendLine("            }");
+            codeBuilder.AppendLine();
 
-        // 设置超时时间
-        codeBuilder.AppendLine($"            // 配置HttpClient超时时间");
-        codeBuilder.AppendLine($"            var finalTimeout = GetFinalTimeout();");
-        codeBuilder.AppendLine($"            _httpClient.Timeout = TimeSpan.FromSeconds(finalTimeout);");
+            // 设置超时时间
+            codeBuilder.AppendLine($"            // 配置HttpClient超时时间");
+            codeBuilder.AppendLine($"            var finalTimeout = GetFinalTimeout();");
+            codeBuilder.AppendLine($"            _httpClient.Timeout = TimeSpan.FromSeconds(finalTimeout);");
+        }
+        else
+        {
+            codeBuilder.AppendLine("            // 继承类：由父类负责BaseAddress和Timeout的初始化");
+        }
         codeBuilder.AppendLine("        }");
         codeBuilder.AppendLine();
 
@@ -253,10 +284,26 @@ public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenera
     private void GenerateMethods(Compilation compilation, StringBuilder codeBuilder, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDecl)
     {
         GenerateClassPartialMethods(codeBuilder, interfaceSymbol);
-        //System.Diagnostics.Debugger.Launch();
-        // 获取接口及其所有父接口的所有方法
-        var allMethods = GetAllInterfaceMethods(interfaceSymbol);
-        foreach (var methodSymbol in allMethods)
+        
+        // 获取HttpClientApi特性中的属性值
+        var httpClientApiAttribute = GetHttpClientApiAttribute(interfaceSymbol);
+        var isAbstract = GetIsAbstractFromAttribute(httpClientApiAttribute);
+        var inheritedFrom = GetInheritedFromFromAttribute(httpClientApiAttribute);
+        
+        // 根据IsAbstract和InheritedFrom决定是否包含父接口方法
+        IEnumerable<IMethodSymbol> methodsToGenerate;
+        if (isAbstract || !string.IsNullOrEmpty(inheritedFrom))
+        {
+            // 只获取当前接口的方法，不包含父接口方法
+            methodsToGenerate = interfaceSymbol.GetMembers().OfType<IMethodSymbol>();
+        }
+        else
+        {
+            // 获取接口及其所有父接口的所有方法
+            methodsToGenerate = GetAllInterfaceMethods(interfaceSymbol);
+        }
+        
+        foreach (var methodSymbol in methodsToGenerate)
         {
             GenerateMethodImplementation(compilation, codeBuilder, methodSymbol, interfaceDecl);
         }

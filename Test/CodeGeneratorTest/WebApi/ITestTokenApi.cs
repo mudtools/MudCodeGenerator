@@ -1,5 +1,6 @@
 namespace CodeGeneratorTest.WebApi;
 
+[HttpClientApi(TokenManage = nameof(ITokenManager), IsAbstract = true)]
 public interface ITestBaseTokenApi
 {
     /// <summary>
@@ -12,7 +13,7 @@ public interface ITestBaseTokenApi
 /// <summary>
 /// 测试Token功能的API接口
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITokenManager), IsAbstract = true, InheritedFrom = "TestBaseTokenApi")]
+[HttpClientApi(TokenManage = nameof(ITokenManager), InheritedFrom = "TestBaseTokenApi")]
 [Header("Authorization", AliasAs = "X-Token")]
 [Header("xx1", "xxValue1")]
 [Header("xx2", "xxValue3")]
