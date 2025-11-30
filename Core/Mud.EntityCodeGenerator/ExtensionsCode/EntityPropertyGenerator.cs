@@ -47,7 +47,7 @@ namespace Mud.EntityCodeGenerator
                 if (!genMapMethod)
                     return;
 
-                var cNamespace = GetNamespaceName(orgClassDeclaration);
+                var cNamespace = SyntaxHelper.GetNamespaceName(orgClassDeclaration);
                 _dtoNameSpace = GetDtoNamespaceName(orgClassDeclaration);
 
                 var orgClassName = SyntaxHelper.GetClassName(orgClassDeclaration);

@@ -44,10 +44,10 @@ public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenera
         try
         {
             var interfaceCodeGenerator = new InterfaceCodeGenerator(
+                this,
                 compilation,
                 interfaceDecl,
                 context,
-                this,
                 httpClientOptionsName);
 
             interfaceCodeGenerator.Generator();

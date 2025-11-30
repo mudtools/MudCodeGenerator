@@ -44,7 +44,7 @@ public class EntityMappingGenerator : TransitiveDtoGenerator
             if (!genMapMethod)
                 return;
 
-            var entityNamespace = GetNamespaceName(orgClassDeclaration);
+            var entityNamespace = SyntaxHelper.GetNamespaceName(orgClassDeclaration);
             var dtoNamespace = GetDtoNamespaceName(orgClassDeclaration);
 
             // 构建扩展类

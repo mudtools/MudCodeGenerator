@@ -172,7 +172,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
         if (orgClassDeclaration == null)
             return "Dto";
 
-        var cNamespace = GetNamespaceName(orgClassDeclaration);
+        var cNamespace = SyntaxHelper.GetNamespaceName(orgClassDeclaration);
         var dtoNamespace = SyntaxHelper.GetClassAttributeValues(orgClassDeclaration, DtoGeneratorAttributeName, DtoGeneratorAttributeDtoNamespace, "Dto");
         if (dtoNamespace.StartsWith(".", StringComparison.OrdinalIgnoreCase))
         {

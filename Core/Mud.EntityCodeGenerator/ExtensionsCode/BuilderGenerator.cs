@@ -42,7 +42,7 @@ public class BuilderGenerator : TransitiveDtoGenerator
             if (!genBuilderCode.Any())
                 return;
 
-            var entityNamespace = GetNamespaceName(orgClassDeclaration);
+            var entityNamespace = SyntaxHelper.GetNamespaceName(orgClassDeclaration);
 
             // 构建建造者模式类
             var builderClassName = $"{orgClassName}Builder";
