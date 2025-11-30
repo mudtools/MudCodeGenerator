@@ -43,9 +43,9 @@ public class ServiceInterfaceCodeGenerator : ServiceCodeBaseGenerator
     }
 
     /// <inheritdoc/>
-    public override string GetNamespaceName(TypeDeclarationSyntax classNode)
+    public string GetNamespaceName(TypeDeclarationSyntax classNode)
     {
-        var cNamespace = base.GetNamespaceName(classNode);
+        var cNamespace = SyntaxHelper.GetNamespaceName(classNode);
         return string.IsNullOrEmpty(EntitySuffix) ? cNamespace + "Interface" : cNamespace.Replace(EntitySuffix, "Interface");
     }
 }

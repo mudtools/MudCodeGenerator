@@ -25,10 +25,10 @@ internal sealed class AttributeDataHelper
     /// <summary>
     /// 从特性获取注册组名称
     /// </summary>
-    public static string? GetStringValueFromAttribute(AttributeData attribute, string propertyName)
+    public static string? GetStringValueFromAttribute(AttributeData attribute, string propertyName, string? defaultValue = null)
     {
         if (attribute == null)
-            return null;
+            return defaultValue;
         var registryGroupNameArg = attribute.NamedArguments
             .FirstOrDefault(a => a.Key.Equals(propertyName, StringComparison.OrdinalIgnoreCase));
         return registryGroupNameArg.Value.Value?.ToString();

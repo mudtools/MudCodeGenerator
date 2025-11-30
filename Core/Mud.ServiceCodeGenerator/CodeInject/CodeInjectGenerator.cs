@@ -173,7 +173,7 @@ public partial class CodeInjectGenerator : TransitiveCodeGenerator
 
     private NamespaceDeclarationSyntax CreateNamespaceDeclaration(InjectionContext context, ClassDeclarationSyntax classDeclaration)
     {
-        var namespaceName = GetNamespaceName(context.ClassDeclaration);
+        var namespaceName = SyntaxHelper.GetNamespaceName(context.ClassDeclaration);
         return SyntaxFactory.NamespaceDeclaration(SyntaxFactory.IdentifierName(namespaceName))
             .AddMembers(classDeclaration);
     }

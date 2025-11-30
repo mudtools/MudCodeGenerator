@@ -42,7 +42,7 @@ public class HttpInvokeWrapClassSourceGenerator : HttpInvokeWrapSourceGenerator
         // 获取包装类名称和接口名称
         var wrapInterfaceName = GetWrapInterfaceName(interfaceSymbol, wrapAttribute);
         var wrapClassName = InterfaceHelper.GetWrapClassName(wrapInterfaceName);
-        var tokenManageInterfaceName = GetTokenManageInterfaceName(wrapAttribute);
+        var tokenManageInterfaceName = AttributeDataHelper.GetStringValueFromAttribute(wrapAttribute, HttpClientGeneratorConstants.TokenManageProperty, HttpClientGeneratorConstants.DefaultTokenManageInterface);
 
         // 生成类开始部分
         GenerateClassOrInterfaceStart(sb, wrapClassName, wrapInterfaceName);

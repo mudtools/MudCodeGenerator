@@ -284,6 +284,23 @@ internal static class SyntaxHelper
         return classNode.Identifier.Text;
     }
 
+    /// <summary>
+    /// 根据<see cref="ClassDeclarationSyntax"/>获取当前类所在的命名空间。
+    /// </summary>
+    /// <param name="classNode">类声明语法节点。</param>
+    /// <returns>命名空间名称。</returns>
+    public static string GetNamespaceName(TypeDeclarationSyntax classNode)
+    {
+        if (TryGetParentSyntax(classNode, out NamespaceDeclarationSyntax namespaceDeclarationSyntax))
+        {
+            return namespaceDeclarationSyntax.Name.ToString();
+        }
+        else if (TryGetParentSyntax(classNode, out FileScopedNamespaceDeclarationSyntax fileScopedNamespaceDeclaration))
+        {
+            return fileScopedNamespaceDeclaration.Name.ToString();
+        }
+        return "";
+    }
 
     /// <summary>
     /// 获取类的全路径名。

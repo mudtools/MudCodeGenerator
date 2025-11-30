@@ -135,7 +135,7 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
         if (interfaceDeclaration == null) throw new ArgumentNullException(nameof(interfaceDeclaration));
         if (interfaceSymbol == null) throw new ArgumentNullException(nameof(interfaceSymbol));
 
-        var namespaceName = GetNamespaceName(interfaceDeclaration);
+        var namespaceName = SyntaxHelper.GetNamespaceName(interfaceDeclaration);
         var interfaceName = interfaceSymbol.Name;
         var className = GetImplementationClassName(interfaceName);
 

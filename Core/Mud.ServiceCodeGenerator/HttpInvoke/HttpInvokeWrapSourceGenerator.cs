@@ -38,7 +38,7 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
             {
                 var semanticModel = compilation.GetSemanticModel(interfaceDecl.SyntaxTree);
                 var interfaceSymbol = semanticModel.GetDeclaredSymbol(interfaceDecl);
-                var wrapAttribute = GetHttpClientApiWrapAttribute(interfaceSymbol);
+                var wrapAttribute = AttributeDataHelper.GetAttributeDataFromSymbol(interfaceSymbol, HttpClientGeneratorConstants.HttpClientApiWrapAttributeNames);
 
                 if (!ValidateInterfaceConfiguration(interfaceSymbol, wrapAttribute, context, interfaceDecl))
                     continue;
@@ -54,16 +54,6 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
 
     protected abstract void GenerateWrapCode(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl, INamedTypeSymbol interfaceSymbol, AttributeData wrapAttribute, SourceProductionContext context);
 
-    /// <summary>
-    /// 获取HttpClientApiWrap特性
-    /// </summary>
-    private AttributeData? GetHttpClientApiWrapAttribute(INamedTypeSymbol interfaceSymbol)
-    {
-        if (interfaceSymbol == null)
-            return null;
-        return interfaceSymbol.GetAttributes()
-            .FirstOrDefault(a => HttpClientGeneratorConstants.HttpClientApiWrapAttributeNames.Contains(a.AttributeClass?.Name));
-    }
 
     /// <summary>
     /// 生成文件头部（命名空间和头部注释）
@@ -76,7 +66,7 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
         GenerateFileHeader(sb);
 
         // 获取命名空间
-        var namespaceName = GetNamespaceName(interfaceDecl);
+        var namespaceName = SyntaxHelper.GetNamespaceName(interfaceDecl);
         if (!string.IsNullOrEmpty(namespaceName))
         {
             sb.AppendLine();
@@ -364,26 +354,6 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
     }
 
     #region 共享的代码生成方法
-
-    /// <summary>
-    /// 获取Token管理接口名称
-    /// </summary>
-    protected string GetTokenManageInterfaceName(AttributeData wrapAttribute)
-    {
-        if (wrapAttribute == null)
-            return string.Empty;
-
-        // 检查特性参数中是否有指定的Token管理接口名称
-        var tokenManageArg = wrapAttribute.NamedArguments.FirstOrDefault(a => a.Key == "TokenManage");
-        if (!string.IsNullOrEmpty(tokenManageArg.Value.Value?.ToString()))
-        {
-            return tokenManageArg.Value.Value.ToString();
-        }
-
-        // 默认使用 ITokenManage
-        return HttpClientGeneratorConstants.DefaultTokenManageInterface;
-    }
-
     /// <summary>
     /// 生成包装方法签名的通用方法
     /// </summary>

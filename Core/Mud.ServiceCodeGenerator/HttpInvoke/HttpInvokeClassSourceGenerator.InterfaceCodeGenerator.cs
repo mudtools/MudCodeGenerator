@@ -62,7 +62,7 @@ internal class InterfaceCodeGenerator
     private void GenerateImplementationClass(InterfaceDeclarationSyntax interfaceDecl)
     {
         var className = InterfaceHelper.GetImplementationClassName(interfaceSymbol.Name);
-        var namespaceName = httpInvokeClassSourceGenerator.GetNamespaceName(interfaceDecl);
+        var namespaceName = SyntaxHelper.GetNamespaceName(interfaceDecl);
 
         GenerateClassStructure(className, namespaceName);
         GenerateClassFieldsAndConstructor(className, compilation);

@@ -166,23 +166,6 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
         return projectFileInfo;
     }
 
-    /// <summary>
-    /// 根据<see cref="ClassDeclarationSyntax"/>获取当前类所在的命名空间。
-    /// </summary>
-    /// <param name="classNode">类声明语法节点。</param>
-    /// <returns>命名空间名称。</returns>
-    public virtual string GetNamespaceName(TypeDeclarationSyntax classNode)
-    {
-        if (SyntaxHelper.TryGetParentSyntax(classNode, out NamespaceDeclarationSyntax namespaceDeclarationSyntax))
-        {
-            return namespaceDeclarationSyntax.Name.ToString();
-        }
-        else if (SyntaxHelper.TryGetParentSyntax(classNode, out FileScopedNamespaceDeclarationSyntax fileScopedNamespaceDeclaration))
-        {
-            return fileScopedNamespaceDeclaration.Name.ToString();
-        }
-        return "";
-    }
 
     #region Property Name Handling
     /// <summary>
