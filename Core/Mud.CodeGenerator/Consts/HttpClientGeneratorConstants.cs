@@ -44,6 +44,14 @@ internal static class HttpClientGeneratorConstants
     public const string BodyAttribute = "BodyAttribute";
     public const string FilePathAttribute = "FilePathAttribute";
 
+
+    public const string TimeoutProperty = "Timeout";
+    public const string RegistryGroupNameProperty = "RegistryGroupName";
+    public const string TokenManageProperty = "TokenManage";
+    public const string IsAbstractProperty = "IsAbstract";
+    public const string InheritedFromProperty = "InheritedFrom";
+    public const string BaseAddressProperty = "BaseAddress";
+
     // 默认值
     public const string DefaultTokenManageInterface = "ITokenManage";
     public const string DefaultWrapSuffix = "Wrap";

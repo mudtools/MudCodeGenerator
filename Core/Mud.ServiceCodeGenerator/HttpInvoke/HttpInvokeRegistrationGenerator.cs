@@ -105,12 +105,17 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
         if (semanticModel.GetDeclaredSymbol(interfaceSyntax) is not INamedTypeSymbol interfaceSymbol)
             return null;
 
-        var httpClientApiAttribute = GetHttpClientApiAttribute(interfaceSymbol);
+        var httpClientApiAttribute = AttributeDataHelper.GetAttributeDataFromSymbol(interfaceSymbol, HttpClientGeneratorConstants.HttpClientApiAttributeNames);
         if (httpClientApiAttribute == null)
             return null;
 
+        var isAbstract = AttributeDataHelper.GetBoolValueFromAttribute(httpClientApiAttribute, HttpClientGeneratorConstants.IsAbstractProperty, false);
+        if (isAbstract)
+            return null;
+
         var (baseUrl, timeout) = ExtractAttributeParameters(httpClientApiAttribute);
-        var registryGroupName = GetRegistryGroupNameFromAttribute(httpClientApiAttribute);
+        var registryGroupName = AttributeDataHelper.GetStringValueFromAttribute(httpClientApiAttribute, HttpClientGeneratorConstants.RegistryGroupNameProperty);
+
         var implementationName = InterfaceHelper.GetImplementationClassName(interfaceSymbol.Name);
         var namespaceName = GetNamespaceName(interfaceSyntax);
 
@@ -125,8 +130,8 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
 
     private (string BaseUrl, int Timeout) ExtractAttributeParameters(AttributeData httpClientApiAttribute)
     {
-        var baseUrl = GetBaseAddressFromAttribute(httpClientApiAttribute);
-        var timeout = GetTimeoutFromAttribute(httpClientApiAttribute);
+        var baseUrl = AttributeDataHelper.GetStringValueFromAttributeConstructor(httpClientApiAttribute, HttpClientGeneratorConstants.BaseAddressProperty);
+        var timeout = AttributeDataHelper.GetIntValueFromAttribute(httpClientApiAttribute, HttpClientGeneratorConstants.TimeoutProperty, 100);
         return (baseUrl, timeout);
     }
 
@@ -141,8 +146,8 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
             return null;
 
         // 从原始的 HttpClientApi 特性中获取 RegistryGroupName
-        var httpClientApiAttribute = GetHttpClientApiAttribute(interfaceSymbol);
-        var registryGroupName = GetRegistryGroupNameFromAttribute(httpClientApiAttribute);
+        var httpClientApiAttribute = AttributeDataHelper.GetAttributeDataFromSymbol(interfaceSymbol, HttpClientGeneratorConstants.HttpClientApiAttributeNames);
+        var registryGroupName = AttributeDataHelper.GetStringValueFromAttribute(httpClientApiAttribute, HttpClientGeneratorConstants.RegistryGroupNameProperty);
 
         var (baseUrl, timeout) = ExtractAttributeParameters(httpClientApiWrapAttribute);
         var wrapInterfaceName = GetWrapInterfaceName(interfaceSymbol, httpClientApiWrapAttribute);

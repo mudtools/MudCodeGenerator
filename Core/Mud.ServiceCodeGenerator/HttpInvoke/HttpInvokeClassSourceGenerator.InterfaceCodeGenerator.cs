@@ -48,10 +48,10 @@ internal class InterfaceCodeGenerator
             return;
         interfaceSymbol = interfaceSymbolObj;
         // 获取HttpClientApi特性中的属性值
-        httpClientApiAttribute = httpInvokeClassSourceGenerator.GetHttpClientApiAttribute(interfaceSymbol);
-        isAbstract = httpInvokeClassSourceGenerator.GetIsAbstractFromAttribute(httpClientApiAttribute);
-        inheritedFrom = httpInvokeClassSourceGenerator.GetInheritedFromFromAttribute(httpClientApiAttribute);
-        tokenManage = httpInvokeClassSourceGenerator.GetTokenManageFromAttribute(httpClientApiAttribute);
+        httpClientApiAttribute = AttributeDataHelper.GetAttributeDataFromSymbol(interfaceSymbol, HttpClientGeneratorConstants.HttpClientApiAttributeNames);
+        isAbstract = AttributeDataHelper.GetBoolValueFromAttribute(httpClientApiAttribute, HttpClientGeneratorConstants.IsAbstractProperty);
+        inheritedFrom = AttributeDataHelper.GetStringValueFromAttribute(httpClientApiAttribute, HttpClientGeneratorConstants.InheritedFromProperty);
+        tokenManage = AttributeDataHelper.GetStringValueFromAttribute(httpClientApiAttribute, HttpClientGeneratorConstants.TokenManageProperty);
 
         GenerateImplementationClass(interfaceDecl);
         var className = InterfaceHelper.GetImplementationClassName(interfaceSymbol.Name);
@@ -116,8 +116,8 @@ internal class InterfaceCodeGenerator
     {
         // 从HttpClientApi特性获取配置     
         var defaultContentType = GetHttpClientApiContentTypeFromAttribute(httpClientApiAttribute);
-        var timeoutFromAttribute = this.httpInvokeClassSourceGenerator.GetTimeoutFromAttribute(httpClientApiAttribute);
-        var baseAddressFromAttribute = httpInvokeClassSourceGenerator.GetBaseAddressFromAttribute(httpClientApiAttribute);
+        var timeoutFromAttribute = AttributeDataHelper.GetIntValueFromAttribute(httpClientApiAttribute, HttpClientGeneratorConstants.TimeoutProperty, 100);
+        var baseAddressFromAttribute = AttributeDataHelper.GetStringValueFromAttributeConstructor(httpClientApiAttribute, HttpClientGeneratorConstants.BaseAddressProperty);
 
         // 检查是否需要Token管理器
         var hasTokenManager = !string.IsNullOrEmpty(tokenManage);

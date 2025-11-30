@@ -14,6 +14,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\SourceProductionContextExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\StringExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Consts\GeneratedCodeConsts.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helper\AttributeDataHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helper\AttributeSyntaxHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helper\ClassHierarchyAnalyzer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helper\ErrorHandler.cs" />
