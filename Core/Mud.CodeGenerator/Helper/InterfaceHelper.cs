@@ -9,6 +9,26 @@ namespace Mud.CodeGenerator.Helper;
 
 internal sealed class InterfaceHelper
 {
+    /// <summary>
+    /// 获取类型或接口的完整命名空间
+    /// </summary>
+    /// <param name="compilation">编译对象</param>
+    /// <param name="typeName">类型或接口名称</param>
+    /// <returns>类型或接口的完整命名空间</returns>
+    public static string GetrTypeAllDisplayString(Compilation compilation, string typeName)
+    {
+        if (compilation != null)
+        {
+            var tokenManagerSymbol = compilation.GetTypeByMetadataName(typeName);
+            if (tokenManagerSymbol != null)
+            {
+                return tokenManagerSymbol.ToDisplayString();
+            }
+        }
+
+        // 如果没有找到，返回原始名称
+        return typeName;
+    }
 
     /// <summary>
     /// 获取方法参数列表字符串

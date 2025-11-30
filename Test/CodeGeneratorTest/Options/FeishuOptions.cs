@@ -7,6 +7,7 @@ public class FeishuOptions
 {
     /// <summary>
     /// 飞书应用唯一标识，创建应用后获得。
+    /// </summary>
     public string? AppId { get; set; }
 
     /// <summary>
@@ -22,7 +23,7 @@ public class FeishuOptions
     /// </summary>
     public string? BaseUrl { get; set; }
 
-     /// <summary>
+    /// <summary>
     /// 是否启用日志记录，默认为true
     /// </summary>
     public bool EnableLogging { get; set; } = true;

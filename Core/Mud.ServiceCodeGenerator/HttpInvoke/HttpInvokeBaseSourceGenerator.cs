@@ -105,28 +105,6 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
         return GetDefalultWrapInterfaceName(interfaceSymbol.Name);
     }
 
-
-    /// <summary>
-    /// 获取Token管理器接口的完整命名空间
-    /// </summary>
-    /// <param name="compilation">编译对象</param>
-    /// <param name="tokenManageInterfaceName">Token管理器接口名称</param>
-    /// <returns>Token管理器接口的完整类型名称</returns>
-    public string GetTokenManagerType(Compilation compilation, string tokenManageInterfaceName)
-    {
-        if (compilation != null)
-        {
-            var tokenManagerSymbol = compilation.GetTypeByMetadataName(tokenManageInterfaceName);
-            if (tokenManagerSymbol != null)
-            {
-                return tokenManagerSymbol.ToDisplayString();
-            }
-        }
-
-        // 如果没有找到，返回原始名称
-        return tokenManageInterfaceName;
-    }
-
     /// <summary>
     /// 检查方法是否有效
     /// </summary>

@@ -11,7 +11,8 @@ using System.Text;
 
 namespace Mud.ServiceCodeGenerator.HttpInvoke;
 
-internal class InterfaceCodeGenerator
+
+internal class InterfaceImpCodeGenerator
 {
     private string httpClientOptionsName = "HttpClientOptions";
     private Compilation _compilation;
@@ -26,7 +27,7 @@ internal class InterfaceCodeGenerator
     private INamedTypeSymbol _interfaceSymbol;
     private StringBuilder _codeBuilder;
 
-    public InterfaceCodeGenerator(
+    public InterfaceImpCodeGenerator(
         HttpInvokeClassSourceGenerator httpInvokeClassSourceGenerator,
         Compilation compilation,
         InterfaceDeclarationSyntax interfaceDecl,
@@ -41,7 +42,10 @@ internal class InterfaceCodeGenerator
         _codeBuilder = new StringBuilder();
     }
 
-    public void Generator()
+    /// <summary>
+    /// 生成代码入口，包含类结构和方法实现。
+    /// </summary>
+    public void GeneratorCode()
     {
         var model = _compilation.GetSemanticModel(_interfaceDecl.SyntaxTree);
         if (model.GetDeclaredSymbol(_interfaceDecl) is not INamedTypeSymbol interfaceSymbolObj)
@@ -121,7 +125,7 @@ internal class InterfaceCodeGenerator
 
         // 检查是否需要Token管理器
         var hasTokenManager = !string.IsNullOrEmpty(_tokenManage);
-        var tokenManagerType = hasTokenManager ? _httpInvokeClassSourceGenerator.GetTokenManagerType(_compilation, _tokenManage!) : null;
+        var tokenManagerType = hasTokenManager ? InterfaceHelper.GetrTypeAllDisplayString(_compilation, _tokenManage!) : null;
 
         // 根据IsAbstract决定Logger类型
         var loggerType = _isAbstract ? "ILogger" : $"ILogger<{className}>";
@@ -285,12 +289,9 @@ internal class InterfaceCodeGenerator
 
 
     /// <summary>
-    /// <inheritdoc cref=""/>
+    /// 生成方法实现的代码。
     /// </summary>
-    /// <param name="compilation"></param>
-    /// <param name="codeBuilder"></param>
     /// <param name="methodSymbol"></param>
-    /// <param name="interfaceDecl"></param>
     private void GenerateMethodImplementation(IMethodSymbol methodSymbol)
     {
         var methodInfo = _httpInvokeClassSourceGenerator.AnalyzeMethod(_compilation, methodSymbol, _interfaceDecl);
@@ -303,7 +304,7 @@ internal class InterfaceCodeGenerator
         var model = _compilation.GetSemanticModel(_interfaceDecl.SyntaxTree);
 
         var hasTokenManager = !string.IsNullOrEmpty(_tokenManage);
-        var tokenManagerType = hasTokenManager ? _httpInvokeClassSourceGenerator.GetTokenManagerType(_compilation, _tokenManage!) : null;
+        var tokenManagerType = hasTokenManager ? InterfaceHelper.GetrTypeAllDisplayString(_compilation, _tokenManage!) : null;
         var hasAuthorizationHeader = InterfaceHelper.HasInterfaceAttribute(_interfaceSymbol!, "Header", "Authorization");
         var hasAuthorizationQuery = InterfaceHelper.HasInterfaceAttribute(_interfaceSymbol!, "Query", "Authorization");
 
