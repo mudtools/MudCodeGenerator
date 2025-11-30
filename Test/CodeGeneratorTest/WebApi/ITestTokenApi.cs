@@ -7,7 +7,7 @@ public interface ITestBaseTokenApi
     /// 基类接口中获取用户信息
     /// </summary>
     [Get("api/users/{id}")]
-    Task<UserInfo> GetBaeUserAsync([Path] string id);
+    Task<UserInfo> GetBaeUserAsync([Path] string id, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -35,13 +35,13 @@ public interface ITestTokenApi : ITestBaseTokenApi
     /// 获取用户信息
     /// </summary>
     [Get("api/users/{id}")]
-    Task<UserInfo> GetUserAsync([Path] string id);
+    Task<UserInfo> GetUserAsync([Path] string id, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 获取用户列表
     /// </summary>
     [Get("api/users")]
-    Task<List<UserInfo>> GetUsersAsync();
+    Task<List<UserInfo>> GetUsersAsync(CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -55,5 +55,5 @@ public interface ITestTokenQueryApi
     /// 获取用户信息（使用Query参数传递Token）
     /// </summary>
     [Get("api/users/{id}")]
-    Task<UserInfo> GetUserAsync([Path] string id);
+    Task<UserInfo> GetUserAsync([Path] string id, CancellationToken cancellationToken = default);
 }
