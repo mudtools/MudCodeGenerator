@@ -37,7 +37,7 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
         ];
     }
 
-    protected virtual string[] ApiWrapAttributeNames() => GeneratorConstants.HttpClientApiAttributeNames;
+    protected virtual string[] ApiWrapAttributeNames() => HttpClientGeneratorConstants.HttpClientApiAttributeNames;
 
     /// <summary>
     /// 初始化源代码生成器
@@ -77,39 +77,6 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
         AnalyzerConfigOptionsProvider configOptionsProvider);
 
     /// <summary>
-    /// 根据接口名称获取实现类名称
-    /// </summary>
-    /// <param name="interfaceName">接口名称</param>
-    /// <returns>实现类名称</returns>
-    /// <remarks>
-    /// 如果接口名称以"I"开头且第二个字符为大写，则移除"I"前缀；否则添加"Impl"后缀
-    /// </remarks>
-    protected string GetImplementationClassName(string interfaceName)
-    {
-        if (string.IsNullOrEmpty(interfaceName))
-            return "NullOrEmptyInterfaceName";
-
-        return interfaceName.StartsWith("I", StringComparison.Ordinal) && interfaceName.Length > 1 && char.IsUpper(interfaceName[1])
-            ? interfaceName.Substring(1)
-            : interfaceName + "Impl";
-    }
-
-    /// <summary>
-    /// 获取包装类名称
-    /// </summary>
-    protected string GetWrapClassName(string wrapInterfaceName)
-    {
-        if (string.IsNullOrEmpty(wrapInterfaceName))
-            return "NullOrEmptyWrapInterfaceName";
-
-        if (wrapInterfaceName.StartsWith("I", StringComparison.Ordinal) && wrapInterfaceName.Length > 1)
-        {
-            return wrapInterfaceName.Substring(1);
-        }
-        return wrapInterfaceName + GeneratorConstants.DefaultWrapSuffix;
-    }
-
-    /// <summary>
     /// 获取包装接口名称
     /// </summary>
     protected string GetWrapInterfaceName(INamedTypeSymbol interfaceSymbol, AttributeData wrapAttribute)
@@ -141,12 +108,12 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     /// <summary>
     /// 获取HttpClientApi特性
     /// </summary>
-    protected AttributeData? GetHttpClientApiAttribute(INamedTypeSymbol interfaceSymbol)
+    public AttributeData? GetHttpClientApiAttribute(INamedTypeSymbol interfaceSymbol)
     {
         if (interfaceSymbol == null)
             return null;
         return interfaceSymbol.GetAttributes()
-            .FirstOrDefault(a => GeneratorConstants.HttpClientApiAttributeNames.Contains(a.AttributeClass?.Name));
+            .FirstOrDefault(a => HttpClientGeneratorConstants.HttpClientApiAttributeNames.Contains(a.AttributeClass?.Name));
     }
 
     /// <summary>
@@ -154,7 +121,7 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     /// </summary>
     /// <param name="httpClientApiAttribute">HttpClientApi特性</param>
     /// <returns>BaseAddress</returns>
-    protected string? GetBaseAddressFromAttribute(AttributeData? httpClientApiAttribute)
+    public string? GetBaseAddressFromAttribute(AttributeData? httpClientApiAttribute)
     {
         if (httpClientApiAttribute == null)
             return null;
@@ -174,7 +141,7 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     /// <summary>
     /// 从特性获取超时时间
     /// </summary>
-    protected int GetTimeoutFromAttribute(AttributeData attribute)
+    public int GetTimeoutFromAttribute(AttributeData attribute)
     {
         if (attribute == null)
             return 100;
@@ -215,25 +182,11 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     }
 
     /// <summary>
-    /// 从特性获取内容类型（专用方法，重载基础方法）
-    /// </summary>
-    /// <param name="httpClientApiAttribute">HttpClientApi特性</param>
-    /// <returns>内容类型</returns>
-    protected string GetHttpClientApiContentTypeFromAttribute(AttributeData? attribute)
-    {
-        if (attribute == null)
-            return "application/json";
-        var contentTypeArg = attribute.NamedArguments.FirstOrDefault(a => a.Key == "ContentType");
-        var contentType = contentTypeArg.Value.Value?.ToString();
-        return string.IsNullOrEmpty(contentType) ? "application/json" : contentType;
-    }
-
-    /// <summary>
     /// 从特性获取Token管理器接口名称
     /// </summary>
     /// <param name="httpClientApiAttribute">HttpClientApi特性</param>
     /// <returns>Token管理器接口名称</returns>
-    protected string? GetTokenManageFromAttribute(AttributeData? httpClientApiAttribute)
+    public string? GetTokenManageFromAttribute(AttributeData? httpClientApiAttribute)
     {
         if (httpClientApiAttribute?.NamedArguments.FirstOrDefault(k => k.Key == "TokenManage").Value.Value is string tokenManage)
             return tokenManage;
@@ -246,7 +199,7 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     /// </summary>
     /// <param name="httpClientApiAttribute">HttpClientApi特性</param>
     /// <returns>是否为抽象类</returns>
-    protected bool GetIsAbstractFromAttribute(AttributeData? httpClientApiAttribute)
+    public bool GetIsAbstractFromAttribute(AttributeData? httpClientApiAttribute)
     {
         if (httpClientApiAttribute?.NamedArguments.FirstOrDefault(k => k.Key == "IsAbstract").Value.Value is bool isAbstract)
             return isAbstract;
@@ -259,7 +212,7 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     /// </summary>
     /// <param name="httpClientApiAttribute">HttpClientApi特性</param>
     /// <returns>父类名称</returns>
-    protected string? GetInheritedFromFromAttribute(AttributeData? httpClientApiAttribute)
+    public string? GetInheritedFromFromAttribute(AttributeData? httpClientApiAttribute)
     {
         if (httpClientApiAttribute?.NamedArguments.FirstOrDefault(k => k.Key == "InheritedFrom").Value.Value is string inheritedFrom)
             return inheritedFrom;
@@ -273,7 +226,7 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     /// <param name="compilation">编译对象</param>
     /// <param name="tokenManageInterfaceName">Token管理器接口名称</param>
     /// <returns>Token管理器接口的完整类型名称</returns>
-    protected string GetTokenManagerType(Compilation compilation, string tokenManageInterfaceName)
+    public string GetTokenManagerType(Compilation compilation, string tokenManageInterfaceName)
     {
         if (compilation != null)
         {
@@ -289,38 +242,6 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     }
 
     /// <summary>
-    /// 检查接口是否具有指定的特性
-    /// </summary>
-    /// <param name="interfaceSymbol">接口符号</param>
-    /// <param name="attributeType">特性类型（Header或Query）</param>
-    /// <param name="attributeValue">特性值（如Authorization）</param>
-    /// <returns>是否具有指定的特性</returns>
-    protected bool HasInterfaceAttribute(INamedTypeSymbol interfaceSymbol, string attributeType, string attributeValue)
-    {
-        if (interfaceSymbol == null)
-            return false;
-
-        var attributeName = attributeType + "Attribute";
-
-        return interfaceSymbol.GetAttributes()
-            .Any(attr =>
-                (attr.AttributeClass?.Name == attributeName || attr.AttributeClass?.Name == attributeType) &&
-                attr.ConstructorArguments.Length > 0 &&
-                attr.ConstructorArguments[0].Value?.ToString() == attributeValue);
-    }
-
-    /// <summary>
-    /// 获取方法参数列表字符串
-    /// </summary>
-    protected string GetParameterList(IMethodSymbol methodSymbol)
-    {
-        if (methodSymbol == null)
-            return string.Empty;
-
-        return string.Join(", ", methodSymbol.Parameters.Select(p => $"{p.Type} {p.Name}"));
-    }
-
-    /// <summary>
     /// 检查方法是否有效
     /// </summary>
     protected bool IsValidMethod(IMethodSymbol method)
@@ -328,22 +249,7 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
         if (method == null)
             return false;
         return method.GetAttributes()
-            .Any(attr => GeneratorConstants.SupportedHttpMethods.Contains(attr.AttributeClass?.Name));
-    }
-
-    /// <summary>
-    /// 验证接口是否包含有效的HTTP方法
-    /// </summary>
-    protected bool HasValidHttpMethods(INamedTypeSymbol interfaceSymbol)
-    {
-        if (interfaceSymbol == null)
-            return false;
-
-        // 获取接口及其所有父接口的所有方法
-        var allMethods = GetAllInterfaceMethods(interfaceSymbol);
-        // System.Diagnostics.Debugger.Launch();
-        return allMethods.Any(method => method.GetAttributes()
-                         .Any(attr => GeneratorConstants.SupportedHttpMethods.Contains(attr.AttributeClass?.Name)));
+            .Any(attr => HttpClientGeneratorConstants.SupportedHttpMethods.Contains(attr.AttributeClass?.Name));
     }
 
     protected AttributeSyntax? FindHttpMethodAttribute(MethodDeclarationSyntax methodSyntax)
@@ -352,46 +258,10 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
             return null;
         return methodSyntax.AttributeLists
             .SelectMany(a => a.Attributes)
-            .FirstOrDefault(a => GeneratorConstants.SupportedHttpMethods.Contains(a.Name.ToString()));
+            .FirstOrDefault(a => HttpClientGeneratorConstants.SupportedHttpMethods.Contains(a.Name.ToString()));
     }
 
     #region Common Utility Methods
-
-    /// <summary>
-    /// 递归获取接口及其所有父接口的所有方法（去重）
-    /// </summary>
-    protected IEnumerable<IMethodSymbol> GetAllInterfaceMethods(INamedTypeSymbol interfaceSymbol)
-    {
-        if (interfaceSymbol == null)
-            return [];
-        var visitedInterfaces = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
-        return GetAllInterfaceMethodsRecursive(interfaceSymbol, visitedInterfaces);
-    }
-
-    private IEnumerable<IMethodSymbol> GetAllInterfaceMethodsRecursive(INamedTypeSymbol interfaceSymbol, HashSet<INamedTypeSymbol> visitedInterfaces)
-    {
-        // 避免循环引用
-        if (visitedInterfaces.Contains(interfaceSymbol))
-            yield break;
-
-        visitedInterfaces.Add(interfaceSymbol);
-
-        // 首先处理当前接口的方法
-        foreach (var method in interfaceSymbol.GetMembers().OfType<IMethodSymbol>())
-        {
-            yield return method;
-        }
-
-        // 然后递归处理所有父接口
-        foreach (var baseInterface in interfaceSymbol.Interfaces)
-        {
-            foreach (var baseMethod in GetAllInterfaceMethodsRecursive(baseInterface, visitedInterfaces))
-            {
-                yield return baseMethod;
-            }
-        }
-    }
-
     /// <summary>
     /// 获取XML文档注释
     /// </summary>
@@ -481,7 +351,7 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
         foreach (var originalParam in originalParameters)
         {
             // 检查当前参数是否是Token参数
-            if (HasAttribute(originalParam, GeneratorConstants.TokenAttributeNames))
+            if (HasAttribute(originalParam, HttpClientGeneratorConstants.TokenAttributeNames))
             {
                 // 如果是Token参数，用token参数替换
                 callParameters.Add(tokenParameterName);
@@ -509,7 +379,7 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     /// <param name="methodSymbol"></param>
     /// <param name="interfaceDecl"></param>
     /// <returns></returns>
-    protected MethodAnalysisResult AnalyzeMethod(Compilation compilation, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl)
+    public MethodAnalysisResult AnalyzeMethod(Compilation compilation, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl)
     {
         var methodSyntax = FindMethodSyntax(compilation, methodSymbol, interfaceDecl);
         if (interfaceDecl == null || methodSyntax == null || methodSymbol == null)
@@ -614,8 +484,8 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
             AsyncInnerReturnType = GetAsyncInnerReturnType(methodSymbol.ReturnType),
             IsAsyncMethod = IsAsyncReturnType(methodSymbol.ReturnType),
             Parameters = parameters,
-            IgnoreImplement = HasMethodAttribute(methodSymbol, GeneratorConstants.IgnoreImplementAttributeNames),
-            IgnoreWrapInterface = HasMethodAttribute(methodSymbol, GeneratorConstants.IgnoreWrapInterfaceAttributeNames),
+            IgnoreImplement = HasMethodAttribute(methodSymbol, HttpClientGeneratorConstants.IgnoreImplementAttributeNames),
+            IgnoreWrapInterface = HasMethodAttribute(methodSymbol, HttpClientGeneratorConstants.IgnoreWrapInterfaceAttributeNames),
             InterfaceAttributes = interfaceAttributes,
             InterfaceHeaderAttributes = interfaceHeaderAttributes
         };
@@ -775,7 +645,7 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     private string GetTokenType(IParameterSymbol parameter)
     {
         var tokenAttribute = parameter.GetAttributes()
-            .FirstOrDefault(attr => GeneratorConstants.TokenAttributeNames.Contains(attr.AttributeClass?.Name));
+            .FirstOrDefault(attr => HttpClientGeneratorConstants.TokenAttributeNames.Contains(attr.AttributeClass?.Name));
 
         if (tokenAttribute == null)
             return "TenantAccessToken";

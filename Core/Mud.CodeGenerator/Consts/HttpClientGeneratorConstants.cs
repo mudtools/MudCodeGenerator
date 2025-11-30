@@ -5,28 +5,28 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-namespace Mud.ServiceCodeGenerator;
+namespace Mud.CodeGenerator;
 
 
 /// <summary>
 /// 生成器常量配置
 /// </summary>
-internal static class GeneratorConstants
+internal static class HttpClientGeneratorConstants
 {
     // 特性名称
     public static readonly string[] HttpClientApiWrapAttributeNames = ["HttpClientApiWrapAttribute", "HttpClientApiWrap"];
     public static readonly string[] TokenAttributeNames = ["TokenAttribute", "Token"];
-    
+
     /// <summary>
     /// 忽略生成实现的特性名称数组
     /// </summary>
     public static readonly string[] IgnoreImplementAttributeNames = ["IgnoreImplementAttribute", "IgnoreImplement"];
-    
+
     /// <summary>
     /// 忽略生成包装接口的特性名称数组
     /// </summary>
     public static readonly string[] IgnoreWrapInterfaceAttributeNames = ["IgnoreWrapInterfaceAttribute", "IgnoreWrapInterface"];
-    
+
     /// <summary>
     /// HttpClientApi特性名称数组
     /// </summary>

@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using Microsoft.CodeAnalysis.Diagnostics;
+using Mud.CodeGenerator.Helper;
 using System.Collections.Immutable;
 using System.Text;
 
@@ -17,7 +18,7 @@ namespace Mud.ServiceCodeGenerator.ApiSourceGenerator;
 /// </summary>
 public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenerator
 {
-    protected override string[] ApiWrapAttributeNames() => GeneratorConstants.HttpClientApiWrapAttributeNames;
+    protected override string[] ApiWrapAttributeNames() => HttpClientGeneratorConstants.HttpClientApiWrapAttributeNames;
 
     /// <summary>
     /// 更新Execute方法以使用验证
@@ -61,7 +62,7 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
         if (interfaceSymbol == null)
             return null;
         return interfaceSymbol.GetAttributes()
-            .FirstOrDefault(a => GeneratorConstants.HttpClientApiWrapAttributeNames.Contains(a.AttributeClass?.Name));
+            .FirstOrDefault(a => HttpClientGeneratorConstants.HttpClientApiWrapAttributeNames.Contains(a.AttributeClass?.Name));
     }
 
     /// <summary>
@@ -124,7 +125,7 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
     {
         if (interfaceSymbol == null || sb == null) return;
 
-        var allMethods = GetAllInterfaceMethods(interfaceSymbol);
+        var allMethods = InterfaceHelper.GetAllInterfaceMethods(interfaceSymbol);
 
         foreach (var methodSymbol in allMethods)
         {
@@ -165,7 +166,7 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
 
         // 检查是否有TokenType.Both的Token参数
         var bothTokenParameter = methodInfo.Parameters.FirstOrDefault(p =>
-            HasAttribute(p, GeneratorConstants.TokenAttributeNames) &&
+            HasAttribute(p, HttpClientGeneratorConstants.TokenAttributeNames) &&
             p.TokenType.Equals("Both", StringComparison.OrdinalIgnoreCase));
 
         if (bothTokenParameter != null)
@@ -197,7 +198,7 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
         }
 
         // 过滤掉标记了[Token]特性的参数，保留其他所有参数
-        var filteredParameters = FilterParametersByAttribute(methodInfo.Parameters, GeneratorConstants.TokenAttributeNames, exclude: true);
+        var filteredParameters = FilterParametersByAttribute(methodInfo.Parameters, HttpClientGeneratorConstants.TokenAttributeNames, exclude: true);
 
         // 生成方法签名 - 接口方法不需要async关键字
         var methodSignature = GenerateMethodSignature(methodInfo, methodInfo.MethodName, filteredParameters, includeAsync: !isInterface);
@@ -236,7 +237,7 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
         var methodName = GenerateBothMethodName(methodInfo.MethodName, prefix);
 
         // 过滤掉标记了[Token]特性的参数，保留其他所有参数
-        var filteredParameters = FilterParametersByAttribute(methodInfo.Parameters, GeneratorConstants.TokenAttributeNames, exclude: true);
+        var filteredParameters = FilterParametersByAttribute(methodInfo.Parameters, HttpClientGeneratorConstants.TokenAttributeNames, exclude: true);
 
         // 生成方法签名 - 接口方法不需要async关键字
         var methodSignature = GenerateMethodSignature(methodInfo, methodName, filteredParameters, includeAsync: !isInterface);
@@ -276,7 +277,7 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
             return string.Empty;
 
         // 获取标记了Token特性的参数名称
-        var tokenParameterNames = FilterParametersByAttribute(methodInfo.Parameters, GeneratorConstants.TokenAttributeNames)
+        var tokenParameterNames = FilterParametersByAttribute(methodInfo.Parameters, HttpClientGeneratorConstants.TokenAttributeNames)
             .Select(p => p.Name)
             .ToList();
 
@@ -317,7 +318,7 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
     {
         context.ReportDiagnostic(Diagnostic.Create(
             new DiagnosticDescriptor(
-                GeneratorConstants.GeneratorErrorDiagnosticId,
+                HttpClientGeneratorConstants.GeneratorErrorDiagnosticId,
                 "HttpClientApiWrap Source Generator Error",
                 $"Error generating wrap interface for {interfaceDecl.Identifier}: {ex.Message}",
                 "Generation",
@@ -333,7 +334,7 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
     {
         context.ReportDiagnostic(Diagnostic.Create(
             new DiagnosticDescriptor(
-                GeneratorConstants.GeneratorWarningDiagnosticId,
+                HttpClientGeneratorConstants.GeneratorWarningDiagnosticId,
                 "HttpClientApiWrap Source Generator Warning",
                 message,
                 "Generation",
@@ -350,12 +351,6 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
         if (interfaceSymbol == null)
         {
             ReportDiagnosticWarning(context, interfaceDecl, "Interface symbol is null, skipping generation.");
-            return false;
-        }
-
-        if (!HasValidHttpMethods(interfaceSymbol))
-        {
-            ReportDiagnosticWarning(context, interfaceDecl, $"Interface {interfaceSymbol.Name} has no valid HTTP methods, skipping generation.");
             return false;
         }
 
@@ -386,7 +381,7 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
         }
 
         // 默认使用 ITokenManage
-        return GeneratorConstants.DefaultTokenManageInterface;
+        return HttpClientGeneratorConstants.DefaultTokenManageInterface;
     }
 
     /// <summary>
@@ -471,7 +466,7 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
         if (sb == null || methodInfo == null) return;
 
         // 检查是否为文件下载场景（有FilePath参数）
-        var hasFilePathParam = originalParameters.Any(p => p.Attributes.Any(attr => attr.Name == GeneratorConstants.FilePathAttribute));
+        var hasFilePathParam = originalParameters.Any(p => p.Attributes.Any(attr => attr.Name == HttpClientGeneratorConstants.FilePathAttribute));
 
         // 调用原始API方法
         if (methodInfo.IsAsyncMethod)
@@ -523,7 +518,7 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
         var sb = new StringBuilder();
 
         // 获取Token - 根据 Token 类型调用不同的方法
-        var tokenParameter = originalParameters.FirstOrDefault(p => HasAttribute(p, GeneratorConstants.TokenAttributeNames));
+        var tokenParameter = originalParameters.FirstOrDefault(p => HasAttribute(p, HttpClientGeneratorConstants.TokenAttributeNames));
         var tokenMethodName = GetTokenMethodName(tokenParameter);
 
         // 生成方法体

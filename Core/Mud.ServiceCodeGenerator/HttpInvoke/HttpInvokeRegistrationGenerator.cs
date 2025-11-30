@@ -7,6 +7,7 @@
 
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Text;
+using Mud.CodeGenerator.Helper;
 using System.Collections.Immutable;
 using System.Text;
 
@@ -110,7 +111,7 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
 
         var (baseUrl, timeout) = ExtractAttributeParameters(httpClientApiAttribute);
         var registryGroupName = GetRegistryGroupNameFromAttribute(httpClientApiAttribute);
-        var implementationName = GetImplementationClassName(interfaceSymbol.Name);
+        var implementationName = InterfaceHelper.GetImplementationClassName(interfaceSymbol.Name);
         var namespaceName = GetNamespaceName(interfaceSyntax);
 
         return new HttpClientApiInfo(
@@ -145,7 +146,7 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
 
         var (baseUrl, timeout) = ExtractAttributeParameters(httpClientApiWrapAttribute);
         var wrapInterfaceName = GetWrapInterfaceName(interfaceSymbol, httpClientApiWrapAttribute);
-        var wrapClassName = GetWrapClassName(wrapInterfaceName);
+        var wrapClassName = InterfaceHelper.GetWrapClassName(wrapInterfaceName);
         var namespaceName = GetNamespaceName(interfaceSyntax);
 
         return new HttpClientWrapApiInfo(
@@ -164,7 +165,7 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
             return null;
 
         return interfaceSymbol.GetAttributes()
-            .FirstOrDefault(a => GeneratorConstants.HttpClientApiWrapAttributeNames.Contains(a.AttributeClass?.Name));
+            .FirstOrDefault(a => HttpClientGeneratorConstants.HttpClientApiWrapAttributeNames.Contains(a.AttributeClass?.Name));
     }
 
     private void ReportInterfaceProcessingError(SourceProductionContext context, InterfaceDeclarationSyntax interfaceSyntax, Exception ex)
