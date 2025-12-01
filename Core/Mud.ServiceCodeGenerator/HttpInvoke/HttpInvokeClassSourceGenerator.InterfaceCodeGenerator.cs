@@ -130,9 +130,9 @@ internal class InterfaceImpCodeGenerator
         // 根据IsAbstract决定Logger类型
         var loggerType = _isAbstract ? "ILogger" : $"ILogger<{className}>";
         bool noteHasInheritedFrom = string.IsNullOrEmpty(_inheritedFrom);
+        string fieldAccessibility = _isAbstract ? "protected " : "private ";
         if (noteHasInheritedFrom)
         {
-            string fieldAccessibility = _isAbstract ? "protected " : "private ";
             _codeBuilder.AppendLine($"        {fieldAccessibility}readonly HttpClient _httpClient;");
             _codeBuilder.AppendLine($"        {fieldAccessibility}readonly {loggerType} _logger;");
             _codeBuilder.AppendLine($"        {fieldAccessibility}readonly JsonSerializerOptions _jsonSerializerOptions;");
@@ -205,27 +205,30 @@ internal class InterfaceImpCodeGenerator
         _codeBuilder.AppendLine();
 
         // 只为非抽象类和非继承类生成辅助方法
-        _codeBuilder.AppendLine("        /// <summary>");
-        _codeBuilder.AppendLine("        /// 从Content-Type字符串中提取媒体类型部分，去除字符集信息。");
-        _codeBuilder.AppendLine("        /// </summary>");
-        _codeBuilder.AppendLine("        /// <param name=\"contentType\">完整的Content-Type字符串</param>");
-        _codeBuilder.AppendLine("        /// <returns>媒体类型部分</returns>");
-        _codeBuilder.AppendLine("        private string GetMediaType(string contentType)");
-        _codeBuilder.AppendLine("        {");
-        _codeBuilder.AppendLine("            if (string.IsNullOrEmpty(contentType))");
-        _codeBuilder.AppendLine("                return \"application/json\";");
-        _codeBuilder.AppendLine();
-        _codeBuilder.AppendLine("            // Content-Type可能包含字符集信息，如 \"application/json; charset=utf-8\"");
-        _codeBuilder.AppendLine("            // 需要分号前的媒体类型部分");
-        _codeBuilder.AppendLine("            var semicolonIndex = contentType.IndexOf(';');");
-        _codeBuilder.AppendLine("            if (semicolonIndex >= 0)");
-        _codeBuilder.AppendLine("            {");
-        _codeBuilder.AppendLine("                return contentType.Substring(0, semicolonIndex).Trim();");
-        _codeBuilder.AppendLine("            }");
-        _codeBuilder.AppendLine();
-        _codeBuilder.AppendLine("            return contentType.Trim();");
-        _codeBuilder.AppendLine("        }");
-        _codeBuilder.AppendLine();
+        if (noteHasInheritedFrom)
+        {
+            _codeBuilder.AppendLine("        /// <summary>");
+            _codeBuilder.AppendLine("        /// 从Content-Type字符串中提取媒体类型部分，去除字符集信息。");
+            _codeBuilder.AppendLine("        /// </summary>");
+            _codeBuilder.AppendLine("        /// <param name=\"contentType\">完整的Content-Type字符串</param>");
+            _codeBuilder.AppendLine("        /// <returns>媒体类型部分</returns>");
+            _codeBuilder.AppendLine($"        {fieldAccessibility}string GetMediaType(string contentType)");
+            _codeBuilder.AppendLine("        {");
+            _codeBuilder.AppendLine("            if (string.IsNullOrEmpty(contentType))");
+            _codeBuilder.AppendLine("                return \"application/json\";");
+            _codeBuilder.AppendLine();
+            _codeBuilder.AppendLine("            // Content-Type可能包含字符集信息，如 \"application/json; charset=utf-8\"");
+            _codeBuilder.AppendLine("            // 需要分号前的媒体类型部分");
+            _codeBuilder.AppendLine("            var semicolonIndex = contentType.IndexOf(';');");
+            _codeBuilder.AppendLine("            if (semicolonIndex >= 0)");
+            _codeBuilder.AppendLine("            {");
+            _codeBuilder.AppendLine("                return contentType.Substring(0, semicolonIndex).Trim();");
+            _codeBuilder.AppendLine("            }");
+            _codeBuilder.AppendLine();
+            _codeBuilder.AppendLine("            return contentType.Trim();");
+            _codeBuilder.AppendLine("        }");
+            _codeBuilder.AppendLine();
+        }
 
         // 根据IsAbstract和InheritedFrom决定是否生成辅助方法
         if (!_isAbstract)

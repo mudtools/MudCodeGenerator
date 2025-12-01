@@ -8,24 +8,27 @@ public interface ITestBaseTokenApi
     /// </summary>
     [Get("api/users/{id}")]
     Task<UserInfo> GetBaeUserAsync([Path] string id, CancellationToken cancellationToken = default);
+
+    [Post("/api/v1/user")]
+    Task<SysUserInfoOutput> CreateUserAsync([Token][Header("x-token")] string token, [Body] SysUserInfoOutput user, CancellationToken cancellationToken = default);
+
 }
 
 /// <summary>
 /// 测试Token功能的API接口
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITokenManager), InheritedFrom = "TestBaseTokenApi")]
+[HttpClientApi(TokenManage = nameof(IUserTokenManager), InheritedFrom = "TestBaseTokenApi")]
 [Header("Authorization", AliasAs = "X-Token")]
 [Header("xx1", "xxValue1")]
 [Header("xx2", "xxValue3")]
 public interface ITestNullTokenApi : ITestBaseTokenApi
 {
-
 }
 
 /// <summary>
 /// 测试Token功能的API接口
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITokenManager), InheritedFrom = "TestBaseTokenApi")]
+[HttpClientApi(TokenManage = nameof(ITenantTokenManager), InheritedFrom = "TestBaseTokenApi")]
 [Header("Authorization", AliasAs = "X-Token")]
 [Header("xx1", "xxValue1")]
 [Header("xx2", "xxValue3")]

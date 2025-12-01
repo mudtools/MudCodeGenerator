@@ -12,6 +12,16 @@ public interface ITokenManager
     Task<string> GetTokenAsync();
 }
 
+public interface ITenantTokenManager : ITokenManager
+{
+
+}
+
+public interface IUserTokenManager : ITokenManager
+{
+
+}
+
 /// <summary>
 /// Token管理器实现（示例）
 /// </summary>
