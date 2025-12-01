@@ -14,6 +14,42 @@ namespace Mud.ServiceCodeGenerator.HttpInvoke;
 
 internal class InterfaceImpCodeGenerator
 {
+    private class GenerationContext
+    {
+        public string ClassName { get; }
+        public Configuration Config { get; }
+        public bool HasInheritedFrom => !string.IsNullOrEmpty(Config.InheritedFrom);
+        public bool HasTokenManager => !string.IsNullOrEmpty(Config.TokenManager);
+        public string FieldAccessibility { get; }
+        public string LoggerType { get; }
+        public string ConstructorLoggerType { get; }
+        public string OptionsFieldName { get; }
+        public string OptionsParameterName { get; }
+
+        public GenerationContext(string className, Configuration config)
+        {
+            ClassName = className;
+            Config = config;
+            FieldAccessibility = config.IsAbstract ? "protected " : "private ";
+            LoggerType = config.IsAbstract ? "ILogger" : $"ILogger<{className}>";
+            ConstructorLoggerType = config.IsAbstract ? "ILogger" : $"ILogger<{className}>";
+            OptionsFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(Config.HttpClientOptionsName);
+            OptionsParameterName = PrivateFieldNamingHelper.GeneratePrivateFieldName(Config.HttpClientOptionsName, FieldNamingStyle.PureCamel);
+        }
+    }
+
+    private class Configuration
+    {
+        public string HttpClientOptionsName { get; set; } = "HttpClientOptions";
+        public string DefaultContentType { get; set; } = "application/json";
+        public int TimeoutFromAttribute { get; set; } = 100;
+        public string? BaseAddressFromAttribute { get; set; }
+        public bool IsAbstract { get; set; }
+        public string? InheritedFrom { get; set; }
+        public string? TokenManager { get; set; }
+        public string? TokenManagerType { get; set; }
+    }
+
     private string httpClientOptionsName = "HttpClientOptions";
     private Compilation _compilation;
     private InterfaceDeclarationSyntax _interfaceDecl;
@@ -118,153 +154,231 @@ internal class InterfaceImpCodeGenerator
 
     private void GenerateClassFieldsAndConstructor(string className)
     {
-        // 从HttpClientApi特性获取配置     
-        var defaultContentType = GetHttpClientApiContentTypeFromAttribute(_httpClientApiAttribute);
-        var timeoutFromAttribute = AttributeDataHelper.GetIntValueFromAttribute(_httpClientApiAttribute, HttpClientGeneratorConstants.TimeoutProperty, 100);
-        var baseAddressFromAttribute = AttributeDataHelper.GetStringValueFromAttributeConstructor(_httpClientApiAttribute, HttpClientGeneratorConstants.BaseAddressProperty);
+        var config = ExtractConfigurationFromAttributes();
+        var context = new GenerationContext(className, config);
 
-        // 检查是否需要Token管理器
-        var hasTokenManager = !string.IsNullOrEmpty(_tokenManage);
-        var tokenManagerType = hasTokenManager ? InterfaceHelper.GetrTypeAllDisplayString(_compilation, _tokenManage!) : null;
+        GenerateClassFields(context);
+        GenerateConstructor(context);
+        GenerateHelperMethods(context);
+    }
 
-        // 根据IsAbstract决定Logger类型
-        var loggerType = _isAbstract ? "ILogger" : $"ILogger<{className}>";
-        bool noteHasInheritedFrom = string.IsNullOrEmpty(_inheritedFrom);
-        string fieldAccessibility = _isAbstract ? "protected " : "private ";
-        if (noteHasInheritedFrom)
+
+    private Configuration ExtractConfigurationFromAttributes()
+    {
+        return new Configuration
         {
-            _codeBuilder.AppendLine($"        {fieldAccessibility}readonly HttpClient _httpClient;");
-            _codeBuilder.AppendLine($"        {fieldAccessibility}readonly {loggerType} _logger;");
-            _codeBuilder.AppendLine($"        {fieldAccessibility}readonly JsonSerializerOptions _jsonSerializerOptions;");
-            _codeBuilder.AppendLine($"        {fieldAccessibility}readonly {httpClientOptionsName} {PrivateFieldNamingHelper.GeneratePrivateFieldName(httpClientOptionsName)};");
+            HttpClientOptionsName = httpClientOptionsName,
+            DefaultContentType = GetHttpClientApiContentTypeFromAttribute(_httpClientApiAttribute),
+            TimeoutFromAttribute = AttributeDataHelper.GetIntValueFromAttribute(_httpClientApiAttribute, HttpClientGeneratorConstants.TimeoutProperty, 100),
+            BaseAddressFromAttribute = AttributeDataHelper.GetStringValueFromAttributeConstructor(_httpClientApiAttribute, HttpClientGeneratorConstants.BaseAddressProperty),
+            IsAbstract = _isAbstract,
+            InheritedFrom = _inheritedFrom,
+            TokenManager = _tokenManage,
+            TokenManagerType = !string.IsNullOrEmpty(_tokenManage)
+                ? InterfaceHelper.GetrTypeAllDisplayString(_compilation, _tokenManage!)
+                : null
+        };
+    }
 
-            if (hasTokenManager)
-            {
-                _codeBuilder.AppendLine($"        {fieldAccessibility}readonly {tokenManagerType} _tokenManager;");
-            }
-            _codeBuilder.AppendLine($"        {fieldAccessibility}readonly string _defaultContentType = \"{defaultContentType}\";");
+    private void GenerateClassFields(GenerationContext context)
+    {
+        if (context.HasInheritedFrom) return;
+
+        _codeBuilder.AppendLine($"        {context.FieldAccessibility}readonly HttpClient _httpClient;");
+        _codeBuilder.AppendLine($"        {context.FieldAccessibility}readonly {context.LoggerType} _logger;");
+        _codeBuilder.AppendLine($"        {context.FieldAccessibility}readonly JsonSerializerOptions _jsonSerializerOptions;");
+        _codeBuilder.AppendLine($"        {context.FieldAccessibility}readonly {context.Config.HttpClientOptionsName} {context.OptionsFieldName};");
+
+        if (context.HasTokenManager)
+        {
+            _codeBuilder.AppendLine($"        {context.FieldAccessibility}readonly {context.Config.TokenManagerType} _tokenManager;");
         }
+        _codeBuilder.AppendLine($"        {context.FieldAccessibility}readonly string _defaultContentType = \"{context.Config.DefaultContentType}\";");
         _codeBuilder.AppendLine();
+    }
+
+    private void GenerateConstructor(GenerationContext context)
+    {
+        GenerateConstructorDocumentation(context);
+        GenerateConstructorSignature(context);
+        GenerateConstructorBody(context);
+    }
+
+    private void GenerateConstructorDocumentation(GenerationContext context)
+    {
         _codeBuilder.AppendLine("        /// <summary>");
-        _codeBuilder.AppendLine($"        /// 构建 <see cref = \"{className}\"/> 类的实例。");
+        _codeBuilder.AppendLine($"        /// 构建 <see cref = \"{context.ClassName}\"/> 类的实例。");
         _codeBuilder.AppendLine("        /// </summary>");
         _codeBuilder.AppendLine("        /// <param name=\"httpClient\">HttpClient实例</param>");
         _codeBuilder.AppendLine("        /// <param name=\"logger\">日志记录器</param>");
         _codeBuilder.AppendLine("        /// <param name=\"option\">Json序列化参数</param>");
-        _codeBuilder.AppendLine($"        /// <param name=\"{PrivateFieldNamingHelper.GeneratePrivateFieldName(httpClientOptionsName, FieldNamingStyle.PureCamel)}\">飞书配置选项</param>");
+        _codeBuilder.AppendLine($"        /// <param name=\"{context.OptionsParameterName}\">飞书配置选项</param>");
 
-        // 构建构造函数参数列表
-        var constructorLoggerType = _isAbstract ? "ILogger" : $"ILogger<{className}>";
-
-        if (hasTokenManager)
+        if (context.HasTokenManager)
         {
-            _codeBuilder.AppendLine($"        /// <param name=\"tokenManager\">Token管理器</param>");
-            _codeBuilder.Append($"        public {className}(HttpClient httpClient, {constructorLoggerType} logger, IOptions<JsonSerializerOptions> option, IOptions<{httpClientOptionsName}> {PrivateFieldNamingHelper.GeneratePrivateFieldName(httpClientOptionsName, FieldNamingStyle.PureCamel)}, {tokenManagerType} tokenManager)");
+            _codeBuilder.AppendLine("        /// <param name=\"tokenManager\">Token管理器</param>");
+        }
+    }
+
+    private void GenerateConstructorSignature(GenerationContext context)
+    {
+        var parameters = new List<string>
+        {
+            "HttpClient httpClient",
+            $"{context.ConstructorLoggerType} logger",
+            "IOptions<JsonSerializerOptions> option",
+            $"IOptions<{context.Config.HttpClientOptionsName}> {context.OptionsParameterName}"
+        };
+
+        if (context.HasTokenManager)
+        {
+            parameters.Add($"{context.Config.TokenManagerType} tokenManager");
+        }
+
+        var signature = $"        public {context.ClassName}({string.Join(", ", parameters)})";
+        _codeBuilder.Append(signature);
+
+        if (context.HasInheritedFrom)
+        {
+            var baseParameters = new List<string>
+            {
+                "httpClient",
+                "logger",
+                "option",
+                context.OptionsParameterName
+            };
+            if (context.HasTokenManager)
+            {
+                baseParameters.Add("tokenManager");
+            }
+            _codeBuilder.AppendLine($" : base({string.Join(", ", baseParameters)})");
         }
         else
         {
-            _codeBuilder.Append($"        public {className}(HttpClient httpClient, {constructorLoggerType} logger, IOptions<JsonSerializerOptions> option, IOptions<{httpClientOptionsName}> {PrivateFieldNamingHelper.GeneratePrivateFieldName(httpClientOptionsName, FieldNamingStyle.PureCamel)})");
-        }
-
-        if (!string.IsNullOrEmpty(_inheritedFrom))
-            _codeBuilder.AppendLine($" : base(httpClient, logger, option, {PrivateFieldNamingHelper.GeneratePrivateFieldName(httpClientOptionsName, FieldNamingStyle.PureCamel)}{(hasTokenManager ? ", tokenManager" : "")})");
-        else
             _codeBuilder.AppendLine();
+        }
+    }
+
+    private void GenerateConstructorBody(GenerationContext context)
+    {
         _codeBuilder.AppendLine("        {");
-        if (noteHasInheritedFrom)
+
+        if (!context.HasInheritedFrom)
         {
             _codeBuilder.AppendLine("            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));");
             _codeBuilder.AppendLine("            _logger = logger ?? throw new ArgumentNullException(nameof(logger));");
             _codeBuilder.AppendLine("            _jsonSerializerOptions = option.Value;");
-            _codeBuilder.AppendLine($"            {PrivateFieldNamingHelper.GeneratePrivateFieldName(httpClientOptionsName)} = {PrivateFieldNamingHelper.GeneratePrivateFieldName(httpClientOptionsName, FieldNamingStyle.PureCamel)}?.Value ?? throw new ArgumentNullException(nameof({PrivateFieldNamingHelper.GeneratePrivateFieldName(httpClientOptionsName, FieldNamingStyle.PureCamel)}));");
-            if (hasTokenManager)
+            _codeBuilder.AppendLine($"            {context.OptionsFieldName} = {context.OptionsParameterName}?.Value ?? throw new ArgumentNullException(nameof({context.OptionsParameterName}));");
+
+            if (context.HasTokenManager)
             {
                 _codeBuilder.AppendLine("            _tokenManager = tokenManager ?? throw new ArgumentNullException(nameof(tokenManager));");
             }
             _codeBuilder.AppendLine();
         }
 
-        // 根据IsAbstract和InheritedFrom决定是否设置BaseAddress和Timeout
-        if (!_isAbstract)
-        {
-            _codeBuilder.AppendLine();
-            _codeBuilder.AppendLine("            // 设置 HttpClient BaseAddress（用于相对路径请求）");
-            _codeBuilder.AppendLine("            var finalBaseAddress = GetFinalBaseAddress();");
-            _codeBuilder.AppendLine("            if (!string.IsNullOrEmpty(finalBaseAddress))");
-            _codeBuilder.AppendLine("            {");
-            _codeBuilder.AppendLine("                _httpClient.BaseAddress = new Uri(finalBaseAddress);");
-            _codeBuilder.AppendLine("            }");
-            _codeBuilder.AppendLine();
-
-            // 设置超时时间
-            _codeBuilder.AppendLine($"            // 配置HttpClient超时时间");
-            _codeBuilder.AppendLine($"            var finalTimeout = GetFinalTimeout();");
-            _codeBuilder.AppendLine($"            _httpClient.Timeout = TimeSpan.FromSeconds(finalTimeout);");
-        }
+        GenerateHttpClientConfiguration(context);
         _codeBuilder.AppendLine("        }");
         _codeBuilder.AppendLine();
+    }
 
-        // 只为非抽象类和非继承类生成辅助方法
-        if (noteHasInheritedFrom)
+    private void GenerateHttpClientConfiguration(GenerationContext context)
+    {
+        if (context.Config.IsAbstract) return;
+
+        _codeBuilder.AppendLine("            // 设置 HttpClient BaseAddress（用于相对路径请求）");
+        _codeBuilder.AppendLine("            var finalBaseAddress = GetFinalBaseAddress();");
+        _codeBuilder.AppendLine("            if (!string.IsNullOrEmpty(finalBaseAddress))");
+        _codeBuilder.AppendLine("            {");
+        _codeBuilder.AppendLine("                _httpClient.BaseAddress = new Uri(finalBaseAddress);");
+        _codeBuilder.AppendLine("            }");
+        _codeBuilder.AppendLine();
+
+        _codeBuilder.AppendLine("            // 配置HttpClient超时时间");
+        _codeBuilder.AppendLine("            var finalTimeout = GetFinalTimeout();");
+        _codeBuilder.AppendLine("            _httpClient.Timeout = TimeSpan.FromSeconds(finalTimeout);");
+    }
+
+    private void GenerateHelperMethods(GenerationContext context)
+    {
+        if (!context.Config.IsAbstract)
         {
-            _codeBuilder.AppendLine("        /// <summary>");
-            _codeBuilder.AppendLine("        /// 从Content-Type字符串中提取媒体类型部分，去除字符集信息。");
-            _codeBuilder.AppendLine("        /// </summary>");
-            _codeBuilder.AppendLine("        /// <param name=\"contentType\">完整的Content-Type字符串</param>");
-            _codeBuilder.AppendLine("        /// <returns>媒体类型部分</returns>");
-            _codeBuilder.AppendLine($"        {fieldAccessibility}string GetMediaType(string contentType)");
-            _codeBuilder.AppendLine("        {");
-            _codeBuilder.AppendLine("            if (string.IsNullOrEmpty(contentType))");
-            _codeBuilder.AppendLine("                return \"application/json\";");
-            _codeBuilder.AppendLine();
-            _codeBuilder.AppendLine("            // Content-Type可能包含字符集信息，如 \"application/json; charset=utf-8\"");
-            _codeBuilder.AppendLine("            // 需要分号前的媒体类型部分");
-            _codeBuilder.AppendLine("            var semicolonIndex = contentType.IndexOf(';');");
-            _codeBuilder.AppendLine("            if (semicolonIndex >= 0)");
-            _codeBuilder.AppendLine("            {");
-            _codeBuilder.AppendLine("                return contentType.Substring(0, semicolonIndex).Trim();");
-            _codeBuilder.AppendLine("            }");
-            _codeBuilder.AppendLine();
-            _codeBuilder.AppendLine("            return contentType.Trim();");
-            _codeBuilder.AppendLine("        }");
-            _codeBuilder.AppendLine();
+            GenerateConfigurationHelperMethods(context);
         }
 
-        // 根据IsAbstract和InheritedFrom决定是否生成辅助方法
-        if (!_isAbstract)
-        {
-            _codeBuilder.AppendLine("        /// <summary>");
-            _codeBuilder.AppendLine($"        /// 获取最终的超时时间，优先使用 HttpClientApi 特性中的设置，否则使用 {httpClientOptionsName}.TimeOut");
-            _codeBuilder.AppendLine("        /// </summary>");
-            _codeBuilder.AppendLine("        /// <returns>超时秒数</returns>");
-            _codeBuilder.AppendLine($"        private int GetFinalTimeout()");
-            _codeBuilder.AppendLine("        {");
-            _codeBuilder.AppendLine($"            // 优先使用 HttpClientApi 特性中的超时设置");
-            _codeBuilder.AppendLine($"            var attributeTimeout = {timeoutFromAttribute};");
-            _codeBuilder.AppendLine($"            if (attributeTimeout > 0)");
-            _codeBuilder.AppendLine($"                return attributeTimeout;");
-            _codeBuilder.AppendLine();
-            _codeBuilder.AppendLine($"            // 尝试使用 {httpClientOptionsName}.TimeOut");
-            _codeBuilder.AppendLine($"            var optionsTimeout = {PrivateFieldNamingHelper.GeneratePrivateFieldName(httpClientOptionsName)}.TimeOut;");
-            _codeBuilder.AppendLine($"            return !string.IsNullOrEmpty(optionsTimeout) && int.TryParse(optionsTimeout, out var parsedTimeout)");
-            _codeBuilder.AppendLine($"                ? parsedTimeout");
-            _codeBuilder.AppendLine($"                : 60; // 默认60秒超时");
-            _codeBuilder.AppendLine("        }");
-            _codeBuilder.AppendLine();
-            _codeBuilder.AppendLine("        /// <summary>");
-            _codeBuilder.AppendLine($"        /// 获取最终的 BaseAddress，优先使用 HttpClientApi 特性中的设置，否则使用 {httpClientOptionsName}.BaseUrl");
-            _codeBuilder.AppendLine("        /// </summary>");
-            _codeBuilder.AppendLine("        /// <returns>BaseAddress</returns>");
-            _codeBuilder.AppendLine($"        private string? GetFinalBaseAddress()");
-            _codeBuilder.AppendLine("        {");
-            _codeBuilder.AppendLine($"            // 优先使用 HttpClientApi 特性中的 BaseAddress");
-            _codeBuilder.AppendLine($"            var attributeAddress = \"{baseAddressFromAttribute}\";");
-            _codeBuilder.AppendLine($"            return !string.IsNullOrEmpty(attributeAddress)");
-            _codeBuilder.AppendLine($"                ? attributeAddress");
-            _codeBuilder.AppendLine($"                : {PrivateFieldNamingHelper.GeneratePrivateFieldName(httpClientOptionsName)}.BaseUrl;");
-            _codeBuilder.AppendLine("        }");
-            _codeBuilder.AppendLine();
-        }
+        if (context.HasInheritedFrom) return;
+
+        GenerateGetMediaTypeMethod(context);
+    }
+
+    private void GenerateGetMediaTypeMethod(GenerationContext context)
+    {
+        _codeBuilder.AppendLine("        /// <summary>");
+        _codeBuilder.AppendLine("        /// 从Content-Type字符串中提取媒体类型部分，去除字符集信息。");
+        _codeBuilder.AppendLine("        /// </summary>");
+        _codeBuilder.AppendLine("        /// <param name=\"contentType\">完整的Content-Type字符串</param>");
+        _codeBuilder.AppendLine("        /// <returns>媒体类型部分</returns>");
+        _codeBuilder.AppendLine($"        {context.FieldAccessibility}string GetMediaType(string contentType)");
+        _codeBuilder.AppendLine("        {");
+        _codeBuilder.AppendLine("            if (string.IsNullOrEmpty(contentType))");
+        _codeBuilder.AppendLine("                return \"application/json\";");
+        _codeBuilder.AppendLine();
+        _codeBuilder.AppendLine("            // Content-Type可能包含字符集信息，如 \"application/json; charset=utf-8\"");
+        _codeBuilder.AppendLine("            // 需要分号前的媒体类型部分");
+        _codeBuilder.AppendLine("            var semicolonIndex = contentType.IndexOf(';');");
+        _codeBuilder.AppendLine("            if (semicolonIndex >= 0)");
+        _codeBuilder.AppendLine("            {");
+        _codeBuilder.AppendLine("                return contentType.Substring(0, semicolonIndex).Trim();");
+        _codeBuilder.AppendLine("            }");
+        _codeBuilder.AppendLine();
+        _codeBuilder.AppendLine("            return contentType.Trim();");
+        _codeBuilder.AppendLine("        }");
+        _codeBuilder.AppendLine();
+    }
+
+    private void GenerateConfigurationHelperMethods(GenerationContext context)
+    {
+        GenerateGetFinalTimeoutMethod(context);
+        GenerateGetFinalBaseAddressMethod(context);
+    }
+
+    private void GenerateGetFinalTimeoutMethod(GenerationContext context)
+    {
+        _codeBuilder.AppendLine("        /// <summary>");
+        _codeBuilder.AppendLine($"        /// 获取最终的超时时间，优先使用 HttpClientApi 特性中的设置，否则使用 {context.Config.HttpClientOptionsName}.TimeOut");
+        _codeBuilder.AppendLine("        /// </summary>");
+        _codeBuilder.AppendLine("        /// <returns>超时秒数</returns>");
+        _codeBuilder.AppendLine("        private int GetFinalTimeout()");
+        _codeBuilder.AppendLine("        {");
+        _codeBuilder.AppendLine($"            // 优先使用 HttpClientApi 特性中的超时设置");
+        _codeBuilder.AppendLine($"            var attributeTimeout = {context.Config.TimeoutFromAttribute};");
+        _codeBuilder.AppendLine($"            if (attributeTimeout > 0)");
+        _codeBuilder.AppendLine($"                return attributeTimeout;");
+        _codeBuilder.AppendLine();
+        _codeBuilder.AppendLine($"            // 尝试使用 {context.Config.HttpClientOptionsName}.TimeOut");
+        _codeBuilder.AppendLine($"            var optionsTimeout = {context.OptionsFieldName}.TimeOut;");
+        _codeBuilder.AppendLine($"            return !string.IsNullOrEmpty(optionsTimeout) && int.TryParse(optionsTimeout, out var parsedTimeout)");
+        _codeBuilder.AppendLine($"                ? parsedTimeout");
+        _codeBuilder.AppendLine($"                : 60; // 默认60秒超时");
+        _codeBuilder.AppendLine("        }");
+        _codeBuilder.AppendLine();
+    }
+
+    private void GenerateGetFinalBaseAddressMethod(GenerationContext context)
+    {
+        _codeBuilder.AppendLine("        /// <summary>");
+        _codeBuilder.AppendLine($"        /// 获取最终的 BaseAddress，优先使用 HttpClientApi 特性中的设置，否则使用 {context.Config.HttpClientOptionsName}.BaseUrl");
+        _codeBuilder.AppendLine("        /// </summary>");
+        _codeBuilder.AppendLine("        /// <returns>BaseAddress</returns>");
+        _codeBuilder.AppendLine("        private string? GetFinalBaseAddress()");
+        _codeBuilder.AppendLine("        {");
+        _codeBuilder.AppendLine($"            // 优先使用 HttpClientApi 特性中的 BaseAddress");
+        _codeBuilder.AppendLine($"            var attributeAddress = \"{context.Config.BaseAddressFromAttribute}\";");
+        _codeBuilder.AppendLine($"            return !string.IsNullOrEmpty(attributeAddress)");
+        _codeBuilder.AppendLine($"                ? attributeAddress");
+        _codeBuilder.AppendLine($"                : {context.OptionsFieldName}.BaseUrl;");
+        _codeBuilder.AppendLine("        }");
+        _codeBuilder.AppendLine();
     }
 
     private void GenerateMethods()
