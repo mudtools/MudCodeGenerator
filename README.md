@@ -1,607 +1,273 @@
 # Mud 代码生成器
 
-## 功能介绍
+## 功能概览
 
-Mud 代码生成器是一套基于 Roslyn 的源代码生成器，用于根据实体类和服务类自动生成相关代码，提高开发效率。该套件包含以下两个主要组件：
+Mud 代码生成器是一套基于 Roslyn 的源代码生成器，用于根据实体类和服务接口自动生成相关代码，提高开发效率。
 
-1. **Mud.EntityCodeGenerator** - 实体代码生成器，根据实体类自动生成各种相关代码
-   - DTO代码生成 - 根据实体类自动生成数据传输对象（DTO）
-   - VO代码生成 - 根据实体类自动生成视图对象（VO）
-   - 查询输入类生成 - 根据实体类自动生成查询输入类（QueryInput）
-   - 创建输入类生成 - 根据实体类自动生成创建输入类（CrInput）
-   - 更新输入类生成 - 根据实体类自动生成更新输入类（UpInput）
-   - 实体映射方法生成 - 自动生成实体与DTO之间的映射方法
-   - Builder模式代码生成 - 根据实体类自动生成Builder构建器模式代码
+### 主要组件
 
-2. **Mud.ServiceCodeGenerator** - 服务代码生成器，用于自动生成服务层相关代码
-   - 服务类代码生成 - 根据实体类自动生成服务接口和服务实现类
-   - HttpClient API注册生成 - 自动为标记了 [HttpClientApi] 特性的接口生成依赖注入注册代码，支持按组注册
-   - 依赖注入代码生成 - 自动为类生成构造函数注入代码，包括日志、缓存、用户管理等常用服务
+| 组件 | 功能描述 | NuGet |
+|------|----------|-------|
+| Mud.EntityCodeGenerator | 实体代码生成：DTO、VO、QueryInput、CrInput、UpInput、Builder模式 | [![Nuget](https://img.shields.io/nuget/v/Mud.EntityCodeGenerator.svg)](https://www.nuget.org/packages/Mud.EntityCodeGenerator/) |
+| Mud.ServiceCodeGenerator | 服务代码生成：HttpClient API、依赖注入、COM包装、自动注册 | [![Nuget](https://img.shields.io/nuget/v/Mud.ServiceCodeGenerator.svg)](https://www.nuget.org/packages/Mud.ServiceCodeGenerator/) |
 
-### 模块概览
+## 快速开始
 
-| 模块 | 当前版本 | 下载 | 开源协议 | 
-|---|---|---|---|
-| [![Mud.EntityCodeGenerator](https://img.shields.io/badge/Mud.EntityCodeGenerator-mudtools-success.svg)](https://gitee.com/mudtools/mud-code-generator) | [![Nuget](https://img.shields.io/nuget/v/Mud.EntityCodeGenerator.svg)](https://www.nuget.org/packages/Mud.EntityCodeGenerator/) | [![Nuget](https://img.shields.io/nuget/dt/Mud.EntityCodeGenerator.svg)](https://www.nuget.org/packages/Mud.EntityCodeGenerator/) | [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://gitee.com/mudtools/mud-code-generator/blob/master/LICENSE)
-| [![Mud.ServiceCodeGenerator](https://img.shields.io/badge/Mud.ServiceCodeGenerator-mudtools-success.svg)](https://gitee.com/mudtools/mud-code-generator) | [![Nuget](https://img.shields.io/nuget/v/Mud.ServiceCodeGenerator.svg)](https://www.nuget.org/packages/Mud.ServiceCodeGenerator/) | [![Nuget](https://img.shields.io/nuget/dt/Mud.ServiceCodeGenerator.svg)](https://www.nuget.org/packages/Mud.ServiceCodeGenerator/) | [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://gitee.com/mudtools/mud-code-generator/blob/master/LICENSE)
-
-## 项目参数配置
-
-在使用 Mud 代码生成器时，可以通过在项目文件中配置以下参数来自定义生成行为：
-
-### 实体代码生成器配置参数
+### 1. 安装包
 
 ```xml
-<PropertyGroup>
-  <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>  <!-- 在obj目录下保存生成的代码 -->
-  <EntitySuffix>Entity</EntitySuffix>  <!-- 实体类后缀配置 -->
-  <EntityAttachAttributes>SuppressSniffer</EntityAttachAttributes>  <!-- 生成的VO、BO类加上Attribute特性配置，多个特性时使用','分隔 -->
-  
-  <!-- 属性名配置 -->
-  <PropertyNameLowerCaseFirstLetter>true</PropertyNameLowerCaseFirstLetter>  <!-- 是否将生成的属性名首字母小写，默认为true -->
-  
-  <!-- VO/BO 属性配置参数 -->
-  <VoAttributes>CustomVo1Attribute,CustomVo2Attribute</VoAttributes>  <!-- 需要添加至VO类的自定义特性，多个特性时使用','分隔 -->
-  <BoAttributes>CustomBo1Attribute,CustomBo2Attribute</BoAttributes>  <!-- 需要添加至BO类的自定义特性，多个特性时使用','分隔 -->
-</PropertyGroup>
-
 <ItemGroup>
-  <CompilerVisibleProperty Include="EntitySuffix" />
-  <CompilerVisibleProperty Include="EntityAttachAttributes" />
-  <CompilerVisibleProperty Include="PropertyNameLowerCaseFirstLetter" />
-  <CompilerVisibleProperty Include="VoAttributes" />
-  <CompilerVisibleProperty Include="BoAttributes" />
-</ItemGroup>
-```
-
-### 服务代码生成器配置参数
-
-```xml
-<PropertyGroup>
-  <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>  <!-- 在obj目录下保存生成的代码 -->
-  
-  <!-- 依赖注入相关配置 -->
-  <DefaultCacheManagerType>ICacheManager</DefaultCacheManagerType>  <!-- 缓存管理器类型默认值 -->
-  <DefaultUserManagerType>IUserManager</DefaultUserManagerType>  <!-- 用户管理器类型默认值 -->
-  <DefaultLoggerVariable>_logger</DefaultLoggerVariable>  <!-- 日志变量名默认值 -->
-  <DefaultCacheManagerVariable>_cacheManager</DefaultCacheManagerVariable>  <!-- 缓存管理器变量名默认值 -->
-  <DefaultUserManagerVariable>_userManager</DefaultUserManagerVariable>  <!-- 用户管理器变量名默认值 -->
-  
-  <!-- 服务生成相关配置 -->
-  <ServiceGenerator>true</ServiceGenerator>  <!-- 是否生成服务端代码 -->
-  <EntitySuffix>Entity</EntitySuffix>  <!-- 实体类后缀配置 -->
-  <ImpAssembly>Mud.System</ImpAssembly>  <!-- 需要生成代码的接口实现程序集 -->
-  
-  <!-- DTO生成相关配置 -->
-  <EntityAttachAttributes>SuppressSniffer</EntityAttachAttributes>  <!-- 实体类加上Attribute特性配置，多个特性时使用','分隔 -->
-</PropertyGroup>
-
-<ItemGroup>
-  <CompilerVisibleProperty Include="DefaultCacheManagerType" />
-  <CompilerVisibleProperty Include="DefaultUserManagerType" />
-  <CompilerVisibleProperty Include="DefaultLoggerVariable" />
-  <CompilerVisibleProperty Include="DefaultCacheManagerVariable" />
-  <CompilerVisibleProperty Include="DefaultUserManagerVariable" />
-  <CompilerVisibleProperty Include="ServiceGenerator" />
-  <CompilerVisibleProperty Include="EntitySuffix" />
-  <CompilerVisibleProperty Include="ImpAssembly" />
-  <CompilerVisibleProperty Include="EntityAttachAttributes" />
-</ItemGroup>
-```
-
-### 依赖项配置
-
-```
-<ItemGroup>
-  <!-- 引入的代码生成器程序集 -->
   <PackageReference Include="Mud.EntityCodeGenerator" Version="1.1.6" />
   <PackageReference Include="Mud.ServiceCodeGenerator" Version="1.1.6" />
 </ItemGroup>
 ```
 
-### 配置参数说明
-
-| 参数名 | 默认值 | 说明 |
-|--------|--------|------|
-| EmitCompilerGeneratedFiles | false | 是否在obj目录下保存生成的代码，设为true便于调试 |
-| EntitySuffix | Entity | 实体类后缀，用于识别实体类 |
-| EntityAttachAttributes | (空) | 生成的VO、BO类加上Attribute特性配置，多个特性时使用','分隔 |
-| VoAttributes | (空) | 需要添加至VO类的自定义特性，多个特性用逗号分隔 |
-| BoAttributes | (空) | 需要添加至BO类的自定义特性，多个特性用逗号分隔 |
-| DefaultCacheManagerType | ICacheManager | 缓存管理器类型默认值 |
-| DefaultUserManagerType | IUserManager | 用户管理器类型默认值 |
-| DefaultLoggerVariable | _logger | 日志变量名默认值 |
-| DefaultCacheManagerVariable | _cacheManager | 缓存管理器变量名默认值 |
-| DefaultUserManagerVariable | _userManager | 用户管理器变量名默认值 |
-| ServiceGenerator | true | 是否生成服务端代码 |
-| ImpAssembly | (空) | 需要生成代码的接口实现程序集 |
-
-## 代码生成功能及样例
-
-### 1. 实体相关代码生成
-
-在实体程序项目中添加生成器及配置相关参数：
+### 2. 基本配置
 
 ```xml
 <PropertyGroup>
   <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
   <EntitySuffix>Entity</EntitySuffix>
-  <EntityAttachAttributes>SuppressSniffer</EntityAttachAttributes>
 </PropertyGroup>
+
 <ItemGroup>
   <CompilerVisibleProperty Include="EntitySuffix" />
-  <CompilerVisibleProperty Include="EntityAttachAttributes"/>
+  <CompilerVisibleProperty Include="EmitCompilerGeneratedFiles" />
 </ItemGroup>
 ```
 
-在实体中添加DtoGenerator特性：
+## 核心功能
 
-```CSharp
-/// <summary>
-/// 客户端信息实体类
-/// </summary>
+### 1. 实体代码生成
+
+#### 基本使用
+
+```csharp
 [DtoGenerator]
-[Table(Name = "sys_client"),SuppressSniffer]
-public partial class SysClientEntity
+[Builder]
+public partial class UserEntity
 {
-    /// <summary>
-    /// id
-    /// </summary>
-    [property: Column(Name = "id", IsPrimary = true, Position = 1)]
-    [property: Required(ErrorMessage = "id不能为空")]
     private long? _id;
-
-    /// <summary>
-    /// 客户端key
-    /// </summary>
-    [property: Column(Name = "client_key", Position = 3)]
-    [property: Required(ErrorMessage = "客户端key不能为空")]
-    [property: ExportProperty("客户端key")]
-    [property: CustomVo1, CustomVo2]
-    [property: CustomBo1, CustomBo2]
-    private string _clientKey;
-
-    /// <summary>
-    /// 删除标志（0代表存在 2代表删除）
-    /// </summary>
-    [property: Column(Name = "del_flag", Position = 10)]
-    [property: ExportProperty("删除标志")]
-    [IgnoreQuery]
-    private string _delFlag;
+    private string _name;
+    private string _email;
 }
 ```
 
-基于以上实体，将自动生成以下几类代码：
+#### 自动生成内容
 
-#### 实体类属性
-```CSharp
-/// <summary>
-/// 客户端信息实体类
-/// </summary>
-public partial class SysClientEntity
-{
-    /// <summary>
-    /// id
-    /// </summary>
-    [TableField(Fille = FieldFill.Insert, Value = FillValue.Id), Column(Name = "id", IsPrimary = true, Position = 1)]
-    public long? Id
-    {
-        get
-        {
-            return _id;
-        }
+- **DTO/VO 类** - 数据传输对象和视图对象
+- **QueryInput 类** - 查询条件输入对象
+- **CrInput/UpInput 类** - 创建和更新输入对象  
+- **Builder 模式** - 链式构建器
+- **映射方法** - 实体与DTO间自动转换
 
-        set
-        {
-            _id = value;
-        }
-    }
+#### 生成示例
 
-    /// <summary>
-    /// 客户端key
-    /// </summary>
-    [Column(Name = "client_key", Position = 3)]
-    public string? ClientKey
-    {
-        get
-        {
-            return _clientKey;
-        }
-
-        set
-        {
-            _clientKey = value;
-        }
-    }
-
-    /// <summary>
-    /// 删除标志（0代表存在 2代表删除）
-    /// </summary>
-    [Column(Name = "del_flag", Position = 10)]
-    public string? DelFlag
-    {
-        get
-        {
-            return _delFlag;
-        }
-
-        set
-        {
-            _delFlag = value;
-        }
-    }
-
-    /// <summary>
-    /// 通用的实体映射至VO对象方法。
-    /// </summary>
-    public virtual SysClientListOutput MapTo()
-    {
-        var voObj = new SysClientListOutput();
-        voObj.id = this.Id;
-        voObj.clientKey = this.ClientKey;
-        voObj.delFlag = this.DelFlag;
-        return voObj;
-    }
-}
-```
-
-#### VO类 (视图对象)
-```CSharp
-/// <summary>
-/// 客户端信息实体类
-/// </summary>
+```csharp
+// VO 类
 [SuppressSniffer, CompilerGenerated]
-public partial class SysClientListOutput
+public partial class UserListOutput
 {
-    /// <summary>
-    /// id
-    /// </summary>
     public long? id { get; set; }
-
-    /// <summary>
-    /// 客户端key
-    /// </summary>
-    [ExportProperty("客户端key")]
-    [CustomVo1, CustomVo2]
-    public string? clientKey { get; set; }
-
-    /// <summary>
-    /// 删除标志（0代表存在 2代表删除）
-    /// </summary>
-    [ExportProperty("删除标志")]
-    public string? delFlag { get; set; }
+    public string? name { get; set; }
+    public string? email { get; set; }
 }
-```
 
-#### QueryInput类 (查询输入对象)
-```CSharp
-// SysClientQueryInput.g.cs
-/// <summary>
-/// 客户端信息实体类
-/// </summary>
+// QueryInput 类
 [SuppressSniffer, CompilerGenerated]
-public partial class SysClientQueryInput : DataQueryInput
+public partial class UserQueryInput : DataQueryInput
 {
-    /// <summary>
-    /// id
-    /// </summary>
     public long? id { get; set; }
-    /// <summary>
-    /// 客户端key
-    /// </summary>
-    public string? clientKey { get; set; }
-    /// <summary>
-    /// 删除标志（0代表存在 2代表删除）
-    /// </summary>
-    public string? delFlag { get; set; }
-
-    /// <summary>
-    /// 构建通用的查询条件。
-    /// </summary>
-    public Expression<Func<SysClientEntity, bool>> BuildQueryWhere()
+    public string? name { get; set; }
+    
+    public Expression<Func<UserEntity, bool>> BuildQueryWhere()
     {
-        var where = LinqExtensions.True<SysClientEntity>();
+        var where = LinqExtensions.True<UserEntity>();
         where = where.AndIF(this.id != null, x => x.Id == this.id);
-        where = where.AndIF(!string.IsNullOrEmpty(this.clientKey), x => x.ClientKey == this.clientKey);
-        where = where.AndIF(!string.IsNullOrEmpty(this.delFlag), x => x.DelFlag == this.delFlag);
+        where = where.AndIF(!string.IsNullOrEmpty(this.name), x => x.Name == this.name);
         return where;
     }
 }
-```
 
-#### CrInput类 (创建输入对象)
-```CSharp
-// SysClientCrInput.g.cs
-/// <summary>
-/// 客户端信息实体类
-/// </summary>
-[SuppressSniffer, CompilerGenerated]
-public partial class SysClientCrInput
+// Builder 类
+public class UserEntityBuilder
 {
-    /// <summary>
-    /// 客户端key
-    /// </summary>
-    [Required(ErrorMessage = "客户端key不能为空"), CustomBo1, CustomBo2]
-    public string? clientKey { get; set; }
-    /// <summary>
-    /// 删除标志（0代表存在 2代表删除）
-    /// </summary>
-    public string? delFlag { get; set; }
-
-    /// <summary>
-    /// 通用的BO对象映射至实体方法。
-    /// </summary>
-    public virtual SysClientEntity MapTo()
+    private UserEntity _userEntity = new UserEntity();
+    
+    public UserEntityBuilder SetName(string name)
     {
-        var entity = new SysClientEntity();
-        entity.ClientKey = this.clientKey;
-        entity.DelFlag = this.delFlag;
-        return entity;
-    }
-}
-```
-
-#### UpInput类 (更新输入对象)
-```CSharp
-/// <summary>
-/// 客户端信息实体类
-/// </summary>
-[SuppressSniffer, CompilerGenerated]
-public partial class SysClientUpInput : SysClientCrInput
-{
-    /// <summary>
-    /// id
-    /// </summary>
-    [Required(ErrorMessage = "id不能为空")]
-    public long? id { get; set; }
-
-    /// <summary>
-    /// 通用的BO对象映射至实体方法。
-    /// </summary>
-    public override SysClientEntity MapTo()
-    {
-        var entity = base.MapTo();
-        entity.Id = this.id;
-        return entity;
-    }
-}
-```
-
-### Builder模式代码生成
-
-除了上述代码生成外，Mud.EntityCodeGenerator还支持Builder构建器模式代码生成。只需在实体类上添加[Builder]特性：
-
-```CSharp
-/// <summary>
-/// 客户端信息实体类
-/// </summary>
-[DtoGenerator]
-[Builder]
-[Table(Name = "sys_client"),SuppressSniffer]
-public partial class SysClientEntity
-{
-    /// <summary>
-    /// id
-    /// </summary>
-    [property: Column(Name = "id", IsPrimary = true, Position = 1)]
-    [property: Required(ErrorMessage = "id不能为空")]
-    private long? _id;
-
-    /// <summary>
-    /// 客户端key
-    /// </summary>
-    [property: Column(Name = "client_key", Position = 3)]
-    [property: Required(ErrorMessage = "客户端key不能为空")]
-    private string _clientKey;
-
-    /// <summary>
-    /// 删除标志（0代表存在 2代表删除）
-    /// </summary>
-    [property: Column(Name = "del_flag", Position = 10)]
-    private string _delFlag;
-}
-```
-
-基于以上实体，将自动生成Builder构建器类：
-
-```CSharp
-/// <summary>
-/// <see cref="SysClientEntity"/> 的构建者。
-/// </summary>
-public class SysClientEntityBuilder
-{
-    private SysClientEntity _sysClientEntity = new SysClientEntity();
-
-    /// <summary>
-    /// 设置 <see cref="SysClientEntity.Id"/> 属性值。
-    /// </summary>
-    /// <param name="id">属性值</param>
-    /// <returns>返回 <see cref="SysClientEntityBuilder"/> 实例</returns>
-    public SysClientEntityBuilder SetId(long? id)
-    {
-        this._sysClientEntity.Id = id;
+        _userEntity.Name = name;
         return this;
     }
-
-    /// <summary>
-    /// 设置 <see cref="SysClientEntity.ClientKey"/> 属性值。
-    /// </summary>
-    /// <param name="clientKey">属性值</param>
-    /// <returns>返回 <see cref="SysClientEntityBuilder"/> 实例</returns>
-    public SysClientEntityBuilder SetClientKey(string clientKey)
+    
+    public UserEntityBuilder SetEmail(string email)
     {
-        this._sysClientEntity.ClientKey = clientKey;
+        _userEntity.Email = email;
         return this;
     }
-
-    /// <summary>
-    /// 设置 <see cref="SysClientEntity.DelFlag"/> 属性值。
-    /// </summary>
-    /// <param name="delFlag">属性值</param>
-    /// <returns>返回 <see cref="SysClientEntityBuilder"/> 实例</returns>
-    public SysClientEntityBuilder SetDelFlag(string delFlag)
+    
+    public UserEntity Build()
     {
-        this._sysClientEntity.DelFlag = delFlag;
-        return this;
-    }
-
-    /// <summary>
-    /// 构建 <see cref="SysClientEntity"/> 类的实例。
-    /// </summary>
-    public SysClientEntity Build()
-    {
-        return this._sysClientEntity;
+        return _userEntity;
     }
 }
 ```
 
-使用Builder模式可以链式设置实体属性，创建实体对象更加方便：
+### 2. HttpClient API 代码生成
+
+#### 基本使用
 
 ```csharp
-var client = new SysClientEntityBuilder()
-    .SetClientKey("client123")
-    .SetDelFlag("0")
-    .Build();
-```
-
-### 2. 服务类代码生成
-
-在服务类程序项目中添加服务代码生成配置：
-
-```xml
-<PropertyGroup>
-  <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
-  <EntityAssemblyPrefix>TestClassLibrary</EntityAssemblyPrefix>  <!-- 实体程序集前缀配置，用于业务代码生成时搜索对应的实体类型 -->
-</PropertyGroup>
-<ItemGroup>
-  <CompilerVisibleProperty Include="EntityAssemblyPrefix" />
-</ItemGroup>
-```
-
-在服务中添加服务代码生成特性：
-
-```CSharp
-[ServiceGenerator(EntityType = nameof(SysDeptEntity))]
-public partial class SysDeptService
+[HttpClientApi("https://api.example.com", Timeout = 30)]
+public interface IUserApi
 {
+    [Get("users/{id}")]
+    Task<UserInfo> GetUserAsync(string id);
+    
+    [Post("users")]
+    Task<UserInfo> CreateUserAsync([Body] CreateUserRequest request);
+    
+    [Put("users/{id}")]
+    Task<UserInfo> UpdateUserAsync(string id, [Body] UpdateUserRequest request);
+    
+    [Delete("users/{id}")]
+    Task DeleteUserAsync(string id);
+    
+    [Get("users")]
+    Task<List<UserInfo>> GetUsersAsync([Query] string? name = null, [Query] int page = 1);
 }
 ```
 
-生成的代码将包含基于实体的完整服务接口和实现类。
+#### 支持的HTTP方法
+
+- `[Get("path")]` - GET请求
+- `[Post("path")]` - POST请求  
+- `[Put("path")]` - PUT请求
+- `[Delete("path")]` - DELETE请求
+- `[Patch("path")]` - PATCH请求
+- `[Head("path")]` - HEAD请求
+- `[Options("path")]` - OPTIONS请求
+
+#### 参数类型支持
+
+```csharp
+[Get("users/{userId}/posts/{postId}")]           // 路径参数
+Task<Post> GetPostAsync(string userId, string postId);
+
+[Get("users")]                                     // 查询参数
+Task<List<User>> GetUsersAsync([Query] string? name, [Query] int page = 1);
+
+[Post("users")]                                    // 请求体参数
+Task<User> CreateUserAsync([Body] CreateUserRequest request);
+
+[Post("users")]                                    // 请求头参数
+Task<User> CreateUserAsync([Body] CreateUserRequest request, [Header("Authorization")] string token);
+
+[Get("files/{fileId}")]                           // 文件下载
+Task<byte[]> DownloadFileAsync(string fileId);
+```
+
+#### Token管理集成
+
+```csharp
+// 定义Token管理器
+public interface ITokenManager
+{
+    Task<string> GetTokenAsync();
+}
+
+// 使用Header传递Token
+[HttpClientApi(TokenManage = nameof(ITokenManager))]
+[Header("Authorization")]
+public interface IProtectedApi
+{
+    [Get("protected/data")]
+    Task<Data> GetDataAsync();
+}
+```
+
+#### 按组注册功能
+
+```csharp
+[HttpClientApi("https://api.dingtalk.com", RegistryGroupName = "Dingtalk")]
+public interface IDingtalkApi
+{
+    [Get("user/info")]
+    Task<UserInfo> GetUserInfoAsync();
+}
+```
+
+生成独立的注册方法：
+```csharp
+// 注册钉钉API
+services.AddDingtalkWebApiHttpClient();
+// 注册微信API  
+services.AddWechatWebApiHttpClient();
+// 注册未分组的API
+services.AddWebApiHttpClient();
+```
 
 ### 3. 依赖注入代码生成
 
-使用各种注入特性为类自动生成构造函数注入代码：
+#### 基本使用
 
-```CSharp
+```csharp
 [ConstructorInject]  // 字段构造函数注入
 [LoggerInject]       // 日志注入
 [CacheInject]        // 缓存管理器注入
 [UserInject]         // 用户管理器注入
 [CustomInject(VarType = "IRepository<SysUser>", VarName = "_userRepository")]  // 自定义注入
-public partial class SysUserService
-{
-    // 生成的代码将包含以下内容：
-    // 1. 构造函数参数
-    // 2. 私有只读字段
-    // 3. 构造函数赋值语句
-}
-```
-
-生成的代码示例：
-
-```CSharp
-public partial class SysUserService
-{
-    private readonly ILogger<SysUserService> _logger;
-    private readonly ICacheManager _cacheManager;
-    private readonly IUserManager _userManager;
-    private readonly IRepository<SysUser> _userRepository;
-
-    public SysUserService(
-        ILogger<SysUserService> logger,
-        ICacheManager cacheManager,
-        IUserManager userManager,
-        IRepository<SysUser> userRepository)
-    {
-        _logger = logger;
-        _cacheManager = cacheManager;
-        _userManager = userManager;
-        _userRepository = userRepository;
-    }
-}
-```
-
-#### 依赖注入特性详解
-
-##### ConstructorInjectAttribute 字段注入
-使用 [ConstructorInject] 特性可以将类中已存在的字段通过构造函数注入初始化。该注入方式会扫描类中的所有私有只读字段，并为其生成相应的构造函数参数和赋值语句。
-
-##### LoggerInjectAttribute 日志注入
-使用 [LoggerInject] 特性可以为类注入 ILogger<T> 类型的日志记录器。该注入会自动生成 ILoggerFactory 参数，并在构造函数中创建对应类的 Logger 实例。
-
-##### CacheInjectAttribute 缓存管理器注入
-使用 [CacheInject] 特性可以注入缓存管理器实例。默认类型为 ICacheManager，默认字段名为 _cacheManager，可通过项目配置修改。
-
-##### UserInjectAttribute 用户管理器注入
-使用 [UserInject] 特性可以注入用户管理器实例。默认类型为 IUserManager，默认字段名为 _userManager，可通过项目配置修改。
-
-##### OptionsInjectAttribute 配置项注入
-使用 [OptionsInject] 特性可以根据指定的配置项类型注入配置实例。
-
-##### CustomInjectAttribute 自定义注入
-使用 [CustomInject] 特性可以注入任意类型的依赖项。需要指定注入类型(VarType)和字段名(VarName)。
-
-#### 组合注入示例
-
-多种注入特性可以组合使用，生成器会自动合并所有注入需求：
-
-```CSharp
-[ConstructorInject]
-[LoggerInject]
-[CacheInject]
-[UserInject]
-[OptionsInject(OptionType = "TenantOptions")]
-[CustomInject(VarType = "IRepository<SysUser>", VarName = "_userRepository")]
 public partial class UserService
 {
     private readonly IRoleRepository _roleRepository;
     private readonly IPermissionRepository _permissionRepository;
-    
-    // 生成的代码将包含所有注入项:
-    // private readonly ILogger<UserService> _logger;
-    // private readonly ICacheManager _cacheManager;
-    // private readonly IUserManager _userManager;
-    // private readonly TenantOptions _tenantOptions;
-    // private readonly IRepository<SysUser> _userRepository;
-    // private readonly IRoleRepository _roleRepository;
-    // private readonly IPermissionRepository _permissionRepository;
-    //
-    // public UserService(
-    //     ILoggerFactory loggerFactory,
-    //     ICacheManager cacheManager,
-    //     IUserManager userManager,
-    //     IOptions<TenantOptions> tenantOptions,
-    //     IRepository<SysUser> userRepository,
-    //     IRoleRepository roleRepository,
-    //     IPermissionRepository permissionRepository)
-    // {
-    //     _logger = loggerFactory.CreateLogger<UserService>();
-    //     _cacheManager = cacheManager;
-    //     _userManager = userManager;
-    //     _tenantOptions = tenantOptions.Value;
-    //     _userRepository = userRepository;
-    //     _roleRepository = roleRepository;
-    //     _permissionRepository = permissionRepository;
-    // }
 }
 ```
 
+#### 自动生成内容
+
+```csharp
+public partial class UserService
+{
+    private readonly ILogger<UserService> _logger;
+    private readonly ICacheManager _cacheManager;
+    private readonly IUserManager _userManager;
+    private readonly IRepository<SysUser> _userRepository;
+    private readonly IRoleRepository _roleRepository;
+    private readonly IPermissionRepository _permissionRepository;
+
+    public UserService(
+        ILoggerFactory loggerFactory,
+        ICacheManager cacheManager,
+        IUserManager userManager,
+        IRepository<SysUser> userRepository,
+        IRoleRepository roleRepository,
+        IPermissionRepository permissionRepository)
+    {
+        _logger = loggerFactory.CreateLogger<UserService>();
+        _cacheManager = cacheManager;
+        _userManager = userManager;
+        _userRepository = userRepository;
+        _roleRepository = roleRepository;
+        _permissionRepository = permissionRepository;
+    }
+}
+```
+
+#### 支持的注入特性
+
+| 特性 | 功能 | 说明 |
+|------|------|------|
+| `[ConstructorInject]` | 字段注入 | 扫描私有只读字段生成构造函数参数 |
+| `[LoggerInject]` | 日志注入 | 注入 ILogger<T> 日志记录器 |
+| `[CacheInject]` | 缓存注入 | 注入 ICacheManager 缓存管理器 |
+| `[UserInject]` | 用户注入 | 注入 IUserManager 用户管理器 |
+| `[OptionsInject]` | 配置注入 | 根据指定类型注入配置实例 |
+| `[CustomInject]` | 自定义注入 | 注入任意类型的依赖项 |
+
 #### 忽略字段注入
 
-对于某些不需要通过构造函数注入的字段，可以使用 [IgnoreGenerator] 特性标记：
-
-```CSharp
+```csharp
 [ConstructorInject]
 public partial class UserService
 {
@@ -609,170 +275,184 @@ public partial class UserService
     
     [IgnoreGenerator]
     private readonly string _connectionString = "default_connection_string"; // 不会被注入
+}
+```
+
+### 4. 高级功能
+
+#### COM对象包装
+
+```csharp
+[ComObjectWrap]
+[ComCollectionWrap]
+public interface IMyComObject
+{
+    [ComPropertyWrap]
+    string Name { get; set; }
     
-    // 只有_userRepository会被构造函数注入
+    [ComPropertyWrap(PropertyType = PropertyType.Method)]
+    void DoSomething();
 }
 ```
 
-### 4. HttpClient API注册生成
+#### 自动服务注册
 
-Mud.ServiceCodeGenerator 还提供 HttpClient API 注册生成功能，可以自动为标记了 `[HttpClientApi]` 特性的接口生成依赖注入注册代码。
-
-#### 基本使用
-
-在接口上添加 `[HttpClientApi]` 特性：
-
-```CSharp
-[HttpClientApi("https://api.dingtalk.com", Timeout = 60)]
-public interface IDingtalkApi
+```csharp
+[AutoRegister]
+[AutoRegister(ServiceLifetime.Singleton)]
+[AutoRegister(ServiceLifetime.Scoped, InterfaceType = typeof(IMyService))]
+public class MyService
 {
-    [HttpGet("user/get")]
-    Task<UserInfo> GetUserInfoAsync([FromQuery] string userId);
-}
-
-[HttpClientApi("https://api.wechat.com", Timeout = 30, RegistryGroupName = "Wechat")]
-public interface IWechatApi
-{
-    [HttpPost("message/send")]
-    Task SendTextMessageAsync([FromBody] TextMessageRequest request);
+    // 服务实现
 }
 ```
 
-编译后将自动生成扩展方法 `AddWebApiHttpClient()` 用于注册所有 HttpClient 服务：
+#### 抽象类支持
 
-```CSharp
-// 在 Startup.cs 或 Program.cs 中注册服务
-public void ConfigureServices(IServiceCollection services)
+```csharp
+[HttpClientApi(IsAbstract = true)]
+public abstract class BaseApiClient
 {
-    // 注册所有未分组的 HttpClient API
-    services.AddWebApiHttpClient();
-    
-    // 注册指定分组的 HttpClient API
-    services.AddWechatWebApiHttpClient();
-}
-```
-
-#### 按组注册功能
-
-通过 `RegistryGroupName` 参数可以将 API 按业务模块分组，生成独立的注册方法：
-
-```CSharp
-[HttpClientApi("https://api.dingtalk.com", Timeout = 60, RegistryGroupName = "Dingtalk")]
-public interface IDingtalkApi
-{
-    [HttpGet("user/get")]
-    Task<UserInfo> GetUserInfoAsync([FromQuery] string userId);
-}
-
-[HttpClientApi("https://oapi.dingtalk.com", Timeout = 60, RegistryGroupName = "Dingtalk")]
-public interface IDingtalkOAuthApi
-{
-    [HttpPost("oauth2/gettoken")]
-    Task<OAuthToken> GetTokenAsync([FromBody] OAuthRequest request);
-}
-
-[HttpClientApi("https://api.wechat.com", Timeout = 30, RegistryGroupName = "Wechat")]
-public interface IWechatApi
-{
-    [HttpPost("message/send")]
-    Task SendTextMessageAsync([FromBody] TextMessageRequest request);
-}
-```
-
-生成的注册方法：
-
-```CSharp
-// 注册所有钉钉相关 API
-public static IServiceCollection AddDingtalkWebApiHttpClient(this IServiceCollection services)
-{
-    services.AddHttpClient<IDingtalkApi, DingtalkApi>(client =>
+    protected BaseApiClient(HttpClient httpClient, ILogger logger)
     {
-        client.BaseAddress = new Uri("https://api.dingtalk.com");
-        client.Timeout = TimeSpan.FromSeconds(60);
-    });
-    
-    services.AddHttpClient<IDingtalkOAuthApi, DingtalkOAuthApi>(client =>
-    {
-        client.BaseAddress = new Uri("https://oapi.dingtalk.com");
-        client.Timeout = TimeSpan.FromSeconds(60);
-    });
-    
-    return services;
+        // 基础初始化逻辑
+    }
 }
 
-// 注册所有微信相关 API
-public static IServiceCollection AddWechatWebApiHttpClient(this IServiceCollection services)
+[HttpClientApi(InheritedFrom = "BaseApiClient")]
+public interface IMyApi : BaseApiClient
 {
-    services.AddHttpClient<IWechatApi, WechatApi>(client =>
-    {
-        client.BaseAddress = new Uri("https://api.wechat.com");
-        client.Timeout = TimeSpan.FromSeconds(30);
-    });
-    
-    return services;
-}
-
-// 注册未分组的 API
-public static IServiceCollection AddWebApiHttpClient(this IServiceCollection services)
-{
-    // 注册所有没有 RegistryGroupName 的 API
-    return services;
+    [Get("data")]
+    Task<Data> GetDataAsync();
 }
 ```
 
-#### 包装API支持
+## 配置参数
 
-对于标记了 `[HttpClientApiWrap]` 特性的接口，也会生成相应的包装注册方法：
+### 常用配置参数
 
-```CSharp
-[HttpClientApi("https://api.dingtalk.com", Timeout = 60, RegistryGroupName = "Dingtalk")]
-[HttpClientApiWrap(WrapInterface = "IDingtalkService")]
-public interface IDingtalkApi
-{
-    // API 方法
-}
-```
+| 参数名 | 默认值 | 说明 |
+|--------|--------|------|
+| EmitCompilerGeneratedFiles | false | 是否在obj目录下保存生成的代码 |
+| EntitySuffix | Entity | 实体类后缀，用于识别实体类 |
+| HttpClientOptionsName | HttpClientOptions | HttpClient配置类名 |
+| DefaultLoggerVariable | _logger | 日志变量名默认值 |
+| DefaultCacheManagerVariable | _cacheManager | 缓存管理器变量名默认值 |
+| DefaultUserManagerVariable | _userManager | 用户管理器变量名默认值 |
 
-将生成：
-- `AddDingtalkWebApiHttpClient()` - 注册原始 HttpClient API
-- `AddDingtalkWebApiHttpClientWrap()` - 注册包装接口服务
+### HttpClientApi特性参数
 
-#### HttpClientApi特性参数
-
-| 参数名 | 类型 | 必需 | 默认值 | 说明 |
-|--------|------|------|--------|------|
-| baseUrl | string | 是 | - | API 基础地址 |
-| Timeout | int | 否 | 100 | 请求超时时间（秒） |
-| RegistryGroupName | string | 否 | null | 注册分组名称 |
-| ContentType | string | 否 | application/json | 默认内容类型 |
-
-#### 使用场景
-
-1. **多业务模块隔离**：不同业务模块的 API 可以分别注册，提高代码组织性
-2. **按需加载**：可以根据需要只注册特定模块的 API 服务
-3. **环境配置**：不同环境可以注册不同的 API 分组
-4. **测试场景**：测试时可以只注册测试相关的 API，避免不必要的依赖
-
-## 项目结构
-
-```text
-Mud.CodeGenerator
-├── Core
-│   ├── Mud.CodeGenerator                // 代码生成器核心基类库
-│   ├── Mud.EntityCodeGenerator          // 实体代码生成器
-│   └── Mud.ServiceCodeGenerator         // 服务代码生成器
-├── Test
-│   ├── CodeGeneratorTest                // 代码生成器测试项目
-│   └── Mud.Common.CodeGenerator         // 通用代码生成器特性定义
-└── README.md
-```
+| 参数名 | 类型 | 默认值 | 说明 |
+|--------|------|--------|------|
+| BaseAddress | string | null | API 基础地址 |
+| Timeout | int | 50 | 请求超时时间（秒） |
+| ContentType | string | application/json | 默认内容类型 |
+| RegistryGroupName | string | null | 注册分组名称 |
+| TokenManage | string | null | Token管理器接口名 |
+| IsAbstract | bool | false | 是否生成抽象类 |
+| InheritedFrom | string | null | 继承的基类名 |
 
 ## 使用方法
 
-1. 在您的项目中添加对 `Mud.Common.CodeGenerator` 包的引用
-2. 根据需要配置项目参数
-3. 在实体类或服务类上添加相应的特性标记
-4. 编译项目，代码生成器将自动生成相关代码
+### 1. 实体代码生成
+
+```xml
+<!-- 在项目中配置 -->
+<PropertyGroup>
+  <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  <EntitySuffix>Entity</EntitySuffix>
+  <EntityAttachAttributes>SuppressSniffer</EntityAttachAttributes>
+</PropertyGroup>
+
+<!-- 添加特性到实体类 -->
+[DtoGenerator]
+[Builder]
+public partial class UserEntity
+{
+    // 实体字段定义
+}
+```
+
+### 2. HttpClient API生成
+
+```xml
+<!-- 配置HttpClient选项 -->
+<PropertyGroup>
+  <HttpClientOptionsName>HttpClientOptions</HttpClientOptionsName>
+</PropertyGroup>
+```
+
+```csharp
+// 添加特性到接口
+[HttpClientApi("https://api.example.com")]
+public interface IUserApi
+{
+    // API方法定义
+}
+```
+
+### 3. 依赖注入生成
+
+```xml
+<!-- 配置默认注入类型 -->
+<PropertyGroup>
+  <DefaultCacheManagerType>ICacheManager</DefaultCacheManagerType>
+  <DefaultUserManagerType>IUserManager</DefaultUserManagerType>
+</PropertyGroup>
+```
+
+```csharp
+// 添加特性到类
+[ConstructorInject]
+[LoggerInject]
+[CacheInject]
+[UserInject]
+public partial class UserService
+{
+    // 类字段定义
+}
+```
+
+## 依赖注入配置
+
+```csharp
+// 在 Startup.cs 或 Program.cs 中注册服务
+public void ConfigureServices(IServiceCollection services)
+{
+    // 注册Token管理器
+    services.AddSingleton<ITokenManager, MyTokenManager>();
+    
+    // 配置HttpClient选项
+    services.Configure<HttpClientOptions>(options =>
+    {
+        options.BaseUrl = "https://api.example.com";
+        options.TimeOut = "30";
+        options.EnableLogging = true;
+    });
+    
+    // 注册生成的API客户端
+    services.AddHttpClient<IUserApi, UserApi>();
+}
+```
+
+## 生成代码特性
+
+- ✅ **完整的请求逻辑** - 自动处理请求构建、发送、响应解析
+- ✅ **错误处理和日志记录** - 自动记录请求日志和错误信息
+- ✅ **异步支持** - 支持async/await模式
+- ✅ **类型安全** - 强类型的参数和返回值
+- ✅ **配置灵活** - 支持通过特性或配置文件配置
+- ✅ **生命周期管理** - 正确处理HttpClient和资源释放
+- ✅ **Partial方法** - 生成Partial方法支持自定义扩展
+- ✅ **零运行时开销** - 编译时代码生成，性能最优
+
+## 查看生成代码
+
+设置 `EmitCompilerGeneratedFiles=true` 后，生成的代码位于：
+```
+obj/[Configuration]/[TargetFramework]/generated/
+```
+文件名以 `.g.cs` 结尾。
 
 ## 注意事项
 
@@ -781,17 +461,26 @@ Mud.CodeGenerator
 3. 所有生成的代码都是 partial 类，不会影响您手动编写的代码
 4. 建议在实体类和服务类上使用 partial 关键字，以便代码生成器可以扩展它们
 
-## 生成代码查看
+## 项目结构
 
-要查看生成的代码，可以在项目文件中添加以下配置：
-
-```xml
-<PropertyGroup>
-  <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
-</PropertyGroup>
+```text
+Mud.CodeGenerator
+├── Core/
+│   ├── Mud.CodeGenerator                // 代码生成器核心基类库
+│   ├── Mud.EntityCodeGenerator          // 实体代码生成器
+│   └── Mud.ServiceCodeGenerator         // 服务代码生成器
+│       ├── HttpInvoke/                  // HttpClient API 代码生成器
+│       ├── ServiceCode/                 // 服务类代码生成器
+│       ├── CodeInject/                  // 依赖注入代码生成器
+│       └── ComWrap/                     // COM对象包装生成器
+├── Test/
+│   ├── CodeGeneratorTest                // 代码生成器测试项目
+│   └── Mud.Common.CodeGenerator         // 通用代码生成器特性定义
+├── mudEntityCodeGenerator.md            // 实体代码生成器详细文档
+├── TokenImplementationSummary.md        // Token管理功能实现总结
+├── TokenUsageExample.md                 // Token管理功能使用示例
+└── README.md
 ```
-
-生成的代码将位于 `obj/[Configuration]/[TargetFramework]/generated/` 目录下，文件名以 `.g.cs` 结尾。
 
 ## 维护者
 
@@ -799,12 +488,8 @@ Mud.CodeGenerator
 
 ## 许可证
 
-本项目采用MIT许可证模式：
+本项目采用MIT许可证模式：[MIT 许可证](LICENSE)
 
-- [MIT 许可证](../../LICENSE-MIT)
+---
 
-## 免责声明
-
-本项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
-
-不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目二次开发而产生的一切法律纠纷和责任，我们不承担任何责任。
+> 💡 **提示**: 生成的代码都是 partial 类，不影响手动编写的代码。建议使用 partial 关键字以便代码生成器扩展。编译时自动生成代码，零运行时开销。

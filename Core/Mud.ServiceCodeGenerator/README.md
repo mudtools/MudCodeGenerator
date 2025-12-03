@@ -4,21 +4,23 @@
 
 Mud 服务代码生成器是一个基于 Roslyn 的源代码生成器，用于自动生成服务层相关代码，提高开发效率。它包含以下主要功能：
 
-1. **服务类代码生成** - 根据实体类自动生成服务接口和服务实现类
+1. **HttpClient API 代码生成** - 为标记了 HTTP 方法特性的接口生成完整的 HttpClient 实现类
 2. **依赖注入代码生成** - 自动为类生成构造函数注入代码，包括日志、缓存、用户管理等常用服务
-3. **服务注册代码生成** - 自动生成服务注册扩展方法，简化依赖注入配置
-4. **HttpClient API 代码生成** - 自动为标记了 HTTP 方法特性的接口生成 HttpClient 实现类
-5. **HttpClient API 包装代码生成** - 为 HttpClient API 接口生成包装接口和实现类，简化 Token 管理等复杂逻辑
+3. **自动服务注册生成** - 自动生成服务注册扩展方法，简化依赖注入配置
+4. **服务类代码生成** - 根据实体类自动生成服务接口和服务实现类
+5. **HttpClient API 包装生成** - 为 HttpClient API 接口生成包装接口和实现类，简化 Token 管理等复杂逻辑
+6. **COM对象包装生成** - 为COM对象生成.NET包装类，简化COM互操作
 
 ## 项目参数配置
-
-在使用 Mud 服务代码生成器时，可以通过在项目文件中配置以下参数自定义生成行为：
 
 ### 通用配置参数
 
 ```xml
 <PropertyGroup>
   <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>  <!-- 在obj目录下保存生成的代码 -->
+  
+  <!-- HttpClient API 配置 -->
+  <HttpClientOptionsName>HttpClientOptions</HttpClientOptionsName>  <!-- HttpClient配置类名 -->
   
   <!-- 依赖注入相关配置 -->
   <DefaultCacheManagerType>ICacheManager</DefaultCacheManagerType>  <!-- 缓存管理器类型默认值 -->
@@ -37,6 +39,7 @@ Mud 服务代码生成器是一个基于 Roslyn 的源代码生成器，用于�
 </PropertyGroup>
 
 <ItemGroup>
+  <CompilerVisibleProperty Include="HttpClientOptionsName" />
   <CompilerVisibleProperty Include="DefaultCacheManagerType" />
   <CompilerVisibleProperty Include="DefaultUserManagerType" />
   <CompilerVisibleProperty Include="DefaultLoggerVariable" />
@@ -58,230 +61,270 @@ Mud 服务代码生成器是一个基于 Roslyn 的源代码生成器，用于�
 </ItemGroup>
 ```
 
-## 依赖注入代码生成
+## 1. HttpClient API 代码生成
 
-使用各种注入特性为类自动生成构造函数注入代码：
+### 基本用法
+
+为接口添加 `[HttpClientApi]` 特性并使用HTTP方法特性：
 
 ```CSharp
-[ConstructorInject]  // 字段构造函数注入
-[LoggerInject]       // 日志注入
-[CacheInject]        // 缓存管理器注入
-[UserInject]         // 用户管理器注入
-[CustomInject(VarType = "IRepository<SysUser>", VarName = "_userRepository")]  // 自定义注入
+[HttpClientApi("https://api.example.com", Timeout = 30)]
+public interface IUserApi
+{
+    [Get("users/{id}")]
+    Task<UserInfo> GetUserAsync(string id);
+    
+    [Post("users")]
+    Task<UserInfo> CreateUserAsync([Body] CreateUserRequest request);
+    
+    [Put("users/{id}")]
+    Task<UserInfo> UpdateUserAsync(string id, [Body] UpdateUserRequest request);
+    
+    [Delete("users/{id}")]
+    Task DeleteUserAsync(string id);
+    
+    [Get("users")]
+    Task<List<UserInfo>> GetUsersAsync([Query] string? name = null, [Query] int? page = 1);
+}
+```
+
+### 支持的HTTP方法
+
+- `[Get("path")]` - GET请求
+- `[Post("path")]` - POST请求  
+- `[Put("path")]` - PUT请求
+- `[Delete("path")]` - DELETE请求
+- `[Patch("path")]` - PATCH请求
+- `[Head("path")]` - HEAD请求
+- `[Options("path")]` - OPTIONS请求
+
+### 参数类型支持
+
+#### 路径参数
+```CSharp
+[Get("users/{userId}/posts/{postId}")]
+Task<Post> GetPostAsync(string userId, string postId);
+```
+
+#### 查询参数
+```CSharp
+[Get("users")]
+Task<List<User>> GetUsersAsync([Query] string name, [Query] int page = 1);
+```
+
+#### 数组查询参数
+```CSharp
+[Get("users")]
+Task<List<User>> GetUsersAsync([ArrayQuery] string[] tags, [ArrayQuery(",", "categories")] string[] categories);
+```
+
+#### 请求体参数
+```CSharp
+[Post("users")]
+Task<User> CreateUserAsync([Body] CreateUserRequest request);
+
+[Post("data")]
+Task<Result> SendDataAsync([Body(UseStringContent = true, ContentType = "text/plain")] string rawData);
+```
+
+#### 请求头参数
+```CSharp
+[Post("data")]
+Task<Result> PostDataAsync([Body] DataRequest request, [Header("Authorization")] string token);
+```
+
+#### 文件下载
+```CSharp
+[Get("files/{fileId}")]
+Task<byte[]> DownloadFileAsync(string fileId);
+
+[Get("files/{fileId}")]
+Task DownloadFileAsync(string fileId, [FilePath] string filePath);
+```
+
+### Token管理集成
+
+#### 定义Token管理器
+```CSharp
+public interface ITokenManager
+{
+    Task<string> GetTokenAsync();
+}
+```
+
+#### 使用Header传递Token
+```CSharp
+[HttpClientApi(TokenManage = nameof(ITokenManager))]
+[Header("Authorization")]
+public interface IProtectedApi
+{
+    [Get("protected/data")]
+    Task<Data> GetDataAsync();
+}
+```
+
+#### 使用Query参数传递Token
+```CSharp
+[HttpClientApi(TokenManage = nameof(ITokenManager))]
+[Query("Authorization")]
+public interface IProtectedApi
+{
+    [Get("protected/data")]
+    Task<Data> GetDataAsync();
+}
+```
+
+### 部分方法事件钩子
+
+为每个HTTP方法自动生成事件钩子：
+
+```CSharp
+public partial class ExampleApi
+{
+    // 方法级别事件钩子
+    partial void OnGetUserBefore(HttpRequestMessage request, string url);
+    partial void OnGetUserAfter(HttpResponseMessage response, string url);
+    partial void OnGetUserFail(HttpResponseMessage response, string url);
+    partial void OnGetUserError(Exception error, string url);
+    
+    // 接口级别事件钩子
+    partial void OnExampleApiRequestBefore(HttpRequestMessage request, string url);
+    partial void OnExampleApiRequestAfter(HttpResponseMessage response, string url);
+    partial void OnExampleApiRequestFail(HttpResponseMessage response, string url);
+    partial void OnExampleApiRequestError(Exception error, string url);
+}
+```
+
+### 高级功能
+
+#### 抽象类支持
+```CSharp
+[HttpClientApi(IsAbstract = true)]
+public abstract class BaseApiClient
+{
+    protected BaseApiClient(HttpClient httpClient, ILogger logger, /* ... */)
+    {
+        // 基础初始化逻辑
+    }
+}
+
+[HttpClientApi(InheritedFrom = "BaseApiClient")]
+public interface IMyApi : BaseApiClient
+{
+    [Get("data")]
+    Task<Data> GetDataAsync();
+}
+```
+
+#### 按组注册功能
+```CSharp
+[HttpClientApi("https://api.dingtalk.com", RegistryGroupName = "Dingtalk")]
+public interface IDingtalkApi
+{
+    [Get("user/info")]
+    Task<UserInfo> GetUserInfoAsync();
+}
+```
+
+### HttpClientApi特性参数
+
+| 参数名 | 类型 | 必需 | 默认值 | 说明 |
+|--------|------|------|--------|------|
+| BaseAddress | string | 否 | null | API 基础地址 |
+| Timeout | int | 否 | 50 | 请求超时时间（秒） |
+| ContentType | string | 否 | application/json | 默认内容类型 |
+| RegistryGroupName | string | 否 | null | 注册分组名称 |
+| TokenManage | string | 否 | null | Token管理器接口名 |
+| IsAbstract | bool | 否 | false | 是否生成抽象类 |
+| InheritedFrom | string | 否 | null | 继承的基类名 |
+
+## 2. 依赖注入代码生成
+
+### 基本用法
+
+使用各种注入特性自动生成构造函数注入代码：
+
+```CSharp
+[ConstructorInject]     // 字段构造函数注入
+[LoggerInject]          // 日志注入
+[CacheInject]           // 缓存管理器注入
+[UserInject]            // 用户管理器注入
+[CustomInject<IRepository<SysUser>>(VarName = "_userRepository")]  // 自定义注入
 public partial class SysUserService
 {
-    // 生成的代码将包含以下内容：
-    // 1. 构造函数参数
-    // 2. 私有只读字段
-    // 3. 构造函数赋值语句
+    private readonly IRoleRepository _roleRepository;
+    private readonly IPermissionRepository _permissionRepository;
+    
+    // 生成的代码将包含所有注入项和构造函数
 }
 ```
 
-## 自动服务注册代码生成
+### 注入特性详解
 
-使用 [AutoRegister] 和 [AutoRegisterKeyed] 特性自动生成服务注册代码，简化依赖注入配置：
+#### ConstructorInjectAttribute 字段注入
+扫描类中所有私有只读字段，生成相应的构造函数参数和赋值语句。
+
+#### LoggerInjectAttribute 日志注入
+注入 `ILogger<T>` 类型的日志记录器，自动生成 Logger 实例创建代码。
+
+#### CacheInjectAttribute 缓存管理器注入
+注入缓存管理器实例，默认类型为 `ICacheManager`，默认字段名为 `_cacheManager`。
+
+#### UserInjectAttribute 用户管理器注入
+注入用户管理器实例，默认类型为 `IUserManager`，默认字段名为 `_userManager`。
+
+#### OptionsInjectAttribute 配置项注入
+根据指定的配置项类型注入配置实例，支持泛型语法：
+```CSharp
+[OptionsInject<TenantOptions>]  // 推荐的泛型方式
+[OptionsInject(OptionType = "TenantOptions")]  // 传统方式
+```
+
+#### CustomInjectAttribute 自定义注入
+注入任意类型的依赖项，支持泛型语法：
+```CSharp
+[CustomInject<IRepository<SysUser>>(VarName = "_userRepository")]  // 推荐
+[CustomInject(VarType = "IRepository<SysUser>", VarName = "_userRepository")]  // 传统
+```
+
+### 组合注入示例
 
 ```CSharp
-// 自动注册服务到DI容器
-[AutoRegister]
-[AutoRegister<ISysUserService>]
-[AutoRegisterKeyed<ISysUserService>("user")]
-public partial class SysUserService : ISysUserService
+[ConstructorInject]
+[LoggerInject]
+[CacheInject]
+[UserInject]
+[OptionsInject<TenantOptions>]
+[CustomInject<IRepository<SysUser>>(VarName = "_userRepository")]
+public partial class UserService
 {
-    // 生成的代码将包含服务注册扩展方法
+    private readonly IRoleRepository _roleRepository;
+    private readonly IPermissionRepository _permissionRepository;
+    
+    // 生成的代码将包含所有注入项、字段、构造函数参数和赋值语句
 }
 ```
 
-### 构造函数注入详解
+### 忽略字段注入
 
-### ConstructorInjectAttribute 字段注入
-使用 [ConstructorInject] 特性可以将类中已存在的字段通过构造函数注入初始化。该注入方式会扫描类中的所有私有只读字段，并为其生成相应的构造函数参数和赋值语句。
+对于不需要通过构造函数注入的字段，可以使用 `[IgnoreGenerator]` 特性标记：
 
-示例：
 ```CSharp
 [ConstructorInject]
 public partial class UserService
 {
     private readonly IUserRepository _userRepository;
-    private readonly IRoleRepository _roleRepository;
     
-    // 生成的代码将包含:
-    public UserService(IUserRepository userRepository, IRoleRepository roleRepository)
-    {
-        _userRepository = userRepository;
-        _roleRepository = roleRepository;
-    }
+    [IgnoreGenerator]
+    private readonly string _connectionString = "default_connection_string"; // 不会被注入
+    
+    // 只有_userRepository会被构造函数注入
 }
 ```
 
-### LoggerInjectAttribute 日志注入
-使用 [LoggerInject] 特性可以为类注入 ILogger<> 类型的日志记录器。该注入会自动生成 ILoggerFactory 参数，并在构造函数中创建对应类的 Logger 实例。
-
-示例：
-```CSharp
-[LoggerInject]
-public partial class UserService
-{
-    // 生成的代码将包含:
-    private readonly ILogger<UserService> _logger;
-    
-    public UserService(ILoggerFactory loggerFactory)
-    {
-        _logger = loggerFactory.CreateLogger<UserService>();
-    }
-}
-```
-
-## CacheInjectAttribute 缓存管理器注入
-使用 [CacheInject] 特性可以注入缓存管理器实例。默认类型为 ICacheManager，默认字段名为 _cacheManager，可通过项目配置修改。
-
-示例：
-```CSharp
-[CacheInject]
-public partial class UserService
-{
-    // 生成的代码将包含:
-    private readonly ICacheManager _cacheManager;
-    
-    public UserService(ICacheManager cacheManager)
-    {
-        _cacheManager = cacheManager;
-    }
-}
-```
-
-项目配置示例：
-```xml
-<PropertyGroup>
-  <DefaultCacheManagerType>MyCustomCacheManager</DefaultCacheManagerType>
-  <DefaultCacheManagerVariable>_myCacheManager</DefaultCacheManagerVariable>
-</PropertyGroup>
-```
-
-##### UserInjectAttribute 用户管理器注入
-使用 [UserInject] 特性可以注入用户管理器实例。默认类型为 IUserManager，默认字段名为 _userManager，可通过项目配置修改。
-
-示例：
-```CSharp
-[UserInject]
-public partial class UserService
-{
-    // 生成的代码将包含:
-    private readonly IUserManager _userManager;
-    
-    public UserService(IUserManager userManager)
-    {
-        _userManager = userManager;
-    }
-}
-```
-
-项目配置示例：
-```xml
-<PropertyGroup>
-  <DefaultUserManagerType>MyCustomUserManager</DefaultUserManagerType>
-  <DefaultUserManagerVariable>_myUserManager</DefaultUserManagerVariable>
-</PropertyGroup>
-```
-
-##### OptionsInjectAttribute 配置项注入
-使用 [OptionsInject] 特性可以根据指定的配置项类型注入配置实例。支持泛型语法，提供更简洁的配置方式。
-
-示例：
-```CSharp
-// 传统方式
-[OptionsInject(OptionType = "TenantOptions")]
-// 泛型方式（推荐）
-[OptionsInject<TenantOptions>]
-public partial class UserService
-{
-    // 生成的代码将包含:
-    private readonly TenantOptions _tenantOptions;
-    
-    public UserService(IOptions<TenantOptions> tenantOptions)
-    {
-        _tenantOptions = tenantOptions.Value;
-    }
-}
-```
-
-## CustomInjectAttribute 自定义注入
-使用 [CustomInject] 特性可以注入任意类型的依赖项。支持泛型语法，提供更简洁的类型安全配置方式。
-
-示例：
-```CSharp
-// 传统方式
-[CustomInject(VarType = "IRepository<SysUser>", VarName = "_userRepository")]
-[CustomInject(VarType = "INotificationService", VarName = "_notificationService")]
-// 泛型方式（推荐）
-[CustomInject<IRepository<SysUser>>(VarName = "_userRepository")]
-[CustomInject<INotificationService>(VarName = "_notificationService")]
-public partial class UserService
-{
-    // 生成的代码将包含:
-    private readonly IRepository<SysUser> _userRepository;
-    private readonly INotificationService _notificationService;
-    
-    public UserService(IRepository<SysUser> userRepository, INotificationService notificationService)
-    {
-        _userRepository = userRepository;
-        _notificationService = notificationService;
-    }
-}
-```
-
-## 组合注入示例
-
-多种注入特性可以组合使用，生成器会自动合并所有注入需求。推荐使用泛型语法以获得更好的类型安全性：
-
-```CSharp
-[ConstructorInject]
-[LoggerInject]
-[CacheInject]
-[UserInject]
-[OptionsInject<TenantOptions>]
-[CustomInject<IRepository<SysUser>>(VarName = "_userRepository")]
-public partial class UserService
-{
-    private readonly IRoleRepository _roleRepository;
-    private readonly IPermissionRepository _permissionRepository;
-    
-    // 生成的代码将包含所有注入项:
-    private readonly ILogger<UserService> _logger;
-    private readonly ICacheManager _cacheManager;
-    private readonly IUserManager _userManager;
-    private readonly TenantOptions _tenantOptions;
-    private readonly IRepository<SysUser> _userRepository;
-    private readonly IRoleRepository _roleRepository;
-    private readonly IPermissionRepository _permissionRepository;
-    
-    public UserService(
-        ILoggerFactory loggerFactory,
-        ICacheManager cacheManager,
-        IUserManager userManager,
-        IOptions<TenantOptions> tenantOptions,
-        IRepository<SysUser> userRepository,
-        IRoleRepository roleRepository,
-        IPermissionRepository permissionRepository)
-    {
-        _logger = loggerFactory.CreateLogger<UserService>();
-        _cacheManager = cacheManager;
-        _userManager = userManager;
-        _tenantOptions = tenantOptions.Value;
-        _userRepository = userRepository;
-        _roleRepository = roleRepository;
-        _permissionRepository = permissionRepository;
-    }
-}
-```
-
-## 自动服务注册代码生成
-
-AutoRegisterSourceGenerator 自动为标记了 [AutoRegister] 和 [AutoRegisterKeyed] 特性的类生成服务注册代码，简化依赖注入配置。
+## 3. 自动服务注册生成
 
 ### AutoRegisterAttribute 自动注册
-
-使用 [AutoRegister] 特性自动将服务注册到DI容器中：
 
 ```CSharp
 // 基本用法：注册实现类本身
@@ -311,10 +354,8 @@ public class UserService : IUserService
 
 ### AutoRegisterKeyedAttribute 键控服务注册
 
-使用 [AutoRegisterKeyed] 特性注册键控服务（Microsoft.Extensions.DependencyInjection 8.0+）：
-
 ```CSharp
-// 键控服务注册
+// 键控服务注册（Microsoft.Extensions.DependencyInjection 8.0+）
 [AutoRegisterKeyed("user")]
 [AutoRegisterKeyed<IUserService>("user")]
 public class UserService : IUserService
@@ -333,8 +374,6 @@ public class UserService : IUserService
 ```
 
 ### 生成的注册代码
-
-自动生成的注册扩展方法位于 `AutoRegisterExtension` 类中：
 
 ```CSharp
 // 自动生成的代码
@@ -356,8 +395,6 @@ public static partial class AutoRegisterExtension
 
 ### 使用方式
 
-在应用程序启动时调用生成的扩展方法：
-
 ```CSharp
 var builder = WebApplication.CreateBuilder(args);
 
@@ -370,1868 +407,200 @@ builder.Services
     .AddAutoRegister();
 ```
 
-### 特性组合使用
-
-自动注册特性可以与其他注入特性组合使用：
-
-```CSharp
-[AutoRegister<IUserService>]
-[ConstructorInject]
-[LoggerInject]
-[CacheInject]
-public class UserService : IUserService
-{
-    private readonly IUserRepository _userRepository;
-    
-    // 同时生成构造函数注入和服务注册代码
-}
-```
-
-## 忽略字段注入
-
-对于某些不需要通过构造函数注入的字段，可以使用 [IgnoreGenerator] 特性标记：
-
-```CSharp
-[ConstructorInject]
-public partial class UserService
-{
-    private readonly IUserRepository _userRepository;
-    
-    [IgnoreGenerator]
-    private readonly string _connectionString = "default_connection_string"; // 不会被注入
-    
-    // 只有_userRepository会被构造函数注入
-}
-```
-
-## HttpClient API 代码生成
-
-HttpClientApiSourceGenerator 自动为标记了 [HttpClientApi] 特性的接口生成 HttpClient 实现类，支持 RESTful API 调用。该生成器提供了完整的 HTTP 请求生命周期管理，包括部分方法事件钩子、参数自动处理、错误处理和日志记录。
-
-### 新功能亮点
-
-#### 1. 部分方法事件钩子
-
-为每个 HTTP 方法自动生成4个事件钩子方法，支持完整的请求生命周期监控：
-
-```CSharp
-[HttpClientApi]
-public interface IExampleApi
-{
-    [Get("/api/users/{id}")]
-    Task<UserDto> GetUserAsync([Path] string id);
-}
-
-// 生成的实现类包含以下部分方法：
-public partial class ExampleApi : IExampleApi
-{
-    // 方法级别事件钩子
-    partial void OnGetUserBefore(HttpRequestMessage request, string url);
-    partial void OnGetUserAfter(HttpResponseMessage response, string url);
-    partial void OnGetUserFail(HttpResponseMessage response, string url);
-    partial void OnGetUserError(Exception error, string url);
-    
-    // 接口级别事件钩子
-    partial void OnExampleApiRequestBefore(HttpRequestMessage request, string url);
-    partial void OnExampleApiRequestAfter(HttpResponseMessage response, string url);
-    partial void OnExampleApiRequestFail(HttpResponseMessage response, string url);
-    partial void OnExampleApiRequestError(Exception error, string url);
-}
-```
-
-#### 2. 改进的参数特性支持
-
-支持多种参数特性，自动处理不同类型的参数：
-
-```CSharp
-[HttpClientApi]
-public interface IAdvancedApi
-{
-    // 路径参数 - 自动替换 URL 模板中的占位符
-    [Get("/api/users/{userId}/orders/{orderId}")]
-    Task<OrderDto> GetOrderAsync([Path] string userId, [Path] string orderId);
-    
-    // 查询参数 - 自动生成查询字符串
-    [Get("/api/search")]
-    Task<List<UserDto>> SearchUsersAsync([Query] string name, [Query] int? page);
-    
-    // 请求头参数 - 自动设置请求头
-    [Get("/api/protected")]
-    Task<ProtectedData> GetProtectedDataAsync([Header("Authorization")] string token);
-    
-    // 请求体参数 - 自动序列化为 JSON
-    [Post("/api/users")]
-    Task<UserDto> CreateUserAsync([Body] UserDto user);
-    
-    // 复杂查询参数对象
-    [Get("/api/search")]
-    Task<List<UserDto>> AdvancedSearchAsync([Query] UserSearchCriteria criteria);
-}
-
-public class UserSearchCriteria
-{
-    public string Name { get; set; }
-    public int? Age { get; set; }
-    public string Department { get; set; }
-}
-```
-
-#### 3. 高级参数特性配置
-
-支持参数特性的高级配置选项：
-
-```CSharp
-[HttpClientApi]
-public interface IConfigurableApi
-{
-    // 自定义查询参数名称和格式
-    [Get("/api/users")]
-    Task<List<UserDto>> GetUsersAsync(
-        [Query(Name = "user_name", FormatString = "UPPER")] string name,
-        [Query(FormatString = "D2")] int? page);
-    
-    // 自定义请求内容类型
-    [Post("/api/data")]
-    Task<ResponseDto> SendDataAsync(
-        [Body(ContentType = "application/xml", UseStringContent = true)] string xmlData);
-    
-    // 自定义路径参数格式
-    [Get("/api/orders/{orderId:guid}")]
-    Task<OrderDto> GetOrderAsync([Path(FormatString = "N")] Guid orderId);
-}
-```
-
-### 基本用法
-
-#### 1. 定义 HTTP API 接口
-
-```CSharp
-[HttpClientApi]
-public interface IDingTalkApi
-{
-    [Get("/api/v1/user/{id}")]
-    Task<UserDto> GetUserAsync([Query] string id);
-    
-    [Post("/api/v1/user")]
-    Task<UserDto> CreateUserAsync([Body] UserDto user);
-    
-    [Put("/api/v1/user/{id}")]
-    Task<UserDto> UpdateUserAsync([Path] string id, [Body] UserDto user);
-    
-    [Delete("/api/v1/user/{id}")]
-    Task<bool> DeleteUserAsync([Path] string id);
-}
-```
-
-#### 2. 生成的 HttpClient 实现类
-
-自动生成的实现类包含完整的 HTTP 请求处理逻辑：
-
-```CSharp
-// 自动生成的代码
-public partial class DingTalkApi : IDingTalkApi
-{
-    private readonly HttpClient _httpClient;
-    private readonly ILogger<DingTalkApi> _logger;
-    private readonly JsonSerializerOptions _jsonSerializerOptions;
-    
-    public DingTalkApi(HttpClient httpClient, ILogger<DingTalkApi> logger)
-    {
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _jsonSerializerOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = false,
-            PropertyNameCaseInsensitive = true
-        };
-    }
-    
-    public async Task<UserDto> GetUserAsync(string id)
-    {
-        // 自动生成的 HTTP GET 请求逻辑
-        _logger.LogDebug("开始HTTP GET请求: {Url}", "/api/v1/user/{id}");
-        
-        var url = $"/api/v1/user/{id}";
-        using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        
-        // 处理查询参数
-        var queryParams = new List<string>();
-        if (id != null)
-            queryParams.Add($"id={id}");
-        
-        if (queryParams.Any())
-            url += "?" + string.Join("&", queryParams);
-        
-        // 发送请求并处理响应
-        // ... 完整的请求处理逻辑
-    }
-}
-```
-
-### 支持的 HTTP 方法特性
-
-支持所有标准的 HTTP 方法：
-
-```CSharp
-[HttpClientApi]
-public interface IExampleApi
-{
-    [Get("/api/resource/{id}")]
-    Task<ResourceDto> GetResourceAsync([Path] string id);
-    
-    [Post("/api/resource")]
-    Task<ResourceDto> CreateResourceAsync([Body] ResourceDto resource);
-    
-    [Put("/api/resource/{id}")]
-    Task<ResourceDto> UpdateResourceAsync([Path] string id, [Body] ResourceDto resource);
-    
-    [Delete("/api/resource/{id}")]
-    Task<bool> DeleteResourceAsync([Path] string id);
-    
-    [Patch("/api/resource/{id}")]
-    Task<ResourceDto> PatchResourceAsync([Path] string id, [Body] object patchData);
-    
-    [Head("/api/resource/{id}")]
-    Task<bool> CheckResourceExistsAsync([Path] string id);
-    
-    [Options("/api/resource")]
-    Task<HttpResponseMessage> GetResourceOptionsAsync();
-}
-```
-
-### 参数特性详解
-
-#### 1. Path 参数特性
-
-用于替换 URL 模板中的路径参数：
-
-```CSharp
-[Get("/api/users/{userId}/orders/{orderId}")]
-Task<OrderDto> GetOrderAsync([Path] string userId, [Path] string orderId);
-```
-
-#### 2. Query 参数特性
-
-用于生成查询字符串参数：
-
-```CSharp
-[Get("/api/users")]
-Task<List<UserDto>> GetUsersAsync(
-    [Query] string name, 
-    [Query] int? page, 
-    [Query] int? pageSize);
-```
-
-#### 3. Body 参数特性
-
-用于设置请求体内容：
-
-```CSharp
-[Post("/api/users")]
-Task<UserDto> CreateUserAsync([Body] UserDto user);
-
-// 支持自定义内容类型
-[Post("/api/users")]
-Task<UserDto> CreateUserAsync([Body(ContentType = "application/xml")] UserDto user);
-
-// 支持字符串内容
-[Post("/api/logs")]
-Task LogMessageAsync([Body(UseStringContent = true)] string message);
-```
-
-#### 4. Header 参数特性
-
-用于设置请求头：
-
-```CSharp
-[Get("/api/protected")]
-Task<ProtectedData> GetProtectedDataAsync([Header] string authorization);
-
-// 自定义头名称
-[Get("/api/protected")]
-Task<ProtectedData> GetProtectedDataAsync([Header("X-API-Key")] string apiKey);
-```
-
-### 复杂参数处理
-
-#### 1. 复杂查询参数
-
-支持复杂对象作为查询参数，自动展开为键值对：
-
-```CSharp
-[Get("/api/search")]
-Task<List<UserDto>> SearchUsersAsync([Query] UserSearchCriteria criteria);
-
-public class UserSearchCriteria
-{
-    public string Name { get; set; }
-    public int? Age { get; set; }
-    public string Department { get; set; }
-}
-
-// 生成的查询字符串：?Name=John&Age=30&Department=IT
-```
-
-#### 2. 路径参数自动替换
-
-自动处理 URL 模板中的路径参数：
-
-```CSharp
-[Get("/api/users/{userId}/orders/{orderId}/items/{itemId}")]
-Task<OrderItemDto> GetOrderItemAsync(
-    [Path] string userId, 
-    [Path] string orderId, 
-    [Path] string itemId);
-
-// 自动替换：/api/users/123/orders/456/items/789
-```
-
-### 错误处理与日志记录
-
-生成的代码包含完整的错误处理和日志记录：
-
-```CSharp
-public async Task<UserDto> GetUserAsync(string id)
-{
-    try
-    {
-        _logger.LogDebug("开始HTTP GET请求: {Url}", "/api/v1/user/{id}");
-        
-        // 请求处理逻辑
-        
-        using var response = await _httpClient.SendAsync(request);
-        var responseContent = await response.Content.ReadAsStringAsync();
-        
-        _logger.LogDebug("HTTP请求完成: {StatusCode}, 响应长度: {ContentLength}", 
-            (int)response.StatusCode, responseContent?.Length ?? 0);
-        
-        if (!response.IsSuccessStatusCode)
-        {
-            _logger.LogError("HTTP请求失败: {StatusCode}, 响应: {Response}", 
-                (int)response.StatusCode, responseContent);
-            throw new HttpRequestException($"HTTP请求失败: {(int)response.StatusCode} - {response.ReasonPhrase}");
-        }
-        
-        // 响应处理逻辑
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "HTTP请求异常: {Url}", url);
-        throw;
-    }
-}
-```
-
-### 配置选项
-
-#### 1. 自定义 JsonSerializerOptions
-
-生成的构造函数包含默认的 JsonSerializerOptions 配置：
-
-```CSharp
-_jsonSerializerOptions = new JsonSerializerOptions
-{
-    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    WriteIndented = false,
-    PropertyNameCaseInsensitive = true
-};
-```
-
-#### 2. 支持可空返回值
-
-自动处理可空返回值类型：
-
-```CSharp
-[Get("/api/users/{id}")]
-Task<UserDto?> GetUserOrNullAsync([Path] string id);
-```
-
-### 使用示例
-
-#### 1. 在依赖注入中注册
-
-```CSharp
-// 在 Startup.cs 或 Program.cs 中
-services.AddHttpClient<IDingTalkApi, DingTalkApi>(client =>
-{
-    client.BaseAddress = new Uri("https://api.dingtalk.com");
-    client.DefaultRequestHeaders.Add("User-Agent", "MyApp/1.0");
-});
-```
-
-#### 2. 在服务中使用
-
-```CSharp
-public class UserService
-{
-    private readonly IDingTalkApi _dingTalkApi;
-    
-    public UserService(IDingTalkApi dingTalkApi)
-    {
-        _dingTalkApi = dingTalkApi;
-    }
-    
-    public async Task<UserDto> GetUserAsync(string userId)
-    {
-        return await _dingTalkApi.GetUserAsync(userId);
-    }
-}
-```
-
-### 部分方法事件钩子使用指南
-
-#### 1. 方法级别事件钩子
-
-为每个 HTTP 方法自动生成4个事件钩子，可在自定义实现中重写：
-
-```CSharp
-public partial class ExampleApi
-{
-    // 请求执行前调用 - 可用于修改请求
-    partial void OnGetUserBefore(HttpRequestMessage request, string url)
-    {
-        // 添加自定义请求头
-        request.Headers.Add("X-Custom-Header", "custom-value");
-        
-        // 记录请求日志
-        _logger.LogInformation("开始调用 GetUser API: {Url}", url);
-    }
-    
-    // 请求成功后调用 - 可用于处理响应
-    partial void OnGetUserAfter(HttpResponseMessage response, string url)
-    {
-        // 记录成功响应
-        _logger.LogInformation("GetUser API 调用成功: {StatusCode}", (int)response.StatusCode);
-        
-        // 验证响应内容
-        if (!response.Headers.Contains("X-RateLimit-Remaining"))
-        {
-            _logger.LogWarning("API 响应缺少速率限制信息");
-        }
-    }
-    
-    // 请求失败时调用 (HTTP 状态码非 2xx) - 可用于错误处理
-    partial void OnGetUserFail(HttpResponseMessage response, string url)
-    {
-        // 处理特定错误状态码
-        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
-            _logger.LogWarning("用户不存在: {Url}", url);
-        }
-        else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-        {
-            // 触发重新认证流程
-            _authService.RefreshToken();
-        }
-    }
-    
-    // 请求发生异常时调用 - 可用于异常处理
-    partial void OnGetUserError(Exception error, string url)
-    {
-        // 记录异常详细信息
-        _logger.LogError(error, "GetUser API 调用异常: {Url}", url);
-        
-        // 发送异常通知
-        _notificationService.SendErrorNotification(error, url);
-    }
-}
-```
-
-#### 2. 接口级别事件钩子
-
-为整个接口类生成4个全局事件钩子，适用于所有方法：
-
-```CSharp
-public partial class ExampleApi
-{
-    // 所有方法请求前调用
-    partial void OnExampleApiRequestBefore(HttpRequestMessage request, string url)
-    {
-        // 添加全局请求头
-        request.Headers.Add("X-Request-ID", Guid.NewGuid().ToString());
-        request.Headers.Add("X-Timestamp", DateTime.UtcNow.ToString("O"));
-        
-        // 全局请求验证
-        if (string.IsNullOrEmpty(url))
-        {
-            throw new ArgumentException("URL 不能为空", nameof(url));
-        }
-    }
-    
-    // 所有方法请求成功后调用
-    partial void OnExampleApiRequestAfter(HttpResponseMessage response, string url)
-    {
-        // 全局响应处理
-        var rateLimit = response.Headers.GetValues("X-RateLimit-Remaining").FirstOrDefault();
-        if (!string.IsNullOrEmpty(rateLimit) && int.Parse(rateLimit) < 10)
-        {
-            _logger.LogWarning("API 速率限制即将达到: {Remaining}", rateLimit);
-        }
-    }
-    
-    // 所有方法请求失败时调用
-    partial void OnExampleApiRequestFail(HttpResponseMessage response, string url)
-    {
-        // 全局错误处理
-        if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
-        {
-            var retryAfter = response.Headers.RetryAfter?.Delta;
-            if (retryAfter.HasValue)
-            {
-                _logger.LogWarning("达到速率限制，将在 {RetryAfter} 后重试", retryAfter.Value);
-            }
-        }
-    }
-    
-    // 所有方法请求异常时调用
-    partial void OnExampleApiRequestError(Exception error, string url)
-    {
-        // 全局异常处理
-        if (error is System.Net.Http.HttpRequestException httpError)
-        {
-            _logger.LogError(httpError, "网络请求异常: {Url}", url);
-        }
-        else if (error is System.Text.Json.JsonException jsonError)
-        {
-            _logger.LogError(jsonError, "JSON 序列化异常: {Url}", url);
-        }
-    }
-}
-```
-
-#### 3. 事件钩子的执行顺序
-
-请求生命周期中事件钩子的执行顺序如下：
-
-```
-1. On{InterfaceName}ApiRequestBefore (接口级别)
-2. On{MethodName}Before (方法级别)
-3. 执行 HTTP 请求
-4. On{MethodName}After (方法级别) - 如果请求成功
-   On{MethodName}Fail (方法级别) - 如果请求失败 (HTTP 状态码非 2xx)
-5. On{InterfaceName}ApiRequestAfter (接口级别) - 如果请求成功
-   On{InterfaceName}ApiRequestFail (接口级别) - 如果请求失败
-6. On{MethodName}Error (方法级别) - 如果发生异常
-   On{InterfaceName}ApiRequestError (接口级别) - 如果发生异常
-```
-
-#### 4. 高级事件钩子应用场景
-
-##### 4.1 请求重试机制
-
-```CSharp
-public partial class ResilientApi
-{
-    private int _retryCount = 0;
-    
-    partial void OnGetDataBefore(HttpRequestMessage request, string url)
-    {
-        // 在重试时添加延迟
-        if (_retryCount > 0)
-        {
-            Thread.Sleep(TimeSpan.FromSeconds(_retryCount * 2));
-        }
-    }
-    
-    partial void OnGetDataFail(HttpResponseMessage response, string url)
-    {
-        // 如果是暂时性错误，触发重试
-        if (IsTransientError(response.StatusCode) && _retryCount < 3)
-        {
-            _retryCount++;
-            _logger.LogWarning("第 {RetryCount} 次重试: {Url}", _retryCount, url);
-            
-            // 重新调用方法 (需要实现重试逻辑)
-            // 注意：实际实现中需要在方法外部处理重试
-        }
-    }
-    
-    partial void OnGetDataAfter(HttpResponseMessage response, string url)
-    {
-        // 重置重试计数器
-        _retryCount = 0;
-    }
-    
-    private bool IsTransientError(System.Net.HttpStatusCode statusCode)
-    {
-        return statusCode == System.Net.HttpStatusCode.RequestTimeout ||
-               statusCode == System.Net.HttpStatusCode.TooManyRequests ||
-               statusCode == System.Net.HttpStatusCode.InternalServerError ||
-               statusCode == System.Net.HttpStatusCode.ServiceUnavailable;
-    }
-}
-```
-
-##### 4.2 请求监控和指标收集
-
-```CSharp
-public partial class MonitoredApi
-{
-    private readonly IMetricsCollector _metrics;
-    
-    partial void OnGetUserBefore(HttpRequestMessage request, string url)
-    {
-        // 开始计时
-        request.Properties["StartTime"] = DateTime.UtcNow;
-    }
-    
-    partial void OnGetUserAfter(HttpResponseMessage response, string url)
-    {
-        // 计算请求耗时
-        if (response.RequestMessage?.Properties.TryGetValue("StartTime", out var startTimeObj) == true)
-        {
-            var startTime = (DateTime)startTimeObj;
-            var duration = DateTime.UtcNow - startTime;
-            
-            // 收集指标
-            _metrics.RecordApiCall("GetUser", duration, true);
-            _logger.LogInformation("GetUser API 调用耗时: {Duration}ms", duration.TotalMilliseconds);
-        }
-    }
-    
-    partial void OnGetUserFail(HttpResponseMessage response, string url)
-    {
-        // 记录失败指标
-        _metrics.RecordApiCall("GetUser", TimeSpan.Zero, false);
-    }
-}
-```
-
-##### 4.3 安全审计
-
-```CSharp
-public partial class AuditedApi
-{
-    private readonly IAuditLogger _auditLogger;
-    
-    partial void OnUpdateUserBefore(HttpRequestMessage request, string url)
-    {
-        // 记录操作审计
-        var user = _userContext.CurrentUser;
-        _auditLogger.LogOperation(user?.Id, "UpdateUser", 
-            $"开始更新用户数据: {url}", AuditLevel.Info);
-    }
-    
-    partial void OnUpdateUserAfter(HttpResponseMessage response, string url)
-    {
-        // 记录成功审计
-        var user = _userContext.CurrentUser;
-        _auditLogger.LogOperation(user?.Id, "UpdateUser", 
-            $"用户数据更新成功: {(int)response.StatusCode}", AuditLevel.Info);
-    }
-    
-    partial void OnUpdateUserFail(HttpResponseMessage response, string url)
-    {
-        // 记录失败审计
-        var user = _userContext.CurrentUser;
-        _auditLogger.LogOperation(user?.Id, "UpdateUser", 
-            $"用户数据更新失败: {(int)response.StatusCode}", AuditLevel.Warning);
-    }
-}
-```
-
-### 高级功能
-
-#### 1. 组合使用多个参数特性
-
-```CSharp
-[Post("/api/users/{userId}/permissions")]
-Task<bool> AssignPermissionsAsync(
-    [Path] string userId,
-    [Body] List<string> permissions,
-    [Header("X-Request-ID")] string requestId,
-    [Query] bool? overwrite);
-```
-
-#### 2. 自定义内容序列化
-
-```CSharp
-[Post("/api/data")]
-Task<ResponseDto> SendDataAsync([Body(ContentType = "application/xml", UseStringContent = true)] string xmlData);
-```
-
-## HttpClient API 注册代码生成
-
-HttpClientApiRegisterSourceGenerator 自动为标记了 [HttpClientApi] 特性的接口生成依赖注入注册代码，简化 HttpClient 服务的配置。
-
-### 基本用法
-
-#### 1. 定义 HTTP API 接口
-
-```CSharp
-[HttpClientApi("https://api.dingtalk.com", Timeout = 30)]
-public interface IDingTalkApi
-{
-    [Get("/api/v1/user/{id}")]
-    Task<UserDto> GetUserAsync([Query] string id);
-    
-    [Post("/api/v1/user")]
-    Task<UserDto> CreateUserAsync([Body] UserDto user);
-}
-
-[HttpClientApi("https://api.wechat.com", Timeout = 60)]
-public interface IWeChatApi
-{
-    [Get("/api/v1/user/{id}")]
-    Task<UserDto> GetUserAsync([Query] string id);
-}
-```
-
-#### 2. 生成的注册代码
-
-自动生成的依赖注入注册扩展方法：
-
-```CSharp
-// 自动生成的代码 - HttpClientApiExtensions.g.cs
-using System;
-using System.Net.Http;
-using Microsoft.Extensions.DependencyInjection;
-
-namespace Microsoft.Extensions.DependencyInjection
-{
-    public static class HttpClientApiExtensions
-    {
-        public static IServiceCollection AddWebApiHttpClient(this IServiceCollection services)
-        {
-            services.AddHttpClient<global::YourNamespace.IDingTalkApi, global::YourNamespace.DingTalkApi>(client =>
-            {
-                client.BaseAddress = new Uri("https://api.dingtalk.com");
-                client.Timeout = TimeSpan.FromSeconds(30);
-            });
-            
-            services.AddHttpClient<global::YourNamespace.IWeChatApi, global::YourNamespace.WeChatApi>(client =>
-            {
-                client.BaseAddress = new Uri("https://api.wechat.com");
-                client.Timeout = TimeSpan.FromSeconds(60);
-            });
-            
-            return services;
-        }
-    }
-}
-```
-
-### 配置选项
-
-#### 1. HttpClientApi 特性参数
-
-```CSharp
-// 基本配置
-[HttpClientApi("https://api.example.com")]
-public interface IExampleApi { }
-
-// 配置超时时间
-[HttpClientApi("https://api.example.com", Timeout = 120)]
-public interface IExampleApi { }
-
-// 使用命名参数
-[HttpClientApi(BaseUrl = "https://api.example.com", Timeout = 60)]
-public interface IExampleApi { }
-```
-
-#### 2. 生成的 HttpClient 配置
-
-生成的注册代码包含以下配置：
-- **BaseAddress**: 从 [HttpClientApi] 特性的第一个参数获取
-- **Timeout**: 从 Timeout 命名参数获取，默认 100 秒
-- **服务注册**: 使用 AddHttpClient 方法注册接口和实现类
-
-### 使用方式
-
-#### 1. 在应用程序启动时调用
-
-```CSharp
-// 在 Program.cs 或 Startup.cs 中
-var builder = WebApplication.CreateBuilder(args);
-
-// 自动注册所有 HttpClient API 服务
-builder.Services.AddWebApiHttpClient();
-
-// 或者与其他服务注册一起使用
-builder.Services
-    .AddControllers()
-    .AddWebApiHttpClient();
-```
-
-#### 2. 在控制台应用程序中使用
-
-```CSharp
-// 在控制台应用程序中
-var services = new ServiceCollection();
-
-// 注册 HttpClient API 服务
-services.AddWebApiHttpClient();
-
-var serviceProvider = services.BuildServiceProvider();
-var dingTalkApi = serviceProvider.GetRequiredService<IDingTalkApi>();
-```
-
-### 与 HttpClientApiSourceGenerator 配合使用
-
-HttpClientApiRegisterSourceGenerator 与 HttpClientApiSourceGenerator 完美配合：
-
-1. **HttpClientApiSourceGenerator** 生成接口的实现类
-2. **HttpClientApiRegisterSourceGenerator** 生成依赖注入注册代码
-3. **完整的开发体验**：定义接口 → 自动生成实现 → 自动注册服务
-
-#### 完整示例
-
-```CSharp
-// 1. 定义接口
-[HttpClientApi("https://api.dingtalk.com", Timeout = 30)]
-public interface IDingTalkApi
-{
-    [Get("/api/v1/user/{id}")]
-    Task<UserDto> GetUserAsync([Query] string id);
-}
-
-// 2. 自动生成实现类 (由 HttpClientApiSourceGenerator 生成)
-// public partial class DingTalkApi : IDingTalkApi { ... }
-
-// 3. 自动生成注册代码 (由 HttpClientApiRegisterSourceGenerator 生成)
-// public static class HttpClientApiExtensions { ... }
-
-// 4. 在应用程序中使用
-var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddWebApiHttpClient(); // 自动注册
-
-var app = builder.Build();
-
-// 5. 在服务中注入使用
-public class UserService
-{
-    private readonly IDingTalkApi _dingTalkApi;
-    
-    public UserService(IDingTalkApi dingTalkApi)
-    {
-        _dingTalkApi = dingTalkApi;
-    }
-    
-    public async Task<UserDto> GetUserAsync(string userId)
-    {
-        return await _dingTalkApi.GetUserAsync(userId);
-    }
-}
-```
-
-### 高级配置
-
-#### 1. 自定义 HttpClient 配置
-
-如果需要更复杂的 HttpClient 配置，可以在注册后继续配置：
-
-```CSharp
-builder.Services.AddWebApiHttpClient()
-    .ConfigureHttpClientDefaults(httpClient =>
-    {
-        httpClient.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-        {
-            UseProxy = false,
-            AllowAutoRedirect = false
-        });
-    });
-```
-
-#### 2. 添加自定义请求头
-
-```CSharp
-builder.Services.AddHttpClient<IDingTalkApi, DingTalkApi>(client =>
-{
-    client.BaseAddress = new Uri("https://api.dingtalk.com");
-    client.Timeout = TimeSpan.FromSeconds(30);
-    client.DefaultRequestHeaders.Add("User-Agent", "MyApp/1.0");
-    client.DefaultRequestHeaders.Add("X-API-Key", "your-api-key");
-});
-```
-
-### 错误处理
-
-注册生成器会自动处理以下错误情况：
-- **无效的 [HttpClientApi] 特性**：忽略没有有效特性的接口
-- **特性参数验证**：确保 BaseUrl 和 Timeout 参数的有效性
-- **命名空间处理**：正确处理全局命名空间引用
-
-### 生成的代码结构
-
-```
-obj/Debug/net8.0/generated/
-├── Mud.ServiceCodeGenerator/
-    ├── HttpClientApiSourceGenerator/
-    │   └── YourNamespace.DingTalkApi.g.cs
-    └── HttpClientApiRegisterSourceGenerator/
-        └── HttpClientApiExtensions.g.cs
-```
-
-### 最佳实践
-
-1. **统一配置**：在 [HttpClientApi] 特性中统一配置所有 API 的基础设置
-2. **合理超时**：根据 API 的响应时间设置合理的超时时间
-3. **命名规范**：遵循接口命名规范（I{ServiceName}Api）
-4. **错误处理**：在服务层处理 API 调用异常
-5. **日志记录**：利用生成的日志记录功能监控 API 调用
-
-## HttpClient API 注册代码生成
-
-HttpClientApiRegisterSourceGenerator 自动为标记了 [HttpClientApi] 特性的接口生成依赖注入注册代码，简化 HttpClient 服务的配置。
-
-### 基本用法
-
-#### 1. 定义 HTTP API 接口
-
-```CSharp
-[HttpClientApi("https://api.dingtalk.com", Timeout = 30)]
-public interface IDingTalkApi
-{
-    [Get("/api/v1/user/{id}")]
-    Task<UserDto> GetUserAsync([Query] string id);
-    
-    [Post("/api/v1/user")]
-    Task<UserDto> CreateUserAsync([Body] UserDto user);
-}
-
-[HttpClientApi("https://api.wechat.com", Timeout = 60)]
-public interface IWeChatApi
-{
-    [Get("/api/v1/user/{id}")]
-    Task<UserDto> GetUserAsync([Query] string id);
-}
-```
-
-#### 2. 生成的注册代码
-
-自动生成的依赖注入注册扩展方法：
-
-```CSharp
-// 自动生成的代码 - HttpClientApiExtensions.g.cs
-using System;
-using System.Net.Http;
-using Microsoft.Extensions.DependencyInjection;
-
-namespace Microsoft.Extensions.DependencyInjection
-{
-    public static class HttpClientApiExtensions
-    {
-        public static IServiceCollection AddWebApiHttpClient(this IServiceCollection services)
-        {
-            services.AddHttpClient<global::YourNamespace.IDingTalkApi, global::YourNamespace.DingTalkApi>(client =>
-            {
-                client.BaseAddress = new Uri("https://api.dingtalk.com");
-                client.Timeout = TimeSpan.FromSeconds(30);
-            });
-            
-            services.AddHttpClient<global::YourNamespace.IWeChatApi, global::YourNamespace.WeChatApi>(client =>
-            {
-                client.BaseAddress = new Uri("https://api.wechat.com");
-                client.Timeout = TimeSpan.FromSeconds(60);
-            });
-            
-            return services;
-        }
-    }
-}
-```
-
-### 配置选项
-
-#### 1. HttpClientApi 特性参数
-
-```CSharp
-// 基本配置
-[HttpClientApi("https://api.example.com")]
-public interface IExampleApi { }
-
-// 配置超时时间
-[HttpClientApi("https://api.example.com", Timeout = 120)]
-public interface IExampleApi { }
-
-// 使用命名参数
-[HttpClientApi(BaseUrl = "https://api.example.com", Timeout = 60)]
-public interface IExampleApi { }
-```
-
-#### 2. 生成的 HttpClient 配置
-
-生成的注册代码包含以下配置：
-- **BaseAddress**: 从 [HttpClientApi] 特性的第一个参数获取
-- **Timeout**: 从 Timeout 命名参数获取，默认 100 秒
-- **服务注册**: 使用 AddHttpClient 方法注册接口和实现类
-
-### 使用方式
-
-#### 1. 在应用程序启动时调用
-
-```CSharp
-// 在 Program.cs 或 Startup.cs 中
-var builder = WebApplication.CreateBuilder(args);
-
-// 自动注册所有 HttpClient API 服务
-builder.Services.AddWebApiHttpClient();
-
-// 或者与其他服务注册一起使用
-builder.Services
-    .AddControllers()
-    .AddWebApiHttpClient();
-```
-
-#### 2. 在控制台应用程序中使用
-
-```CSharp
-// 在控制台应用程序中
-var services = new ServiceCollection();
-
-// 注册 HttpClient API 服务
-services.AddWebApiHttpClient();
-
-var serviceProvider = services.BuildServiceProvider();
-var dingTalkApi = serviceProvider.GetRequiredService<IDingTalkApi>();
-```
-
-### 与 HttpClientApiSourceGenerator 配合使用
-
-HttpClientApiRegisterSourceGenerator 与 HttpClientApiSourceGenerator 完美配合：
-
-1. **HttpClientApiSourceGenerator** 生成接口的实现类
-2. **HttpClientApiRegisterSourceGenerator** 生成依赖注入注册代码
-3. **完整的开发体验**：定义接口 → 自动生成实现 → 自动注册服务
-
-#### 完整示例
-
-```CSharp
-// 1. 定义接口
-[HttpClientApi("https://api.dingtalk.com", Timeout = 30)]
-public interface IDingTalkApi
-{
-    [Get("/api/v1/user/{id}")]
-    Task<UserDto> GetUserAsync([Query] string id);
-}
-
-// 2. 自动生成实现类 (由 HttpClientApiSourceGenerator 生成)
-// public partial class DingTalkApi : IDingTalkApi { ... }
-
-// 3. 自动生成注册代码 (由 HttpClientApiRegisterSourceGenerator 生成)
-// public static class HttpClientApiExtensions { ... }
-
-// 4. 在应用程序中使用
-var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddWebApiHttpClient(); // 自动注册
-
-var app = builder.Build();
-
-// 5. 在服务中注入使用
-public class UserService
-{
-    private readonly IDingTalkApi _dingTalkApi;
-    
-    public UserService(IDingTalkApi dingTalkApi)
-    {
-        _dingTalkApi = dingTalkApi;
-    }
-    
-    public async Task<UserDto> GetUserAsync(string userId)
-    {
-        return await _dingTalkApi.GetUserAsync(userId);
-    }
-}
-```
-
-### 高级配置
-
-#### 1. 自定义 HttpClient 配置
-
-如果需要更复杂的 HttpClient 配置，可以在注册后继续配置：
-
-```CSharp
-builder.Services.AddWebApiHttpClient()
-    .ConfigureHttpClientDefaults(httpClient =>
-    {
-        httpClient.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-        {
-            UseProxy = false,
-            AllowAutoRedirect = false
-        });
-    });
-```
-
-#### 2. 添加自定义请求头
-
-```CSharp
-builder.Services.AddHttpClient<IDingTalkApi, DingTalkApi>(client =>
-{
-    client.BaseAddress = new Uri("https://api.dingtalk.com");
-    client.Timeout = TimeSpan.FromSeconds(30);
-    client.DefaultRequestHeaders.Add("User-Agent", "MyApp/1.0");
-    client.DefaultRequestHeaders.Add("X-API-Key", "your-api-key");
-});
-```
-
-### 生成的代码结构
-
-```
-obj/Debug/net8.0/generated/
-├── Mud.ServiceCodeGenerator/
-    ├── HttpClientApiSourceGenerator/
-    │   └── YourNamespace.DingTalkApi.g.cs
-    └── HttpClientApiRegisterSourceGenerator/
-        └── HttpClientApiExtensions.g.cs
-```
-
-### 最佳实践
-
-1. **统一配置**：在 [HttpClientApi] 特性中统一配置所有 API 的基础设置
-2. **合理超时**：根据 API 的响应时间设置合理的超时时间
-3. **命名规范**：遵循接口命名规范（I{ServiceName}Api）
-4. **错误处理**：在服务层处理 API 调用异常
-5. **日志记录**：利用生成的日志记录功能监控 API 调用
-
-
-## HttpClient API 包装代码生成
-
-HttpClientApiWrapSourceGenerator 及其子类为标记了 [HttpClientApiWrap] 特性的接口生成包装接口和实现类，用于简化 Token 管理等复杂逻辑。该生成器包含两个主要组件：
-
-1. **HttpClientApiInterfaceWrapSourceGenerator** - 生成包装接口（.Wrap.g.cs）
-2. **HttpClientApiWrapClassSourceGenerator** - 生成包装实现类（.WrapImpl.g.cs）
+## 4. HttpClient API 包装生成
 
 ### 功能特点
 
-- **自动 Token 管理**：自动处理标记了 [Token] 特性的参数
+- **自动Token管理**：自动处理标记了 `[Token]` 特性的参数
 - **错误处理和日志记录**：包含完整的异常处理和日志记录
-- **XML 注释保留**：自动保留原始方法的 XML 文档注释
-- **重载方法支持**：正确处理重载方法的 XML 注释
-- **灵活的配置**：支持自定义 Token 管理接口和包装接口名称
+- **XML注释保留**：自动保留原始方法的XML文档注释
+- **重载方法支持**：正确处理重载方法的XML注释
+- **灵活的配置**：支持自定义Token管理接口和包装接口名称
 
 ### 基本用法
 
-#### 1. 定义 Token 管理接口
-
+#### 1. 定义Token管理接口
 ```CSharp
-/// <summary>
-/// Token管理接口
-/// </summary>
-public interface ITokenManage
-{
-    Task<string> GetTokenAsync();
-}
-
-/// <summary>
-/// 钉钉Token管理接口
-/// </summary>
-public interface IDingTokenManage
+public interface ITokenManager
 {
     Task<string> GetTokenAsync();
 }
 ```
 
-#### 2. 定义 HTTP API 接口并添加包装特性
-
+#### 2. 定义HTTP API接口并添加包装特性
 ```CSharp
-/// <summary>
-/// 测试场景1：使用默认Token管理接口（ITokenManage）
-/// </summary>
 [HttpClientApi("https://api.dingtalk.com", Timeout = 60)]
-[HttpClientApiWrap("ITokenManage")]
-public interface ISingleTestApi
+[HttpClientApiWrap(TokenManage = nameof(ITokenManager))]
+public interface IDingtalkApi
 {
-    /// <summary>
-    /// 获取用户信息
-    /// </summary>
-    /// <param name="token">访问令牌</param>
-    /// <param name="birthday">生日日期</param>
-    /// <returns>用户信息</returns>
-    [Get("/api/v1/user/{birthday}")]
-    Task<UserDto> GetUserAsync([Token][Header("x-token")] string token, [Path("yyyy-MM-dd")] DateTime birthday);
-
-    /// <summary>
-    /// 获取用户信息
-    /// </summary>
-    /// <param name="birthday">生日日期</param>
-    /// <param name="token">访问令牌</param>
-    /// <returns>用户信息</returns>
-    [Get("/api/v1/user/{birthday}")]
-    Task<UserDto> GetUserAsync([Path("yyyy-MM-dd")] DateTime birthday, [Token][Header("x-token")] string token);
-
-    /// <summary>
-    /// 搜索用户
-    /// </summary>
-    /// <param name="input">搜索条件</param>
-    /// <param name="age">年龄</param>
-    /// <param name="token">访问令牌</param>
-    /// <param name="cancellationToken">取消令牌</param>
-    /// <returns>用户列表</returns>
-    [Get("/api/v1/user/{birthday}")]
-    Task<UserDto> GetUser1Async([Query] SysDeptQueryInput input, [Query] int? age, [Token][Header("x-token")] string token, CancellationToken cancellationToken = default);
+    [Get("user/info")]
+    Task<UserInfo> GetUserInfoAsync([Token][Header("Authorization")] string token);
+    
+    [Post("message/send")]
+    Task SendMessageAsync([Token][Query("access_token")] string token, [Body] MessageRequest request);
 }
 ```
 
-#### 3. 生成的包装接口代码
+#### 3. 生成的包装接口和实现
 
-自动生成的包装接口：
+自动生成：
+- 包装接口（移除Token参数）
+- 包装实现类（自动处理Token获取和传递）
 
-```CSharp
-// 自动生成的代码 - ISingleTestApi.Wrap.g.cs
-using System;
-using System.Threading.Tasks;
-
-namespace YourNamespace
-{
-    /// <summary>
-    /// ISingleTestApi的包装接口
-    /// </summary>
-    public partial interface ISingleTestApiWrap
-    {
-        /// <summary>
-        /// 获取用户信息
-        /// </summary>
-        /// <param name="birthday">生日日期</param>
-        /// <returns>用户信息</returns>
-        Task<UserDto> GetUserAsync(DateTime birthday);
-
-        /// <summary>
-        /// 获取用户信息
-        /// </summary>
-        /// <param name="birthday">生日日期</param>
-        /// <returns>用户信息</returns>
-        Task<UserDto> GetUserAsync(DateTime birthday);
-
-        /// <summary>
-        /// 搜索用户
-        /// </summary>
-        /// <param name="input">搜索条件</param>
-        /// <param name="age">年龄</param>
-        /// <param name="cancellationToken">取消令牌</param>
-        /// <returns>用户列表</returns>
-        Task<UserDto> GetUser1Async(SysDeptQueryInput input, int? age, CancellationToken cancellationToken = default);
-    }
-}
-```
-
-#### 4. 生成的包装实现类代码
-
-自动生成的包装实现类：
-
-```CSharp
-// 自动生成的代码 - ISingleTestApi.WrapImpl.g.cs
-using System;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-
-namespace YourNamespace
-{
-    /// <summary>
-    /// ISingleTestApi的包装实现类
-    /// </summary>
-    internal partial class SingleTestApiWrap : ISingleTestApiWrap
-    {
-        private readonly ISingleTestApi _singleTestApi;
-        private readonly ITokenManage _tokenManage;
-        private readonly ILogger<SingleTestApiWrap> _logger;
-
-        public SingleTestApiWrap(ISingleTestApi singleTestApi, ITokenManage tokenManage, ILogger<SingleTestApiWrap> logger)
-        {
-            _singleTestApi = singleTestApi;
-            _tokenManage = tokenManage;
-            _logger = logger;
-        }
-
-        /// <summary>
-        /// 获取用户信息
-        /// </summary>
-        /// <param name="birthday">生日日期</param>
-        /// <returns>用户信息</returns>
-        public async Task<UserDto> GetUserAsync(DateTime birthday)
-        {
-            try
-            {
-                var token = await _tokenManage.GetTokenAsync();
-
-                if (string.IsNullOrEmpty(token))
-                {
-                    _logger.LogWarning("获取到的Token为空！");
-                }
-
-                return await _singleTestApi.GetUserAsync(token, birthday);
-            }
-            catch (Exception x)
-            {
-                _logger.LogError(x, "执行GetUserAsync操作失败：{message}", x.Message);
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// 获取用户信息
-        /// </summary>
-        /// <param name="birthday">生日日期</param>
-        /// <returns>用户信息</returns>
-        public async Task<UserDto> GetUserAsync(DateTime birthday)
-        {
-            try
-            {
-                var token = await _tokenManage.GetTokenAsync();
-
-                if (string.IsNullOrEmpty(token))
-                {
-                    _logger.LogWarning("获取到的Token为空！");
-                }
-
-                return await _singleTestApi.GetUserAsync(birthday, token);
-            }
-            catch (Exception x)
-            {
-                _logger.LogError(x, "执行GetUserAsync操作失败：{message}", x.Message);
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// 搜索用户
-        /// </summary>
-        /// <param name="input">搜索条件</param>
-        /// <param name="age">年龄</param>
-        /// <param name="cancellationToken">取消令牌</param>
-        /// <returns>用户列表</returns>
-        public async Task<UserDto> GetUser1Async(SysDeptQueryInput input, int? age, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var token = await _tokenManage.GetTokenAsync();
-
-                if (string.IsNullOrEmpty(token))
-                {
-                    _logger.LogWarning("获取到的Token为空！");
-                }
-
-                return await _singleTestApi.GetUser1Async(input, age, token, cancellationToken);
-            }
-            catch (Exception x)
-            {
-                _logger.LogError(x, "执行GetUser1Async操作失败：{message}", x.Message);
-                throw;
-            }
-        }
-    }
-}
-```
-
-### 高级配置选项
-
-#### 1. 使用指定的 Token 管理接口
-
-```CSharp
-// 使用指定的Token管理接口
-[HttpClientApi("https://api.dingtalk.com", Timeout = 60)]
-[HttpClientApiWrap(TokenManage = "IDingTokenManage")]
-public interface ISingleTestApi2
-{
-    [Get("/api/v1/user/{birthday}")]
-    Task<UserDto> GetUserAsync([Token][Header("x-token")] string token, [Path("yyyy-MM-dd")] DateTime birthday);
-}
-```
-
-#### 2. 自定义包装接口名称
-
-```CSharp
-// 自定义包装接口名称
-[HttpClientApi("https://api.dingtalk.com", Timeout = 60)]
-[HttpClientApiWrap(TokenManage = "ITokenManage", WrapInterface = "IDingTalkUserWrap")]
-public interface ISingleTestApi3
-{
-    [Get("/api/v1/user/{birthday}")]
-    Task<UserDto> GetUserAsync([Token][Header("x-token")] string token, [Path("yyyy-MM-dd")] DateTime birthday);
-}
-```
-
-### 依赖注入注册
-
-使用 `HttpClientRegistrationGenerator` 自动生成依赖注入注册代码：
-
-```CSharp
-// 自动生成的注册代码 - HttpClientApiExtensions.g.cs
-public static class HttpClientApiExtensions
-{
-    /// <summary>
-    /// 注册所有标记了 [HttpClientApi] 特性的接口及其 HttpClient 实现
-    /// </summary>
-    public static IServiceCollection AddWebApiHttpClient(this IServiceCollection services)
-    {
-        // 注册基本HttpClient API
-        services.AddHttpClient<ISingleTestApi, SingleTestApi>(client =>
-        {
-            client.BaseAddress = new Uri("https://api.dingtalk.com");
-            client.Timeout = TimeSpan.FromSeconds(60);
-        });
-
-        // 注册包装API的瞬时服务
-        AddWebApiHttpClientWrap(services);
-
-        return services;
-    }
-
-    /// <summary>
-    /// 注册所有包装接口及其包装实现类的瞬时服务
-    /// </summary>
-    public static IServiceCollection AddWebApiHttpClientWrap(this IServiceCollection services)
-    {
-        // 注册包装接口和实现类
-        services.AddTransient<ISingleTestApiWrap, SingleTestApiWrap>();
-        
-        return services;
-    }
-}
-```
-
-### 使用方式
-
-#### 1. 在应用程序中注册服务
-
-```CSharp
-// 在 Program.cs 或 Startup.cs 中
-var builder = WebApplication.CreateBuilder(args);
-
-// 注册 Token 管理服务
-builder.Services.AddScoped<ITokenManage, YourTokenManageImplementation>();
-
-// 自动注册所有 HttpClient API 和包装服务
-builder.Services.AddWebApiHttpClient();
-```
-
-#### 2. 在服务中使用包装接口
-
+#### 4. 使用方式
 ```CSharp
 public class UserService
 {
-    private readonly ISingleTestApiWrap _singleTestApiWrap;
-
-    public UserService(ISingleTestApiWrap singleTestApiWrap)
+    private readonly IDingtalkApiWrap _dingtalkApiWrap;
+    
+    public UserService(IDingtalkApiWrap dingtalkApiWrap)
     {
-        _singleTestApiWrap = singleTestApiWrap;
+        _dingtalkApiWrap = dingtalkApiWrap;
     }
-
-    public async Task<UserDto> GetUserAsync(DateTime birthday)
+    
+    public async Task<UserInfo> GetUserInfoAsync()
     {
-        // 无需手动处理 Token，包装类会自动处理
-        return await _singleTestApiWrap.GetUserAsync(birthday);
+        // 无需手动处理Token，包装类会自动处理
+        return await _dingtalkApiWrap.GetUserInfoAsync();
     }
 }
 ```
 
-### 功能优势
+### HttpClientApiWrap特性参数
 
-1. **简化 Token 管理**：自动处理 Token 获取和传递
-2. **统一错误处理**：提供一致的异常处理和日志记录
-3. **代码复用**：避免在每个 API 调用中重复 Token 处理逻辑
-4. **易于测试**：可以轻松模拟 Token 管理接口进行单元测试
-5. **可扩展性**：支持自定义 Token 管理策略
+| 参数名 | 类型 | 必需 | 默认值 | 说明 |
+|--------|------|------|--------|------|
+| TokenManage | string | 否 | "ITokenManager" | Token管理器接口名 |
+| WrapInterface | string | 否 | "{OriginalInterface}Wrap" | 包装接口名称 |
 
-### 最佳实践
+## 5. 服务类代码生成
 
-1. **统一的 Token 管理**：为不同类型的 API 使用不同的 Token 管理接口
-2. **合理的日志级别**：根据业务需求设置适当的日志级别
-3. **异常处理策略**：在包装类中实现合适的异常处理策略
-4. **性能考虑**：考虑 Token 缓存机制以提高性能
-5. **安全性**：确保 Token 的存储和传输安全
+基于实体类自动生成服务接口和实现类：
 
-### 生成的代码结构
+```CSharp
+[ServiceGenerator(EntityType = nameof(SysDeptEntity))]
+public partial class SysDeptService
+{
+}
+```
+
+生成的代码将包含基于实体的完整服务接口和实现类。
+
+## 6. COM对象包装生成
+
+支持为COM对象生成.NET包装类：
+
+```CSharp
+[ComObjectWrap]
+[ComCollectionWrap]
+[ComPropertyWrap(Name = "Items", PropertyType = PropertyType.ReadOnly)]
+public interface IMyComObject
+{
+    [ComPropertyWrap]
+    string Name { get; set; }
+    
+    [ComPropertyWrap(PropertyType = PropertyType.Method)]
+    void DoSomething();
+}
+```
+
+生成的包装类将自动处理COM对象的创建、属性访问和方法调用。
+
+## 7. 依赖注入和配置
+
+### HttpClient配置示例
+```CSharp
+// 在Program.cs中配置
+var builder = WebApplication.CreateBuilder(args);
+
+// 配置HttpClient选项
+builder.Services.Configure<HttpClientOptions>(options =>
+{
+    options.BaseUrl = "https://api.example.com";
+    options.TimeOut = "30";
+    options.EnableLogging = true;
+});
+
+// 注册Token管理器
+builder.Services.AddSingleton<ITokenManager, MyTokenManager>();
+
+// 自动注册所有服务
+builder.Services
+    .AddAutoRegister()
+    .AddWebApiHttpClient();
+```
+
+### 使用生成的服务
+```CSharp
+public class MyController : ControllerBase
+{
+    private readonly IUserApi _userApi;
+    private readonly ILogger<MyController> _logger;
+    
+    public MyController(IUserApi userApi, ILogger<MyController> logger)
+    {
+        _userApi = userApi;
+        _logger = logger;
+    }
+    
+    [HttpGet("users/{id}")]
+    public async Task<UserInfo> GetUser(string id)
+    {
+        try
+        {
+            return await _userApi.GetUserAsync(id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "获取用户信息失败: {UserId}", id);
+            throw;
+        }
+    }
+}
+```
+
+## 生成的代码结构
 
 ```
 obj/Debug/net8.0/generated/
 ├── Mud.ServiceCodeGenerator/
-    ├── HttpClientApiSourceGenerator/
-    │   └── YourNamespace.ISingleTestApi.g.cs
-    ├── HttpClientApiInterfaceWrapSourceGenerator/
-    │   └── YourNamespace.ISingleTestApi.Wrap.g.cs
-    ├── HttpClientApiWrapClassSourceGenerator/
-    │   └── YourNamespace.ISingleTestApi.WrapImpl.g.cs
-    └── HttpClientApiRegisterSourceGenerator/
-        └── HttpClientApiExtensions.g.cs
+    ├── HttpInvoke/
+    │   ├── HttpClientApiSourceGenerator/
+    │   │   └── YourNamespace.UserApi.g.cs
+    │   ├── HttpInvokeRegistrationGenerator/
+    │   │   └── HttpClientApiExtensions.g.cs
+    │   └── HttpInvokeWrapSourceGenerator/
+    │       ├── YourNamespace.DingtalkApi.Wrap.g.cs
+    │       └── YourNamespace.DingtalkApi.WrapImpl.g.cs
+    ├── CodeInject/
+    │   └── AutoRegisterExtension.g.cs
+    └── ServiceCode/
+        └── YourNamespace.SysDeptService.g.cs
 ```
 
-## HttpClient API 包装代码生成
+## 最佳实践
 
-HttpClientApiWrapSourceGenerator 及其子类为标记了 [HttpClientApiWrap] 特性的接口生成包装接口和实现类，用于简化 Token 管理等复杂逻辑。该生成器包含两个主要组件：
+1. **统一配置**：在项目配置中统一设置所有生成参数
+2. **合理命名**：遵循接口命名规范（I{ServiceName}Api）
+3. **错误处理**：在业务层处理API调用异常
+4. **日志记录**：利用生成的日志记录功能监控API调用
+5. **Token管理**：为不同类型的API使用不同的Token管理策略
+6. **生命周期管理**：根据业务需求选择合适的服务生命周期
 
-1. **HttpClientApiInterfaceWrapSourceGenerator** - 生成包装接口（.Wrap.g.cs）
-2. **HttpClientApiWrapClassSourceGenerator** - 生成包装实现类（.WrapImpl.g.cs）
+## 故障排除
 
-### 功能特点
+### 常见问题
 
-- **自动 Token 管理**：自动处理标记了 [Token] 特性的参数
-- **错误处理和日志记录**：包含完整的异常处理和日志记录
-- **XML 注释保留**：自动保留原始方法的 XML 文档注释
-- **重载方法支持**：正确处理重载方法的 XML 注释
-- **灵活的配置**：支持自定义 Token 管理接口和包装接口名称
+1. **生成的代码不出现**：检查 `<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>` 配置
+2. **依赖注入失败**：确保已注册所有必要的服务（如Token管理器）
+3. **编译错误**：检查特性使用是否正确，参数类型是否匹配
+4. **运行时异常**：检查HttpClient配置和API地址是否正确
 
-### 基本用法
+### 调试技巧
 
-#### 1. 定义 Token 管理接口
+1. 启用 `<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>` 查看生成的代码
+2. 查看生成器诊断信息，了解代码生成过程
+3. 使用部分方法事件钩子添加调试日志
+4. 检查生成的代码结构是否符合预期
 
-```CSharp
-/// <summary>
-/// Token管理接口
-/// </summary>
-public interface ITokenManage
-{
-    Task<string> GetTokenAsync();
-}
-
-/// <summary>
-/// 钉钉Token管理接口
-/// </summary>
-public interface IDingTokenManage
-{
-    Task<string> GetTokenAsync();
-}
-```
-
-#### 2. 定义 HTTP API 接口并添加包装特性
-
-```CSharp
-/// <summary>
-/// 测试场景1：使用默认Token管理接口（ITokenManage）
-/// </summary>
-[HttpClientApi("https://api.dingtalk.com", Timeout = 60)]
-[HttpClientApiWrap("ITokenManage")]
-public interface ISingleTestApi
-{
-    /// <summary>
-    /// 获取用户信息
-    /// </summary>
-    /// <param name="token">访问令牌</param>
-    /// <param name="birthday">生日日期</param>
-    /// <returns>用户信息</returns>
-    [Get("/api/v1/user/{birthday}")]
-    Task<UserDto> GetUserAsync([Token][Header("x-token")] string token, [Path("yyyy-MM-dd")] DateTime birthday);
-
-    /// <summary>
-    /// 获取用户信息
-    /// </summary>
-    /// <param name="birthday">生日日期</param>
-    /// <param name="token">访问令牌</param>
-    /// <returns>用户信息</returns>
-    [Get("/api/v1/user/{birthday}")]
-    Task<UserDto> GetUserAsync([Path("yyyy-MM-dd")] DateTime birthday, [Token][Header("x-token")] string token);
-
-    /// <summary>
-    /// 搜索用户
-    /// </summary>
-    /// <param name="input">搜索条件</param>
-    /// <param name="age">年龄</param>
-    /// <param name="token">访问令牌</param>
-    /// <param name="cancellationToken">取消令牌</param>
-    /// <returns>用户列表</returns>
-    [Get("/api/v1/user/{birthday}")]
-    Task<UserDto> GetUser1Async([Query] SysDeptQueryInput input, [Query] int? age, [Token][Header("x-token")] string token, CancellationToken cancellationToken = default);
-}
-```
-
-#### 3. 生成的包装接口代码
-
-自动生成的包装接口：
-
-```CSharp
-// 自动生成的代码 - ISingleTestApi.Wrap.g.cs
-using System;
-using System.Threading.Tasks;
-
-namespace YourNamespace
-{
-    /// <summary>
-    /// ISingleTestApi的包装接口
-    /// </summary>
-    public partial interface ISingleTestApiWrap
-    {
-        /// <summary>
-        /// 获取用户信息
-        /// </summary>
-        /// <param name="birthday">生日日期</param>
-        /// <returns>用户信息</returns>
-        Task<UserDto> GetUserAsync(DateTime birthday);
-
-        /// <summary>
-        /// 获取用户信息
-        /// </summary>
-        /// <param name="birthday">生日日期</param>
-        /// <returns>用户信息</returns>
-        Task<UserDto> GetUserAsync(DateTime birthday);
-
-        /// <summary>
-        /// 搜索用户
-        /// </summary>
-        /// <param name="input">搜索条件</param>
-        /// <param name="age">年龄</param>
-        /// <param name="cancellationToken">取消令牌</param>
-        /// <returns>用户列表</returns>
-        Task<UserDto> GetUser1Async(SysDeptQueryInput input, int? age, CancellationToken cancellationToken = default);
-    }
-}
-```
-
-#### 4. 生成的包装实现类代码
-
-自动生成的包装实现类：
-
-```CSharp
-// 自动生成的代码 - ISingleTestApi.WrapImpl.g.cs
-using System;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-
-namespace YourNamespace
-{
-    /// <summary>
-    /// ISingleTestApi的包装实现类
-    /// </summary>
-    internal partial class SingleTestApiWrap : ISingleTestApiWrap
-    {
-        private readonly ISingleTestApi _singleTestApi;
-        private readonly ITokenManage _tokenManage;
-        private readonly ILogger<SingleTestApiWrap> _logger;
-
-        public SingleTestApiWrap(ISingleTestApi singleTestApi, ITokenManage tokenManage, ILogger<SingleTestApiWrap> logger)
-        {
-            _singleTestApi = singleTestApi;
-            _tokenManage = tokenManage;
-            _logger = logger;
-        }
-
-        /// <summary>
-        /// 获取用户信息
-        /// </summary>
-        /// <param name="birthday">生日日期</param>
-        /// <returns>用户信息</returns>
-        public async Task<UserDto> GetUserAsync(DateTime birthday)
-        {
-            try
-            {
-                var token = await _tokenManage.GetTokenAsync();
-
-                if (string.IsNullOrEmpty(token))
-                {
-                    _logger.LogWarning("获取到的Token为空！");
-                }
-
-                return await _singleTestApi.GetUserAsync(token, birthday);
-            }
-            catch (Exception x)
-            {
-                _logger.LogError(x, "执行GetUserAsync操作失败：{message}", x.Message);
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// 获取用户信息
-        /// </summary>
-        /// <param name="birthday">生日日期</param>
-        /// <returns>用户信息</returns>
-        public async Task<UserDto> GetUserAsync(DateTime birthday)
-        {
-            try
-            {
-                var token = await _tokenManage.GetTokenAsync();
-
-                if (string.IsNullOrEmpty(token))
-                {
-                    _logger.LogWarning("获取到的Token为空！");
-                }
-
-                return await _singleTestApi.GetUserAsync(birthday, token);
-            }
-            catch (Exception x)
-            {
-                _logger.LogError(x, "执行GetUserAsync操作失败：{message}", x.Message);
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// 搜索用户
-        /// </summary>
-        /// <param name="input">搜索条件</param>
-        /// <param name="age">年龄</param>
-        /// <param name="cancellationToken">取消令牌</param>
-        /// <returns>用户列表</returns>
-        public async Task<UserDto> GetUser1Async(SysDeptQueryInput input, int? age, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var token = await _tokenManage.GetTokenAsync();
-
-                if (string.IsNullOrEmpty(token))
-                {
-                    _logger.LogWarning("获取到的Token为空！");
-                }
-
-                return await _singleTestApi.GetUser1Async(input, age, token, cancellationToken);
-            }
-            catch (Exception x)
-            {
-                _logger.LogError(x, "执行GetUser1Async操作失败：{message}", x.Message);
-                throw;
-            }
-        }
-    }
-}
-```
-
-### 高级配置选项
-
-#### 1. 使用指定的 Token 管理接口
-
-```CSharp
-// 使用指定的Token管理接口
-[HttpClientApi("https://api.dingtalk.com", Timeout = 60)]
-[HttpClientApiWrap(TokenManage = "IDingTokenManage")]
-public interface ISingleTestApi2
-{
-    [Get("/api/v1/user/{birthday}")]
-    Task<UserDto> GetUserAsync([Token][Header("x-token")] string token, [Path("yyyy-MM-dd")] DateTime birthday);
-}
-```
-
-#### 2. 自定义包装接口名称
-
-```CSharp
-// 自定义包装接口名称
-[HttpClientApi("https://api.dingtalk.com", Timeout = 60)]
-[HttpClientApiWrap(TokenManage = "ITokenManage", WrapInterface = "IDingTalkUserWrap")]
-public interface ISingleTestApi3
-{
-    [Get("/api/v1/user/{birthday}")]
-    Task<UserDto> GetUserAsync([Token][Header("x-token")] string token, [Path("yyyy-MM-dd")] DateTime birthday);
-}
-```
-
-### 依赖注入注册
-
-使用 `HttpClientRegistrationGenerator` 自动生成依赖注入注册代码：
-
-```CSharp
-// 自动生成的注册代码 - HttpClientApiExtensions.g.cs
-public static class HttpClientApiExtensions
-{
-    /// <summary>
-    /// 注册所有标记了 [HttpClientApi] 特性的接口及其 HttpClient 实现
-    /// </summary>
-    public static IServiceCollection AddWebApiHttpClient(this IServiceCollection services)
-    {
-        // 注册基本HttpClient API
-        services.AddHttpClient<ISingleTestApi, SingleTestApi>(client =>
-        {
-            client.BaseAddress = new Uri("https://api.dingtalk.com");
-            client.Timeout = TimeSpan.FromSeconds(60);
-        });
-
-        // 注册包装API的瞬时服务
-        AddWebApiHttpClientWrap(services);
-
-        return services;
-    }
-
-    /// <summary>
-    /// 注册所有包装接口及其包装实现类的瞬时服务
-    /// </summary>
-    public static IServiceCollection AddWebApiHttpClientWrap(this IServiceCollection services)
-    {
-        // 注册包装接口和实现类
-        services.AddTransient<ISingleTestApiWrap, SingleTestApiWrap>();
-        
-        return services;
-    }
-}
-```
-
-### 使用方式
-
-#### 1. 在应用程序中注册服务
-
-```CSharp
-// 在 Program.cs 或 Startup.cs 中
-var builder = WebApplication.CreateBuilder(args);
-
-// 注册 Token 管理服务
-builder.Services.AddScoped<ITokenManage, YourTokenManageImplementation>();
-
-// 自动注册所有 HttpClient API 和包装服务
-builder.Services.AddWebApiHttpClient();
-```
-
-#### 2. 在服务中使用包装接口
-
-```CSharp
-public class UserService
-{
-    private readonly ISingleTestApiWrap _singleTestApiWrap;
-
-    public UserService(ISingleTestApiWrap singleTestApiWrap)
-    {
-        _singleTestApiWrap = singleTestApiWrap;
-    }
-
-    public async Task<UserDto> GetUserAsync(DateTime birthday)
-    {
-        // 无需手动处理 Token，包装类会自动处理
-        return await _singleTestApiWrap.GetUserAsync(birthday);
-    }
-}
-```
-
-### 功能优势
-
-1. **简化 Token 管理**：自动处理 Token 获取和传递
-2. **统一错误处理**：提供一致的异常处理和日志记录
-3. **代码复用**：避免在每个 API 调用中重复 Token 处理逻辑
-4. **易于测试**：可以轻松模拟 Token 管理接口进行单元测试
-5. **可扩展性**：支持自定义 Token 管理策略
-
-### 最佳实践
-
-1. **统一的 Token 管理**：为不同类型的 API 使用不同的 Token 管理接口
-2. **合理的日志级别**：根据业务需求设置适当的日志级别
-3. **异常处理策略**：在包装类中实现合适的异常处理策略
-4. **性能考虑**：考虑 Token 缓存机制以提高性能
-5. **安全性**：确保 Token 的存储和传输安全
-
-### 生成的代码结构
-
-```
-obj/Debug/net8.0/generated/
-├── Mud.ServiceCodeGenerator/
-    ├── HttpClientApiSourceGenerator/
-    │   └── YourNamespace.ISingleTestApi.g.cs
-    ├── HttpClientApiInterfaceWrapSourceGenerator/
-    │   └── YourNamespace.ISingleTestApi.Wrap.g.cs
-    ├── HttpClientApiWrapClassSourceGenerator/
-    │   └── YourNamespace.ISingleTestApi.WrapImpl.g.cs
-    └── HttpClientApiRegisterSourceGenerator/
-        └── HttpClientApiExtensions.g.cs
-```
-
-## 生成代码查看
-
-要查看生成的代码，可以在项目文件中添加以下配置：
-
-```xml
-<PropertyGroup>
-  <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
-</PropertyGroup>
-```
-
-生成的代码将位于 `obj/[Configuration]/[TargetFramework]/generated/` 目录下，文件名以 `.g.cs` 结尾。
-
-## 维护者
-
-[倔强的泥巴](https://gitee.com/mudtools)
-
-
-### 许可证
-
-本项目采用MIT许可证模式：
-
-- [MIT 许可证](https://gitee.com/mudtools/mud-code-generator/blob/master/LICENSE)
-
-### 免责声明
-
-本项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
-
-不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目二次开发而产生的一切法律纠纷和责任，我们不承担任何责任。
+通过Mud服务代码生成器，开发者可以显著减少重复代码编写，专注于业务逻辑实现，提高开发效率和代码质量。
