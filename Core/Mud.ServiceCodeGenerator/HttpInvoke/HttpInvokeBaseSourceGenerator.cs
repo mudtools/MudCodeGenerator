@@ -126,25 +126,7 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     }
 
     #region Common Utility Methods
-    /// <summary>
-    /// 获取XML文档注释
-    /// </summary>
-    protected string GetXmlDocumentation(SyntaxNode syntaxNode)
-    {
-        if (syntaxNode == null)
-            return string.Empty;
 
-        var leadingTrivia = syntaxNode.GetLeadingTrivia();
-        var xmlDocTrivia = leadingTrivia.FirstOrDefault(t => t.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
-                                                             t.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia));
-
-        if (xmlDocTrivia != default)
-        {
-            return xmlDocTrivia.ToFullString();
-        }
-
-        return string.Empty;
-    }
 
     /// <summary>
     /// 检查参数是否具有指定的特性

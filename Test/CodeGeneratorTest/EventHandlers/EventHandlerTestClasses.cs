@@ -15,7 +15,7 @@ namespace CodeGeneratorTest.EventHandlers;
 /// <para>事件类型:contact.employee_type_enum.updated_v3</para>
 /// <para>文档地址：<see href="https://open.feishu.cn/document/..."/> </para>
 /// </summary>
-[EventHandler(EventType = "FeishuEventTypes.EmployeeTypeEnumUpdated",
+[EventHandler(EventType = EmployeeTypeEnum.FullTime,
              HandlerNamespace = "Mud.Feishu.Abstractions.EventHandlers",
              HandlerClassName = "EmployeeTypeEnumUpdateEventHandler",
              InheritedFrom = "DefaultFeishuEventHandler")]
@@ -31,22 +31,22 @@ public class EmployeeTypeEnumUpdateResult : IEventResult
 /// <summary>
 /// 员工类型枚举
 /// </summary>
-public enum EmployeeTypeEnum
+public class EmployeeTypeEnum
 {
     /// <summary>
     /// 全职员工
     /// </summary>
-    FullTime = 1,
+    public const string FullTime = "FullTime";
 
     /// <summary>
     /// 兼职员工
     /// </summary>
-    PartTime = 2,
+    public const string PartTime = "PartTime";
 
     /// <summary>
     /// 实习生
     /// </summary>
-    Intern = 3
+    public const string Intern = "Intern";
 }
 
 /// <summary>

@@ -6,8 +6,8 @@
 // -----------------------------------------------------------------------
 
 using Microsoft.CodeAnalysis.Diagnostics;
+using Mud.CodeGenerator.Helper;
 using System.Collections.Immutable;
-using System.Linq;
 using System.Collections.ObjectModel;
 using System.Text;
 
@@ -83,9 +83,8 @@ public class EventHandlerSourceGenerator : TransitiveCodeGenerator
                 if (classSymbol == null)
                     continue;
 
-                // 获取EventHandler特性数据
-                var eventHandlerAttribute = classSymbol.GetAttributes()
-                    .FirstOrDefault(attr => attr.AttributeClass?.Name == EventHandlerAttributeName);
+                // 获取EventHandler特性数据，使用AttributeDataHelper的已有功能
+                var eventHandlerAttribute = AttributeDataHelper.GetAttributeDataFromSymbol(classSymbol, [EventHandlerAttributeName]);
 
                 if (eventHandlerAttribute == null)
                     continue;
@@ -136,11 +135,11 @@ public class EventHandlerSourceGenerator : TransitiveCodeGenerator
         // 获取XML文档注释
         var xmlDocumentation = GetXmlDocumentation(eventClass);
 
-        // 解析特性参数
-        var handlerNamespace = GetAttributeParameter<string>(eventHandlerAttribute, "HandlerNamespace", "");
-        var handlerClassName = GetAttributeParameter<string>(eventHandlerAttribute, "HandlerClassName", "");
-        var eventType = GetAttributeParameter<string>(eventHandlerAttribute, "EventType", "");
-        var inheritedFrom = GetAttributeParameter<string>(eventHandlerAttribute, "InheritedFrom", "DefaultFeishuEventHandler");
+        // 解析特性参数，使用AttributeDataHelper的已有功能
+        var handlerNamespace = GetAttributeParameter(eventHandlerAttribute, "HandlerNamespace", "");
+        var handlerClassName = GetAttributeParameter(eventHandlerAttribute, "HandlerClassName", "");
+        var eventType = GetEventTypeParameter(eventHandlerAttribute, "");
+        var inheritedFrom = GetAttributeParameter(eventHandlerAttribute, "InheritedFrom", "DefaultFeishuEventHandler");
 
         // 获取生成的类名
         var generatedClassName = !string.IsNullOrEmpty(handlerClassName) ? handlerClassName : GenerateDefaultHandlerClassName(eventClass.Identifier.Text);
@@ -173,6 +172,7 @@ public class EventHandlerSourceGenerator : TransitiveCodeGenerator
         }
 
         // 命名空间声明
+        sb.AppendLine();
         sb.AppendLine($"namespace {targetNamespace}");
         sb.AppendLine("{");
 
@@ -183,6 +183,8 @@ public class EventHandlerSourceGenerator : TransitiveCodeGenerator
         }
 
         // 类声明
+        sb.AppendLine($"    {GeneratedCodeConsts.CompilerGeneratedAttribute}");
+        sb.AppendLine($"    {GeneratedCodeConsts.GeneratedCodeAttribute}");
         sb.AppendLine($"    public abstract class {generatedClassName}");
         sb.AppendLine($"        : {inheritedFrom}<{eventClass.Identifier.Text}>");
         sb.AppendLine("    {");
@@ -192,6 +194,7 @@ public class EventHandlerSourceGenerator : TransitiveCodeGenerator
         sb.AppendLine("        /// 默认构造函数");
         sb.AppendLine("        /// </summary>");
         sb.AppendLine("        /// <param name=\"logger\"></param>");
+        sb.AppendLine($"        {GeneratedCodeConsts.GeneratedCodeAttribute}");
         sb.AppendLine($"        public {generatedClassName}(ILogger logger)");
         sb.AppendLine("            : base(logger)");
         sb.AppendLine("        {");
@@ -205,7 +208,8 @@ public class EventHandlerSourceGenerator : TransitiveCodeGenerator
             sb.AppendLine("        /// 支持的事件类型");
             sb.AppendLine("        /// </summary>");
             // 确保事件类型是字符串字面量
-            var eventTypeValue = eventType.StartsWith("\"") ? eventType : $"\"{eventType}\"";
+            var eventTypeValue = eventType.StartsWith("\"", StringComparison.OrdinalIgnoreCase) ? eventType : $"\"{eventType}\"";
+            sb.AppendLine($"        {GeneratedCodeConsts.GeneratedCodeAttribute}");
             sb.AppendLine($"        public override string SupportedEventType => {eventTypeValue};");
         }
 
@@ -216,45 +220,37 @@ public class EventHandlerSourceGenerator : TransitiveCodeGenerator
     }
 
     /// <summary>
-    /// 获取特性参数值
+    /// 获取字符串类型的特性参数值
     /// </summary>
-    /// <typeparam name="T">参数类型</typeparam>
     /// <param name="attribute">特性数据</param>
     /// <param name="parameterName">参数名</param>
     /// <param name="defaultValue">默认值</param>
     /// <returns>参数值</returns>
-    private static T GetAttributeParameter<T>(AttributeData attribute, string parameterName, T defaultValue)
+    private string GetAttributeParameter(AttributeData attribute, string parameterName, string defaultValue = "")
     {
-        if (attribute == null)
-            return defaultValue;
-
-        // 首先检查命名参数
-        var namedArgument = attribute.NamedArguments.FirstOrDefault(arg => arg.Key == parameterName);
-        if (namedArgument.Key == parameterName && namedArgument.Value.Value != null)
+        // 优先使用AttributeDataHelper的命名参数方法
+        var namedValue = AttributeDataHelper.GetStringValueFromAttribute(attribute, parameterName, defaultValue);
+        if (!string.IsNullOrEmpty(namedValue) && namedValue != defaultValue)
         {
-            return (T)namedArgument.Value.Value;
+            return namedValue;
         }
 
-        // 然后检查构造函数参数（基于参数名的逻辑顺序）
-        var parameterIndex = parameterName switch
-        {
-            "EventType" => 0,
-            "HandlerNamespace" => 1,
-            "HandlerClassName" => 2,
-            "InheritedFrom" => 3,
-            _ => -1
-        };
+        // 如果命名参数中没有找到，检查构造函数参数
+        return AttributeDataHelper.GetStringValueFromAttributeConstructor(attribute, parameterName) ?? defaultValue;
+    }
 
-        if (parameterIndex >= 0 && parameterIndex < attribute.ConstructorArguments.Length)
-        {
-            var constructorArg = attribute.ConstructorArguments[parameterIndex].Value;
-            if (constructorArg != null)
-            {
-                return (T)constructorArg;
-            }
-        }
-
-        return defaultValue;
+    /// <summary>
+    /// 获取事件类型参数（支持构造函数参数优先级）
+    /// </summary>
+    /// <param name="attribute">特性数据</param>
+    /// <param name="defaultValue">默认值</param>
+    /// <returns>事件类型</returns>
+    private string GetEventTypeParameter(AttributeData attribute, string defaultValue = "")
+    {
+        // 对于EventType，优先使用构造函数的第一个参数
+        return AttributeDataHelper.GetStringValueFromAttributeConstructor(attribute, "EventType")
+               ?? AttributeDataHelper.GetStringValueFromAttribute(attribute, "EventType", defaultValue)
+               ?? defaultValue;
     }
 
     /// <summary>
@@ -262,7 +258,7 @@ public class EventHandlerSourceGenerator : TransitiveCodeGenerator
     /// </summary>
     /// <param name="originalClassName">原始类名</param>
     /// <returns>生成的事件处理器类名</returns>
-    private static string GenerateDefaultHandlerClassName(string originalClassName)
+    private string GenerateDefaultHandlerClassName(string originalClassName)
     {
         if (string.IsNullOrEmpty(originalClassName))
             return "DefaultEventHandler";
@@ -282,31 +278,9 @@ public class EventHandlerSourceGenerator : TransitiveCodeGenerator
     /// </summary>
     /// <param name="classSymbol">类符号</param>
     /// <returns>默认命名空间</returns>
-    private static string GetDefaultNamespace(INamedTypeSymbol classSymbol)
+    private string GetDefaultNamespace(INamedTypeSymbol classSymbol)
     {
         return classSymbol.ContainingNamespace?.ToString() ?? "Generated.EventHandlers";
-    }
-
-    /// <summary>
-    /// 获取XML文档注释
-    /// </summary>
-    /// <param name="syntaxNode">语法节点</param>
-    /// <returns>XML文档注释字符串</returns>
-    private static string GetXmlDocumentation(SyntaxNode syntaxNode)
-    {
-        if (syntaxNode == null)
-            return string.Empty;
-
-        var leadingTrivia = syntaxNode.GetLeadingTrivia();
-        var xmlDocTrivia = leadingTrivia.FirstOrDefault(t => t.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
-                                                             t.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia));
-
-        if (xmlDocTrivia != default)
-        {
-            return xmlDocTrivia.ToFullString();
-        }
-
-        return string.Empty;
     }
 
     /// <summary>
@@ -316,12 +290,12 @@ public class EventHandlerSourceGenerator : TransitiveCodeGenerator
     /// <param name="classSymbol">类符号</param>
     /// <param name="eventHandlerAttribute">EventHandler特性</param>
     /// <returns>生成的类名</returns>
-    private static string GetGeneratedClassName(
+    private string GetGeneratedClassName(
         ClassDeclarationSyntax eventClass,
         INamedTypeSymbol classSymbol,
         AttributeData eventHandlerAttribute)
     {
-        var handlerClassName = GetAttributeParameter<string>(eventHandlerAttribute, "HandlerClassName", "");
+        var handlerClassName = GetAttributeParameter(eventHandlerAttribute, "HandlerClassName", "");
 
         if (!string.IsNullOrEmpty(handlerClassName))
         {

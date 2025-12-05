@@ -167,6 +167,26 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     }
 
 
+    /// <summary>
+    /// 获取XML文档注释
+    /// </summary>
+    protected string GetXmlDocumentation(SyntaxNode syntaxNode)
+    {
+        if (syntaxNode == null)
+            return string.Empty;
+
+        var leadingTrivia = syntaxNode.GetLeadingTrivia();
+        var xmlDocTrivia = leadingTrivia.FirstOrDefault(t => t.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
+                                                             t.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia));
+
+        if (xmlDocTrivia != default)
+        {
+            return xmlDocTrivia.ToFullString();
+        }
+
+        return string.Empty;
+    }
+
     #region Property Name Handling
     /// <summary>
     /// 获取实体需要生成的属性信息（从配置信息中决定属性名首字母是否大小写）。
