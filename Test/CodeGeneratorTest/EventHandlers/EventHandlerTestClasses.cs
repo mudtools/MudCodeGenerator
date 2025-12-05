@@ -16,8 +16,6 @@ namespace CodeGeneratorTest.EventHandlers;
 /// <para>文档地址：<see href="https://open.feishu.cn/document/..."/> </para>
 /// </summary>
 [EventHandler(EventType = EmployeeTypeEnum.FullTime,
-             HandlerNamespace = "Mud.Feishu.Abstractions.EventHandlers",
-             HandlerClassName = "EmployeeTypeEnumUpdateEventHandler",
              InheritedFrom = "DefaultFeishuEventHandler")]
 public class EmployeeTypeEnumUpdateResult : IEventResult
 {
