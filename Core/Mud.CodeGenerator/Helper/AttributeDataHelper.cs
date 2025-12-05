@@ -7,11 +7,18 @@
 
 namespace Mud.CodeGenerator.Helper;
 
-internal sealed class AttributeDataHelper
+/// <summary>
+/// 特性数据辅助类，提供从特性数据中提取常用类型值的静态方法。
+/// </summary>
+internal static class AttributeDataHelper
 {
     /// <summary>
-    /// 从特性获取<see cref="int"/>值。
+    /// 从特性数据中获取整型属性值。
     /// </summary>
+    /// <param name="attribute">特性数据对象</param>
+    /// <param name="propertyName">属性名称</param>
+    /// <param name="defaultVal">默认值，当属性不存在或无法解析时返回此值</param>
+    /// <returns>解析得到的整型值或默认值</returns>
     public static int GetIntValueFromAttribute(AttributeData attribute, string propertyName, int defaultVal = 0)
     {
         if (attribute == null)
@@ -22,27 +29,34 @@ internal sealed class AttributeDataHelper
         return timeoutArg.Value.Value is int value ? value : defaultVal;
     }
 
+
     /// <summary>
-    /// 从特性获取注册组名称
+    /// 从特性数据中获取字符串属性值。
     /// </summary>
+    /// <param name="attribute">特性数据对象</param>
+    /// <param name="propertyName">属性名称</param>
+    /// <param name="defaultValue">默认值，当属性不存在或无法解析时返回此值</param>
+    /// <returns>解析得到的字符串值或默认值</returns>
     public static string? GetStringValueFromAttribute(AttributeData attribute, string propertyName, string? defaultValue = null)
     {
         if (attribute == null)
             return defaultValue;
-        var registryGroupNameArg = attribute.NamedArguments
+        var nameArg = attribute.NamedArguments
             .FirstOrDefault(a => a.Key.Equals(propertyName, StringComparison.OrdinalIgnoreCase));
-        return registryGroupNameArg.Value.Value?.ToString();
+        return nameArg.Value.Value?.ToString();
     }
 
 
     /// <summary>
-    /// 从特性获取IsAbstract属性值
+    /// 从特性数据中获取布尔型属性值。
     /// </summary>
-    /// <param name="httpClientApiAttribute">HttpClientApi特性</param>
-    /// <returns>是否为抽象类</returns>
-    public static bool GetBoolValueFromAttribute(AttributeData? httpClientApiAttribute, string propertyName, bool defaultValue = false)
+    /// <param name="attributeData">特性数据对象</param>
+    /// <param name="propertyName">属性名称</param>
+    /// <param name="defaultValue">默认值，当属性不存在或无法解析时返回此值</param>
+    /// <returns>解析得到的布尔值或默认值</returns>
+    public static bool GetBoolValueFromAttribute(AttributeData? attributeData, string propertyName, bool defaultValue = false)
     {
-        if (httpClientApiAttribute?.NamedArguments
+        if (attributeData?.NamedArguments
             .FirstOrDefault(k => k.Key.Equals(propertyName, StringComparison.OrdinalIgnoreCase))
             .Value.Value is bool isAbstract)
             return isAbstract;
@@ -50,31 +64,43 @@ internal sealed class AttributeDataHelper
         return defaultValue;
     }
 
+
     /// <summary>
-    /// 从特性获取 BaseAddress，同时兼容构造函数参数方式
+    /// 从特性数据中获取字符串属性值，同时兼容命名参数和构造函数参数两种方式。
+    /// 优先返回命名参数的值，如果命名参数不存在，则返回构造函数参数的值。
     /// </summary>
-    /// <param name="httpClientApiAttribute">HttpClientApi特性</param>
-    /// <returns>BaseAddress</returns>
-    public static string? GetStringValueFromAttributeConstructor(AttributeData? httpClientApiAttribute, string propertyName)
+    /// <param name="attributeData">特性数据对象</param>
+    /// <param name="propertyName">属性名称</param>
+    /// <returns>解析得到的字符串值，如果都未找到则返回 null</returns>
+    /// <remarks>
+    /// 此方法首先检查命名参数，如果找到非空的值则直接返回。
+    /// 如果命名参数为空，则检查构造函数参数，返回第一个参数的值。
+    /// </remarks>
+    public static string? GetStringValueFromAttributeConstructor(AttributeData? attributeData, string propertyName)
     {
-        if (httpClientApiAttribute == null)
+        if (attributeData == null)
             return null;
 
-        // 优先检查命名参数 BaseAddress
-        var baseAddressArg = GetStringValueFromAttribute(httpClientApiAttribute, propertyName);
+        var baseAddressArg = GetStringValueFromAttribute(attributeData, propertyName);
         if (!string.IsNullOrEmpty(baseAddressArg))
             return baseAddressArg;
 
-        // 检查构造函数参数（兼容旧版本）
-        if (httpClientApiAttribute.ConstructorArguments.Length > 0 && httpClientApiAttribute.ConstructorArguments[0].Value is string baseAddress)
+        if (attributeData.ConstructorArguments.Length > 0 && attributeData.ConstructorArguments[0].Value is string baseAddress)
             return baseAddress;
 
         return null;
     }
 
     /// <summary>
-    /// 获取HttpClientApi特性
+    /// 从类型符号中获取指定名称的特性数据。
     /// </summary>
+    /// <param name="interfaceSymbol">类型符号对象</param>
+    /// <param name="attributeNames">要查找的特性名称数组，支持多个名称进行匹配</param>
+    /// <returns>匹配到的特性数据对象，如果未找到则返回 null</returns>
+    /// <remarks>
+    /// 此方法会遍历类型的所有特性，返回第一个名称在给定名称数组中的特性。
+    /// 常用于查找可能存在多个别名或不同命名空间的特性。
+    /// </remarks>
     public static AttributeData? GetAttributeDataFromSymbol(INamedTypeSymbol interfaceSymbol, string[] attributeNames)
     {
         if (interfaceSymbol == null || attributeNames == null)

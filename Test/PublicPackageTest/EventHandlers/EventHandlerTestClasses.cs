@@ -6,8 +6,9 @@
 
 using Microsoft.Extensions.Logging;
 using Mud.CodeGenerator;
+using System.Text.Json.Serialization;
 
-namespace CodeGeneratorTest.EventHandlers;
+namespace PublicPackageTest.EventHandlers;
 
 /// <summary>
 /// 修改人员类型名称事件处理器
@@ -15,7 +16,7 @@ namespace CodeGeneratorTest.EventHandlers;
 /// <para>事件类型:contact.employee_type_enum.updated_v3</para>
 /// <para>文档地址：<see href="https://open.feishu.cn/document/..."/> </para>
 /// </summary>
-[EventHandler(EventType = EmployeeTypeEnum.UserCreated,
+[EventHandler(EventType = EmployeeTypeEnum.FullTime,
              InheritedFrom = "DefaultFeishuEventHandler")]
 public class EmployeeTypeEnumUpdateResult : IEventResult
 {
@@ -31,8 +32,6 @@ public class EmployeeTypeEnumUpdateResult : IEventResult
 /// </summary>
 public class EmployeeTypeEnum
 {
-    public const string UserCreated = "contact.user.created_v3";
-
     /// <summary>
     /// 全职员工
     /// </summary>

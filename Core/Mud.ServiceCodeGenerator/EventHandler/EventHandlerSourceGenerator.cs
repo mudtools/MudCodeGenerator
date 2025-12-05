@@ -94,7 +94,7 @@ public class EventHandlerSourceGenerator : TransitiveCodeGenerator
 
                 if (!string.IsNullOrEmpty(generatedCode))
                 {
-                    var fileName = $"{GetGeneratedClassName(eventClass, classSymbol, eventHandlerAttribute)}.g.cs";
+                    var fileName = $"{GetGeneratedClassName(eventClass, eventHandlerAttribute)}.g.cs";
                     context.AddSource(fileName, generatedCode);
                 }
             }
@@ -247,7 +247,6 @@ public class EventHandlerSourceGenerator : TransitiveCodeGenerator
     /// <returns>事件类型</returns>
     private string GetEventTypeParameter(AttributeData attribute, string defaultValue = "")
     {
-        // 对于EventType，优先使用构造函数的第一个参数
         return AttributeDataHelper.GetStringValueFromAttributeConstructor(attribute, "EventType")
                ?? AttributeDataHelper.GetStringValueFromAttribute(attribute, "EventType", defaultValue)
                ?? defaultValue;
@@ -292,7 +291,6 @@ public class EventHandlerSourceGenerator : TransitiveCodeGenerator
     /// <returns>生成的类名</returns>
     private string GetGeneratedClassName(
         ClassDeclarationSyntax eventClass,
-        INamedTypeSymbol classSymbol,
         AttributeData eventHandlerAttribute)
     {
         var handlerClassName = GetAttributeParameter(eventHandlerAttribute, "HandlerClassName", "");
