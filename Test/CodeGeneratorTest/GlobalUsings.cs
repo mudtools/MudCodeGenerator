@@ -7,4 +7,5 @@ global using FreeSql.DataAnnotations;
 global using Microsoft.Extensions.Options;
 global using Mud.Common.CodeGenerator;
 global using System.ComponentModel.DataAnnotations;
+global using System.Text.Json.Serialization;
 

@@ -176,4 +176,22 @@ internal static class StringExtensions
             return originalFunctionName + appendSuffixName;
         }
     }
+
+    /// <summary>
+    /// 为字符串的每一行添加缩进
+    /// </summary>
+    /// <param name="str">输入字符串</param>
+    /// <param name="indentLevel">缩进级别（每个级别4个空格）</param>
+    /// <returns>添加缩进后的字符串</returns>
+    public static string IndentLines(this string str, int indentLevel)
+    {
+        if (string.IsNullOrEmpty(str))
+            return str;
+
+        var indent = new string(' ', indentLevel * 4);
+        var lines = str.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+        var indentedLines = lines.Select(line => string.IsNullOrEmpty(line) ? line : indent + line);
+        
+        return string.Join(Environment.NewLine, indentedLines);
+    }
 }

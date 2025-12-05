@@ -1,0 +1,340 @@
+// -----------------------------------------------------------------------
+//  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
+//  Mud.CodeGenerator 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
+//  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
+//  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
+// -----------------------------------------------------------------------
+
+using Microsoft.CodeAnalysis.Diagnostics;
+using System.Collections.Immutable;
+using System.Linq;
+using System.Collections.ObjectModel;
+using System.Text;
+
+namespace Mud.ServiceCodeGenerator;
+
+/// <summary>
+/// 事件处理器源代码生成器，用于为带有EventHandler特性的类生成对应的事件处理器抽象类。
+/// </summary>
+[Generator(LanguageNames.CSharp)]
+public class EventHandlerSourceGenerator : TransitiveCodeGenerator
+{
+    private const string EventHandlerAttributeName = "EventHandlerAttribute";
+
+    /// <inheritdoc/>
+    protected override Collection<string> GetFileUsingNameSpaces()
+    {
+        return
+        [
+            "System",
+            "System.Threading.Tasks",
+            "Microsoft.Extensions.Logging"
+        ];
+    }
+
+    /// <inheritdoc/>
+    public override void Initialize(IncrementalGeneratorInitializationContext context)
+    {
+        // 查找标记了[EventHandler]的类声明
+        var eventHandlerClasses = GetClassDeclarationProvider<ClassDeclarationSyntax>(context, [EventHandlerAttributeName]);
+
+        // 获取编译信息和分析器配置选项
+        var compilationWithOptions = context.CompilationProvider
+            .Combine(context.AnalyzerConfigOptionsProvider);
+
+        // 组合所有需要的数据：编译信息、类声明、配置选项
+        var completeDataProvider = compilationWithOptions.Combine(eventHandlerClasses);
+
+        // 注册源代码生成器
+        context.RegisterSourceOutput(completeDataProvider,
+            (ctx, provider) => ExecuteGenerator(
+                compilation: provider.Left.Left,
+                eventHandlerClasses: provider.Right.Where(c => c != null).ToImmutableArray()!,
+                context: ctx,
+                configOptionsProvider: provider.Left.Right));
+    }
+
+    /// <summary>
+    /// 执行源代码生成逻辑
+    /// </summary>
+    /// <param name="compilation">编译信息</param>
+    /// <param name="eventHandlerClasses">事件处理器类声明数组</param>
+    /// <param name="context">源代码生成上下文</param>
+    /// <param name="configOptionsProvider">配置选项提供者</param>
+    private void ExecuteGenerator(
+        Compilation compilation,
+        ImmutableArray<ClassDeclarationSyntax> eventHandlerClasses,
+        SourceProductionContext context,
+        AnalyzerConfigOptionsProvider configOptionsProvider)
+    {
+        if (eventHandlerClasses.IsDefaultOrEmpty)
+            return;
+
+        foreach (var eventClass in eventHandlerClasses)
+        {
+            if (eventClass == null)
+                continue;
+
+            try
+            {
+                var semanticModel = compilation.GetSemanticModel(eventClass.SyntaxTree);
+                var classSymbol = semanticModel.GetDeclaredSymbol(eventClass);
+
+                if (classSymbol == null)
+                    continue;
+
+                // 获取EventHandler特性数据
+                var eventHandlerAttribute = classSymbol.GetAttributes()
+                    .FirstOrDefault(attr => attr.AttributeClass?.Name == EventHandlerAttributeName);
+
+                if (eventHandlerAttribute == null)
+                    continue;
+
+                // 生成事件处理器代码
+                var generatedCode = GenerateEventHandlerClass(compilation, eventClass, classSymbol, eventHandlerAttribute, context);
+
+                if (!string.IsNullOrEmpty(generatedCode))
+                {
+                    var fileName = $"{GetGeneratedClassName(eventClass, classSymbol, eventHandlerAttribute)}.g.cs";
+                    context.AddSource(fileName, generatedCode);
+                }
+            }
+            catch (Exception ex)
+            {
+                // 报告生成错误
+                context.ReportDiagnostic(Diagnostic.Create(
+                    new DiagnosticDescriptor(
+                        "EHSG001",
+                        "Event Handler Generator Error",
+                        "Failed to generate event handler for class '{0}': {1}",
+                        "EventHandling",
+                        DiagnosticSeverity.Error,
+                        isEnabledByDefault: true),
+                    Location.None,
+                    eventClass.Identifier.Text,
+                    ex.Message));
+            }
+        }
+    }
+
+    /// <summary>
+    /// 生成事件处理器类代码
+    /// </summary>
+    /// <param name="compilation">编译信息</param>
+    /// <param name="eventClass">事件结果类声明</param>
+    /// <param name="classSymbol">类符号</param>
+    /// <param name="eventHandlerAttribute">EventHandler特性</param>
+    /// <param name="context">源代码生成上下文</param>
+    /// <returns>生成的事件处理器类代码</returns>
+    private string GenerateEventHandlerClass(
+        Compilation compilation,
+        ClassDeclarationSyntax eventClass,
+        INamedTypeSymbol classSymbol,
+        AttributeData eventHandlerAttribute,
+        SourceProductionContext context)
+    {
+        // 获取XML文档注释
+        var xmlDocumentation = GetXmlDocumentation(eventClass);
+
+        // 解析特性参数
+        var handlerNamespace = GetAttributeParameter<string>(eventHandlerAttribute, "HandlerNamespace", "");
+        var handlerClassName = GetAttributeParameter<string>(eventHandlerAttribute, "HandlerClassName", "");
+        var eventType = GetAttributeParameter<string>(eventHandlerAttribute, "EventType", "");
+        var inheritedFrom = GetAttributeParameter<string>(eventHandlerAttribute, "InheritedFrom", "DefaultFeishuEventHandler");
+
+        // 获取生成的类名
+        var generatedClassName = !string.IsNullOrEmpty(handlerClassName) ? handlerClassName : GenerateDefaultHandlerClassName(eventClass.Identifier.Text);
+
+        // 获取命名空间
+        var targetNamespace = !string.IsNullOrEmpty(handlerNamespace) ? handlerNamespace : GetDefaultNamespace(classSymbol);
+
+        // 构建生成的代码
+        var sb = new StringBuilder();
+
+        // 文件头部注释
+        GenerateFileHeader(sb);
+
+        // 添加自定义命名空间引用（如果需要的话）
+        if (!string.IsNullOrEmpty(inheritedFrom) && inheritedFrom.Contains("."))
+        {
+            var parts = inheritedFrom.Split('.');
+            var inheritedNamespace = string.Join(".", parts.Take(parts.Length - 1));
+            if (!GetFileUsingNameSpaces().Contains(inheritedNamespace))
+            {
+                sb.AppendLine($"using {inheritedNamespace};");
+            }
+        }
+
+        // 添加原始类所在的命名空间引用（如果与目标命名空间不同）
+        var originalNamespace = classSymbol.ContainingNamespace?.ToString();
+        if (!string.IsNullOrEmpty(originalNamespace) && originalNamespace != targetNamespace)
+        {
+            sb.AppendLine($"using {originalNamespace};");
+        }
+
+        // 命名空间声明
+        sb.AppendLine($"namespace {targetNamespace}");
+        sb.AppendLine("{");
+
+        // XML文档注释（如果原始类有的话）
+        if (!string.IsNullOrEmpty(xmlDocumentation))
+        {
+            sb.Append(xmlDocumentation.IndentLines(1));
+        }
+
+        // 类声明
+        sb.AppendLine($"    public abstract class {generatedClassName}");
+        sb.AppendLine($"        : {inheritedFrom}<{eventClass.Identifier.Text}>");
+        sb.AppendLine("    {");
+
+        // 构造函数
+        sb.AppendLine("        /// <summary>");
+        sb.AppendLine("        /// 默认构造函数");
+        sb.AppendLine("        /// </summary>");
+        sb.AppendLine("        /// <param name=\"logger\"></param>");
+        sb.AppendLine($"        public {generatedClassName}(ILogger logger)");
+        sb.AppendLine("            : base(logger)");
+        sb.AppendLine("        {");
+        sb.AppendLine("        }");
+        sb.AppendLine();
+
+        // SupportedEventType属性
+        if (!string.IsNullOrEmpty(eventType))
+        {
+            sb.AppendLine("        /// <summary>");
+            sb.AppendLine("        /// 支持的事件类型");
+            sb.AppendLine("        /// </summary>");
+            // 确保事件类型是字符串字面量
+            var eventTypeValue = eventType.StartsWith("\"") ? eventType : $"\"{eventType}\"";
+            sb.AppendLine($"        public override string SupportedEventType => {eventTypeValue};");
+        }
+
+        sb.AppendLine("    }");
+        sb.AppendLine("}");
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// 获取特性参数值
+    /// </summary>
+    /// <typeparam name="T">参数类型</typeparam>
+    /// <param name="attribute">特性数据</param>
+    /// <param name="parameterName">参数名</param>
+    /// <param name="defaultValue">默认值</param>
+    /// <returns>参数值</returns>
+    private static T GetAttributeParameter<T>(AttributeData attribute, string parameterName, T defaultValue)
+    {
+        if (attribute == null)
+            return defaultValue;
+
+        // 首先检查命名参数
+        var namedArgument = attribute.NamedArguments.FirstOrDefault(arg => arg.Key == parameterName);
+        if (namedArgument.Key == parameterName && namedArgument.Value.Value != null)
+        {
+            return (T)namedArgument.Value.Value;
+        }
+
+        // 然后检查构造函数参数（基于参数名的逻辑顺序）
+        var parameterIndex = parameterName switch
+        {
+            "EventType" => 0,
+            "HandlerNamespace" => 1,
+            "HandlerClassName" => 2,
+            "InheritedFrom" => 3,
+            _ => -1
+        };
+
+        if (parameterIndex >= 0 && parameterIndex < attribute.ConstructorArguments.Length)
+        {
+            var constructorArg = attribute.ConstructorArguments[parameterIndex].Value;
+            if (constructorArg != null)
+            {
+                return (T)constructorArg;
+            }
+        }
+
+        return defaultValue;
+    }
+
+    /// <summary>
+    /// 生成默认的事件处理器类名
+    /// </summary>
+    /// <param name="originalClassName">原始类名</param>
+    /// <returns>生成的事件处理器类名</returns>
+    private static string GenerateDefaultHandlerClassName(string originalClassName)
+    {
+        if (string.IsNullOrEmpty(originalClassName))
+            return "DefaultEventHandler";
+
+        // 如果类名以"Result"结尾，移除"Result"并添加"EventHandler"
+        if (originalClassName.EndsWith("Result", StringComparison.Ordinal))
+        {
+            return originalClassName.Substring(0, originalClassName.Length - 6) + "EventHandler";
+        }
+
+        // 否则直接添加"EventHandler"后缀
+        return originalClassName + "EventHandler";
+    }
+
+    /// <summary>
+    /// 获取默认命名空间
+    /// </summary>
+    /// <param name="classSymbol">类符号</param>
+    /// <returns>默认命名空间</returns>
+    private static string GetDefaultNamespace(INamedTypeSymbol classSymbol)
+    {
+        return classSymbol.ContainingNamespace?.ToString() ?? "Generated.EventHandlers";
+    }
+
+    /// <summary>
+    /// 获取XML文档注释
+    /// </summary>
+    /// <param name="syntaxNode">语法节点</param>
+    /// <returns>XML文档注释字符串</returns>
+    private static string GetXmlDocumentation(SyntaxNode syntaxNode)
+    {
+        if (syntaxNode == null)
+            return string.Empty;
+
+        var leadingTrivia = syntaxNode.GetLeadingTrivia();
+        var xmlDocTrivia = leadingTrivia.FirstOrDefault(t => t.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
+                                                             t.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia));
+
+        if (xmlDocTrivia != default)
+        {
+            return xmlDocTrivia.ToFullString();
+        }
+
+        return string.Empty;
+    }
+
+    /// <summary>
+    /// 获取生成的事件处理器类名（用于文件名）
+    /// </summary>
+    /// <param name="eventClass">事件结果类声明</param>
+    /// <param name="classSymbol">类符号</param>
+    /// <param name="eventHandlerAttribute">EventHandler特性</param>
+    /// <returns>生成的类名</returns>
+    private static string GetGeneratedClassName(
+        ClassDeclarationSyntax eventClass,
+        INamedTypeSymbol classSymbol,
+        AttributeData eventHandlerAttribute)
+    {
+        var handlerClassName = GetAttributeParameter<string>(eventHandlerAttribute, "HandlerClassName", "");
+
+        if (!string.IsNullOrEmpty(handlerClassName))
+        {
+            // 处理nameof表达式，例如 nameof(EmployeeTypeEnumUpdateEventHandler)
+            if (handlerClassName.StartsWith("nameof(", StringComparison.Ordinal) && handlerClassName.EndsWith(")", StringComparison.Ordinal))
+            {
+                // 提取nameof表达式中的内容
+                var nameOfContent = handlerClassName.Substring(7, handlerClassName.Length - 8).Trim();
+                return nameOfContent;
+            }
+            return handlerClassName;
+        }
+
+        return GenerateDefaultHandlerClassName(eventClass.Identifier.Text);
+    }
+}
