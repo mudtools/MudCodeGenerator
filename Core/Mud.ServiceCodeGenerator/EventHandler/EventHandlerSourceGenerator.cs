@@ -185,7 +185,7 @@ public class EventHandlerSourceGenerator : TransitiveCodeGenerator
         // 类声明
         sb.AppendLine($"    {GeneratedCodeConsts.CompilerGeneratedAttribute}");
         sb.AppendLine($"    {GeneratedCodeConsts.GeneratedCodeAttribute}");
-        sb.AppendLine($"    public abstract class {generatedClassName}");
+        sb.AppendLine($"    public abstract partial class {generatedClassName}");
         sb.AppendLine($"        : {inheritedFrom}<{eventClass.Identifier.Text}>");
         sb.AppendLine("    {");
 
@@ -247,9 +247,13 @@ public class EventHandlerSourceGenerator : TransitiveCodeGenerator
     /// <returns>事件类型</returns>
     private string GetEventTypeParameter(AttributeData attribute, string defaultValue = "")
     {
-        return AttributeDataHelper.GetStringValueFromAttributeConstructor(attribute, "EventType")
-               ?? AttributeDataHelper.GetStringValueFromAttribute(attribute, "EventType", defaultValue)
-               ?? defaultValue;
+        var result = AttributeDataHelper.GetStringValueFromAttributeConstructor(attribute, "EventType")
+                   ?? AttributeDataHelper.GetStringValueFromAttribute(attribute, "EventType", defaultValue)
+                   ?? defaultValue;
+
+        // 去掉字符串结尾的所有换行符、回车符和空白字符
+        result = result.TrimEnd('\r', '\n', ' ', '\t');
+        return result;
     }
 
     /// <summary>
