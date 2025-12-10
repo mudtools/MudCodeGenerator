@@ -46,24 +46,60 @@ internal static class AttributeDataHelper
         return nameArg.Value.Value?.ToString();
     }
 
-
     /// <summary>
-    /// 从特性数据中获取布尔型属性值。
+    /// 从特性中获取字符串参数值，按优先级顺序检查命名参数、构造函数参数
     /// </summary>
-    /// <param name="attributeData">特性数据对象</param>
-    /// <param name="propertyName">属性名称</param>
-    /// <param name="defaultValue">默认值，当属性不存在或无法解析时返回此值</param>
-    /// <returns>解析得到的布尔值或默认值</returns>
-    public static bool GetBoolValueFromAttribute(AttributeData? attributeData, string propertyName, bool defaultValue = false)
+    /// <param name="attribute">特性数据</param>
+    /// <param name="namedParameterNames">命名参数名称列表（按优先级排序）</param>
+    /// <param name="constructorParameterIndex">构造函数参数索引</param>
+    /// <param name="defaultValue">默认值</param>
+    /// <returns>参数值</returns>
+    public static string? GetStringValueFromAttribute(AttributeData attribute, string[] namedParameterNames, int constructorParameterIndex = -1, string? defaultValue = null)
     {
-        if (attributeData?.NamedArguments
-            .FirstOrDefault(k => k.Key.Equals(propertyName, StringComparison.OrdinalIgnoreCase))
-            .Value.Value is bool isAbstract)
-            return isAbstract;
+        if (attribute == null)
+            return defaultValue;
+
+        // 检查命名参数
+        foreach (var paramName in namedParameterNames)
+        {
+            var namedArg = attribute.NamedArguments.FirstOrDefault(arg => arg.Key.Equals(paramName, StringComparison.OrdinalIgnoreCase));
+            if (namedArg.Key != null && namedArg.Value.Value?.ToString() is string namedValue && !string.IsNullOrEmpty(namedValue))
+                return namedValue;
+        }
+
+        // 检查构造函数参数
+        if (constructorParameterIndex >= 0 && attribute.ConstructorArguments.Length > constructorParameterIndex)
+        {
+            var constructorArg = attribute.ConstructorArguments[constructorParameterIndex].Value?.ToString();
+            if (!string.IsNullOrEmpty(constructorArg))
+                return constructorArg;
+        }
 
         return defaultValue;
     }
 
+
+    /// <summary>
+    /// 从特性中获取布尔值参数
+    /// </summary>
+    /// <param name="attribute">特性数据</param>
+    /// <param name="parameterName">参数名称</param>
+    /// <param name="defaultValue">默认值</param>
+    /// <returns>布尔值</returns>
+    public static bool GetBoolValueFromAttribute(AttributeData attribute, string parameterName, bool defaultValue = false)
+    {
+        if (attribute == null)
+            return defaultValue;
+
+        var namedArg = attribute.NamedArguments.FirstOrDefault(arg => arg.Key.Equals(parameterName, StringComparison.OrdinalIgnoreCase));
+        if (namedArg.Key != null && namedArg.Value.Value != null)
+        {
+            if (namedArg.Value.Value is bool v)
+                return v;
+            return bool.TryParse(namedArg.Value.Value.ToString(), out var result) ? result : defaultValue;
+        }
+        return defaultValue;
+    }
 
     /// <summary>
     /// 从特性数据中获取字符串属性值，同时兼容命名参数和构造函数参数两种方式。

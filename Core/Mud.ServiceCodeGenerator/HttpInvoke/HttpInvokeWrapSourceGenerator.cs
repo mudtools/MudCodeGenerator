@@ -122,7 +122,7 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
             if (!IsValidMethod(methodSymbol))
                 continue;
 
-            var methodInfo = AnalyzeMethod(compilation, methodSymbol, interfaceDecl);
+            var methodInfo = MethodHelper.AnalyzeMethod(compilation, methodSymbol, interfaceDecl);
             if (!methodInfo.IsValid)
                 continue;
 
@@ -131,7 +131,7 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
                 continue;
 
             // 使用更精确的方法查找，确保正确处理重载方法
-            var methodSyntax = FindMethodSyntax(compilation, methodSymbol, interfaceDecl);
+            var methodSyntax = MethodHelper.FindMethodSyntax(compilation, methodSymbol, interfaceDecl);
             if (methodSyntax != null)
             {
                 string wrapMethodCode = GenerateWrapMethod(methodInfo, methodSyntax, interfaceName, tokenManageInterfaceName);

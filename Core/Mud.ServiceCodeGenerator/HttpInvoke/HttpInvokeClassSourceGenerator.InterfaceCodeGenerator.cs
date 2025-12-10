@@ -412,7 +412,7 @@ internal class InterfaceImpCodeGenerator
     /// <param name="methodSymbol"></param>
     private void GenerateMethodImplementation(IMethodSymbol methodSymbol)
     {
-        var methodInfo = _httpInvokeClassSourceGenerator.AnalyzeMethod(_compilation, methodSymbol, _interfaceDecl);
+        var methodInfo = MethodHelper.AnalyzeMethod(_compilation, methodSymbol, _interfaceDecl);
         if (!methodInfo.IsValid) return;
 
         // 检查是否忽略生成实现
