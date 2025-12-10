@@ -6,7 +6,7 @@ public interface IWordRange
 
 public class WordRange : IWordRange
 {
-    public WordRange(object obj)
+    public WordRange(MsWord.Range? obj)
     {
 
     }

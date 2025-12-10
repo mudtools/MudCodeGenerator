@@ -7,7 +7,7 @@ public interface IWordApplication
 public class WordApplication : IWordApplication
 {
 
-    public WordApplication(object? obj)
+    public WordApplication(MsWord.Application? obj)
     {
 
     }

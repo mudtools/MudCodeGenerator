@@ -1,17 +1,17 @@
-﻿using MsWord;
-using Mud.Common.CodeGenerator;
+﻿using Mud.Common.CodeGenerator;
 
 namespace ComObjectWrapTest;
 
 
-[ComObjectWrap(ComNamespace = "MsWord", ComClassName = nameof(Field))]
+[ComObjectWrap(ComNamespace = "MsWord", ComClassName = "Field")]
 public partial interface IWordField : IDisposable
 {
+    [ComPropertyWrap(PropertyType = PropertyType.ObjectType)]
     IWordApplication? Application { get; }
 
     object? Parent { get; }
 
-    bool locked { get; set; }
+    bool Locked { get; set; }
 }
 
 
@@ -23,7 +23,7 @@ public interface IWordMailMergeField : IDisposable
 
     object? Parent { get; }
 
-    bool locked { get; set; }
+    bool Locked { get; set; }
 
     [ComPropertyWrap(PropertyType = PropertyType.EnumType, DefaultValue = "WdFieldType.wdFieldEmpty")]
     WdFieldType Type { get; }
@@ -36,7 +36,4 @@ public interface IWordMailMergeField : IDisposable
 
     void Delete();
 
-    void Delete(int index);
-
-    IWordRange Copy(int index);
 }

@@ -101,28 +101,6 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
             : interfaceName + "Impl";
     }
 
-    /// <summary>
-    /// 移除接口名前的"I"前缀
-    /// </summary>
-    /// <param name="interfaceTypeName">接口类型名</param>
-    /// <returns>去掉"I"前缀的类型名</returns>
-    private string RemoveInterfacePrefix(string interfaceTypeName)
-    {
-        if (string.IsNullOrEmpty(interfaceTypeName))
-            return interfaceTypeName;
-
-        // 处理可空类型，如 "IWordApplication?" → "WordApplication?"
-        if (interfaceTypeName.EndsWith("?"))
-        {
-            var nonNullType = interfaceTypeName.Substring(0, interfaceTypeName.Length - 1);
-            var className = RemoveInterfacePrefix(nonNullType);
-            return className + "?";
-        }
-
-        return interfaceTypeName.StartsWith("I", StringComparison.Ordinal) && interfaceTypeName.Length > 1 && char.IsUpper(interfaceTypeName[1])
-            ? interfaceTypeName.Substring(1)
-            : interfaceTypeName;
-    }
 
     /// <summary>
     /// 生成COM对象包装实现类
@@ -258,9 +236,13 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
         {
             if (isObjectType)
             {
-                var objectType = RemoveInterfacePrefix(propertyType);
+                //System.Diagnostics.Debugger.Launch();
+                var objectType = StringExtensions.RemoveInterfacePrefix(propertyType);
+                var constructType = objectType;
+                if (constructType.EndsWith("?", StringComparison.OrdinalIgnoreCase))
+                    constructType = constructType.Substring(0, constructType.Length - 1);
                 sb.AppendLine($"        {GeneratedCodeAttribute}");
-                sb.AppendLine($"        public {propertyType} {propertyName} => {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName} != null ? new {objectType}({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName}) : null;");
+                sb.AppendLine($"        public {propertyType} {propertyName} => {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName} != null ? new {constructType}({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName}) : null;");
             }
             else
             {
