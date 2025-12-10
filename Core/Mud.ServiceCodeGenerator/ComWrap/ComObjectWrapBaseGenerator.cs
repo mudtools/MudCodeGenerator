@@ -198,9 +198,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         var propertyName = propertySymbol.Name;
         var propertyType = propertySymbol.Type.ToDisplayString();
         var objectType = StringExtensions.RemoveInterfacePrefix(propertyType);
-        var constructType = objectType;
-        if (constructType.EndsWith("?", StringComparison.OrdinalIgnoreCase))
-            constructType = constructType.Substring(0, constructType.Length - 1);
+        var constructType = GetImplementationType(objectType);
 
         sb.AppendLine($"        {GeneratedCodeAttribute}");
         sb.AppendLine($"        public {propertyType} {propertyName}");
@@ -361,9 +359,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         else if (isObjectType)
         {
             var objectType = StringExtensions.RemoveInterfacePrefix(returnType);
-            var constructType = objectType;
-            if (constructType.EndsWith("?", StringComparison.OrdinalIgnoreCase))
-                constructType = constructType.Substring(0, constructType.Length - 1);
+            var constructType = GetImplementationType(objectType);
             sb.AppendLine($"                var comObj = {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{methodName}({ps});");
             sb.AppendLine("                if (comObj == null)");
             sb.AppendLine("                    return null;");
@@ -734,6 +730,22 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             return strs[strs.Length - 2] + "." + strs[strs.Length - 1];
         }
         return enumValue;
+    }
+
+    protected string GetImplementationType(string elementType)
+    {
+        var elementImplType = StringExtensions.RemoveInterfacePrefix(elementType).TrimEnd('?');
+        var types = elementImplType.Split(['.'], StringSplitOptions.RemoveEmptyEntries);
+        string resultType = "";
+        for (int i = 0; i < types.Length; i++)
+        {
+            if (i == types.Length - 1)
+            {
+                resultType += "Imps.";
+            }
+            resultType += types[i] + ".";
+        }
+        return resultType.TrimEnd('.');
     }
     #endregion
 

@@ -149,22 +149,6 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine();
     }
 
-    private string GetImplementationType(string elementType)
-    {
-        var elementImplType = StringExtensions.RemoveInterfacePrefix(elementType).TrimEnd('?');
-        var types = elementImplType.Split(['.'], StringSplitOptions.RemoveEmptyEntries);
-        string resultType = "";
-        for (int i = 0; i < types.Length; i++)
-        {
-            if (i == types.Length - 1)
-            {
-                resultType += "Imps.";
-            }
-            resultType += types[i] + ".";
-        }
-        return resultType.TrimEnd('.');
-    }
-
     /// <summary>
     /// 生成索引器实现
     /// </summary>
