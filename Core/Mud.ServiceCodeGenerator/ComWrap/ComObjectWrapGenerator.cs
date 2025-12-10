@@ -263,7 +263,7 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
                 if (propertyType.EndsWith("?", StringComparison.Ordinal))
                 {
                     sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null && value != null)");
-                    sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value.value;");
+                    sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value.Value;");
                 }
                 else
                 {
@@ -313,7 +313,7 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
         if (propertyType.EndsWith("?", StringComparison.Ordinal))
         {
             sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null && value != null)");
-            sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value.value;");
+            sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value.Value;");
         }
         else
         {
@@ -541,34 +541,6 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
         return false;
     }
 
-    /// <summary>
-    /// 判断是否为基础类型（不需要特殊包装的类型）
-    /// </summary>
-    /// <param name="typeSymbol">类型符号</param>
-    /// <returns>如果是基础类型返回true，否则返回false</returns>
-    private bool IsBasicType(ITypeSymbol typeSymbol)
-    {
-        var specialType = typeSymbol.SpecialType;
-        return specialType switch
-        {
-            SpecialType.System_Boolean => true,
-            SpecialType.System_Char => true,
-            SpecialType.System_SByte => true,
-            SpecialType.System_Byte => true,
-            SpecialType.System_Int16 => true,
-            SpecialType.System_UInt16 => true,
-            SpecialType.System_Int32 => true,
-            SpecialType.System_UInt32 => true,
-            SpecialType.System_Int64 => true,
-            SpecialType.System_UInt64 => true,
-            SpecialType.System_Single => true,
-            SpecialType.System_Double => true,
-            SpecialType.System_Decimal => true,
-            SpecialType.System_String => true,
-            SpecialType.System_DateTime => true,
-            _ => false
-        };
-    }
 
     /// <summary>
     /// 检查成员是否应该被忽略
@@ -578,58 +550,6 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
     private bool ShouldIgnoreMember(ISymbol member)
     {
         return member.GetAttributes().Any(attr => attr.AttributeClass?.Name == ComWrapGeneratorConstants.IgnoreGeneratorAttribute);
-    }
-
-    /// <summary>
-    /// 检查属性是否为枚举类型属性
-    /// </summary>
-    /// <param name="interfaceDeclaration">接口声明语法</param>
-    /// <param name="propertySymbol">属性符号</param>
-    /// <returns>如果是枚举属性返回true，否则返回false</returns>
-    private bool IsEnumProperty(InterfaceDeclarationSyntax interfaceDeclaration, IPropertySymbol propertySymbol)
-    {
-        var propertyDeclaration = interfaceDeclaration.DescendantNodes()
-            .OfType<PropertyDeclarationSyntax>()
-            .FirstOrDefault(p => p.Identifier.Text == propertySymbol.Name);
-
-        if (propertyDeclaration != null)
-        {
-            return propertyDeclaration.AttributeLists
-                .SelectMany(al => al.Attributes)
-                .Any(attr => ComWrapGeneratorConstants.ComPropertyWrapAttributeNames.Contains(attr.Name.ToString()) &&
-                            attr.ArgumentList?.Arguments.Any(arg =>
-                                arg.Expression.ToString().Contains("PropertyType.EnumType") ||
-                                arg.NameEquals?.Name.Identifier.Text == "PropertyType" &&
-                                arg.Expression.ToString() == "PropertyType.EnumType") == true);
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// 检查属性是否为对象类型属性
-    /// </summary>
-    /// <param name="interfaceDeclaration">接口声明语法</param>
-    /// <param name="propertySymbol">属性符号</param>
-    /// <returns>如果是对象类型属性返回true，否则返回false</returns>
-    private bool IsObjectTypeProperty(InterfaceDeclarationSyntax interfaceDeclaration, IPropertySymbol propertySymbol)
-    {
-        var propertyDeclaration = interfaceDeclaration.DescendantNodes()
-            .OfType<PropertyDeclarationSyntax>()
-            .FirstOrDefault(p => p.Identifier.Text == propertySymbol.Name);
-
-        if (propertyDeclaration != null)
-        {
-            return propertyDeclaration.AttributeLists
-                .SelectMany(al => al.Attributes)
-                .Any(attr => ComWrapGeneratorConstants.ComPropertyWrapAttributeNames.Contains(attr.Name.ToString()) &&
-                            attr.ArgumentList?.Arguments.Any(arg =>
-                                arg.Expression.ToString().Contains("PropertyType.ObjectType") ||
-                                (arg.NameEquals?.Name.Identifier.Text == "PropertyType" &&
-                                 arg.Expression.ToString() == "PropertyType.ObjectType")) == true);
-        }
-
-        return false;
     }
 
     /// <summary>
@@ -660,6 +580,15 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
             {
                 // 移除引号
                 var defaultValue = defaultValueArgument.Expression.ToString();
+                // 处理 nameof() 表达式
+                if (defaultValue.StartsWith("nameof(", StringComparison.OrdinalIgnoreCase) && defaultValue.EndsWith(")", StringComparison.OrdinalIgnoreCase))
+                {
+                    // 提取 nameof() 中的参数，例如从 "nameof(Field)" 中提取 "Field"
+                    var nameofContent = defaultValue.Substring(7, defaultValue.Length - 8);
+                    return nameofContent.Trim();
+                }
+
+                // 处理字符串字面量，移除引号
                 return defaultValue.Trim('"');
             }
         }
@@ -766,10 +695,8 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
             {
                 var classNameValue = classNameArgument.Expression.ToString();
 
-                // 处理 nameof() 表达式
                 if (classNameValue.StartsWith("nameof(", StringComparison.OrdinalIgnoreCase) && classNameValue.EndsWith(")", StringComparison.OrdinalIgnoreCase))
                 {
-                    // 提取 nameof() 中的参数，例如从 "nameof(Field)" 中提取 "Field"
                     var nameofContent = classNameValue.Substring(7, classNameValue.Length - 8);
                     return nameofContent.Trim();
                 }
