@@ -113,8 +113,9 @@ public class ComObjectWrapGenerator : ComObjectWrapBaseGenerator
         var comNamespace = GetComNamespace(interfaceDeclaration);
         var comClassName = GetComClassName(interfaceDeclaration);
 
-        sb.AppendLine($"        internal {comNamespace}.{comClassName}? {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)};");
+        sb.AppendLine($"        private {comNamespace}.{comClassName}? {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)};");
         sb.AppendLine("        private bool _disposedValue;");
+        sb.AppendLine($"        public {comNamespace}.{comClassName}? InternalComObject => {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)};");
         sb.AppendLine();
     }
 
