@@ -16,7 +16,7 @@
         /// <summary>
         /// 获取单元格行索引。
         /// </summary>
-        int RowIndex { get; }
+        int? RowIndex { get; }
 
         /// <summary>
         /// 获取或设置单元格垂直对齐方式。

@@ -375,6 +375,7 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
         var propertyType = propertySymbol.Type.ToDisplayString();
         var comNamespace = GetComNamespace(interfaceDeclaration);
         var comClassName = GetComClassName(interfaceDeclaration);
+        var enumValueName = GetEnumValueWithoutNamespace(defaultValue);
 
         sb.AppendLine($"        {GeneratedCodeAttribute}");
         sb.AppendLine($"        public {propertyType} {propertyName}");
@@ -391,7 +392,7 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
             sb.AppendLine("            set");
             sb.AppendLine("            {");
             sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
-            sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value.EnumConvert({comNamespace}.{defaultValue});");
+            sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value.EnumConvert({comNamespace}.{enumValueName});");
             sb.AppendLine("            }");
         }
         sb.AppendLine("        }");
@@ -501,6 +502,24 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
         sb.AppendLine("            GC.SuppressFinalize(this);");
         sb.AppendLine("        }");
         sb.AppendLine("        #endregion");
+    }
+
+    /// <summary>
+    /// 从枚举值字符串中提取不带命名空间的枚举值名称
+    /// </summary>
+    /// <param name="enumValue">可能包含命名空间的枚举值字符串</param>
+    /// <returns>去掉命名空间的枚举值名称</returns>
+    private static string GetEnumValueWithoutNamespace(string enumValue)
+    {
+        if (string.IsNullOrEmpty(enumValue))
+            return enumValue;
+
+        var strs = enumValue.Split(['.'], StringSplitOptions.RemoveEmptyEntries);
+        if (strs.Length > 2)
+        {
+            return strs[strs.Length - 2] + "." + strs[strs.Length - 1];
+        }
+        return enumValue;
     }
 
     #endregion
