@@ -232,63 +232,73 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
         {
             GenerateEnumProperty(sb, propertySymbol, interfaceDeclaration, defaultValue);
         }
-        else if (propertySymbol.SetMethod == null && propertySymbol.GetMethod != null)
+        else if (isObjectType)
         {
-            if (isObjectType)
-            {
-                //System.Diagnostics.Debugger.Launch();
-                GenerateComObjectProperty(sb, propertyName, propertyType, comClassName);
-            }
-            else
-            {
-                GenerateObjectProperty(sb, propertyName, propertyType, comClassName);
-            }
-            sb.AppendLine();
+            GenerateComObjectProperty(sb, propertySymbol, interfaceDeclaration, comClassName);
         }
-        else if (propertySymbol.SetMethod != null && propertySymbol.GetMethod != null)
+        else if (propertyType == "bool")
         {
-            // 读写属性
-            if (propertyType == "bool")
-            {
-                GenerateBoolProperty(sb, propertyName, propertyType, comClassName);
-            }
-            else
-            {
-                sb.AppendLine($"        {GeneratedCodeAttribute}");
-                sb.AppendLine($"        public {propertyType} {propertyName}");
-                sb.AppendLine("        {");
-                sb.AppendLine($"            get => {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName};");
-                sb.AppendLine("            set");
-                sb.AppendLine("            {");
-                if (propertyType.EndsWith("?", StringComparison.Ordinal))
-                {
-                    sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null && value != null)");
-                    sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value.Value;");
-                }
-                else
-                {
-                    sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
-                    sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value;");
-                }
-                sb.AppendLine("            }");
-                sb.AppendLine("        }");
-            }
-            sb.AppendLine();
+            GenerateBoolProperty(sb, propertySymbol, interfaceDeclaration, comClassName);
+        }
+        else
+        {
+            GenerateObjectProperty(sb, propertySymbol, interfaceDeclaration, comClassName);
         }
     }
 
-    private void GenerateObjectProperty(StringBuilder sb, string propertyName, string propertyType, string comClassName)
+    /// <summary>
+    /// 生成普通对象属性实现
+    /// </summary>
+    /// <param name="sb">字符串构建器</param>
+    /// <param name="propertySymbol">属性符号</param>
+    /// <param name="interfaceDeclaration">接口声明语法</param>
+    /// <param name="comClassName">COM类名</param>
+    private void GenerateObjectProperty(StringBuilder sb, IPropertySymbol propertySymbol, InterfaceDeclarationSyntax interfaceDeclaration, string comClassName)
     {
+        var propertyName = propertySymbol.Name;
+        var propertyType = propertySymbol.Type.ToDisplayString();
+
         sb.AppendLine($"        {GeneratedCodeAttribute}");
-        sb.AppendLine($"        public {propertyType} {propertyName} => {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName};");
+        sb.AppendLine($"        public {propertyType} {propertyName}");
+        sb.AppendLine("        {");
+        sb.AppendLine($"            get => {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName};");
+
+        if (propertySymbol.SetMethod != null)
+        {
+            sb.AppendLine("            set");
+            sb.AppendLine("            {");
+            if (propertyType.EndsWith("?", StringComparison.Ordinal))
+            {
+                sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null && value != null)");
+                sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value.Value;");
+            }
+            else
+            {
+                sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
+                sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value;");
+            }
+            sb.AppendLine("            }");
+        }
+        sb.AppendLine("        }");
+        sb.AppendLine();
     }
 
-    private void GenerateComObjectProperty(StringBuilder sb, string propertyName, string propertyType, string comClassName)
+    /// <summary>
+    /// 生成COM对象属性实现
+    /// </summary>
+    /// <param name="sb">字符串构建器</param>
+    /// <param name="propertySymbol">属性符号</param>
+    /// <param name="interfaceDeclaration">接口声明语法</param>
+    /// <param name="comClassName">COM类名</param>
+    private void GenerateComObjectProperty(StringBuilder sb, IPropertySymbol propertySymbol, InterfaceDeclarationSyntax interfaceDeclaration, string comClassName)
     {
+        var propertyName = propertySymbol.Name;
+        var propertyType = propertySymbol.Type.ToDisplayString();
         var objectType = StringExtensions.RemoveInterfacePrefix(propertyType);
         var constructType = objectType;
         if (constructType.EndsWith("?", StringComparison.OrdinalIgnoreCase))
             constructType = constructType.Substring(0, constructType.Length - 1);
+
         sb.AppendLine($"        {GeneratedCodeAttribute}");
         sb.AppendLine($"        public {propertyType} {propertyName}");
         sb.AppendLine("        {");
@@ -299,29 +309,57 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
         sb.AppendLine("                       return null;");
         sb.AppendLine($"                return new {constructType}(comObj);");
         sb.AppendLine("             }");
+
+        if (propertySymbol.SetMethod != null)
+        {
+            sb.AppendLine("             set");
+            sb.AppendLine("             {");
+            sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null && value != null)");
+            sb.AppendLine($"                {{");
+            sb.AppendLine($"                    var comObj = value.{PrivateFieldNamingHelper.GeneratePrivateFieldName(constructType)};");
+            sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = comObj;");
+            sb.AppendLine($"                }}");
+            sb.AppendLine("             }");
+        }
         sb.AppendLine("        }");
+        sb.AppendLine();
     }
 
-    private void GenerateBoolProperty(StringBuilder sb, string propertyName, string propertyType, string comClassName)
+    /// <summary>
+    /// 生成布尔属性实现
+    /// </summary>
+    /// <param name="sb">字符串构建器</param>
+    /// <param name="propertySymbol">属性符号</param>
+    /// <param name="interfaceDeclaration">接口声明语法</param>
+    /// <param name="comClassName">COM类名</param>
+    private void GenerateBoolProperty(StringBuilder sb, IPropertySymbol propertySymbol, InterfaceDeclarationSyntax interfaceDeclaration, string comClassName)
     {
+        var propertyName = propertySymbol.Name;
+        var propertyType = propertySymbol.Type.ToDisplayString();
+
         sb.AppendLine($"        {GeneratedCodeAttribute}");
         sb.AppendLine($"        public {propertyType} {propertyName}");
         sb.AppendLine("        {");
         sb.AppendLine($"            get => {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName} ?? false;");
-        sb.AppendLine("            set");
-        sb.AppendLine("            {");
-        if (propertyType.EndsWith("?", StringComparison.Ordinal))
+
+        if (propertySymbol.SetMethod != null)
         {
-            sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null && value != null)");
-            sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value.Value;");
+            sb.AppendLine("            set");
+            sb.AppendLine("            {");
+            if (propertyType.EndsWith("?", StringComparison.Ordinal))
+            {
+                sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null && value != null)");
+                sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value.Value;");
+            }
+            else
+            {
+                sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
+                sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value;");
+            }
+            sb.AppendLine("            }");
         }
-        else
-        {
-            sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
-            sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value;");
-        }
-        sb.AppendLine("            }");
         sb.AppendLine("        }");
+        sb.AppendLine();
     }
 
     /// <summary>
@@ -353,7 +391,7 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
             sb.AppendLine("            set");
             sb.AppendLine("            {");
             sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
-            sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value.EnumConvert({comNamespace}.WdFieldType.wdFieldEmpty);");
+            sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value.EnumConvert({comNamespace}.{defaultValue});");
             sb.AppendLine("            }");
         }
         sb.AppendLine("        }");
