@@ -54,7 +54,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine($"    /// </summary>");
         sb.AppendLine($"    {CompilerGeneratedAttribute}");
         sb.AppendLine($"    {GeneratedCodeAttribute}");
-        sb.AppendLine($"    internal class {className} : {interfaceName}");
+        sb.AppendLine($"    internal partial class {className} : {interfaceName}");
         sb.AppendLine("    {");
 
         // 生成字段
@@ -64,10 +64,14 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         GenerateConstructor(sb, className, interfaceDeclaration);
 
         // 生成属性
-        GenerateProperties(sb, interfaceSymbol, interfaceDeclaration);
+        GenerateCollectionProperties(sb, interfaceSymbol, interfaceDeclaration);
+
 
         // 生成方法
         GenerateMethods(sb, interfaceSymbol, interfaceDeclaration);
+
+        // 生成IEnumerable实现
+        GenerateIEnumerableImplementation(sb, interfaceSymbol, interfaceDeclaration);
 
         // 生成IDisposable实现
         GenerateIDisposableImplementation(sb, interfaceDeclaration);
@@ -91,6 +95,195 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine($"        internal {comNamespace}.{comClassName}? {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)};");
         sb.AppendLine("        private bool _disposedValue;");
         sb.AppendLine("        private readonly DisposableList _disposableList = new();");
+        sb.AppendLine();
+    }
+
+    /// <summary>
+    /// 获取集合元素类型
+    /// </summary>
+    /// <param name="interfaceSymbol">接口符号</param>
+    /// <returns>元素类型，如果无法确定则返回null</returns>
+    private string? GetCollectionElementType(INamedTypeSymbol interfaceSymbol)
+    {
+        // 查找 IEnumerable<T> 接口
+        foreach (var interfaceImpl in interfaceSymbol.AllInterfaces)
+        {
+            if (interfaceImpl.Name == "IEnumerable" && interfaceImpl.IsGenericType)
+            {
+                var typeArgument = interfaceImpl.TypeArguments.FirstOrDefault();
+                return typeArgument?.ToDisplayString();
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// 生成集合属性和索引器实现
+    /// </summary>
+    /// <param name="sb">字符串构建器</param>
+    /// <param name="interfaceSymbol">接口符号</param>
+    /// <param name="interfaceDeclaration">接口声明语法</param>
+    private void GenerateCollectionProperties(StringBuilder sb, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
+    {
+        sb.AppendLine("        #region 属性");
+        sb.AppendLine();
+
+        foreach (var member in interfaceSymbol.GetMembers().OfType<IPropertySymbol>())
+        {
+            if (!ShouldIgnoreMember(member))
+            {
+                if (member.IsIndexer)
+                {
+                    // 处理索引器
+                    GenerateIndexerImplementation(sb, member, interfaceDeclaration);
+                }
+                else
+                {
+                    // 处理普通属性
+                    GenerateProperty(sb, member, interfaceDeclaration);
+                }
+            }
+        }
+
+        sb.AppendLine("        #endregion");
+        sb.AppendLine();
+    }
+
+    private string GetImplementationType(string elementType)
+    {
+        var elementImplType = StringExtensions.RemoveInterfacePrefix(elementType).TrimEnd('?');
+        var types = elementImplType.Split(['.'], StringSplitOptions.RemoveEmptyEntries);
+        string resultType = "";
+        for (int i = 0; i < types.Length; i++)
+        {
+            if (i == types.Length - 1)
+            {
+                resultType += "Imps.";
+            }
+            resultType += types[i] + ".";
+        }
+        return resultType.TrimEnd('.');
+    }
+
+    /// <summary>
+    /// 生成索引器实现
+    /// </summary>
+    /// <param name="sb">字符串构建器</param>
+    /// <param name="indexerSymbol">索引器符号</param>
+    /// <param name="interfaceDeclaration">接口声明语法</param>
+    private void GenerateIndexerImplementation(StringBuilder sb, IPropertySymbol indexerSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
+    {
+        var elementType = indexerSymbol.Type.ToDisplayString();
+        var comClassName = GetComClassName(interfaceDeclaration);
+        var elementImplType = GetImplementationType(elementType);
+        var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
+
+        if (indexerSymbol.Parameters.Length == 1)
+        {
+            var parameter = indexerSymbol.Parameters[0];
+            var parameterType = parameter.Type.ToString();
+            var parameterName = "index"; // 统一使用 index 作为参数名
+            sb.AppendLine($"        {GeneratedCodeAttribute}");
+            sb.AppendLine($"        public {elementType} this[{parameterType} {parameterName}]");
+            sb.AppendLine("        {");
+            sb.AppendLine("            get");
+            sb.AppendLine("            {");
+
+            if (parameterType == "int")
+            {
+                GenerateIntIndex(sb, elementImplType, privateFieldName, parameterName);
+            }
+            else if (parameterType == "string")
+            {
+                GenerateStringIndex(sb, elementImplType, privateFieldName, parameterName);
+            }
+            else
+            {
+                // 默认实现
+                sb.AppendLine($"                throw new NotSupportedException(\"不支持的索引器参数类型: {parameterType}\");");
+            }
+
+            sb.AppendLine("            }");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+        }
+    }
+
+    private static void GenerateStringIndex(StringBuilder sb, string elementImplType, string privateFieldName, string parameterName)
+    {
+        sb.AppendLine($"                if (string.IsNullOrEmpty({parameterName}))");
+        sb.AppendLine($"                    throw new ArgumentNullException(nameof({parameterName}));");
+        sb.AppendLine();
+        sb.AppendLine($"                if ({privateFieldName} == null) return null;");
+        sb.AppendLine("                try");
+        sb.AppendLine("                {");
+        sb.AppendLine($"                    var comElement = {privateFieldName}[{parameterName}];");
+        sb.AppendLine($"                    var result = comElement != null ? new {elementImplType}(comElement) : null;");
+        sb.AppendLine("                    if (result != null)");
+        sb.AppendLine("                        _disposableList.Add(result);");
+        sb.AppendLine("                    return result;");
+        sb.AppendLine("                }");
+        sb.AppendLine("                catch (COMException ce)");
+        sb.AppendLine("                {");
+        sb.AppendLine($"                    throw new ExcelOperationException(\"根据字段名称检索 {elementImplType} 对象失败: \" + ce.Message, ce);");
+        sb.AppendLine("                }");
+    }
+
+    private static void GenerateIntIndex(StringBuilder sb, string elementImplType, string privateFieldName, string parameterName)
+    {
+        sb.AppendLine($"                if ({privateFieldName} == null || {parameterName} < 1 || {parameterName} > Count) return null;");
+        sb.AppendLine("                try");
+        sb.AppendLine("                {");
+        sb.AppendLine($"                    var comElement = {privateFieldName}[{parameterName}];");
+        sb.AppendLine($"                    var result = comElement != null ? new {elementImplType}(comElement) : null;");
+        sb.AppendLine("                    if (result != null)");
+        sb.AppendLine("                        _disposableList.Add(result);");
+        sb.AppendLine("                    return result;");
+        sb.AppendLine("                }");
+        sb.AppendLine("                catch (COMException ce)");
+        sb.AppendLine("                {");
+        sb.AppendLine($"                    throw new ExcelOperationException(\"根据索引检索 {elementImplType} 对象失败: \" + ce.Message, ce);");
+        sb.AppendLine("                }");
+    }
+
+    /// <summary>
+    /// 生成IEnumerable接口实现
+    /// </summary>
+    /// <param name="sb">字符串构建器</param>
+    /// <param name="interfaceSymbol">接口符号</param>
+    /// <param name="interfaceDeclaration">接口声明语法</param>
+    private void GenerateIEnumerableImplementation(StringBuilder sb, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
+    {
+        var elementType = GetCollectionElementType(interfaceSymbol);
+        if (elementType == null)
+            return;
+        var elementImplType = GetImplementationType(elementType);
+        var comClassName = GetComClassName(interfaceDeclaration);
+        var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
+
+        sb.AppendLine("        #region IEnumerable 实现");
+        sb.AppendLine($"        {GeneratedCodeAttribute}");
+        sb.AppendLine($"        public IEnumerator<{elementType}> GetEnumerator()");
+        sb.AppendLine("        {");
+        sb.AppendLine($"            if ({privateFieldName} == null) yield break;");
+        sb.AppendLine();
+        sb.AppendLine("            for (int i = 1; i <= Count; i++)");
+        sb.AppendLine("            {");
+        sb.AppendLine($"                var comElement = {privateFieldName}[i];");
+        sb.AppendLine($"                if (comElement != null)");
+        sb.AppendLine("                {");
+        sb.AppendLine($"                    var element = new {elementImplType}(comElement);");
+        sb.AppendLine("                    _disposableList.Add(element);");
+        sb.AppendLine("                    yield return element;");
+        sb.AppendLine("                }");
+        sb.AppendLine("            }");
+        sb.AppendLine("        }");
+        sb.AppendLine();
+        sb.AppendLine("        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()");
+        sb.AppendLine("        {");
+        sb.AppendLine("            return GetEnumerator();");
+        sb.AppendLine("        }");
+        sb.AppendLine("        #endregion");
         sb.AppendLine();
     }
 

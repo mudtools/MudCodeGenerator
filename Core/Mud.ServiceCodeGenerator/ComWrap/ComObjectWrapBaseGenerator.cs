@@ -106,28 +106,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         sb.AppendLine();
     }
 
-    /// <summary>
-    /// 生成属性实现
-    /// </summary>
-    /// <param name="sb">字符串构建器</param>
-    /// <param name="interfaceSymbol">接口符号</param>
-    /// <param name="interfaceDeclaration">接口声明语法</param>
-    protected void GenerateProperties(StringBuilder sb, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
-    {
-        sb.AppendLine("        #region 属性");
-        sb.AppendLine();
 
-        foreach (var member in interfaceSymbol.GetMembers().OfType<IPropertySymbol>())
-        {
-            if (!ShouldIgnoreMember(member))
-            {
-                GenerateProperty(sb, member, interfaceDeclaration);
-            }
-        }
-
-        sb.AppendLine("        #endregion");
-        sb.AppendLine();
-    }
 
     /// <summary>
     /// 生成单个属性实现
@@ -135,8 +114,11 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     /// <param name="sb">字符串构建器</param>
     /// <param name="propertySymbol">属性符号</param>
     /// <param name="interfaceDeclaration">接口声明语法</param>
-    private void GenerateProperty(StringBuilder sb, IPropertySymbol propertySymbol, InterfaceDeclarationSyntax interfaceDeclaration)
+    protected void GenerateProperty(StringBuilder sb, IPropertySymbol propertySymbol, InterfaceDeclarationSyntax interfaceDeclaration)
     {
+        if (sb == null || propertySymbol == null || interfaceDeclaration == null)
+            return;
+
         var propertyName = propertySymbol.Name;
         var propertyType = propertySymbol.Type.ToDisplayString();
         var isEnumType = IsEnumType(propertySymbol.Type);

@@ -54,7 +54,7 @@ public class ComObjectWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine($"    /// </summary>");
         sb.AppendLine($"    {CompilerGeneratedAttribute}");
         sb.AppendLine($"    {GeneratedCodeAttribute}");
-        sb.AppendLine($"    internal class {className} : {interfaceName}");
+        sb.AppendLine($"    internal partial class {className} : {interfaceName}");
         sb.AppendLine("    {");
 
         // 生成字段
@@ -76,6 +76,29 @@ public class ComObjectWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine("}");
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// 生成属性实现
+    /// </summary>
+    /// <param name="sb">字符串构建器</param>
+    /// <param name="interfaceSymbol">接口符号</param>
+    /// <param name="interfaceDeclaration">接口声明语法</param>
+    private void GenerateProperties(StringBuilder sb, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
+    {
+        sb.AppendLine("        #region 属性");
+        sb.AppendLine();
+
+        foreach (var member in interfaceSymbol.GetMembers().OfType<IPropertySymbol>())
+        {
+            if (!ShouldIgnoreMember(member))
+            {
+                GenerateProperty(sb, member, interfaceDeclaration);
+            }
+        }
+
+        sb.AppendLine("        #endregion");
+        sb.AppendLine();
     }
 
     #region Generate Implementation Members

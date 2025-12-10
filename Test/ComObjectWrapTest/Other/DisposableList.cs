@@ -112,7 +112,7 @@ internal class DisposableList : List<IDisposable>, IDisposable
         }
         catch (Exception ex)
         {
-            _log.Error($"An error occurred while disposing an item of type {item?.GetType().Name}", ex);
+
         }
     }
 
