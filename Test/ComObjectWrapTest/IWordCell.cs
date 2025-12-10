@@ -19,8 +19,21 @@
         int? RowIndex { get; }
 
         /// <summary>
+        /// 获取单元格左边界位置。
+        /// </summary>
+        [ComPropertyWrap(DefaultValue = "-1")]
+        float LeftPadding { get; set; }
+
+        /// <summary>
         /// 获取或设置单元格垂直对齐方式。
         /// </summary>
         WdCellVerticalAlignment VerticalAlignment { get; set; }
+
+        /// <summary>
+        /// 拆分单元格。
+        /// </summary>
+        /// <param name="numRows">行数。</param>
+        /// <param name="numColumns">列数。</param>
+        void Split(int? numRows, int? numColumns);
     }
 }

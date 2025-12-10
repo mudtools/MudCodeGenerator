@@ -1,29 +1,29 @@
-// -----------------------------------------------------------------------
+﻿// -----------------------------------------------------------------------
 //  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
 //  Mud.CodeGenerator 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
 //  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using Mud.ServiceCodeGenerator.ComWrap;
+using Mud.ServiceCodeGenerator.ComWrapSourceGenerator;
 using System.Text;
 
-namespace Mud.ServiceCodeGenerator.ComWrapSourceGenerator;
+namespace Mud.ServiceCodeGenerator.ComWrap;
 
 /// <summary>
-/// COM对象包装源代码生成器
+/// COM集合对象包装源代码生成器
 /// </summary>
 /// <remarks>
-/// 为标记了ComObjectWrap特性的接口生成COM对象包装类，提供类型安全的COM对象访问
+/// 为标记了ComCollectionWrap特性的接口生成COM对象包装类，提供类型安全的COM对象访问
 /// </remarks>
 [Generator]
-public class ComObjectWrapGenerator : ComObjectWrapBaseGenerator
+public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
 {
     /// <summary>
     /// 获取COM对象包装特性名称数组
     /// </summary>
     /// <returns>特性名称数组</returns>
-    protected override string[] ComWrapAttributeNames() => ComWrapGeneratorConstants.ComObjectWrapAttributeNames;
+    protected override string[] ComWrapAttributeNames() => ComWrapGeneratorConstants.ComCollectionWrapAttributeNames;
 
     /// <summary>
     /// 生成COM对象包装实现类
@@ -78,8 +78,6 @@ public class ComObjectWrapGenerator : ComObjectWrapBaseGenerator
         return sb.ToString();
     }
 
-    #region Generate Implementation Members
-
     /// <summary>
     /// 生成私有字段
     /// </summary>
@@ -92,6 +90,7 @@ public class ComObjectWrapGenerator : ComObjectWrapBaseGenerator
 
         sb.AppendLine($"        internal {comNamespace}.{comClassName}? {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)};");
         sb.AppendLine("        private bool _disposedValue;");
+        sb.AppendLine("        private readonly DisposableList _disposableList = new();");
         sb.AppendLine();
     }
 
@@ -111,6 +110,7 @@ public class ComObjectWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine($"            if (disposing && {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
         sb.AppendLine("            {");
         sb.AppendLine($"                Marshal.ReleaseComObject({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)});");
+        sb.AppendLine("                _disposableList.Dispose();");
         sb.AppendLine($"                {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} = null;");
         sb.AppendLine("            }");
         sb.AppendLine();
@@ -125,5 +125,4 @@ public class ComObjectWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine("        }");
         sb.AppendLine("        #endregion");
     }
-    #endregion
 }

@@ -18,6 +18,12 @@ internal static class ComWrapGeneratorConstants
     public static readonly string[] ComObjectWrapAttributeNames = ["ComObjectWrapAttribute", "ComObjectWrap"];
 
     /// <summary>
+    /// ComCollectionWrap特性名称数组
+    /// </summary>
+    public static readonly string[] ComCollectionWrapAttributeNames = ["ComCollectionWrapAttribute", "ComCollectionWrap"];
+
+
+    /// <summary>
     /// ComPropertyWrap特性名称数组
     /// </summary>
     public static readonly string[] ComPropertyWrapAttributeNames = ["ComPropertyWrapAttribute", "ComPropertyWrap"];
