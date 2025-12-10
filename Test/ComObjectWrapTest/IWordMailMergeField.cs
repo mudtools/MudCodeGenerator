@@ -1,17 +1,4 @@
-﻿using Mud.Common.CodeGenerator;
-
-namespace ComObjectWrapTest;
-
-
-[ComObjectWrap(ComNamespace = "MsWord", ComClassName = "Field")]
-public partial interface IWordField : IDisposable
-{
-    IWordApplication? Application { get; }
-
-    object? Parent { get; }
-
-    bool Locked { get; set; }
-}
+﻿namespace ComObjectWrapTest;
 
 
 [ComObjectWrap(ComNamespace = "MsWord", ComClassName = "MailMergeField")]
@@ -24,11 +11,10 @@ public interface IWordMailMergeField : IDisposable
 
     bool Locked { get; set; }
 
-    [ComPropertyWrap(DefaultValue = "WdFieldType.wdFieldEmpty")]
+    [ComPropertyWrap(DefaultValue = nameof(WdFieldType.wdFieldEmpty))]
     WdFieldType Type { get; }
 
     IWordRange? Code { get; }
 
     void Delete();
-
 }

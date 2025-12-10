@@ -19,6 +19,8 @@ namespace Mud.ServiceCodeGenerator.ComWrapSourceGenerator;
 [Generator]
 public class ComObjectWrapGenerator : TransitiveCodeGenerator
 {
+    private static readonly string[] KnownPrefixes = { "IWord", "IExcel", "IOffice", "IPowerPoint", "IVbe" };
+
     /// <inheritdoc/>
     protected override System.Collections.ObjectModel.Collection<string> GetFileUsingNameSpaces()
     {
@@ -199,11 +201,11 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
         sb.AppendLine("        #region 属性");
         sb.AppendLine();
 
-        foreach (var member in interfaceSymbol.GetMembers())
+        foreach (var member in interfaceSymbol.GetMembers().OfType<IPropertySymbol>())
         {
-            if (member is IPropertySymbol propertySymbol && !ShouldIgnoreMember(member))
+            if (!ShouldIgnoreMember(member))
             {
-                GenerateProperty(sb, propertySymbol, interfaceDeclaration);
+                GenerateProperty(sb, member, interfaceDeclaration);
             }
         }
 
@@ -258,8 +260,16 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
                 sb.AppendLine($"            get => {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName};");
                 sb.AppendLine("            set");
                 sb.AppendLine("            {");
-                sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
-                sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value;");
+                if (propertyType.EndsWith("?", StringComparison.Ordinal))
+                {
+                    sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null && value != null)");
+                    sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value.value;");
+                }
+                else
+                {
+                    sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
+                    sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value;");
+                }
                 sb.AppendLine("            }");
                 sb.AppendLine("        }");
             }
@@ -300,8 +310,16 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
         sb.AppendLine($"            get => {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName} ?? false;");
         sb.AppendLine("            set");
         sb.AppendLine("            {");
-        sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
-        sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value;");
+        if (propertyType.EndsWith("?", StringComparison.Ordinal))
+        {
+            sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null && value != null)");
+            sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value.value;");
+        }
+        else
+        {
+            sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
+            sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value;");
+        }
         sb.AppendLine("            }");
         sb.AppendLine("        }");
     }
@@ -362,13 +380,11 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
         sb.AppendLine("        #region 方法实现");
         sb.AppendLine();
 
-        foreach (var member in interfaceSymbol.GetMembers())
+        foreach (var member in interfaceSymbol.GetMembers().OfType<IMethodSymbol>())
         {
-            if (member is IMethodSymbol methodSymbol &&
-                methodSymbol.MethodKind == MethodKind.Ordinary &&
-                !ShouldIgnoreMember(member))
+            if (member.MethodKind == MethodKind.Ordinary && !ShouldIgnoreMember(member))
             {
-                GenerateMethod(sb, methodSymbol, interfaceDeclaration);
+                GenerateMethod(sb, member, interfaceDeclaration);
             }
         }
 
@@ -763,7 +779,28 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
             }
         }
 
-        return ComWrapGeneratorConstants.DefaultComClassName;
+        return GetDefaultComClassName(interfaceDeclaration);
+    }
+
+    private string GetDefaultComClassName(InterfaceDeclarationSyntax interfaceDeclaration)
+    {
+        var interfaceName = interfaceDeclaration.Identifier.Text;
+
+        // 尝试匹配已知前缀
+        foreach (var prefix in KnownPrefixes)
+        {
+            if (interfaceName.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                return interfaceName.Substring(prefix.Length);
+            }
+        }
+
+        // 默认情况：去掉前导 "I"（如果符合命名规范），否则加 "Com"
+        return interfaceName.StartsWith("I", StringComparison.Ordinal)
+               && interfaceName.Length > 1
+               && char.IsUpper(interfaceName[1])
+            ? interfaceName.Substring(1)
+            : interfaceName + "Com";
     }
 
     #endregion
