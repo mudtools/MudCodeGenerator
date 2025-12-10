@@ -12,4 +12,8 @@
     <Project Path="Test/Mud.Common.CodeGenerator/Mud.Common.CodeGenerator.csproj" />
     <Project Path="Test/PublicPackageTest/PublicPackageTest.csproj" />
   </Folder>
+  <Folder Name="/解决方案/">
+    <File Path="Core/Directory.Build.props" />
+    <File Path="README.md" />
+  </Folder>
 </Solution>

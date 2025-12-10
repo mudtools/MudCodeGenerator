@@ -338,36 +338,26 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
         var comNamespace = GetComNamespace(interfaceDeclaration);
         var comClassName = GetComClassName(interfaceDeclaration);
 
-        if (propertySymbol.SetMethod == null)
+        sb.AppendLine($"        {GeneratedCodeAttribute}");
+        sb.AppendLine($"        public {propertyType} {propertyName}");
+        sb.AppendLine("        {");
+        sb.AppendLine("            get");
+        sb.AppendLine("            {");
+        sb.AppendLine($"                if({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
+        sb.AppendLine($"                   return {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName}.EnumConvert({defaultValue});");
+        sb.AppendLine($"                return {defaultValue};");
+        sb.AppendLine("             }");
+
+        if (propertySymbol.SetMethod != null)
         {
-            // 只读枚举属性
-            sb.AppendLine($"        {GeneratedCodeAttribute}");
-            sb.AppendLine($"        public {propertyType} {propertyName}");
-            sb.AppendLine("        {");
-            sb.AppendLine("            get");
-            sb.AppendLine("            {");
-            sb.AppendLine($"                if({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
-            sb.AppendLine($"                   return {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName}.EnumConvert({defaultValue});");
-            sb.AppendLine($"                return {defaultValue};");
-            sb.AppendLine("             }");
-            sb.AppendLine("        }");
-            sb.AppendLine();
-        }
-        else
-        {
-            // 读写枚举属性
-            sb.AppendLine($"        {GeneratedCodeAttribute}");
-            sb.AppendLine($"        public {propertyType} {propertyName}");
-            sb.AppendLine("        {");
-            sb.AppendLine($"            get => {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName}.EnumConvert({defaultValue}) ?? {defaultValue};");
             sb.AppendLine("            set");
             sb.AppendLine("            {");
             sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
             sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value.EnumConvert({comNamespace}.WdFieldType.wdFieldEmpty);");
             sb.AppendLine("            }");
-            sb.AppendLine("        }");
-            sb.AppendLine();
         }
+        sb.AppendLine("        }");
+        sb.AppendLine();
     }
 
     /// <summary>
