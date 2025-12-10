@@ -24,13 +24,9 @@ public interface IWordMailMergeField : IDisposable
 
     bool Locked { get; set; }
 
-    [ComPropertyWrap(PropertyType = PropertyType.EnumType, DefaultValue = "WdFieldType.wdFieldEmpty")]
+    [ComPropertyWrap(DefaultValue = "WdFieldType.wdFieldEmpty")]
     WdFieldType Type { get; }
 
-    [ComPropertyWrap(PropertyType = PropertyType.EnumType, DefaultValue = "WdFieldType.wdFieldEmpty")]
-    WdFieldType Test { get; }
-
-    [ComPropertyWrap(PropertyType = PropertyType.ObjectType)]
     IWordRange? Code { get; }
 
     void Delete();

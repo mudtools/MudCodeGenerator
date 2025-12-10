@@ -146,12 +146,12 @@ class Program
                 // 检查是否是特殊情况，如"IEnumerable"等.NET内置接口
                 // 这些接口虽然符合"I"+大写规则，但我们不应该移除它们的前缀
                 string[] specialCases = { "IEnumerable", "IEnumerator", "IEqualityComparer", "IComparable", "IEquatable" };
-                
+
                 if (specialCases.Contains(typeName))
                 {
                     return typeName;
                 }
-                
+
                 // 标准接口前缀，移除 'I'
                 return typeName.Substring(1);
             }

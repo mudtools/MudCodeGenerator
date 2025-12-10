@@ -10,4 +10,8 @@
     <DefineConstants>$(DefineConstants);NET7_0_OR_GREATER</DefineConstants>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Folder Include="Extensions\" />
+  </ItemGroup>
+
 </Project>

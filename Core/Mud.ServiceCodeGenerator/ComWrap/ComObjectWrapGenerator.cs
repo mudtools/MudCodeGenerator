@@ -26,7 +26,6 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
         [
             "System",
             "System.Runtime.InteropServices",
-            "Mud.Common.CodeGenerator.Extensions"
         ];
     }
 
@@ -236,17 +235,11 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
             if (isObjectType)
             {
                 //System.Diagnostics.Debugger.Launch();
-                var objectType = StringExtensions.RemoveInterfacePrefix(propertyType);
-                var constructType = objectType;
-                if (constructType.EndsWith("?", StringComparison.OrdinalIgnoreCase))
-                    constructType = constructType.Substring(0, constructType.Length - 1);
-                sb.AppendLine($"        {GeneratedCodeAttribute}");
-                sb.AppendLine($"        public {propertyType} {propertyName} => {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName} != null ? new {constructType}({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName}) : null;");
+                GenerateComObjectProperty(sb, propertyName, propertyType, comClassName);
             }
             else
             {
-                sb.AppendLine($"        {GeneratedCodeAttribute}");
-                sb.AppendLine($"        public {propertyType} {propertyName} => {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName};");
+                GenerateObjectProperty(sb, propertyName, propertyType, comClassName);
             }
             sb.AppendLine();
         }
@@ -255,16 +248,7 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
             // 读写属性
             if (propertyType == "bool")
             {
-                sb.AppendLine($"        {GeneratedCodeAttribute}");
-                sb.AppendLine($"        public {propertyType} {propertyName}");
-                sb.AppendLine("        {");
-                sb.AppendLine($"            get => {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName} ?? false;");
-                sb.AppendLine("            set");
-                sb.AppendLine("            {");
-                sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
-                sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value;");
-                sb.AppendLine("            }");
-                sb.AppendLine("        }");
+                GenerateBoolProperty(sb, propertyName, propertyType, comClassName);
             }
             else
             {
@@ -281,6 +265,45 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
             }
             sb.AppendLine();
         }
+    }
+
+    private void GenerateObjectProperty(StringBuilder sb, string propertyName, string propertyType, string comClassName)
+    {
+        sb.AppendLine($"        {GeneratedCodeAttribute}");
+        sb.AppendLine($"        public {propertyType} {propertyName} => {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName};");
+    }
+
+    private void GenerateComObjectProperty(StringBuilder sb, string propertyName, string propertyType, string comClassName)
+    {
+        var objectType = StringExtensions.RemoveInterfacePrefix(propertyType);
+        var constructType = objectType;
+        if (constructType.EndsWith("?", StringComparison.OrdinalIgnoreCase))
+            constructType = constructType.Substring(0, constructType.Length - 1);
+        sb.AppendLine($"        {GeneratedCodeAttribute}");
+        sb.AppendLine($"        public {propertyType} {propertyName}");
+        sb.AppendLine("        {");
+        sb.AppendLine("             get");
+        sb.AppendLine("             {");
+        sb.AppendLine($"                var comObj = {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName};");
+        sb.AppendLine("                  if (comObj == null)");
+        sb.AppendLine("                       return null;");
+        sb.AppendLine($"                return new {constructType}(comObj);");
+        sb.AppendLine("             }");
+        sb.AppendLine("        }");
+    }
+
+    private void GenerateBoolProperty(StringBuilder sb, string propertyName, string propertyType, string comClassName)
+    {
+        sb.AppendLine($"        {GeneratedCodeAttribute}");
+        sb.AppendLine($"        public {propertyType} {propertyName}");
+        sb.AppendLine("        {");
+        sb.AppendLine($"            get => {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName} ?? false;");
+        sb.AppendLine("            set");
+        sb.AppendLine("            {");
+        sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
+        sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value;");
+        sb.AppendLine("            }");
+        sb.AppendLine("        }");
     }
 
     /// <summary>
@@ -301,7 +324,15 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
         {
             // 只读枚举属性
             sb.AppendLine($"        {GeneratedCodeAttribute}");
-            sb.AppendLine($"        public {propertyType} {propertyName} => {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName}.EnumConvert({defaultValue}) ?? {defaultValue};");
+            sb.AppendLine($"        public {propertyType} {propertyName}");
+            sb.AppendLine("        {");
+            sb.AppendLine("            get");
+            sb.AppendLine("            {");
+            sb.AppendLine($"                if({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
+            sb.AppendLine($"                   return {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName}.EnumConvert({defaultValue});");
+            sb.AppendLine($"                return {defaultValue};");
+            sb.AppendLine("             }");
+            sb.AppendLine("        }");
             sb.AppendLine();
         }
         else
@@ -480,15 +511,15 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
             typeSymbol.TypeKind == TypeKind.Interface)
             return true;
 
-        // 3. 检查是否为引用类型且不是基础类型
-        if (typeSymbol.IsReferenceType &&
-            !IsBasicType(typeSymbol) &&
-            typeSymbol.TypeKind != TypeKind.Enum)
-            return true;
+        //// 3. 检查是否为引用类型且不是基础类型
+        //if (typeSymbol.IsReferenceType &&
+        //    !IsBasicType(typeSymbol) &&
+        //    typeSymbol.TypeKind != TypeKind.Enum)
+        //    return true;
 
         // 4. 检查特定模式，如COM接口的常见命名模式
         var typeName = typeSymbol.Name;
-        if (typeName.StartsWith("I") && typeName.Length > 1 && char.IsUpper(typeName[1]))
+        if (typeName.StartsWith("I", StringComparison.Ordinal) && typeName.Length > 1 && char.IsUpper(typeName[1]))
             return true;
 
         return false;

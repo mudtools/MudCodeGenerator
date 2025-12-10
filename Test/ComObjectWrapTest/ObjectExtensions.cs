@@ -1,4 +1,4 @@
-﻿namespace Mud.Common.CodeGenerator.Extensions;
+﻿namespace ComObjectWrapTest.Extensions;
 
 
 internal static class ObjectExtensions
@@ -175,6 +175,33 @@ internal static class ObjectExtensions
             decimal dec => (int)dec,
             _ => TryParseOrThrow<int>(result, int.TryParse, nameof(Int32))
         };
+    }
+
+    /// <summary>
+    /// 将对象转换为 bool
+    /// </summary>
+    public static bool ConvertToBool(this object result)
+    {
+        return result switch
+        {
+            bool b => b,
+            int i => i != 0,
+            short s => s != 0,
+            long l => l != 0,
+            double d => d != 0,
+            MsCore.MsoTriState t => t == MsCore.MsoTriState.msoTrue || t == MsCore.MsoTriState.msoCTrue,
+            _ => TryParseOrThrow<bool>(result, bool.TryParse, nameof(Boolean))
+        };
+    }
+
+    public static MsCore.MsoTriState ConvertTriState(this bool? b)
+    {
+        return b != null && b.Value ? MsCore.MsoTriState.msoTrue : MsCore.MsoTriState.msoFalse;
+    }
+
+    public static MsCore.MsoTriState ConvertTriState(this bool b)
+    {
+        return b ? MsCore.MsoTriState.msoTrue : MsCore.MsoTriState.msoFalse;
     }
 
     /// <summary>
