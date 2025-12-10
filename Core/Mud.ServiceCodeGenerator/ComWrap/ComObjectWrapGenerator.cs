@@ -101,7 +101,6 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
             : interfaceName + "Impl";
     }
 
-
     /// <summary>
     /// 生成COM对象包装实现类
     /// </summary>
@@ -223,9 +222,9 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
     {
         var propertyName = propertySymbol.Name;
         var propertyType = propertySymbol.Type.ToDisplayString();
-        var isEnumType = IsEnumProperty(interfaceDeclaration, propertySymbol);
-        var isObjectType = IsObjectTypeProperty(interfaceDeclaration, propertySymbol);
-        var defaultValue = GetDefaultValue(interfaceDeclaration, propertySymbol);
+        var isEnumType = IsEnumType(propertySymbol.Type);
+        var isObjectType = IsComObjectType(propertySymbol.Type);
+        var defaultValue = GetDefaultValue(interfaceDeclaration, propertySymbol, propertySymbol.Type);
         var comClassName = GetComClassName(interfaceDeclaration);
 
         if (isEnumType)
@@ -434,6 +433,97 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
     #region Helper Methods
 
     /// <summary>
+    /// 通过语义分析判断类型是否为枚举类型
+    /// </summary>
+    /// <param name="typeSymbol">类型符号</param>
+    /// <returns>如果是枚举类型返回true，否则返回false</returns>
+    private bool IsEnumType(ITypeSymbol typeSymbol)
+    {
+        // 优先检查特性标注（保持向后兼容）
+        if (typeSymbol.GetAttributes().Any(attr =>
+            attr.AttributeClass?.Name == "ComPropertyWrapAttribute" &&
+            attr.NamedArguments.Any(na => na.Key == "PropertyType" &&
+                na.Value.Value?.ToString() == "PropertyType.EnumType")))
+        {
+            return true;
+        }
+
+        // 通过语义分析判断
+        return typeSymbol.TypeKind == TypeKind.Enum;
+    }
+
+    /// <summary>
+    /// 通过语义分析判断类型是否为COM对象类型
+    /// </summary>
+    /// <param name="typeSymbol">类型符号</param>
+    /// <returns>如果是COM对象类型返回true，否则返回false</returns>
+    private bool IsComObjectType(ITypeSymbol typeSymbol)
+    {
+        // 优先检查特性标注（保持向后兼容）
+        if (typeSymbol.GetAttributes().Any(attr =>
+            attr.AttributeClass?.Name == "ComPropertyWrapAttribute" &&
+            attr.NamedArguments.Any(na => na.Key == "PropertyType" &&
+                na.Value.Value?.ToString() == "PropertyType.ObjectType")))
+        {
+            return true;
+        }
+
+        // 通过语义分析判断
+        var typeDisplayString = typeSymbol.ToDisplayString();
+
+        // 1. 检查命名空间中是否包含常见的COM相关命名空间
+        if (typeSymbol.ContainingNamespace?.ToDisplayString().Contains("Interop") == true)
+            return true;
+
+        // 2. 检查类型名是否以I开头（接口类型通常是COM对象）
+        if (typeDisplayString.StartsWith("I", StringComparison.Ordinal) &&
+            typeSymbol.TypeKind == TypeKind.Interface)
+            return true;
+
+        // 3. 检查是否为引用类型且不是基础类型
+        if (typeSymbol.IsReferenceType &&
+            !IsBasicType(typeSymbol) &&
+            typeSymbol.TypeKind != TypeKind.Enum)
+            return true;
+
+        // 4. 检查特定模式，如COM接口的常见命名模式
+        var typeName = typeSymbol.Name;
+        if (typeName.StartsWith("I") && typeName.Length > 1 && char.IsUpper(typeName[1]))
+            return true;
+
+        return false;
+    }
+
+    /// <summary>
+    /// 判断是否为基础类型（不需要特殊包装的类型）
+    /// </summary>
+    /// <param name="typeSymbol">类型符号</param>
+    /// <returns>如果是基础类型返回true，否则返回false</returns>
+    private bool IsBasicType(ITypeSymbol typeSymbol)
+    {
+        var specialType = typeSymbol.SpecialType;
+        return specialType switch
+        {
+            SpecialType.System_Boolean => true,
+            SpecialType.System_Char => true,
+            SpecialType.System_SByte => true,
+            SpecialType.System_Byte => true,
+            SpecialType.System_Int16 => true,
+            SpecialType.System_UInt16 => true,
+            SpecialType.System_Int32 => true,
+            SpecialType.System_UInt32 => true,
+            SpecialType.System_Int64 => true,
+            SpecialType.System_UInt64 => true,
+            SpecialType.System_Single => true,
+            SpecialType.System_Double => true,
+            SpecialType.System_Decimal => true,
+            SpecialType.System_String => true,
+            SpecialType.System_DateTime => true,
+            _ => false
+        };
+    }
+
+    /// <summary>
     /// 检查成员是否应该被忽略
     /// </summary>
     /// <param name="member">成员符号</param>
@@ -500,9 +590,11 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
     /// </summary>
     /// <param name="interfaceDeclaration">接口声明语法</param>
     /// <param name="propertySymbol">属性符号</param>
+    /// <param name="typeSymbol">类型符号</param>
     /// <returns>默认值字符串</returns>
-    private string GetDefaultValue(InterfaceDeclarationSyntax interfaceDeclaration, IPropertySymbol propertySymbol)
+    private string GetDefaultValue(InterfaceDeclarationSyntax interfaceDeclaration, IPropertySymbol propertySymbol, ITypeSymbol typeSymbol)
     {
+        // 首先检查特性中显式指定的默认值
         var propertyDeclaration = interfaceDeclaration.DescendantNodes()
             .OfType<PropertyDeclarationSyntax>()
             .FirstOrDefault(p => p.Identifier.Text == propertySymbol.Name);
@@ -525,7 +617,52 @@ public class ComObjectWrapGenerator : TransitiveCodeGenerator
             }
         }
 
-        return "default";
+        // 如果没有显式指定，基于类型推断合理的默认值
+        return InferDefaultValue(typeSymbol);
+    }
+
+    /// <summary>
+    /// 基于类型推断合理的默认值
+    /// </summary>
+    /// <param name="typeSymbol">类型符号</param>
+    /// <returns>推断的默认值字符串</returns>
+    private string InferDefaultValue(ITypeSymbol typeSymbol)
+    {
+        // 枚举类型：使用第一个枚举值
+        if (typeSymbol.TypeKind == TypeKind.Enum)
+        {
+            var firstEnumValue = typeSymbol.GetMembers()
+                .OfType<IFieldSymbol>()
+                .FirstOrDefault(f => f.HasConstantValue);
+            if (firstEnumValue != null)
+            {
+                var enumTypeName = typeSymbol.ToDisplayString();
+                return $"{enumTypeName}.{firstEnumValue.Name}";
+            }
+            return "default";
+        }
+
+        // 基础类型：提供合理的默认值
+        var specialType = typeSymbol.SpecialType;
+        return specialType switch
+        {
+            SpecialType.System_Boolean => "false",
+            SpecialType.System_Char => "'\\0'",
+            SpecialType.System_SByte => "0",
+            SpecialType.System_Byte => "0",
+            SpecialType.System_Int16 => "0",
+            SpecialType.System_UInt16 => "0",
+            SpecialType.System_Int32 => "0",
+            SpecialType.System_UInt32 => "0",
+            SpecialType.System_Int64 => "0L",
+            SpecialType.System_UInt64 => "0UL",
+            SpecialType.System_Single => "0.0f",
+            SpecialType.System_Double => "0.0",
+            SpecialType.System_Decimal => "0.0m",
+            SpecialType.System_String => "string.Empty",
+            SpecialType.System_DateTime => "DateTime.MinValue",
+            _ => "default"
+        };
     }
 
     /// <summary>

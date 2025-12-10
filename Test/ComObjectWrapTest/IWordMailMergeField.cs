@@ -6,7 +6,6 @@ namespace ComObjectWrapTest;
 [ComObjectWrap(ComNamespace = "MsWord", ComClassName = "Field")]
 public partial interface IWordField : IDisposable
 {
-    [ComPropertyWrap(PropertyType = PropertyType.ObjectType)]
     IWordApplication? Application { get; }
 
     object? Parent { get; }
