@@ -5,7 +5,8 @@
     {
         /// <summary>
         /// 获取此数据字段集合所属的 Word 应用程序对象。
-        /// </summary>
+        /// </summary> 
+        [ComPropertyWrap(NeedDispose = false)]
         IWordApplication? Application { get; }
 
         /// <summary>

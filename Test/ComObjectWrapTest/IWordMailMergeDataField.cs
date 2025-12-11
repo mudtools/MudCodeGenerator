@@ -1,6 +1,4 @@
-﻿using Mud.Common.CodeGenerator;
-
-namespace ComObjectWrapTest;
+﻿namespace ComObjectWrapTest;
 
 [ComObjectWrap(ComNamespace = "MsWord")]
 public interface IWordMailMergeDataField : IDisposable
@@ -8,6 +6,7 @@ public interface IWordMailMergeDataField : IDisposable
     /// <summary>
     /// 获取此数据字段所属的 Word 应用程序对象。
     /// </summary>
+    [ComPropertyWrap(NeedDispose = false)]
     IWordApplication? Application { get; }
 
     /// <summary>

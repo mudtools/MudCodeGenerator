@@ -5,6 +5,7 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
+using Mud.CodeGenerator.Helper;
 using Mud.ServiceCodeGenerator.ComWrapSourceGenerator;
 using System.Collections.Immutable;
 using System.Text;
@@ -138,7 +139,10 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         {
             if (member.IsIndexer)
                 continue;
-
+            var propertyData = AttributeDataHelper.GetAttributeDataFromSymbol(member, ComWrapGeneratorConstants.ComPropertyWrapAttributeNames);
+            var needDispose = AttributeDataHelper.GetBoolValueFromAttribute(propertyData, "NeedDispose", true);
+            if (!needDispose)
+                continue;
             var propertyName = member.Name;
             var propertyType = member.Type.ToDisplayString();
             var isObjectType = IsComObjectType(member.Type);
@@ -765,7 +769,60 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             : interfaceName + "Com";
     }
 
+    /// <summary>
+    /// 生成IDisposable接口实现
+    /// </summary>
+    /// <param name="sb">字符串构建器</param>
+    /// <param name="interfaceDeclaration">接口声明语法</param>
+    /// <param name="interfaceSymbol">接口符号</param>
+    /// <param name="includeAdditionalDisposables">是否包含额外的可释放对象处理</param>
+    protected virtual void GenerateIDisposableImplementation(StringBuilder sb, InterfaceDeclarationSyntax interfaceDeclaration, INamedTypeSymbol? interfaceSymbol = null)
+    {
+        var comClassName = GetComClassName(interfaceDeclaration);
+        sb.AppendLine("        #region IDisposable 实现");
+        sb.AppendLine($"        {GeneratedCodeAttribute}");
+        sb.AppendLine("        protected virtual void Dispose(bool disposing)");
+        sb.AppendLine("        {");
+        sb.AppendLine("            if (_disposedValue) return;");
+        sb.AppendLine();
+        sb.AppendLine($"            if (disposing && {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
+        sb.AppendLine("            {");
+        sb.AppendLine($"                Marshal.ReleaseComObject({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)});");
+        sb.AppendLine($"                {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} = null;");
+        sb.AppendLine("            }");
+        sb.AppendLine();
 
+        if (interfaceSymbol != null)
+        {
+            sb.AppendLine("            if (disposing)");
+            sb.AppendLine("            {");
+            GenerateAdditionalDisposalLogic(sb, interfaceSymbol, interfaceDeclaration);
+            sb.AppendLine("            }");
+        }
+
+        sb.AppendLine("            _disposedValue = true;");
+        sb.AppendLine("        }");
+        sb.AppendLine();
+        sb.AppendLine($"        {GeneratedCodeAttribute}");
+        sb.AppendLine("        public void Dispose()");
+        sb.AppendLine("        {");
+        sb.AppendLine("            Dispose(true);");
+        sb.AppendLine("            GC.SuppressFinalize(this);");
+        sb.AppendLine("        }");
+        sb.AppendLine("        #endregion");
+        sb.AppendLine();
+    }
+
+    /// <summary>
+    /// 生成额外的释放逻辑（可被子类重写）
+    /// </summary>
+    /// <param name="sb">字符串构建器</param>
+    /// <param name="interfaceSymbol">接口符号</param>
+    /// <param name="interfaceDeclaration">接口声明语法</param>
+    protected virtual void GenerateAdditionalDisposalLogic(StringBuilder sb, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
+    {
+
+    }
 
     /// <summary>
     /// 从枚举值字符串中提取不带命名空间的枚举值名称

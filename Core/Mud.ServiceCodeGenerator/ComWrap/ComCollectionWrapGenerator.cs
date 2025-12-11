@@ -75,7 +75,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         GenerateIEnumerableImplementation(sb, interfaceSymbol, interfaceDeclaration);
 
         // 生成IDisposable实现
-        GenerateIDisposableImplementation(sb, interfaceSymbol, interfaceDeclaration);
+        GenerateIDisposableImplementation(sb, interfaceDeclaration, interfaceSymbol);
 
         sb.AppendLine("    }");
         sb.AppendLine("}");
@@ -274,39 +274,14 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
     }
 
     /// <summary>
-    /// 生成IDisposable接口实现
+    /// 生成额外的释放逻辑（重写基类方法）
     /// </summary>
     /// <param name="sb">字符串构建器</param>
-    private void GenerateIDisposableImplementation(StringBuilder sb, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
+    /// <param name="interfaceSymbol">接口符号</param>
+    /// <param name="interfaceDeclaration">接口声明语法</param>
+    protected override void GenerateAdditionalDisposalLogic(StringBuilder sb, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
     {
-        var comClassName = GetComClassName(interfaceDeclaration);
-        sb.AppendLine("        #region IDisposable 实现");
-        sb.AppendLine($"        {GeneratedCodeAttribute}");
-        sb.AppendLine("        protected virtual void Dispose(bool disposing)");
-        sb.AppendLine("        {");
-        sb.AppendLine("            if (_disposedValue) return;");
-        sb.AppendLine();
-        sb.AppendLine($"            if (disposing && {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
-        sb.AppendLine("            {");
-        sb.AppendLine($"                Marshal.ReleaseComObject({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)});");
-
-        sb.AppendLine($"                {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} = null;");
-        sb.AppendLine("            }");
-        sb.AppendLine();
-        sb.AppendLine("            if (disposing)");
-        sb.AppendLine("            {");
         sb.AppendLine("                _disposableList.Dispose();");
         GeneratePrivateFieldDisposable(sb, interfaceSymbol, interfaceDeclaration);
-        sb.AppendLine("            }");
-        sb.AppendLine("            _disposedValue = true;");
-        sb.AppendLine("        }");
-        sb.AppendLine();
-        sb.AppendLine($"        {GeneratedCodeAttribute}");
-        sb.AppendLine("        public void Dispose()");
-        sb.AppendLine("        {");
-        sb.AppendLine("            Dispose(true);");
-        sb.AppendLine("            GC.SuppressFinalize(this);");
-        sb.AppendLine("        }");
-        sb.AppendLine("        #endregion");
     }
 }

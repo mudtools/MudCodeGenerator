@@ -130,20 +130,19 @@ internal static class AttributeDataHelper
     /// <summary>
     /// 从类型符号中获取指定名称的特性数据。
     /// </summary>
-    /// <param name="interfaceSymbol">类型符号对象</param>
+    /// <param name="typeSymbol">类型符号对象</param>
     /// <param name="attributeNames">要查找的特性名称数组，支持多个名称进行匹配</param>
     /// <returns>匹配到的特性数据对象，如果未找到则返回 null</returns>
     /// <remarks>
     /// 此方法会遍历类型的所有特性，返回第一个名称在给定名称数组中的特性。
     /// 常用于查找可能存在多个别名或不同命名空间的特性。
     /// </remarks>
-    public static AttributeData? GetAttributeDataFromSymbol(INamedTypeSymbol interfaceSymbol, string[] attributeNames)
+    public static AttributeData? GetAttributeDataFromSymbol(ISymbol typeSymbol, string[] attributeNames)
     {
-        if (interfaceSymbol == null || attributeNames == null)
+        if (typeSymbol == null || attributeNames == null)
             return null;
         if (attributeNames.Length < 1)
             return null;
-        return interfaceSymbol.GetAttributes()
-            .FirstOrDefault(a => attributeNames.Contains(a.AttributeClass?.Name));
+        return typeSymbol.GetAttributes().FirstOrDefault(a => attributeNames.Contains(a.AttributeClass?.Name));
     }
 }

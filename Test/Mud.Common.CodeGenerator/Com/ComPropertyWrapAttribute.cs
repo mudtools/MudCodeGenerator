@@ -18,7 +18,12 @@ public class ComPropertyWrapAttribute : Attribute
     public string DefaultValue { get; set; }
 
     /// <summary>
-    /// 属性值是否需要转换。
+    /// 是否需要转换属性值。
     /// </summary>
     public bool NeedConvert { get; set; } = false;
+
+    /// <summary>
+    /// 是否需要释放属性值资源。
+    /// </summary>
+    public bool NeedDispose { get; set; } = true;
 }
