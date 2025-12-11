@@ -1023,6 +1023,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         sb.AppendLine("        }");
         sb.AppendLine();
         sb.AppendLine($"        {GeneratedCodeAttribute}");
+        sb.AppendLine($"        ///  <inheritdoc/>");
         sb.AppendLine("        public void Dispose()");
         sb.AppendLine("        {");
         sb.AppendLine("            Dispose(true);");

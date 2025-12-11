@@ -97,6 +97,11 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine($"        private {comNamespace}.{comClassName}? {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)};");
         sb.AppendLine("        private bool _disposedValue;");
         sb.AppendLine("        private readonly DisposableList _disposableList = new();");
+
+        sb.AppendLine();
+        sb.AppendLine($"        /// <summary>");
+        sb.AppendLine($"        /// 用于方便内部调用的 <see cref=\"{comNamespace}.{comClassName}\"/> COM对象。");
+        sb.AppendLine($"        /// </summary>");
         sb.AppendLine($"        public {comNamespace}.{comClassName}? InternalComObject => {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)};");
         sb.AppendLine();
     }
