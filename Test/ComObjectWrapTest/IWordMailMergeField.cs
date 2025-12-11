@@ -18,11 +18,12 @@ public interface IWordMailMergeField : IDisposable
 
     void Delete();
 
-    void Delete(IWordCell? wordCell);
+    //void Delete(IWordCell? wordCell);
 
-    void Delete(IWordField wordCell);
+    //void Delete(IWordField wordCell);
 
-    void Delete(int? index, WdFieldType wdFieldType);
+    //void Delete(int? index, WdFieldType wdFieldType);
 
-    IWordCell? FindCell(string? name, int? index, WdFieldType wdFieldType = WdFieldType.wdFieldAddin);
+    //IWordCell? FindCell(string? name, int? index, WdFieldType wdFieldType = WdFieldType.wdFieldAddin);
+
 }
