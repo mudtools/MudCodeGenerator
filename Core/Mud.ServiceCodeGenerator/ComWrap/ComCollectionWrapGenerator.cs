@@ -111,7 +111,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
     /// </summary>
     /// <param name="interfaceSymbol">接口符号</param>
     /// <returns>元素类型，如果无法确定则返回null</returns>
-    private string? GetCollectionElementType(INamedTypeSymbol interfaceSymbol)
+    private ITypeSymbol? GetCollectionElementType(INamedTypeSymbol interfaceSymbol)
     {
         // 查找 IEnumerable<T> 接口
         foreach (var interfaceImpl in interfaceSymbol.AllInterfaces)
@@ -119,7 +119,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
             if (interfaceImpl.Name == "IEnumerable" && interfaceImpl.IsGenericType)
             {
                 var typeArgument = interfaceImpl.TypeArguments.FirstOrDefault();
-                return typeArgument?.ToDisplayString();
+                return typeArgument;
             }
         }
         return null;
@@ -229,37 +229,9 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine($"                if (string.IsNullOrEmpty({parameterName}))");
         sb.AppendLine($"                    throw new ArgumentNullException(nameof({parameterName}));");
         sb.AppendLine();
-        sb.AppendLine($"                if ({privateFieldName} == null) return null;");
-        sb.AppendLine("                try");
-        sb.AppendLine("                {");
-        if (isItemIndex)
-        {
-            sb.AppendLine($"                    var comElement = {privateFieldName}.Item({parameterName});");
-        }
-        else
-        {
-            sb.AppendLine($"                    var comElement = {privateFieldName}[{parameterName}];");
-        }
-        // 检查是否为基本类型，如果是则直接返回
-        if (IsBasicType(elementImplType) || isEnumType)
-        {
-            if (isEnumType)
-                sb.AppendLine($"                    return comElement.EnumConvert({defaultValue});");
-            else
-                sb.AppendLine($"                    return comElement;");
-        }
-        else
-        {
-            sb.AppendLine($"                    var result = comElement != null ? new {elementImplType}(comElement) : null;");
-            sb.AppendLine("                    if (result != null)");
-            sb.AppendLine("                        _disposableList.Add(result);");
-            sb.AppendLine("                    return result;");
-        }
-        sb.AppendLine("                }");
-        sb.AppendLine("                catch (COMException ce)");
-        sb.AppendLine("                {");
-        sb.AppendLine($"                    throw new ExcelOperationException(\"根据字段名称检索 {elementImplType} 对象失败: \" + ce.Message, ce);");
-        sb.AppendLine("                }");
+
+        GenerateCommonIndexLogic(sb, isItemIndex, isEnumType, defaultValue, elementImplType,
+            privateFieldName, parameterName, "根据字段名称");
     }
 
     private static void GenerateIntIndex(
@@ -272,6 +244,21 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         string parameterName)
     {
         sb.AppendLine($"                if ({privateFieldName} == null || {parameterName} < 1) return null;");
+
+        GenerateCommonIndexLogic(sb, isItemIndex, isEnumType, defaultValue, elementImplType,
+            privateFieldName, parameterName, "根据索引");
+    }
+
+    private static void GenerateCommonIndexLogic(
+        StringBuilder sb,
+        bool isItemIndex,
+        bool isEnumType,
+        string? defaultValue,
+        string elementImplType,
+        string privateFieldName,
+        string parameterName,
+        string operationType)
+    {
         sb.AppendLine("                try");
         sb.AppendLine("                {");
         if (isItemIndex)
@@ -282,7 +269,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         {
             sb.AppendLine($"                    var comElement = {privateFieldName}[{parameterName}];");
         }
-        // 检查是否为基本类型，如果是则直接返回
+
         if (IsBasicType(elementImplType) || isEnumType)
         {
             if (isEnumType)
@@ -300,7 +287,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine("                }");
         sb.AppendLine("                catch (COMException ce)");
         sb.AppendLine("                {");
-        sb.AppendLine($"                    throw new ExcelOperationException(\"根据索引检索 {elementImplType} 对象失败: \" + ce.Message, ce);");
+        sb.AppendLine($"                    throw new ExcelOperationException(\"{operationType}检索 {elementImplType} 对象失败: \" + ce.Message, ce);");
         sb.AppendLine("                }");
     }
 
@@ -309,7 +296,9 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         var elementType = GetCollectionElementType(interfaceSymbol);
         if (elementType == null)
             return;
-        var elementImplType = GetImplementationType(elementType);
+        var isEnumType = IsEnumType(elementType);
+        var defaultValue = GetDefaultValue(interfaceDeclaration, interfaceSymbol, elementType);
+        var elementImplType = GetImplementationType(elementType.ToDisplayString());
         var comClassName = GetComClassName(interfaceDeclaration);
         var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
         var isItemIndex = AttributeDataHelper.HasAttribute(interfaceSymbol, ComWrapGeneratorConstants.ItemIndexAttributeNames);
@@ -331,8 +320,13 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         {
             sb.AppendLine($"               var comElement = {privateFieldName}[i];");
         }
-        if (IsBasicType(elementImplType))
-            sb.AppendLine("               yield return comElement;");
+        if (IsBasicType(elementImplType) || isEnumType)
+        {
+            if (isEnumType)
+                sb.AppendLine($"               yield return comElement.EnumConvert({defaultValue});");
+            else
+                sb.AppendLine("               yield return comElement;");
+        }
         else
         {
             sb.AppendLine("                {");
