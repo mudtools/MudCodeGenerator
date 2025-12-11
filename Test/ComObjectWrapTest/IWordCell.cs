@@ -1,5 +1,8 @@
 ﻿namespace ComObjectWrapTest
 {
+    /// <summary>
+    /// COM接口，表示Word文档中的单元格。
+    /// </summary>
     [ComObjectWrap(ComNamespace = "MsWord")]
     public interface IWordCell : IDisposable
     {
@@ -22,7 +25,7 @@
         /// 获取单元格左边界位置。
         /// </summary>
         [ComPropertyWrap(DefaultValue = "-1", NeedConvert = true)]
-        float? LeftPadding { get; set; }
+        float LeftPadding { get; set; }
 
         /// <summary>
         /// 获取或设置单元格垂直对齐方式。

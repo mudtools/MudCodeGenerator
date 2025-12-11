@@ -51,7 +51,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine($"namespace {impNamespace}");
         sb.AppendLine("{");
         sb.AppendLine($"    /// <summary>");
-        sb.AppendLine($"    /// {interfaceName} 的COM对象包装实现类");
+        sb.AppendLine($"    /// COM封装接口 <see cref=\"{interfaceName}\"/> 的内容实现类。");
         sb.AppendLine($"    /// </summary>");
         sb.AppendLine($"    {CompilerGeneratedAttribute}");
         sb.AppendLine($"    {GeneratedCodeAttribute}");
@@ -172,6 +172,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
             var parameterType = parameter.Type.ToString();
             var parameterName = "index"; // 统一使用 index 作为参数名
             sb.AppendLine($"        {GeneratedCodeAttribute}");
+            sb.AppendLine($"        ///  <inheritdoc/>");
             sb.AppendLine($"        public {elementType} this[{parameterType} {parameterName}]");
             sb.AppendLine("        {");
             sb.AppendLine("            get");
@@ -266,6 +267,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
 
         sb.AppendLine("        #region IEnumerable 实现");
         sb.AppendLine($"        {GeneratedCodeAttribute}");
+        sb.AppendLine($"        ///  <inheritdoc/>");
         sb.AppendLine($"        public IEnumerator<{elementType}> GetEnumerator()");
         sb.AppendLine("        {");
         sb.AppendLine($"            if ({privateFieldName} == null) yield break;");

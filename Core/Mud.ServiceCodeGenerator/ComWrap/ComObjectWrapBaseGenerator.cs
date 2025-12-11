@@ -90,7 +90,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 
 
     /// <summary>
-    /// 生成构造函数
+    /// 生成构造函数 />
     /// </summary>
     /// <param name="sb">字符串构建器</param>
     /// <param name="className">类名</param>
@@ -99,6 +99,11 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     {
         var comNamespace = GetComNamespace(interfaceDeclaration);
         var comClassName = GetComClassName(interfaceDeclaration);
+
+        sb.AppendLine();
+        sb.AppendLine($"        /// <summary>");
+        sb.AppendLine($"        ///  使用 <see cref=\"{comNamespace}.{comClassName}\"/> COM对象初始化当前实例");
+        sb.AppendLine($"        /// </summary>");
         sb.AppendLine($"        internal {className}({comNamespace}.{comClassName} comObject)");
         sb.AppendLine("        {");
         sb.AppendLine($"            {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} = comObject ?? throw new ArgumentNullException(nameof(comObject));");
@@ -204,6 +209,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         var propertyType = propertySymbol.Type.ToDisplayString();
 
         sb.AppendLine($"        {GeneratedCodeAttribute}");
+        sb.AppendLine($"        ///  <inheritdoc/>");
         sb.AppendLine($"        public {propertyType} {propertyName}");
         sb.AppendLine("        {");
         sb.AppendLine($"            get");
@@ -259,6 +265,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         var fieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(impType, FieldNamingStyle.UnderscoreCamel);
 
         sb.AppendLine($"        {GeneratedCodeAttribute}");
+        sb.AppendLine($"        ///  <inheritdoc/>");
         sb.AppendLine($"        public {propertyType} {propertyName}");
         sb.AppendLine("        {");
         sb.AppendLine("             get");
@@ -266,9 +273,8 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         sb.AppendLine($"                var comObj = {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName};");
         sb.AppendLine("                if (comObj == null)");
         sb.AppendLine("                    return null;");
-        sb.AppendLine($"                if ({fieldName} != null)");
-        sb.AppendLine($"                    return {fieldName};");
-        sb.AppendLine($"                {fieldName} = new {constructType}(comObj);");
+        sb.AppendLine($"                if ({fieldName} == null)");
+        sb.AppendLine($"                    {fieldName} = new {constructType}(comObj);");
         sb.AppendLine($"                return {fieldName};");
         sb.AppendLine("             }");
 
@@ -303,6 +309,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         var enumValueName = GetEnumValueWithoutNamespace(defaultValue);
 
         sb.AppendLine($"        {GeneratedCodeAttribute}");
+        sb.AppendLine($"        ///  <inheritdoc/>");
         sb.AppendLine($"        public {propertyType} {propertyName}");
         sb.AppendLine("        {");
         sb.AppendLine("            get");
@@ -407,6 +414,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         var parametersStr = string.Join(", ", parameters);
 
         sb.AppendLine($"        {GeneratedCodeAttribute}");
+        sb.AppendLine($"        ///  <inheritdoc/>");
         sb.AppendLine($"        public {returnType} {methodName}({parametersStr})");
     }
 
@@ -827,7 +835,25 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 
     private string GetConvertCode(IPropertySymbol typeSymbol)
     {
-        var specialType = typeSymbol.Type.SpecialType;
+        // 检查是否为可空类型
+        if (typeSymbol.Type is INamedTypeSymbol namedType &&
+            namedType.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
+        {
+            // 获取可空类型的基础类型
+            var underlyingType = namedType.TypeArguments[0];
+
+            // 为可空类型生成带有空值检查的转换代码
+            return GetConvertCodeForType(underlyingType);
+        }
+
+        // 对于非可空类型，直接获取转换代码
+        return GetConvertCodeForType(typeSymbol.Type);
+    }
+
+    private string GetConvertCodeForType(ITypeSymbol typeSymbol)
+    {
+        var specialType = typeSymbol.SpecialType;
+
         return specialType switch
         {
             SpecialType.System_Boolean => "ConvertToBool()",

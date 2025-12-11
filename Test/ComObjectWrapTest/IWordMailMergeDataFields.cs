@@ -1,5 +1,8 @@
 ﻿namespace ComObjectWrapTest
 {
+    /// <summary>
+    /// 邮件合并过程中表示数据字段集合的接口。
+    /// </summary>
     [ComCollectionWrap(ComNamespace = "MsWord")]
     public interface IWordMailMergeDataFields : IEnumerable<IWordMailMergeDataField>, IDisposable
     {

@@ -50,7 +50,7 @@ public class ComObjectWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine($"namespace {impNamespace}");
         sb.AppendLine("{");
         sb.AppendLine($"    /// <summary>");
-        sb.AppendLine($"    /// {interfaceName} 的COM对象包装实现类");
+        sb.AppendLine($"    /// COM封装接口 <see cref=\"{interfaceName}\"/> 的内容实现类。");
         sb.AppendLine($"    /// </summary>");
         sb.AppendLine($"    {CompilerGeneratedAttribute}");
         sb.AppendLine($"    {GeneratedCodeAttribute}");
