@@ -144,6 +144,23 @@ internal static class ObjectExtensions
     }
 
     /// <summary>
+    /// 将对象转换为 decimal
+    /// </summary>
+    public static decimal ConvertToDecimal(this object result)
+    {
+        return result switch
+        {
+            double d => (decimal)d,
+            int i => i,
+            float f => (decimal)f,
+            long l => l,
+            short s => s,
+            decimal dec => dec,
+            _ => TryParseOrThrow<decimal>(result, decimal.TryParse, nameof(Decimal))
+        };
+    }
+
+    /// <summary>
     /// 将对象转换为 float
     /// </summary>
     public static float ConvertToFloat(this object result)
@@ -174,6 +191,23 @@ internal static class ObjectExtensions
             short s => s,
             decimal dec => (int)dec,
             _ => TryParseOrThrow<int>(result, int.TryParse, nameof(Int32))
+        };
+    }
+
+    /// <summary>
+    /// 将对象转换为 long
+    /// </summary>
+    public static long ConvertToLong(this object result)
+    {
+        return result switch
+        {
+            double d => (long)d,
+            int i => i,
+            float f => (long)f,
+            long l => l,
+            short s => s,
+            decimal dec => (long)dec,
+            _ => TryParseOrThrow<long>(result, long.TryParse, nameof(Int64))
         };
     }
 

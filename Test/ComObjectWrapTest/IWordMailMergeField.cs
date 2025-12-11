@@ -9,6 +9,7 @@ public interface IWordMailMergeField : IDisposable
 
     object? Parent { get; }
 
+    [ComPropertyWrap(NeedConvert = true)]
     bool Locked { get; set; }
 
     [ComPropertyWrap(DefaultValue = nameof(WdFieldType.wdFieldEmpty))]

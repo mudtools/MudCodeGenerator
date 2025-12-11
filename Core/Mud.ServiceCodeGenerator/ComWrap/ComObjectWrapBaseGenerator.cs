@@ -139,8 +139,8 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         {
             if (member.IsIndexer)
                 continue;
-            var propertyData = AttributeDataHelper.GetAttributeDataFromSymbol(member, ComWrapGeneratorConstants.ComPropertyWrapAttributeNames);
-            var needDispose = AttributeDataHelper.GetBoolValueFromAttribute(propertyData, "NeedDispose", true);
+
+            var needDispose = IsNeeDispose(member);
             if (!needDispose)
                 continue;
             var propertyName = member.Name;
@@ -175,6 +175,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         var isObjectType = IsComObjectType(propertySymbol.Type);
         var defaultValue = GetDefaultValue(interfaceDeclaration, propertySymbol, propertySymbol.Type);
         var comClassName = GetComClassName(interfaceDeclaration);
+        var needConvert = IsNeedConvert(propertySymbol);
 
         if (isEnumType)
         {
@@ -184,13 +185,9 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         {
             GenerateComObjectProperty(sb, propertySymbol, interfaceDeclaration, comClassName);
         }
-        else if (propertyType == "bool")
-        {
-            GenerateBoolProperty(sb, propertySymbol, interfaceDeclaration, comClassName);
-        }
         else
         {
-            GenerateObjectProperty(sb, propertySymbol, interfaceDeclaration, comClassName, defaultValue);
+            GenerateObjectProperty(sb, propertySymbol, interfaceDeclaration, needConvert, comClassName, defaultValue);
         }
     }
 
@@ -201,7 +198,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     /// <param name="propertySymbol">属性符号</param>
     /// <param name="interfaceDeclaration">接口声明语法</param>
     /// <param name="comClassName">COM类名</param>
-    private void GenerateObjectProperty(StringBuilder sb, IPropertySymbol propertySymbol, InterfaceDeclarationSyntax interfaceDeclaration, string comClassName, string defaultValue)
+    private void GenerateObjectProperty(StringBuilder sb, IPropertySymbol propertySymbol, InterfaceDeclarationSyntax interfaceDeclaration, bool needConvert, string comClassName, string defaultValue)
     {
         var propertyName = propertySymbol.Name;
         var propertyType = propertySymbol.Type.ToDisplayString();
@@ -212,7 +209,15 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         sb.AppendLine($"            get");
         sb.AppendLine("            {");
         sb.AppendLine($"                if({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
-        sb.AppendLine($"                   return {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName};");
+        if (needConvert)
+        {
+            var convertMethod = GetConvertCode(propertySymbol);
+            sb.AppendLine($"                   return {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName}.{convertMethod};");
+        }
+        else
+        {
+            sb.AppendLine($"                   return {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName};");
+        }
         sb.AppendLine($"                return {defaultValue};");
         sb.AppendLine("             }");
 
@@ -253,7 +258,6 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         var impType = propertySymbol.Type.Name.Trim('?');
         var fieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(impType, FieldNamingStyle.UnderscoreCamel);
 
-
         sb.AppendLine($"        {GeneratedCodeAttribute}");
         sb.AppendLine($"        public {propertyType} {propertyName}");
         sb.AppendLine("        {");
@@ -278,43 +282,6 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = comObj;");
             sb.AppendLine($"                }}");
             sb.AppendLine("             }");
-        }
-        sb.AppendLine("        }");
-        sb.AppendLine();
-    }
-
-    /// <summary>
-    /// 生成布尔属性实现
-    /// </summary>
-    /// <param name="sb">字符串构建器</param>
-    /// <param name="propertySymbol">属性符号</param>
-    /// <param name="interfaceDeclaration">接口声明语法</param>
-    /// <param name="comClassName">COM类名</param>
-    private void GenerateBoolProperty(StringBuilder sb, IPropertySymbol propertySymbol, InterfaceDeclarationSyntax interfaceDeclaration, string comClassName)
-    {
-        var propertyName = propertySymbol.Name;
-        var propertyType = propertySymbol.Type.ToDisplayString();
-
-        sb.AppendLine($"        {GeneratedCodeAttribute}");
-        sb.AppendLine($"        public {propertyType} {propertyName}");
-        sb.AppendLine("        {");
-        sb.AppendLine($"            get => {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName} ?? false;");
-
-        if (propertySymbol.SetMethod != null)
-        {
-            sb.AppendLine("            set");
-            sb.AppendLine("            {");
-            if (propertyType.EndsWith("?", StringComparison.Ordinal))
-            {
-                sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null && value != null)");
-                sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value.Value;");
-            }
-            else
-            {
-                sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
-                sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value;");
-            }
-            sb.AppendLine("            }");
         }
         sb.AppendLine("        }");
         sb.AppendLine();
@@ -656,25 +623,35 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             _ => value.ToString()
         };
     }
-
+    #region Helper Methods
     /// <summary>
-    /// 获取枚举类型的默认值
+    /// 是否需要转换。
     /// </summary>
-    private string GetDefaultEnumValue(string enumTypeName)
+    /// <param name="propertySymbol"></param>
+    /// <returns></returns>
+    protected bool IsNeedConvert(IPropertySymbol propertySymbol)
     {
-        // 这里可以根据枚举类型返回合适的默认值
-        // 实际实现中可能需要更复杂的逻辑
-        return enumTypeName switch
-        {
-            var name when name.Contains("MsoAlignCmd") => "MsCore.MsoAlignCmd.msoAlignLefts",
-            var name when name.Contains("XlListObjectSourceType") => "MsExcel.XlListObjectSourceType.xlSrcExternal",
-            var name when name.Contains("XlYesNoGuess") => "MsExcel.XlYesNoGuess.xlGuess",
-            var name when name.Contains("MsoTriState") => "MsCore.MsoTriState.msoFalse",
-            _ => $"{enumTypeName}.0" // 默认为枚举的第一个值
-        };
+        var propertyWrapAttr = AttributeDataHelper.GetAttributeDataFromSymbol(propertySymbol, ComWrapGeneratorConstants.ComPropertyWrapAttributeNames);
+        if (propertyWrapAttr == null)
+            return false;
+
+        var needConvert = AttributeDataHelper.GetBoolValueFromAttribute(propertyWrapAttr, ComWrapGeneratorConstants.NeedConvertProperty, false);
+        return needConvert;
     }
 
-    #region Helper Methods
+    /// <summary>
+    /// 是否需要释放资源
+    /// </summary>
+    /// <param name="propertySymbol"></param>
+    /// <returns></returns>
+    protected bool IsNeeDispose(IPropertySymbol propertySymbol)
+    {
+        var propertyData = AttributeDataHelper.GetAttributeDataFromSymbol(propertySymbol, ComWrapGeneratorConstants.ComPropertyWrapAttributeNames);
+        if (propertyData == null)
+            return false;
+        var needDispose = AttributeDataHelper.GetBoolValueFromAttribute(propertyData, ComWrapGeneratorConstants.NeedDisposeProperty, true);
+        return needDispose;
+    }
 
     /// <summary>
     /// 通过语义分析判断类型是否为枚举类型
@@ -848,6 +825,28 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         };
     }
 
+    private string GetConvertCode(IPropertySymbol typeSymbol)
+    {
+        var specialType = typeSymbol.Type.SpecialType;
+        return specialType switch
+        {
+            SpecialType.System_Boolean => "ConvertToBool()",
+            SpecialType.System_SByte => "Convert.ToByte()",
+            SpecialType.System_Byte => "Convert.ToByte()",
+            SpecialType.System_Int16 => "ConvertToFloat()",
+            SpecialType.System_UInt16 => "ConvertToFloat()",
+            SpecialType.System_Int32 => "ConvertToInt()",
+            SpecialType.System_UInt32 => "ConvertToInt()",
+            SpecialType.System_Int64 => "ConvertToLong()",
+            SpecialType.System_UInt64 => "ConvertToLong()",
+            SpecialType.System_Single => "ConvertToFloat()",
+            SpecialType.System_Double => "ConvertToDouble()",
+            SpecialType.System_Decimal => "ConvertToDecimal()",
+            SpecialType.System_String => "ToString()",
+            SpecialType.System_DateTime => "DateTime.MinValue",
+            _ => "ToString()"
+        };
+    }
 
     /// <summary>
     /// 根据接口名称获取实现类名称

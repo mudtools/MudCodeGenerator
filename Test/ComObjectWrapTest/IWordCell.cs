@@ -21,8 +21,8 @@
         /// <summary>
         /// 获取单元格左边界位置。
         /// </summary>
-        [ComPropertyWrap(DefaultValue = "-1")]
-        float LeftPadding { get; set; }
+        [ComPropertyWrap(DefaultValue = "-1", NeedConvert = true)]
+        float? LeftPadding { get; set; }
 
         /// <summary>
         /// 获取或设置单元格垂直对齐方式。

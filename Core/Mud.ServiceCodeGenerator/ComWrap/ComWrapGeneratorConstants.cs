@@ -39,6 +39,16 @@ internal static class ComWrapGeneratorConstants
     public const string IgnoreGeneratorAttribute = "IgnoreGeneratorAttribute";
 
     /// <summary>
+    /// 是否需要转换属性名称
+    /// </summary>
+    public const string NeedConvertProperty = "NeedConvert";
+
+    /// <summary>
+    /// 是否需要释放属性名称
+    /// </summary>
+    public const string NeedDisposeProperty = "NeedDispose";
+
+    /// <summary>
     /// 默认COM命名空间
     /// </summary>
     public const string DefaultComNamespace = "UNKNOWN_NAMESPACE";

@@ -17,5 +17,9 @@ public interface IWordMailMergeDataField : IDisposable
     /// <summary>
     /// 获取此数据字段在当前活动记录中的值。
     /// </summary>
+
     string? Value { get; }
+
+    [ComPropertyWrap(NeedConvert = true)]
+    int Index { get; }
 }
