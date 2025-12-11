@@ -169,6 +169,8 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         var elementType = indexerSymbol.Type.ToDisplayString();
         var comClassName = GetComClassName(interfaceDeclaration);
         var elementImplType = GetImplementationType(elementType);
+        var isEnumType = IsEnumType(indexerSymbol.Type);
+        var defaultValue = GetDefaultValue(interfaceDeclaration, indexerSymbol, indexerSymbol.Type);
         var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
         var isItemIndex = AttributeDataHelper.HasAttribute(interfaceSymbol, ComWrapGeneratorConstants.ItemIndexAttributeNames);
 
@@ -177,8 +179,8 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
             var parameter = indexerSymbol.Parameters[0];
             var parameterType = parameter.Type.ToString();
             var parameterName = "index"; // 统一使用 index 作为参数名
-            sb.AppendLine($"        {GeneratedCodeAttribute}");
             sb.AppendLine($"        ///  <inheritdoc/>");
+            sb.AppendLine($"        {GeneratedCodeAttribute}");
             sb.AppendLine($"        public {elementType} this[{parameterType} {parameterName}]");
             sb.AppendLine("        {");
             sb.AppendLine("            get");
@@ -186,11 +188,22 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
 
             if (parameterType == "int")
             {
-                GenerateIntIndex(sb, isItemIndex, elementImplType, privateFieldName, parameterName);
+                GenerateIntIndex(sb,
+                    isItemIndex,
+                    isEnumType, defaultValue,
+                    elementImplType,
+                    privateFieldName,
+                    parameterName);
             }
             else if (parameterType == "string")
             {
-                GenerateStringIndex(sb, isItemIndex, elementImplType, privateFieldName, parameterName);
+                GenerateStringIndex(sb,
+                    isItemIndex,
+                    isEnumType,
+                    defaultValue,
+                    elementImplType,
+                    privateFieldName,
+                    parameterName);
             }
             else
             {
@@ -204,7 +217,14 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         }
     }
 
-    private static void GenerateStringIndex(StringBuilder sb, bool isItemIndex, string elementImplType, string privateFieldName, string parameterName)
+    private static void GenerateStringIndex(
+        StringBuilder sb,
+        bool isItemIndex,
+        bool isEnumType,
+        string? defaultValue,
+        string elementImplType,
+        string privateFieldName,
+        string parameterName)
     {
         sb.AppendLine($"                if (string.IsNullOrEmpty({parameterName}))");
         sb.AppendLine($"                    throw new ArgumentNullException(nameof({parameterName}));");
@@ -221,9 +241,12 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
             sb.AppendLine($"                    var comElement = {privateFieldName}[{parameterName}];");
         }
         // 检查是否为基本类型，如果是则直接返回
-        if (IsBasicType(elementImplType))
+        if (IsBasicType(elementImplType) || isEnumType)
         {
-            sb.AppendLine($"                    return comElement;");
+            if (isEnumType)
+                sb.AppendLine($"                    return comElement.EnumConvert({defaultValue});");
+            else
+                sb.AppendLine($"                    return comElement;");
         }
         else
         {
@@ -239,7 +262,14 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine("                }");
     }
 
-    private static void GenerateIntIndex(StringBuilder sb, bool isItemIndex, string elementImplType, string privateFieldName, string parameterName)
+    private static void GenerateIntIndex(
+        StringBuilder sb,
+        bool isItemIndex,
+        bool isEnumType,
+        string? defaultValue,
+        string elementImplType,
+        string privateFieldName,
+        string parameterName)
     {
         sb.AppendLine($"                if ({privateFieldName} == null || {parameterName} < 1) return null;");
         sb.AppendLine("                try");
@@ -253,9 +283,12 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
             sb.AppendLine($"                    var comElement = {privateFieldName}[{parameterName}];");
         }
         // 检查是否为基本类型，如果是则直接返回
-        if (IsBasicType(elementImplType))
+        if (IsBasicType(elementImplType) || isEnumType)
         {
-            sb.AppendLine($"                    return comElement;");
+            if (isEnumType)
+                sb.AppendLine($"                    return comElement.EnumConvert({defaultValue});");
+            else
+                sb.AppendLine($"                    return comElement;");
         }
         else
         {
