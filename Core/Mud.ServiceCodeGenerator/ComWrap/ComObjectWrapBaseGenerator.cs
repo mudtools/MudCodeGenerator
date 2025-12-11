@@ -231,15 +231,29 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         {
             sb.AppendLine("            set");
             sb.AppendLine("            {");
+
+
             if (propertyType.EndsWith("?", StringComparison.Ordinal))
             {
+                string setValue = "value.Value";
+                if (propertyType.StartsWith("object", StringComparison.OrdinalIgnoreCase))
+                    setValue = "value";
+                else if (needConvert && propertyType.StartsWith("bool", StringComparison.OrdinalIgnoreCase))
+                {
+                    setValue = $"value.Value.ConvertTriState()";
+                }
                 sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null && value != null)");
-                sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value.Value;");
+                sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = {setValue};");
             }
             else
             {
+                string setValue = "value";
+                if (needConvert && propertyType.StartsWith("bool", StringComparison.OrdinalIgnoreCase))
+                {
+                    setValue = $"value.ConvertTriState()";
+                }
                 sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
-                sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value;");
+                sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = {setValue};");
             }
             sb.AppendLine("            }");
         }
@@ -621,6 +635,29 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             return "null";
 
         var type = parameter.Type.ToDisplayString();
+        var typeSymbol = parameter.Type;
+
+        // 处理枚举类型
+        if (typeSymbol.TypeKind == TypeKind.Enum)
+        {
+            return GetEnumDefaultValue(typeSymbol, value);
+        }
+
+        // 处理可空枚举类型
+        if (type.EndsWith("?", StringComparison.Ordinal))
+        {
+            var nonNullType = type.TrimEnd('?');
+            if (IsEnumType(parameter.Type) && value != null)
+            {
+                // 获取非可空枚举类型符号
+                var originalDefinition = typeSymbol.OriginalDefinition;
+                if (originalDefinition is INamedTypeSymbol namedType && namedType.TypeArguments.Length > 0)
+                {
+                    var enumType = namedType.TypeArguments[0];
+                    return GetEnumDefaultValue(enumType, value);
+                }
+            }
+        }
 
         return type switch
         {
@@ -630,6 +667,26 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             _ when type.EndsWith("?", StringComparison.Ordinal) => value == null ? "null" : value.ToString(),
             _ => value.ToString()
         };
+    }
+
+    /// <summary>
+    /// 获取枚举类型的默认值表示
+    /// </summary>
+    private string GetEnumDefaultValue(ITypeSymbol enumType, object value)
+    {
+        var enumTypeName = enumType.ToDisplayString();
+
+        // 尝试根据值找到对应的枚举成员
+        foreach (var member in enumType.GetMembers().OfType<IFieldSymbol>())
+        {
+            if (member.HasConstantValue && Equals(member.ConstantValue, value))
+            {
+                return $"{enumTypeName}.{member.Name}";
+            }
+        }
+
+        // 如果找不到对应的枚举成员，使用强制转换
+        return $"({enumTypeName}){value}";
     }
     #region Helper Methods
     /// <summary>
