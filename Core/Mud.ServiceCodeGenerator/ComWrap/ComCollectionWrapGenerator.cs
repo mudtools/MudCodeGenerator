@@ -5,6 +5,7 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
+using Mud.CodeGenerator.Helper;
 using Mud.ServiceCodeGenerator.ComWrapSourceGenerator;
 using System.Text;
 
@@ -163,6 +164,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         var comClassName = GetComClassName(interfaceDeclaration);
         var elementImplType = GetImplementationType(elementType);
         var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
+        var isItemIndex = AttributeDataHelper.HasAttribute(indexerSymbol, ComWrapGeneratorConstants.ItemIndexAttributeNames);
 
         if (indexerSymbol.Parameters.Length == 1)
         {
@@ -177,11 +179,11 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
 
             if (parameterType == "int")
             {
-                GenerateIntIndex(sb, elementImplType, privateFieldName, parameterName);
+                GenerateIntIndex(sb, isItemIndex, elementImplType, privateFieldName, parameterName);
             }
             else if (parameterType == "string")
             {
-                GenerateStringIndex(sb, elementImplType, privateFieldName, parameterName);
+                GenerateStringIndex(sb, isItemIndex, elementImplType, privateFieldName, parameterName);
             }
             else
             {
@@ -195,7 +197,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         }
     }
 
-    private static void GenerateStringIndex(StringBuilder sb, string elementImplType, string privateFieldName, string parameterName)
+    private static void GenerateStringIndex(StringBuilder sb, bool isItemIndex, string elementImplType, string privateFieldName, string parameterName)
     {
         sb.AppendLine($"                if (string.IsNullOrEmpty({parameterName}))");
         sb.AppendLine($"                    throw new ArgumentNullException(nameof({parameterName}));");
@@ -203,7 +205,14 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine($"                if ({privateFieldName} == null) return null;");
         sb.AppendLine("                try");
         sb.AppendLine("                {");
-        sb.AppendLine($"                    var comElement = {privateFieldName}[{parameterName}];");
+        if (isItemIndex)
+        {
+            sb.AppendLine($"                    var comElement = {privateFieldName}.Item({parameterName});");
+        }
+        else
+        {
+            sb.AppendLine($"                    var comElement = {privateFieldName}[{parameterName}];");
+        }
         sb.AppendLine($"                    var result = comElement != null ? new {elementImplType}(comElement) : null;");
         sb.AppendLine("                    if (result != null)");
         sb.AppendLine("                        _disposableList.Add(result);");
@@ -215,12 +224,19 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine("                }");
     }
 
-    private static void GenerateIntIndex(StringBuilder sb, string elementImplType, string privateFieldName, string parameterName)
+    private static void GenerateIntIndex(StringBuilder sb, bool isItemIndex, string elementImplType, string privateFieldName, string parameterName)
     {
         sb.AppendLine($"                if ({privateFieldName} == null || {parameterName} < 1 || {parameterName} > Count) return null;");
         sb.AppendLine("                try");
         sb.AppendLine("                {");
-        sb.AppendLine($"                    var comElement = {privateFieldName}[{parameterName}];");
+        if (isItemIndex)
+        {
+            sb.AppendLine($"                    var comElement = {privateFieldName}.Item({parameterName});");
+        }
+        else
+        {
+            sb.AppendLine($"                    var comElement = {privateFieldName}[{parameterName}];");
+        }
         sb.AppendLine($"                    var result = comElement != null ? new {elementImplType}(comElement) : null;");
         sb.AppendLine("                    if (result != null)");
         sb.AppendLine("                        _disposableList.Add(result);");

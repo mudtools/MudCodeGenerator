@@ -145,4 +145,19 @@ internal static class AttributeDataHelper
             return null;
         return typeSymbol.GetAttributes().FirstOrDefault(a => attributeNames.Contains(a.AttributeClass?.Name));
     }
+
+    /// <summary>
+    /// 判断类型符号上是否存在指定名称的特性。
+    /// </summary>
+    /// <param name="typeSymbol">类型符号对象</param>
+    /// <param name="attributeNames">要查找的特性名称数组，支持多个名称进行匹配</param>
+    /// <returns></returns>
+    public static bool HasAttribute(ISymbol typeSymbol, string[] attributeNames)
+    {
+        if (typeSymbol == null || attributeNames == null)
+            return false;
+        if (attributeNames.Length < 1)
+            return false;
+        return typeSymbol.GetAttributes().Any(a => attributeNames.Contains(a.AttributeClass?.Name));
+    }
 }

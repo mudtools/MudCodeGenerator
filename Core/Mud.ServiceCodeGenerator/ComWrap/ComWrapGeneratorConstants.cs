@@ -29,6 +29,11 @@ internal static class ComWrapGeneratorConstants
     public static readonly string[] ComPropertyWrapAttributeNames = ["ComPropertyWrapAttribute", "ComPropertyWrap"];
 
     /// <summary>
+    /// ItemIndex特性名称数组
+    /// </summary>
+    public static readonly string[] ItemIndexAttributeNames = ["ItemIndexAttribute", "ItemIndex"];
+
+    /// <summary>
     /// 忽略生成器特性名称
     /// </summary>
     public const string IgnoreGeneratorAttribute = "IgnoreGeneratorAttribute";
