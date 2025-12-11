@@ -1075,6 +1075,8 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 
     protected string GetImplementationType(string elementType)
     {
+        if (IsBasicType(elementType))
+            return elementType;
         var elementImplType = StringExtensions.RemoveInterfacePrefix(elementType).TrimEnd('?');
         var types = elementImplType.Split(['.'], StringSplitOptions.RemoveEmptyEntries);
         string resultType = "";
@@ -1087,6 +1089,33 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             resultType += types[i] + ".";
         }
         return resultType.TrimEnd('.');
+    }
+
+    /// <summary>
+    /// 检查是否为基本类型
+    /// </summary>
+    /// <param name="typeName">类型名称</param>
+    /// <returns>如果是基本类型返回true，否则返回false</returns>
+    protected static bool IsBasicType(string typeName)
+    {
+        return typeName switch
+        {
+            "string" or "string?" => true,
+            "int" or "int?" => true,
+            "short" or "short?" => true,
+            "long" or "long?" => true,
+            "float" or "float?" => true,
+            "double" or "double?" => true,
+            "decimal" or "decimal?" => true,
+            "bool" or "bool?" => true,
+            "byte" or "byte?" => true,
+            "char" or "char?" => true,
+            "uint" or "uint?" => true,
+            "ushort" or "ushort?" => true,
+            "ulong" or "ulong?" => true,
+            "sbyte" or "sbyte?" => true,
+            _ => false
+        };
     }
     #endregion
 

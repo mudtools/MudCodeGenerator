@@ -165,6 +165,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
     /// <param name="interfaceDeclaration">接口声明语法</param>
     private void GenerateIndexerImplementation(StringBuilder sb, IPropertySymbol indexerSymbol, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
     {
+        //System.Diagnostics.Debugger.Launch();
         var elementType = indexerSymbol.Type.ToDisplayString();
         var comClassName = GetComClassName(interfaceDeclaration);
         var elementImplType = GetImplementationType(elementType);
@@ -219,10 +220,18 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         {
             sb.AppendLine($"                    var comElement = {privateFieldName}[{parameterName}];");
         }
-        sb.AppendLine($"                    var result = comElement != null ? new {elementImplType}(comElement) : null;");
-        sb.AppendLine("                    if (result != null)");
-        sb.AppendLine("                        _disposableList.Add(result);");
-        sb.AppendLine("                    return result;");
+        // 检查是否为基本类型，如果是则直接返回
+        if (IsBasicType(elementImplType))
+        {
+            sb.AppendLine($"                    return comElement;");
+        }
+        else
+        {
+            sb.AppendLine($"                    var result = comElement != null ? new {elementImplType}(comElement) : null;");
+            sb.AppendLine("                    if (result != null)");
+            sb.AppendLine("                        _disposableList.Add(result);");
+            sb.AppendLine("                    return result;");
+        }
         sb.AppendLine("                }");
         sb.AppendLine("                catch (COMException ce)");
         sb.AppendLine("                {");
@@ -232,7 +241,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
 
     private static void GenerateIntIndex(StringBuilder sb, bool isItemIndex, string elementImplType, string privateFieldName, string parameterName)
     {
-        sb.AppendLine($"                if ({privateFieldName} == null || {parameterName} < 1 || {parameterName} > Count) return null;");
+        sb.AppendLine($"                if ({privateFieldName} == null || {parameterName} < 1) return null;");
         sb.AppendLine("                try");
         sb.AppendLine("                {");
         if (isItemIndex)
@@ -243,10 +252,18 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         {
             sb.AppendLine($"                    var comElement = {privateFieldName}[{parameterName}];");
         }
-        sb.AppendLine($"                    var result = comElement != null ? new {elementImplType}(comElement) : null;");
-        sb.AppendLine("                    if (result != null)");
-        sb.AppendLine("                        _disposableList.Add(result);");
-        sb.AppendLine("                    return result;");
+        // 检查是否为基本类型，如果是则直接返回
+        if (IsBasicType(elementImplType))
+        {
+            sb.AppendLine($"                    return comElement;");
+        }
+        else
+        {
+            sb.AppendLine($"                    var result = comElement != null ? new {elementImplType}(comElement) : null;");
+            sb.AppendLine("                    if (result != null)");
+            sb.AppendLine("                        _disposableList.Add(result);");
+            sb.AppendLine("                    return result;");
+        }
         sb.AppendLine("                }");
         sb.AppendLine("                catch (COMException ce)");
         sb.AppendLine("                {");
@@ -254,12 +271,6 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine("                }");
     }
 
-    /// <summary>
-    /// 生成IEnumerable接口实现
-    /// </summary>
-    /// <param name="sb">字符串构建器</param>
-    /// <param name="interfaceSymbol">接口符号</param>
-    /// <param name="interfaceDeclaration">接口声明语法</param>
     private void GenerateIEnumerableImplementation(StringBuilder sb, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
     {
         var elementType = GetCollectionElementType(interfaceSymbol);
@@ -287,12 +298,16 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         {
             sb.AppendLine($"               var comElement = {privateFieldName}[i];");
         }
-        sb.AppendLine($"                if (comElement != null)");
-        sb.AppendLine("                {");
-        sb.AppendLine($"                    var element = new {elementImplType}(comElement);");
-        sb.AppendLine("                    _disposableList.Add(element);");
-        sb.AppendLine("                    yield return element;");
-        sb.AppendLine("                }");
+        if (IsBasicType(elementImplType))
+            sb.AppendLine("               yield return comElement;");
+        else
+        {
+            sb.AppendLine("                {");
+            sb.AppendLine($"                    var element = new {elementImplType}(comElement);");
+            sb.AppendLine("                    _disposableList.Add(element);");
+            sb.AppendLine("                    yield return element;");
+            sb.AppendLine("                }");
+        }
         sb.AppendLine("            }");
         sb.AppendLine("        }");
         sb.AppendLine();
