@@ -226,6 +226,8 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         string privateFieldName,
         string parameterName)
     {
+        sb.AppendLine($"                if ({privateFieldName} == null)");
+        sb.AppendLine($"                     throw new ArgumentNullException(nameof({privateFieldName}), \"COM对象资源已释放，不能再次访问。\");");
         sb.AppendLine($"                if (string.IsNullOrEmpty({parameterName}))");
         sb.AppendLine($"                    throw new ArgumentNullException(nameof({parameterName}));");
         sb.AppendLine();
@@ -243,7 +245,10 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         string privateFieldName,
         string parameterName)
     {
-        sb.AppendLine($"                if ({privateFieldName} == null || {parameterName} < 1) return null;");
+        sb.AppendLine($"                if ({privateFieldName} == null)");
+        sb.AppendLine($"                     throw new ArgumentNullException(nameof({privateFieldName}), \"COM对象资源已释放，不能再次访问。\");");
+        sb.AppendLine($"                if ({parameterName} < 1)");
+        sb.AppendLine("                      throw new IndexOutOfRangeException(\"索引参数不能少于1\");");
 
         GenerateCommonIndexLogic(sb, isItemIndex, isEnumType, defaultValue, elementImplType,
             privateFieldName, parameterName, "根据索引");

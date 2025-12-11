@@ -461,6 +461,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             bool isEnumType = IsEnumType(param.Type);
             bool isObjectType = IsComObjectType(param.Type);
             bool hasConvertTriState = HasConvertTriStateAttribute(param);
+            bool convertToInteger = AttributeDataHelper.HasAttribute(param, ComWrapGeneratorConstants.ConvertIntAttributeNames);
 
             var defaultValue = GetDefaultValue(interfaceDeclaration, param, param.Type);
             var comNamespace = GetComNamespace(interfaceDeclaration);
@@ -469,19 +470,23 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             {
                 if (isEnumType)
                 {
-                    // 可空枚举参数
-                    sb.AppendLine($"            var {param.Name}Obj = {param.Name}?.EnumConvert({comNamespace}.{enumValueName}) ?? System.Type.Missing;");
+                    if (convertToInteger)
+                        sb.AppendLine($"            var {param.Name}Obj = (int){param.Name} ?? 0;");
+                    else
+                        sb.AppendLine($"            var {param.Name}Obj = {param.Name}?.EnumConvert({comNamespace}.{enumValueName}) ?? System.Type.Missing;");
                 }
                 else if (isObjectType)
                 {
-                    // 可空COM对象参数
                     var constructType = GetImplementationType(param.Type.Name.TrimEnd('?'));
                     sb.AppendLine($"            var {param.Name}Obj = {param.Name} != null ? (({constructType}){param.Name}).InternalComObject : System.Type.Missing;");
                 }
                 else
                 {
                     // 普通可空参数
-                    sb.AppendLine($"            var {param.Name}Obj = {param.Name} != null ? (object){param.Name} : System.Type.Missing;");
+                    if (convertToInteger)
+                        sb.AppendLine($"            var {param.Name}Obj = {param.Name} != null ? {param.Name}.ConvertToInt() : 0;");
+                    else
+                        sb.AppendLine($"            var {param.Name}Obj = {param.Name} != null ? (object){param.Name} : System.Type.Missing;");
                 }
             }
             else if (hasConvertTriState && pType == "bool")
@@ -492,7 +497,10 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             else if (isEnumType)
             {
                 // 枚举参数
-                sb.AppendLine($"            var {param.Name}Obj = {param.Name}.EnumConvert({comNamespace}.{enumValueName});");
+                if (convertToInteger)
+                    sb.AppendLine($"            var {param.Name}Obj = (int){param.Name};");
+                else
+                    sb.AppendLine($"            var {param.Name}Obj = {param.Name}.EnumConvert({comNamespace}.{enumValueName});");
             }
             else if (isObjectType)
             {
@@ -503,7 +511,11 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             else if (pType == "object")
             {
                 // object类型参数
-                sb.AppendLine($"            var {param.Name}Obj = {param.Name} ?? System.Type.Missing;");
+                if (convertToInteger)
+                    sb.AppendLine($"            var {param.Name}Obj = {param.Name}.ConvertToInt();");
+                else
+
+                    sb.AppendLine($"            var {param.Name}Obj = {param.Name} ?? System.Type.Missing;");
             }
         }
         sb.AppendLine();
@@ -727,7 +739,18 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     {
         if (typeSymbol == null)
             return false;
-        return typeSymbol.TypeKind == TypeKind.Enum;
+        // 首先检查是否是直接的枚举类型
+        if (typeSymbol.TypeKind == TypeKind.Enum)
+            return true;
+
+        // 如果是可空类型，获取其底层类型再检查
+        if (typeSymbol is INamedTypeSymbol namedType && namedType.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T)
+        {
+            var underlyingType = namedType.TypeArguments.FirstOrDefault();
+            return underlyingType?.TypeKind == TypeKind.Enum;
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -739,7 +762,17 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     {
         if (typeSymbol == null)
             return false;
-        return typeSymbol.TypeKind == TypeKind.Interface;
+        // 首先检查是否是直接的枚举类型
+        if (typeSymbol.TypeKind == TypeKind.Interface)
+            return true;
+        // 如果是可空类型，获取其底层类型再检查
+        if (typeSymbol is INamedTypeSymbol namedType && namedType.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T)
+        {
+            var underlyingType = namedType.TypeArguments.FirstOrDefault();
+            return underlyingType?.TypeKind == TypeKind.Interface;
+        }
+
+        return false;
     }
 
 
@@ -810,6 +843,28 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     /// <returns>推断的默认值字符串</returns>
     private string InferDefaultValue(ITypeSymbol typeSymbol)
     {
+        // 处理可空类型
+        if (typeSymbol is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullableType)
+        {
+            var underlyingType = nullableType.TypeArguments[0];
+
+            // 如果是可空枚举类型，返回 null 或带有 ? 的枚举值
+            if (underlyingType.TypeKind == TypeKind.Enum)
+            {
+                var firstEnumValue = underlyingType.GetMembers()
+                    .OfType<IFieldSymbol>()
+                    .FirstOrDefault(f => f.HasConstantValue);
+                if (firstEnumValue != null)
+                {
+                    var enumTypeName = underlyingType.ToDisplayString();
+                    return $"{enumTypeName}.{firstEnumValue.Name}";
+                }
+            }
+
+            // 其他可空类型返回 null
+            return "null";
+        }
+
         // 枚举类型：使用第一个枚举值
         if (typeSymbol.TypeKind == TypeKind.Enum)
         {

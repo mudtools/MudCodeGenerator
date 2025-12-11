@@ -34,6 +34,11 @@ internal static class ComWrapGeneratorConstants
     public static readonly string[] ItemIndexAttributeNames = ["ItemIndexAttribute", "ItemIndex"];
 
     /// <summary>
+    /// 转换为整数特性名称数组
+    /// </summary>
+    public static readonly string[] ConvertIntAttributeNames = ["ConvertIntAttribute", "ConvertInt"];
+
+    /// <summary>
     /// 忽略生成器特性名称
     /// </summary>
     public const string IgnoreGeneratorAttribute = "IgnoreGeneratorAttribute";

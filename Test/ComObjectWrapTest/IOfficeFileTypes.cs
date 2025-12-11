@@ -1,4 +1,6 @@
-﻿namespace ComObjectWrapTest
+﻿using Mud.Common.CodeGenerator.Com;
+
+namespace ComObjectWrapTest
 {
     /// <summary>
     /// 表示 Office 中文件类型集合的接口封装。
@@ -29,7 +31,7 @@
         /// 从集合中移除指定的文件类型。
         /// </summary>
         /// <param name="fileType">要移除的文件类型。</param>
-        void Remove(MsoFileType fileType);
+        void Remove([ConvertInt] MsoFileType fileType);
     }
 
     /// <summary>
