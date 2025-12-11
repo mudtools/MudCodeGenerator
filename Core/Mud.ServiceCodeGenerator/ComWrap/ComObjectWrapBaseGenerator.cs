@@ -131,7 +131,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             var impType = member.Type.Name.Trim('?');
 
             var fieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(impType, FieldNamingStyle.UnderscoreCamel);
-            sb.AppendLine($"        private {propertyType} {fieldName};");
+            sb.AppendLine($"        private {propertyType} {fieldName}_{propertyName};");
         }
     }
 
@@ -157,8 +157,8 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             var impType = member.Type.Name.Trim('?');
 
             var fieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(impType, FieldNamingStyle.UnderscoreCamel);
-            sb.AppendLine($"                {fieldName}?.Dispose();");
-            sb.AppendLine($"                {fieldName} = null;");
+            sb.AppendLine($"                {fieldName}_{propertyName}?.Dispose();");
+            sb.AppendLine($"                {fieldName}_{propertyName} = null;");
         }
     }
 
@@ -208,8 +208,8 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         var propertyName = propertySymbol.Name;
         var propertyType = propertySymbol.Type.ToDisplayString();
 
-        sb.AppendLine($"        {GeneratedCodeAttribute}");
         sb.AppendLine($"        ///  <inheritdoc/>");
+        sb.AppendLine($"        {GeneratedCodeAttribute}");
         sb.AppendLine($"        public {propertyType} {propertyName}");
         sb.AppendLine("        {");
         sb.AppendLine($"            get");
@@ -262,10 +262,10 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         var constructType = GetImplementationType(objectType);
 
         var impType = propertySymbol.Type.Name.Trim('?');
-        var fieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(impType, FieldNamingStyle.UnderscoreCamel);
+        var fieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(impType, FieldNamingStyle.UnderscoreCamel) + "_" + propertySymbol.Name;
 
-        sb.AppendLine($"        {GeneratedCodeAttribute}");
         sb.AppendLine($"        ///  <inheritdoc/>");
+        sb.AppendLine($"        {GeneratedCodeAttribute}");
         sb.AppendLine($"        public {propertyType} {propertyName}");
         sb.AppendLine("        {");
         sb.AppendLine("             get");
@@ -308,8 +308,8 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         var comClassName = GetComClassName(interfaceDeclaration);
         var enumValueName = GetEnumValueWithoutNamespace(defaultValue);
 
-        sb.AppendLine($"        {GeneratedCodeAttribute}");
         sb.AppendLine($"        ///  <inheritdoc/>");
+        sb.AppendLine($"        {GeneratedCodeAttribute}");
         sb.AppendLine($"        public {propertyType} {propertyName}");
         sb.AppendLine("        {");
         sb.AppendLine("            get");
@@ -656,7 +656,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     {
         var propertyData = AttributeDataHelper.GetAttributeDataFromSymbol(propertySymbol, ComWrapGeneratorConstants.ComPropertyWrapAttributeNames);
         if (propertyData == null)
-            return false;
+            return true;
         var needDispose = AttributeDataHelper.GetBoolValueFromAttribute(propertyData, ComWrapGeneratorConstants.NeedDisposeProperty, true);
         return needDispose;
     }
@@ -670,17 +670,6 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     {
         if (typeSymbol == null)
             return false;
-
-        // 优先检查特性标注（保持向后兼容）
-        if (typeSymbol.GetAttributes().Any(attr =>
-            attr.AttributeClass?.Name == "ComPropertyWrapAttribute" &&
-            attr.NamedArguments.Any(na => na.Key == "PropertyType" &&
-                na.Value.Value?.ToString() == "PropertyType.EnumType")))
-        {
-            return true;
-        }
-
-        // 通过语义分析判断
         return typeSymbol.TypeKind == TypeKind.Enum;
     }
 
@@ -693,39 +682,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     {
         if (typeSymbol == null)
             return false;
-        // 优先检查特性标注（保持向后兼容）
-        if (typeSymbol.GetAttributes().Any(attr =>
-            attr.AttributeClass?.Name == "ComPropertyWrapAttribute" &&
-            attr.NamedArguments.Any(na => na.Key == "PropertyType" &&
-                na.Value.Value?.ToString() == "PropertyType.ObjectType")))
-        {
-            return true;
-        }
-
-        // 通过语义分析判断
-        var typeDisplayString = typeSymbol.ToDisplayString();
-
-        // 1. 检查命名空间中是否包含常见的COM相关命名空间
-        if (typeSymbol.ContainingNamespace?.ToDisplayString().Contains("Interop") == true)
-            return true;
-
-        // 2. 检查类型名是否以I开头（接口类型通常是COM对象）
-        if (typeDisplayString.StartsWith("I", StringComparison.Ordinal) &&
-            typeSymbol.TypeKind == TypeKind.Interface)
-            return true;
-
-        //// 3. 检查是否为引用类型且不是基础类型
-        //if (typeSymbol.IsReferenceType &&
-        //    !IsBasicType(typeSymbol) &&
-        //    typeSymbol.TypeKind != TypeKind.Enum)
-        //    return true;
-
-        // 4. 检查特定模式，如COM接口的常见命名模式
-        var typeName = typeSymbol.Name;
-        if (typeName.StartsWith("I", StringComparison.Ordinal) && typeName.Length > 1 && char.IsUpper(typeName[1]))
-            return true;
-
-        return false;
+        return typeSymbol.TypeKind == TypeKind.Interface;
     }
 
 
@@ -995,7 +952,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     /// <param name="interfaceDeclaration">接口声明语法</param>
     /// <param name="interfaceSymbol">接口符号</param>
     /// <param name="includeAdditionalDisposables">是否包含额外的可释放对象处理</param>
-    protected virtual void GenerateIDisposableImplementation(StringBuilder sb, InterfaceDeclarationSyntax interfaceDeclaration, INamedTypeSymbol? interfaceSymbol = null)
+    protected virtual void GenerateIDisposableImplementation(StringBuilder sb, InterfaceDeclarationSyntax interfaceDeclaration, INamedTypeSymbol interfaceSymbol)
     {
         var comClassName = GetComClassName(interfaceDeclaration);
         sb.AppendLine("        #region IDisposable 实现");
@@ -1011,13 +968,10 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         sb.AppendLine("            }");
         sb.AppendLine();
 
-        if (interfaceSymbol != null)
-        {
-            sb.AppendLine("            if (disposing)");
-            sb.AppendLine("            {");
-            GenerateAdditionalDisposalLogic(sb, interfaceSymbol, interfaceDeclaration);
-            sb.AppendLine("            }");
-        }
+        sb.AppendLine("            if (disposing)");
+        sb.AppendLine("            {");
+        GenerateAdditionalDisposalLogic(sb, interfaceSymbol, interfaceDeclaration);
+        sb.AppendLine("            }");
 
         sb.AppendLine("            _disposedValue = true;");
         sb.AppendLine("        }");

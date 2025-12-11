@@ -17,6 +17,8 @@ public interface IWordMailMergeField : IDisposable
 
     IWordRange? Code { get; }
 
+    IWordRange? XX { get; }
+
     void Delete();
 
     void Delete(IWordCell? wordCell);
