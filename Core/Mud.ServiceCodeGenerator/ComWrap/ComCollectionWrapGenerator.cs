@@ -138,7 +138,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
                 if (member.IsIndexer)
                 {
                     // 处理索引器
-                    GenerateIndexerImplementation(sb, member, interfaceDeclaration);
+                    GenerateIndexerImplementation(sb, member, interfaceSymbol, interfaceDeclaration);
                 }
                 else
                 {
@@ -158,13 +158,13 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
     /// <param name="sb">字符串构建器</param>
     /// <param name="indexerSymbol">索引器符号</param>
     /// <param name="interfaceDeclaration">接口声明语法</param>
-    private void GenerateIndexerImplementation(StringBuilder sb, IPropertySymbol indexerSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
+    private void GenerateIndexerImplementation(StringBuilder sb, IPropertySymbol indexerSymbol, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
     {
         var elementType = indexerSymbol.Type.ToDisplayString();
         var comClassName = GetComClassName(interfaceDeclaration);
         var elementImplType = GetImplementationType(elementType);
         var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
-        var isItemIndex = AttributeDataHelper.HasAttribute(indexerSymbol, ComWrapGeneratorConstants.ItemIndexAttributeNames);
+        var isItemIndex = AttributeDataHelper.HasAttribute(interfaceSymbol, ComWrapGeneratorConstants.ItemIndexAttributeNames);
 
         if (indexerSymbol.Parameters.Length == 1)
         {
@@ -262,6 +262,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         var elementImplType = GetImplementationType(elementType);
         var comClassName = GetComClassName(interfaceDeclaration);
         var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
+        var isItemIndex = AttributeDataHelper.HasAttribute(interfaceSymbol, ComWrapGeneratorConstants.ItemIndexAttributeNames);
 
         sb.AppendLine("        #region IEnumerable 实现");
         sb.AppendLine($"        {GeneratedCodeAttribute}");
@@ -271,7 +272,14 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine();
         sb.AppendLine("            for (int i = 1; i <= Count; i++)");
         sb.AppendLine("            {");
-        sb.AppendLine($"                var comElement = {privateFieldName}[i];");
+        if (isItemIndex)
+        {
+            sb.AppendLine($"               var comElement = {privateFieldName}.Item(i);");
+        }
+        else
+        {
+            sb.AppendLine($"               var comElement = {privateFieldName}[i];");
+        }
         sb.AppendLine($"                if (comElement != null)");
         sb.AppendLine("                {");
         sb.AppendLine($"                    var element = new {elementImplType}(comElement);");
