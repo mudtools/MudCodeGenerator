@@ -106,6 +106,52 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         sb.AppendLine();
     }
 
+    protected void GeneratePrivateField(StringBuilder sb, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
+    {
+        if (interfaceSymbol == null || interfaceDeclaration == null)
+            return;
+
+        foreach (var member in interfaceSymbol.GetMembers().OfType<IPropertySymbol>())
+        {
+            if (member.IsIndexer)
+                continue;
+
+            var propertyName = member.Name;
+            var propertyType = member.Type.ToDisplayString();
+            var isObjectType = IsComObjectType(member.Type);
+            if (!isObjectType)
+                continue;
+
+            var impType = member.Type.Name.Trim('?');
+
+            var fieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(impType, FieldNamingStyle.UnderscoreCamel);
+            sb.AppendLine($"        private {propertyType} {fieldName};");
+        }
+    }
+
+    protected void GeneratePrivateFieldDisposable(StringBuilder sb, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
+    {
+        if (interfaceSymbol == null || interfaceDeclaration == null)
+            return;
+
+        foreach (var member in interfaceSymbol.GetMembers().OfType<IPropertySymbol>())
+        {
+            if (member.IsIndexer)
+                continue;
+
+            var propertyName = member.Name;
+            var propertyType = member.Type.ToDisplayString();
+            var isObjectType = IsComObjectType(member.Type);
+            if (!isObjectType)
+                continue;
+
+            var impType = member.Type.Name.Trim('?');
+
+            var fieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(impType, FieldNamingStyle.UnderscoreCamel);
+            sb.AppendLine($"                {fieldName}?.Dispose();");
+            sb.AppendLine($"                {fieldName} = null;");
+        }
+    }
 
 
     /// <summary>
@@ -200,15 +246,22 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         var objectType = StringExtensions.RemoveInterfacePrefix(propertyType);
         var constructType = GetImplementationType(objectType);
 
+        var impType = propertySymbol.Type.Name.Trim('?');
+        var fieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(impType, FieldNamingStyle.UnderscoreCamel);
+
+
         sb.AppendLine($"        {GeneratedCodeAttribute}");
         sb.AppendLine($"        public {propertyType} {propertyName}");
         sb.AppendLine("        {");
         sb.AppendLine("             get");
         sb.AppendLine("             {");
         sb.AppendLine($"                var comObj = {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName};");
-        sb.AppendLine("                  if (comObj != null)");
-        sb.AppendLine($"                       return new {constructType}(comObj);");
-        sb.AppendLine("                  return null;");
+        sb.AppendLine("                if (comObj == null)");
+        sb.AppendLine("                    return null;");
+        sb.AppendLine($"                if ({fieldName} != null)");
+        sb.AppendLine($"                    return {fieldName};");
+        sb.AppendLine($"                {fieldName} = new {constructType}(comObj);");
+        sb.AppendLine($"                return {fieldName};");
         sb.AppendLine("             }");
 
         if (propertySymbol.SetMethod != null)

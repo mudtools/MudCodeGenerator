@@ -59,6 +59,7 @@ public class ComObjectWrapGenerator : ComObjectWrapBaseGenerator
 
         // 生成字段
         GenerateFields(sb, interfaceDeclaration);
+        GeneratePrivateField(sb, interfaceSymbol, interfaceDeclaration);
 
         // 生成构造函数
         GenerateConstructor(sb, className, interfaceDeclaration);
@@ -70,7 +71,7 @@ public class ComObjectWrapGenerator : ComObjectWrapBaseGenerator
         GenerateMethods(sb, interfaceSymbol, interfaceDeclaration);
 
         // 生成IDisposable实现
-        GenerateIDisposableImplementation(sb, interfaceDeclaration);
+        GenerateIDisposableImplementation(sb, interfaceSymbol, interfaceDeclaration);
 
         sb.AppendLine("    }");
         sb.AppendLine("}");
@@ -123,7 +124,7 @@ public class ComObjectWrapGenerator : ComObjectWrapBaseGenerator
     /// 生成IDisposable接口实现
     /// </summary>
     /// <param name="sb">字符串构建器</param>
-    private void GenerateIDisposableImplementation(StringBuilder sb, InterfaceDeclarationSyntax interfaceDeclaration)
+    private void GenerateIDisposableImplementation(StringBuilder sb, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
     {
         var comClassName = GetComClassName(interfaceDeclaration);
         sb.AppendLine("        #region IDisposable 实现");
@@ -138,6 +139,10 @@ public class ComObjectWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine($"                {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} = null;");
         sb.AppendLine("            }");
         sb.AppendLine();
+        sb.AppendLine("            if (disposing)");
+        sb.AppendLine("            {");
+        GeneratePrivateFieldDisposable(sb, interfaceSymbol, interfaceDeclaration);
+        sb.AppendLine("            }");
         sb.AppendLine("            _disposedValue = true;");
         sb.AppendLine("        }");
         sb.AppendLine();

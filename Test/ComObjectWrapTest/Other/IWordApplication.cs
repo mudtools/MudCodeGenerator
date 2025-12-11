@@ -1,6 +1,6 @@
 ﻿namespace ComObjectWrapTest;
 
 [ComObjectWrap(ComNamespace = "MsWord")]
-public interface IWordApplication
+public interface IWordApplication : IDisposable
 {
 }

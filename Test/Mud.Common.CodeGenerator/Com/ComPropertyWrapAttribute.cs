@@ -16,4 +16,9 @@ public class ComPropertyWrapAttribute : Attribute
     /// 属性默认值。
     /// </summary>
     public string DefaultValue { get; set; }
+
+    /// <summary>
+    /// 属性值是否需要转换。
+    /// </summary>
+    public bool NeedConvert { get; set; } = false;
 }
