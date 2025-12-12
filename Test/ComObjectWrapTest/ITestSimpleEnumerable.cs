@@ -1,5 +1,8 @@
 namespace ComObjectWrapTest
 {
+    /// <summary>
+    /// The simple enumerable interface for testing.
+    /// </summary>
     [ComCollectionWrap(ComNamespace = "MsCore", ComClassName = "FoundFiles")]
     public interface ITestSimpleEnumerable : IEnumerable<string>, IDisposable
     {

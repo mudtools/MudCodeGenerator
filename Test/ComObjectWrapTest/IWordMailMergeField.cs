@@ -14,7 +14,7 @@ public interface IWordMailMergeField : IDisposable
     [ComPropertyWrap(DefaultValue = nameof(WdFieldType.wdFieldEmpty))]
     WdFieldType Type { get; }
 
-    IWordRange? Code { get; }
+    IWordRange? Code { get; set; }
 
     //IWordRange? XX { get; }
 

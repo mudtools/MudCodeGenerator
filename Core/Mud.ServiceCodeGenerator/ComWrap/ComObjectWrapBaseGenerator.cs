@@ -298,7 +298,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             sb.AppendLine("             {");
             sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null && value != null)");
             sb.AppendLine($"                {{");
-            sb.AppendLine($"                    var comObj = value.{PrivateFieldNamingHelper.GeneratePrivateFieldName(constructType)};");
+            sb.AppendLine($"                    var comObj = (({constructType})value).InternalComObject;");
             sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = comObj;");
             sb.AppendLine($"                }}");
             sb.AppendLine("             }");
@@ -938,7 +938,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             SpecialType.System_Double => "ConvertToDouble()",
             SpecialType.System_Decimal => "ConvertToDecimal()",
             SpecialType.System_String => "ToString()",
-            SpecialType.System_DateTime => "DateTime.MinValue",
+            SpecialType.System_DateTime => "ConvertToDateTime()",
             _ => "ToString()"
         };
     }
