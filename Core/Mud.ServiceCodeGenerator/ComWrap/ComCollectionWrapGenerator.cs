@@ -341,8 +341,8 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         var isItemIndex = AttributeDataHelper.HasAttribute(interfaceSymbol, ComWrapGeneratorConstants.ItemIndexAttributeNames);
 
         sb.AppendLine("        #region IEnumerable 实现");
-        sb.AppendLine($"        {GeneratedCodeAttribute}");
         sb.AppendLine($"        ///  <inheritdoc/>");
+        sb.AppendLine($"        {GeneratedCodeAttribute}");
         sb.AppendLine($"        public IEnumerator<{elementType}> GetEnumerator()");
         sb.AppendLine("        {");
         sb.AppendLine($"            if ({privateFieldName} == null) yield break;");

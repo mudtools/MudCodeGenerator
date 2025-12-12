@@ -433,8 +433,8 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 
         var parametersStr = string.Join(", ", parameters);
 
-        sb.AppendLine($"        {GeneratedCodeAttribute}");
         sb.AppendLine($"        ///  <inheritdoc/>");
+        sb.AppendLine($"        {GeneratedCodeAttribute}");
         sb.AppendLine($"        public {returnType} {methodName}({parametersStr})");
     }
 
@@ -682,7 +682,25 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             "bool" => value.ToString().ToLower(),
             "int" or "float" or "double" or "decimal" => value.ToString(),
             "string" => $"\"{value}\"",
-            _ when type.EndsWith("?", StringComparison.Ordinal) => value == null ? "null" : value.ToString(),
+            _ when type.EndsWith("?", StringComparison.Ordinal) => HandleNullableDefaultValue(type, value),
+            _ => value.ToString()
+        };
+    }
+
+    /// <summary>
+    /// 处理可空类型的默认值
+    /// </summary>
+    private static string HandleNullableDefaultValue(string type, object value)
+    {
+        if (value == null)
+            return "null";
+
+        var nonNullType = type.TrimEnd('?');
+        return nonNullType switch
+        {
+            "bool" => value.ToString().ToLower(),
+            "int" or "float" or "double" or "decimal" => value.ToString(),
+            "string" => $"\"{value}\"",
             _ => value.ToString()
         };
     }
