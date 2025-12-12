@@ -178,6 +178,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         {
             var parameter = indexerSymbol.Parameters[0];
             var parameterType = parameter.Type.ToString();
+            var enumParameterType = IsEnumType(parameter.Type);
             var parameterName = "index"; // 统一使用 index 作为参数名
             sb.AppendLine($"        ///  <inheritdoc/>");
             sb.AppendLine($"        {GeneratedCodeAttribute}");
@@ -188,22 +189,33 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
 
             if (parameterType == "int")
             {
-                GenerateIntIndex(sb,
-                    isItemIndex,
+                GenerateIntIndex(
+                    sb, isItemIndex,
                     isEnumType, defaultValue,
-                    elementImplType,
-                    privateFieldName,
+                    elementImplType, privateFieldName,
                     parameterName);
             }
             else if (parameterType == "string")
             {
                 GenerateStringIndex(sb,
-                    isItemIndex,
-                    isEnumType,
-                    defaultValue,
-                    elementImplType,
-                    privateFieldName,
-                    parameterName);
+                    isItemIndex, isEnumType,
+                    defaultValue, elementImplType,
+                    privateFieldName, parameterName);
+            }
+            else if (enumParameterType)
+            {
+                var enumParamDefaultValue = GetDefaultValue(interfaceDeclaration, parameter, parameter.Type);
+                var isConvertIntIndex = AttributeDataHelper.HasAttribute(parameter, ComWrapGeneratorConstants.ConvertIntAttributeNames);
+                if (isConvertIntIndex)
+                    parameterName = $"{parameterName}.ConvertToInt()";
+                else
+                    parameterName = $"{parameterName}.EnumConvert({enumParamDefaultValue})";
+
+                GenerateEnumIndex(
+                        sb, isItemIndex,
+                        isEnumType, defaultValue,
+                        elementImplType, privateFieldName,
+                        parameterName);
             }
             else
             {
@@ -215,6 +227,22 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
             sb.AppendLine("        }");
             sb.AppendLine();
         }
+    }
+
+    private static void GenerateEnumIndex(
+      StringBuilder sb,
+      bool isItemIndex,
+      bool isEnumType,
+      string? defaultValue,
+      string elementImplType,
+      string privateFieldName,
+      string parameterName)
+    {
+        sb.AppendLine($"                if ({privateFieldName} == null)");
+        sb.AppendLine($"                     throw new ArgumentNullException(nameof({privateFieldName}), \"COM对象资源已释放，不能再次访问。\");");
+        sb.AppendLine();
+        GenerateCommonIndexLogic(sb, isItemIndex, isEnumType, defaultValue, elementImplType,
+            privateFieldName, parameterName, "根据字段名称");
     }
 
     private static void GenerateStringIndex(
