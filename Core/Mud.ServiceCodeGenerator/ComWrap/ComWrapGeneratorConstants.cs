@@ -54,6 +54,16 @@ internal static class ComWrapGeneratorConstants
     public const string NeedDisposeProperty = "NeedDispose";
 
     /// <summary>
+    /// 不生成构造函数属性名称
+    /// </summary>
+    public const string NoneConstructorProperty = "NoneConstructor";
+
+    /// <summary>
+    /// 不生成资源释放函数属性名称
+    /// </summary>
+    public const string NoneDisposedProperty = "NoneDisposed";
+
+    /// <summary>
     /// 默认COM命名空间
     /// </summary>
     public const string DefaultComNamespace = "UNKNOWN_NAMESPACE";

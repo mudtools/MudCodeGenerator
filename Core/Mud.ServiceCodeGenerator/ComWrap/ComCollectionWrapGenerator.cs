@@ -63,7 +63,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         GeneratePrivateField(sb, interfaceSymbol, interfaceDeclaration);
 
         // 生成构造函数
-        GenerateConstructor(sb, className, interfaceDeclaration);
+        GenerateConstructor(sb, className, interfaceSymbol, interfaceDeclaration);
 
         // 生成属性
         GenerateCollectionProperties(sb, interfaceSymbol, interfaceDeclaration);
@@ -226,6 +226,10 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
             sb.AppendLine("            }");
             sb.AppendLine("        }");
             sb.AppendLine();
+        }
+        else
+        {
+            sb.AppendLine($"                throw new NotSupportedException(\"不支持多参数的索引器参数类型 \");");
         }
     }
 

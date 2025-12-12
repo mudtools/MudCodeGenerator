@@ -62,7 +62,7 @@ public class ComObjectWrapGenerator : ComObjectWrapBaseGenerator
         GeneratePrivateField(sb, interfaceSymbol, interfaceDeclaration);
 
         // 生成构造函数
-        GenerateConstructor(sb, className, interfaceDeclaration);
+        GenerateConstructor(sb, className, interfaceSymbol, interfaceDeclaration);
 
         // 生成属性
         GenerateProperties(sb, interfaceSymbol, interfaceDeclaration);

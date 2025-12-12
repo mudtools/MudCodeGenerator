@@ -95,8 +95,14 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     /// <param name="sb">字符串构建器</param>
     /// <param name="className">类名</param>
     /// <param name="interfaceDeclaration">接口声明语法</param>
-    protected void GenerateConstructor(StringBuilder sb, string className, InterfaceDeclarationSyntax interfaceDeclaration)
+    protected void GenerateConstructor(StringBuilder sb, string className, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
     {
+        if (interfaceDeclaration == null || interfaceSymbol == null || sb == null)
+            return;
+
+        if (NoneConstructor(interfaceSymbol))
+            return;
+
         var comNamespace = GetComNamespace(interfaceDeclaration);
         var comClassName = GetComClassName(interfaceDeclaration);
 
@@ -702,6 +708,40 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     }
     #region Helper Methods
     /// <summary>
+    /// 是否需要需要生成构造函数。
+    /// </summary>
+    /// <param name="interfaceSymbol"></param>
+    /// <returns></returns>
+    protected bool NoneConstructor(INamedTypeSymbol interfaceSymbol)
+    {
+        List<string> attributes = [.. ComWrapGeneratorConstants.ComObjectWrapAttributeNames];
+        attributes.AddRange(ComWrapGeneratorConstants.ComCollectionWrapAttributeNames);
+        var propertyWrapAttr = AttributeDataHelper.GetAttributeDataFromSymbol(interfaceSymbol, [.. attributes]);
+        if (propertyWrapAttr == null)
+            return false;
+
+        var bValue = AttributeDataHelper.GetBoolValueFromAttribute(propertyWrapAttr, ComWrapGeneratorConstants.NoneConstructorProperty, false);
+        return bValue;
+    }
+
+    /// <summary>
+    /// 是否需要需要生成释放资源函数。
+    /// </summary>
+    /// <param name="interfaceSymbol"></param>
+    /// <returns></returns>
+    protected bool NoneDisposed(INamedTypeSymbol interfaceSymbol)
+    {
+        List<string> attributes = [.. ComWrapGeneratorConstants.ComObjectWrapAttributeNames];
+        attributes.AddRange(ComWrapGeneratorConstants.ComCollectionWrapAttributeNames);
+        var propertyWrapAttr = AttributeDataHelper.GetAttributeDataFromSymbol(interfaceSymbol, [.. attributes]);
+        if (propertyWrapAttr == null)
+            return false;
+
+        var bValue = AttributeDataHelper.GetBoolValueFromAttribute(propertyWrapAttr, ComWrapGeneratorConstants.NoneDisposedProperty, false);
+        return bValue;
+    }
+
+    /// <summary>
     /// 是否需要转换。
     /// </summary>
     /// <param name="propertySymbol"></param>
@@ -1066,34 +1106,47 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     /// <param name="includeAdditionalDisposables">是否包含额外的可释放对象处理</param>
     protected virtual void GenerateIDisposableImplementation(StringBuilder sb, InterfaceDeclarationSyntax interfaceDeclaration, INamedTypeSymbol interfaceSymbol)
     {
+        if (interfaceDeclaration == null || interfaceSymbol == null || sb == null)
+            return;
+
         var comClassName = GetComClassName(interfaceDeclaration);
+        var impClassName = GetImplementationClassName(interfaceSymbol.Name);
+
         sb.AppendLine("        #region IDisposable 实现");
-        sb.AppendLine($"        {GeneratedCodeAttribute}");
-        sb.AppendLine("        protected virtual void Dispose(bool disposing)");
-        sb.AppendLine("        {");
-        sb.AppendLine("            if (_disposedValue) return;");
-        sb.AppendLine();
-        sb.AppendLine($"            if (disposing && {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
-        sb.AppendLine("            {");
-        sb.AppendLine($"                Marshal.ReleaseComObject({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)});");
-        sb.AppendLine($"                {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} = null;");
-        sb.AppendLine("            }");
-        sb.AppendLine();
+        if (!NoneDisposed(interfaceSymbol))
+        {
+            sb.AppendLine($"        {GeneratedCodeAttribute}");
+            sb.AppendLine("        protected virtual void Dispose(bool disposing)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            if (_disposedValue) return;");
+            sb.AppendLine();
+            sb.AppendLine($"            if (disposing && {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
+            sb.AppendLine("            {");
+            sb.AppendLine($"                Marshal.ReleaseComObject({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)});");
+            sb.AppendLine($"                {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} = null;");
+            sb.AppendLine("            }");
+            sb.AppendLine();
 
-        sb.AppendLine("            if (disposing)");
-        sb.AppendLine("            {");
-        GenerateAdditionalDisposalLogic(sb, interfaceSymbol, interfaceDeclaration);
-        sb.AppendLine("            }");
+            sb.AppendLine("            if (disposing)");
+            sb.AppendLine("            {");
+            GenerateAdditionalDisposalLogic(sb, interfaceSymbol, interfaceDeclaration);
+            sb.AppendLine("            }");
 
-        sb.AppendLine("            _disposedValue = true;");
-        sb.AppendLine("        }");
+            sb.AppendLine("            _disposedValue = true;");
+            sb.AppendLine("        }");
+        }
         sb.AppendLine();
-        sb.AppendLine($"        {GeneratedCodeAttribute}");
         sb.AppendLine($"        ///  <inheritdoc/>");
+        sb.AppendLine($"        {GeneratedCodeAttribute}");
         sb.AppendLine("        public void Dispose()");
         sb.AppendLine("        {");
         sb.AppendLine("            Dispose(true);");
         sb.AppendLine("            GC.SuppressFinalize(this);");
+        sb.AppendLine("        }");
+        sb.AppendLine();
+        sb.AppendLine($"        ~{impClassName}()");
+        sb.AppendLine("        {");
+        sb.AppendLine("            Dispose(true);");
         sb.AppendLine("        }");
         sb.AppendLine("        #endregion");
         sb.AppendLine();
