@@ -23,7 +23,7 @@ public class ComObjectWrapGenerator : ComObjectWrapBaseGenerator
     /// 获取COM对象包装特性名称数组
     /// </summary>
     /// <returns>特性名称数组</returns>
-    protected override string[] ComWrapAttributeNames() => ComWrapGeneratorConstants.ComObjectWrapAttributeNames;
+    protected override string[] ComWrapAttributeNames() => ComWrapConstants.ComObjectWrapAttributeNames;
 
     /// <summary>
     /// 生成COM对象包装实现类

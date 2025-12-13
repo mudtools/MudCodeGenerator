@@ -26,6 +26,7 @@ public interface IWordMailMergeField : IDisposable
 
     //void Delete(int? index, WdFieldType wdFieldType);
 
+    //[ReturnValueConvert]
     //IWordCell? FindCell(string? name, int? index, WdFieldType wdFieldType = WdFieldType.wdFieldAddin);
 
 }

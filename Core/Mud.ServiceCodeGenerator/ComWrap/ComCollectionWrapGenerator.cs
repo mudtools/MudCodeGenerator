@@ -24,7 +24,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
     /// 获取COM对象包装特性名称数组
     /// </summary>
     /// <returns>特性名称数组</returns>
-    protected override string[] ComWrapAttributeNames() => ComWrapGeneratorConstants.ComCollectionWrapAttributeNames;
+    protected override string[] ComWrapAttributeNames() => ComWrapConstants.ComCollectionWrapAttributeNames;
 
     /// <summary>
     /// 生成COM对象包装实现类
@@ -172,7 +172,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         var isEnumType = IsEnumType(indexerSymbol.Type);
         var defaultValue = GetDefaultValue(interfaceDeclaration, indexerSymbol, indexerSymbol.Type);
         var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
-        var isItemIndex = AttributeDataHelper.HasAttribute(interfaceSymbol, ComWrapGeneratorConstants.ItemIndexAttributeNames);
+        var isItemIndex = AttributeDataHelper.HasAttribute(interfaceSymbol, ComWrapConstants.ItemIndexAttributeNames);
 
         if (indexerSymbol.Parameters.Length == 1)
         {
@@ -205,7 +205,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
             else if (enumParameterType)
             {
                 var enumParamDefaultValue = GetDefaultValue(interfaceDeclaration, parameter, parameter.Type);
-                var isConvertIntIndex = AttributeDataHelper.HasAttribute(parameter, ComWrapGeneratorConstants.ConvertIntAttributeNames);
+                var isConvertIntIndex = AttributeDataHelper.HasAttribute(parameter, ComWrapConstants.ConvertIntAttributeNames);
                 if (isConvertIntIndex)
                     parameterName = $"{parameterName}.ConvertToInt()";
                 else
@@ -224,6 +224,38 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
             }
 
             sb.AppendLine("            }");
+
+            if (indexerSymbol.SetMethod != null)
+            {
+                sb.AppendLine("            set");
+                sb.AppendLine("            {");
+
+                if (parameterType == "int")
+                {
+                    GenerateIntSetIndex(sb, isItemIndex, isEnumType, defaultValue, elementImplType, privateFieldName, parameterName);
+                }
+                else if (parameterType == "string")
+                {
+                    GenerateStringSetIndex(sb, isItemIndex, isEnumType, elementImplType, privateFieldName, parameterName);
+                }
+                else if (enumParameterType)
+                {
+                    var enumParamDefaultValue = GetDefaultValue(interfaceDeclaration, parameter, parameter.Type);
+                    var isConvertIntIndex = AttributeDataHelper.HasAttribute(parameter, ComWrapConstants.ConvertIntAttributeNames);
+                    var processedParameterName = isConvertIntIndex
+                        ? $"{parameterName}.ConvertToInt()"
+                        : $"{parameterName}.EnumConvert({enumParamDefaultValue})";
+
+                    GenerateEnumSetIndex(sb, isItemIndex, isEnumType, elementImplType, privateFieldName, processedParameterName);
+                }
+                else
+                {
+                    sb.AppendLine($"                throw new NotSupportedException(\"不支持的索引器参数类型: {parameterType}\");");
+                }
+
+                sb.AppendLine("            }");
+            }
+
             sb.AppendLine("        }");
             sb.AppendLine();
         }
@@ -259,7 +291,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         string parameterName)
     {
         sb.AppendLine($"                if ({privateFieldName} == null)");
-        sb.AppendLine($"                     throw new ArgumentNullException(nameof({privateFieldName}), \"COM对象资源已释放，不能再次访问。\");");
+        sb.AppendLine($"                     throw new ObjectDisposedException(nameof({privateFieldName}));");
         sb.AppendLine($"                if (string.IsNullOrEmpty({parameterName}))");
         sb.AppendLine($"                    throw new ArgumentNullException(nameof({parameterName}));");
         sb.AppendLine();
@@ -278,7 +310,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         string parameterName)
     {
         sb.AppendLine($"                if ({privateFieldName} == null)");
-        sb.AppendLine($"                     throw new ArgumentNullException(nameof({privateFieldName}), \"COM对象资源已释放，不能再次访问。\");");
+        sb.AppendLine($"                     throw new ObjectDisposedException(nameof({privateFieldName}));");
         sb.AppendLine($"                if ({parameterName} < 1)");
         sb.AppendLine("                      throw new IndexOutOfRangeException(\"索引参数不能少于1\");");
 
@@ -338,7 +370,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         var elementImplType = GetImplementationType(elementType.ToDisplayString());
         var comClassName = GetComClassName(interfaceDeclaration);
         var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
-        var isItemIndex = AttributeDataHelper.HasAttribute(interfaceSymbol, ComWrapGeneratorConstants.ItemIndexAttributeNames);
+        var isItemIndex = AttributeDataHelper.HasAttribute(interfaceSymbol, ComWrapConstants.ItemIndexAttributeNames);
 
         sb.AppendLine("        #region IEnumerable 实现");
         sb.AppendLine($"        ///  <inheritdoc/>");
@@ -381,6 +413,107 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine("        }");
         sb.AppendLine("        #endregion");
         sb.AppendLine();
+    }
+
+    private static void GenerateStringSetIndex(
+        StringBuilder sb,
+        bool isItemIndex,
+        bool isEnumType,
+        string elementImplType,
+        string privateFieldName,
+        string parameterName)
+    {
+        sb.AppendLine($"                if (string.IsNullOrEmpty({parameterName}))");
+        sb.AppendLine($"                    throw new ArgumentNullException(nameof({parameterName}));");
+        sb.AppendLine();
+        sb.AppendLine($"                if ({privateFieldName} == null) throw new ObjectDisposedException(nameof({privateFieldName}));");
+        sb.AppendLine("                try");
+        sb.AppendLine("                {");
+
+        GenerateCommonSetLogic(sb, isItemIndex, isEnumType, elementImplType, privateFieldName, parameterName, "value");
+
+        sb.AppendLine("                }");
+        sb.AppendLine("                catch (COMException ce)");
+        sb.AppendLine("                {");
+        sb.AppendLine($"                    throw new ExcelOperationException(\"根据字段名称设置 {elementImplType} 对象失败: \" + ce.Message, ce);");
+        sb.AppendLine("                }");
+    }
+
+    private static void GenerateIntSetIndex(
+        StringBuilder sb,
+        bool isItemIndex,
+        bool isEnumType,
+        string? defaultValue,
+        string elementImplType,
+        string privateFieldName,
+        string parameterName)
+    {
+        sb.AppendLine($"                if ({privateFieldName} == null || {parameterName} < 1)");
+        sb.AppendLine($"                    throw new ArgumentException(\"索引必须大于0\", nameof({parameterName}));");
+        sb.AppendLine("                try");
+        sb.AppendLine("                {");
+
+        GenerateCommonSetLogic(sb, isItemIndex, isEnumType, elementImplType, privateFieldName, parameterName, "value");
+
+        sb.AppendLine("                }");
+        sb.AppendLine("                catch (COMException ce)");
+        sb.AppendLine("                {");
+        sb.AppendLine($"                    throw new ExcelOperationException(\"根据索引设置 {elementImplType} 对象失败: \" + ce.Message, ce);");
+        sb.AppendLine("                }");
+    }
+
+    private static void GenerateEnumSetIndex(
+        StringBuilder sb,
+        bool isItemIndex,
+        bool isEnumType,
+        string elementImplType,
+        string privateFieldName,
+        string parameterName)
+    {
+        sb.AppendLine($"                if ({privateFieldName} == null)");
+        sb.AppendLine($"                    throw new ObjectDisposedException(nameof({privateFieldName}));");
+        sb.AppendLine("                try");
+        sb.AppendLine("                {");
+
+        GenerateCommonSetLogic(sb, isItemIndex, isEnumType, elementImplType, privateFieldName, parameterName, "value");
+
+        sb.AppendLine("                }");
+        sb.AppendLine("                catch (COMException ce)");
+        sb.AppendLine("                {");
+        sb.AppendLine($"                    throw new ExcelOperationException(\"根据枚举索引设置 {elementImplType} 对象失败: \" + ce.Message, ce);");
+        sb.AppendLine("                }");
+    }
+
+    private static void GenerateCommonSetLogic(
+        StringBuilder sb,
+        bool isItemIndex,
+        bool isEnumType,
+        string elementImplType,
+        string privateFieldName,
+        string parameterName,
+        string valueExpression)
+    {
+        // 处理value表达式，根据类型进行转换
+        string setValue = valueExpression;
+        if (elementImplType.EndsWith("?", StringComparison.Ordinal))
+        {
+            setValue = $"{valueExpression}.Value";
+        }
+
+        if (isEnumType)
+        {
+            setValue = $"{valueExpression}.EnumUnderlyingValue()";
+        }
+
+        // 生成COM对象赋值
+        if (isItemIndex)
+        {
+            sb.AppendLine($"                    {privateFieldName}.Item[{parameterName}] = {setValue};");
+        }
+        else
+        {
+            sb.AppendLine($"                    {privateFieldName}[{parameterName}] = {setValue};");
+        }
     }
 
     /// <summary>

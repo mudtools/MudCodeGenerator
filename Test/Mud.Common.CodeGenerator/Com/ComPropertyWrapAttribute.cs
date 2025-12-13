@@ -8,6 +8,10 @@
 public class ComPropertyWrapAttribute : Attribute
 {
     /// <summary>
+    /// COM对象所在的命名空间。
+    /// </summary>
+    public string ComNamespace { get; set; }
+    /// <summary>
     /// 属性默认值。
     /// </summary>
     public string DefaultValue { get; set; }
