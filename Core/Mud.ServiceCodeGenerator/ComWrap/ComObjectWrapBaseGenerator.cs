@@ -592,19 +592,12 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
                 sb.AppendLine($"                return new {constructType}(comObj);");
             else
             {
-                //System.Diagnostics.Debugger.Launch();
                 var ordinalComType = GetImplementationOrdinalType(returnType);
-                foreach (var preFix in KnownPrefixes)
-                {
-                    if (!ordinalComType.StartsWith(preFix, StringComparison.Ordinal))
-                        continue;
-                    var comType = ordinalComType.Substring(preFix.Length).TrimEnd('?');
-                    sb.AppendLine($"                if(comObj is {comNamespace}.{comType} rComObj)");
-                    sb.AppendLine($"                     return new {constructType}(rComObj);");
-                    sb.AppendLine($"                else");
-                    sb.AppendLine("                     return null;");
-                    break;
-                }
+                var comType = GetOrdinalComType(ordinalComType);
+                sb.AppendLine($"                if(comObj is {comNamespace}.{comType} rComObj)");
+                sb.AppendLine($"                     return new {constructType}(rComObj);");
+                sb.AppendLine($"                else");
+                sb.AppendLine("                     return null;");
             }
         }
         else
@@ -616,6 +609,21 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 
         // 异常处理
         GenerateExceptionHandling(sb, methodName);
+    }
+
+    protected string GetOrdinalComType(string ordinalComType)
+    {
+        if (string.IsNullOrEmpty(ordinalComType))
+            return ordinalComType;
+        foreach (var preFix in KnownPrefixes)
+        {
+            if (ordinalComType.StartsWith(preFix, StringComparison.Ordinal))
+            {
+                ordinalComType = ordinalComType.Substring(preFix.Length).TrimEnd('?');
+                break;
+            }
+        }
+        return ordinalComType;
     }
 
     /// <summary>
