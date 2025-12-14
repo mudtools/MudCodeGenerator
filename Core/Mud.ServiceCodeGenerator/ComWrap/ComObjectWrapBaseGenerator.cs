@@ -1343,6 +1343,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             "ushort" or "ushort?" => true,
             "ulong" or "ulong?" => true,
             "sbyte" or "sbyte?" => true,
+            "object" or "object?" => true,
             _ => false
         };
     }

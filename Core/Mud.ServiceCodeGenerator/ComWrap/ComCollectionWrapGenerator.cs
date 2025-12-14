@@ -326,7 +326,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         var comNamespace = GetComNamespace(interfaceDeclaration);
         var isEnumType = IsEnumType(indexerSymbol.Type);
         var defaultValue = GetDefaultValue(interfaceDeclaration, indexerSymbol, indexerSymbol.Type);
-        var idConvertValue = IsNeedConvert(indexerSymbol);
+        var needConvert = IsNeedConvert(indexerSymbol);
         sb.AppendLine("                try");
         sb.AppendLine("                {");
         if (isItemIndex)
@@ -348,7 +348,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         else
         {
             sb.AppendLine($"                    {elementImplType} result = null;");
-            if (idConvertValue)
+            if (needConvert)
             {
                 string returnType = indexerSymbol.Type.ToDisplayString();
                 var ordinalComType = GetImplementationOrdinalType(returnType);
@@ -362,8 +362,6 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
                 sb.AppendLine("                    if(comElement!=null)");
                 sb.AppendLine($"                       result = new {elementImplType}(comElement);");
             }
-
-
             sb.AppendLine("                    if (result != null)");
             sb.AppendLine("                        _disposableList.Add(result);");
             sb.AppendLine("                    return result;");
