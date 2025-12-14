@@ -330,6 +330,9 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         var comNamespace = GetComNamespace(interfaceDeclaration);
         var comClassName = GetComClassName(interfaceDeclaration);
         var enumValueName = GetEnumValueWithoutNamespace(defaultValue);
+        var propertyComNamespace = GetPropertyComNamespace(propertySymbol);
+        if (!string.IsNullOrEmpty(propertyComNamespace))
+            comNamespace = propertyComNamespace;
 
         sb.AppendLine($"        ///  <inheritdoc/>");
         sb.AppendLine($"        {GeneratedCodeAttribute}");
@@ -795,6 +798,21 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 
         var bValue = AttributeDataHelper.GetBoolValueFromAttribute(propertyWrapAttr, ComWrapConstants.NoneDisposedProperty, false);
         return bValue;
+    }
+
+    /// <summary>
+    /// 获取属性所在的COM命名空间。
+    /// </summary>
+    /// <param name="propertySymbol"></param>
+    /// <returns></returns>
+    protected string GetPropertyComNamespace(IPropertySymbol propertySymbol)
+    {
+        var propertyWrapAttr = AttributeDataHelper.GetAttributeDataFromSymbol(propertySymbol, ComWrapConstants.ComPropertyWrapAttributeNames);
+        if (propertyWrapAttr == null)
+            return string.Empty;
+
+        var needConvert = AttributeDataHelper.GetStringValueFromAttribute(propertyWrapAttr, ComWrapConstants.ComNamespaceProperty, string.Empty);
+        return needConvert;
     }
 
     /// <summary>
