@@ -243,7 +243,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             if (propertyType.EndsWith("?", StringComparison.Ordinal))
             {
                 string setValue = "value.Value";
-                if (propertyType.StartsWith("object", StringComparison.OrdinalIgnoreCase))
+                if (ShouldUseDirectValueForNullable(propertyType))
                     setValue = "value";
                 else if (needConvert && propertyType.StartsWith("bool", StringComparison.OrdinalIgnoreCase))
                 {
@@ -266,6 +266,16 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         }
         sb.AppendLine("        }");
         sb.AppendLine();
+    }
+
+    private bool ShouldUseDirectValueForNullable(string propertyType)
+    {
+        if (propertyType.StartsWith("object", StringComparison.OrdinalIgnoreCase)
+            || propertyType.StartsWith("string", StringComparison.OrdinalIgnoreCase)
+            || propertyType.StartsWith("System.Object", StringComparison.OrdinalIgnoreCase)
+            || propertyType.StartsWith("System.String", StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
     }
 
     /// <summary>
