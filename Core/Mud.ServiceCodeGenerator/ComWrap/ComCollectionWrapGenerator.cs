@@ -73,7 +73,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         GenerateMethods(sb, interfaceSymbol, interfaceDeclaration);
 
         // 生成IEnumerable实现
-        GenerateIEnumerableImplementation(sb, interfaceSymbol, interfaceDeclaration);
+        GenerateEnumerableImplementation(sb, interfaceSymbol, interfaceDeclaration);
 
         // 生成IDisposable实现
         GenerateIDisposableImplementation(sb, interfaceDeclaration, interfaceSymbol);
@@ -343,18 +343,21 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         }
         else
         {
-            sb.AppendLine($"                    {elementImplType} result = null");
+            sb.AppendLine($"                    {elementImplType} result = null;");
             if (idConvertValue)
             {
                 string returnType = indexerSymbol.Type.ToDisplayString();
                 var ordinalComType = GetImplementationOrdinalType(returnType);
                 var comType = GetOrdinalComType(ordinalComType);
 
-                sb.AppendLine($"                if(comElement is {comNamespace}.{comType} rComObj)");
-                sb.AppendLine($"                    result = new {elementImplType}(rComObj);");
+                sb.AppendLine($"                    if(comElement is {comNamespace}.{comType} rComObj)");
+                sb.AppendLine($"                       result = new {elementImplType}(rComObj);");
             }
             else
-                sb.AppendLine($"                    result = comElement != null ? new {elementImplType}(comElement) : null;");
+            {
+                sb.AppendLine("                    if(comElement!=null)");
+                sb.AppendLine($"                       result = new {elementImplType}(comElement);");
+            }
 
 
             sb.AppendLine("                    if (result != null)");
@@ -473,7 +476,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         }
     }
 
-    private void GenerateIEnumerableImplementation(
+    private void GenerateEnumerableImplementation(
         StringBuilder sb,
         INamedTypeSymbol interfaceSymbol,
         InterfaceDeclarationSyntax interfaceDeclaration)
@@ -481,12 +484,8 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         var elementType = GetCollectionElementType(interfaceSymbol);
         if (elementType == null)
             return;
-        var isEnumType = IsEnumType(elementType);
-        var defaultValue = GetDefaultValue(interfaceDeclaration, interfaceSymbol, elementType);
-        var elementImplType = GetImplementationType(elementType.ToDisplayString());
         var comClassName = GetComClassName(interfaceDeclaration);
         var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
-        var isItemIndex = AttributeDataHelper.HasAttribute(interfaceSymbol, ComWrapConstants.ItemIndexAttributeNames);
 
         sb.AppendLine("        #region IEnumerable 实现");
         sb.AppendLine($"        ///  <inheritdoc/>");
@@ -497,32 +496,11 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine();
         sb.AppendLine("            for (int i = 1; i <= Count; i++)");
         sb.AppendLine("            {");
-        if (isItemIndex)
-        {
-            sb.AppendLine($"               var comElement = {privateFieldName}.Item(i);");
-        }
-        else
-        {
-            sb.AppendLine($"               var comElement = {privateFieldName}[i];");
-        }
-        if (IsBasicType(elementImplType) || isEnumType)
-        {
-            if (isEnumType)
-                sb.AppendLine($"               yield return comElement.EnumConvert({defaultValue});");
-            else
-                sb.AppendLine("               yield return comElement;");
-        }
-        else
-        {
-            sb.AppendLine("                {");
-            sb.AppendLine($"                    var element = new {elementImplType}(comElement);");
-            sb.AppendLine("                    _disposableList.Add(element);");
-            sb.AppendLine("                    yield return element;");
-            sb.AppendLine("                }");
-        }
+        sb.AppendLine("                yield return this[i];");
         sb.AppendLine("            }");
         sb.AppendLine("        }");
         sb.AppendLine();
+        sb.AppendLine($"        {GeneratedCodeAttribute}");
         sb.AppendLine("        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()");
         sb.AppendLine("        {");
         sb.AppendLine("            return GetEnumerator();");
