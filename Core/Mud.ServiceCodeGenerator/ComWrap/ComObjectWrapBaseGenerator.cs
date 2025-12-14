@@ -184,21 +184,21 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         var propertyType = propertySymbol.Type.ToDisplayString();
         var isEnumType = IsEnumType(propertySymbol.Type);
         var isObjectType = IsComObjectType(propertySymbol.Type);
-        var defaultValue = GetDefaultValue(interfaceDeclaration, propertySymbol, propertySymbol.Type);
+
         var comClassName = GetComClassName(interfaceDeclaration);
         var needConvert = IsNeedConvert(propertySymbol);
 
         if (isEnumType)
         {
-            GenerateEnumProperty(sb, propertySymbol, interfaceDeclaration, defaultValue);
+            GenerateEnumProperty(sb, propertySymbol, interfaceDeclaration);
         }
         else if (isObjectType)
         {
-            GenerateComObjectProperty(sb, propertySymbol, interfaceDeclaration, comClassName);
+            GenerateComObjectProperty(sb, propertySymbol, interfaceDeclaration, needConvert, comClassName);
         }
         else
         {
-            GenerateObjectProperty(sb, propertySymbol, interfaceDeclaration, needConvert, comClassName, defaultValue);
+            GenerateObjectProperty(sb, propertySymbol, interfaceDeclaration, needConvert, comClassName);
         }
     }
 
@@ -209,8 +209,10 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     /// <param name="propertySymbol">属性符号</param>
     /// <param name="interfaceDeclaration">接口声明语法</param>
     /// <param name="comClassName">COM类名</param>
-    private void GenerateObjectProperty(StringBuilder sb, IPropertySymbol propertySymbol, InterfaceDeclarationSyntax interfaceDeclaration, bool needConvert, string comClassName, string defaultValue)
+    private void GenerateObjectProperty(StringBuilder sb, IPropertySymbol propertySymbol, InterfaceDeclarationSyntax interfaceDeclaration, bool needConvert, string comClassName)
     {
+        var defaultValue = GetDefaultValue(interfaceDeclaration, propertySymbol, propertySymbol.Type);
+
         var propertyName = propertySymbol.Name;
         var propertyType = propertySymbol.Type.ToDisplayString();
 
@@ -285,8 +287,13 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     /// <param name="propertySymbol">属性符号</param>
     /// <param name="interfaceDeclaration">接口声明语法</param>
     /// <param name="comClassName">COM类名</param>
-    private void GenerateComObjectProperty(StringBuilder sb, IPropertySymbol propertySymbol, InterfaceDeclarationSyntax interfaceDeclaration, string comClassName)
+    private void GenerateComObjectProperty(StringBuilder sb,
+                IPropertySymbol propertySymbol,
+                InterfaceDeclarationSyntax interfaceDeclaration,
+                bool needConvert,
+                string comClassName)
     {
+        var comNamespace = GetComNamespace(interfaceDeclaration);
         var propertyName = propertySymbol.Name;
         var propertyType = propertySymbol.Type.ToDisplayString();
         var objectType = StringExtensions.RemoveInterfacePrefix(propertyType);
@@ -306,8 +313,18 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         sb.AppendLine($"                var comObj = {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName};");
         sb.AppendLine("                if (comObj == null)");
         sb.AppendLine("                    return null;");
-        sb.AppendLine($"                if ({fieldName} == null)");
-        sb.AppendLine($"                    {fieldName} = new {constructType}(comObj);");
+        sb.AppendLine($"                if ({fieldName} != null)");
+        sb.AppendLine($"                   return {fieldName};");
+
+        if (!needConvert)
+            sb.AppendLine($"                {fieldName} = new {constructType}(comObj);");
+        else
+        {
+            var ordinalComType = GetImplementationOrdinalType(propertyType);
+            var comType = GetOrdinalComType(ordinalComType);
+            sb.AppendLine($"                if(comObj is {comNamespace}.{comType} rComObj)");
+            sb.AppendLine($"                    {fieldName} = new {constructType}(rComObj);");
+        }
         sb.AppendLine($"                return {fieldName};");
         sb.AppendLine("             }");
 
@@ -333,13 +350,16 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     /// <param name="propertySymbol">属性符号</param>
     /// <param name="interfaceDeclaration">接口声明语法</param>
     /// <param name="defaultValue">默认值</param>
-    private void GenerateEnumProperty(StringBuilder sb, IPropertySymbol propertySymbol, InterfaceDeclarationSyntax interfaceDeclaration, string defaultValue)
+    private void GenerateEnumProperty(StringBuilder sb, IPropertySymbol propertySymbol, InterfaceDeclarationSyntax interfaceDeclaration)
     {
         var propertyName = propertySymbol.Name;
         var propertyType = propertySymbol.Type.ToDisplayString();
         var comNamespace = GetComNamespace(interfaceDeclaration);
         var comClassName = GetComClassName(interfaceDeclaration);
+
+        var defaultValue = GetDefaultValue(interfaceDeclaration, propertySymbol, propertySymbol.Type);
         var enumValueName = GetEnumValueWithoutNamespace(defaultValue);
+
         var propertyComNamespace = GetPropertyComNamespace(propertySymbol);
         if (!string.IsNullOrEmpty(propertyComNamespace))
             comNamespace = propertyComNamespace;
