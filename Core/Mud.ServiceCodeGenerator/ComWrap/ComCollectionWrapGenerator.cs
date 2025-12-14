@@ -169,6 +169,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         var elementType = indexerSymbol.Type.ToDisplayString();
         var comClassName = GetComClassName(interfaceDeclaration);
         var elementImplType = GetImplementationType(elementType);
+        var isItemIndex = AttributeDataHelper.HasAttribute(interfaceSymbol, ComWrapConstants.ItemIndexAttributeNames);
         var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
 
         if (indexerSymbol.Parameters.Length == 1)
@@ -187,13 +188,13 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
             if (parameterType == "int")
             {
                 GenerateIntIndex(
-                    sb, indexerSymbol, interfaceDeclaration,
+                    sb, indexerSymbol, interfaceDeclaration, isItemIndex,
                     elementImplType, privateFieldName,
                     parameterName);
             }
             else if (parameterType == "string")
             {
-                GenerateStringIndex(sb, indexerSymbol, interfaceDeclaration,
+                GenerateStringIndex(sb, indexerSymbol, interfaceDeclaration, isItemIndex,
                      elementImplType,
                     privateFieldName, parameterName);
             }
@@ -207,7 +208,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
                     parameterName = $"{parameterName}.EnumConvert({enumParamDefaultValue})";
 
                 GenerateEnumIndex(
-                        sb, indexerSymbol, interfaceDeclaration,
+                        sb, indexerSymbol, interfaceDeclaration, isItemIndex,
                         elementImplType, privateFieldName,
                         parameterName);
             }
@@ -226,11 +227,11 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
 
                 if (parameterType == "int")
                 {
-                    GenerateIntSetIndex(sb, indexerSymbol, interfaceDeclaration, elementImplType, privateFieldName, parameterName);
+                    GenerateIntSetIndex(sb, indexerSymbol, interfaceDeclaration, isItemIndex, elementImplType, privateFieldName, parameterName);
                 }
                 else if (parameterType == "string")
                 {
-                    GenerateStringSetIndex(sb, indexerSymbol, interfaceDeclaration, elementImplType, privateFieldName, parameterName);
+                    GenerateStringSetIndex(sb, indexerSymbol, interfaceDeclaration, isItemIndex, elementImplType, privateFieldName, parameterName);
                 }
                 else if (enumParameterType)
                 {
@@ -240,7 +241,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
                         ? $"{parameterName}.ConvertToInt()"
                         : $"{parameterName}.EnumConvert({enumParamDefaultValue})";
 
-                    GenerateEnumSetIndex(sb, indexerSymbol, interfaceDeclaration, elementImplType, privateFieldName, processedParameterName);
+                    GenerateEnumSetIndex(sb, indexerSymbol, interfaceDeclaration, isItemIndex, elementImplType, privateFieldName, processedParameterName);
                 }
                 else
                 {
@@ -263,6 +264,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
               StringBuilder sb,
               IPropertySymbol indexerSymbol,
               InterfaceDeclarationSyntax interfaceDeclaration,
+        bool isItemIndex,
               string elementImplType,
               string privateFieldName,
               string parameterName)
@@ -270,7 +272,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine($"                if ({privateFieldName} == null)");
         sb.AppendLine($"                     throw new ArgumentNullException(nameof({privateFieldName}), \"COM对象资源已释放，不能再次访问。\");");
         sb.AppendLine();
-        CommonGetLogic(sb, indexerSymbol, interfaceDeclaration, elementImplType,
+        CommonGetLogic(sb, indexerSymbol, interfaceDeclaration, isItemIndex, elementImplType,
             privateFieldName, parameterName, "根据字段名称");
     }
 
@@ -278,6 +280,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         StringBuilder sb,
         IPropertySymbol indexerSymbol,
         InterfaceDeclarationSyntax interfaceDeclaration,
+        bool isItemIndex,
         string elementImplType,
         string privateFieldName,
         string parameterName)
@@ -288,7 +291,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine($"                    throw new ArgumentNullException(nameof({parameterName}));");
         sb.AppendLine();
 
-        CommonGetLogic(sb, indexerSymbol, interfaceDeclaration, elementImplType,
+        CommonGetLogic(sb, indexerSymbol, interfaceDeclaration, isItemIndex, elementImplType,
             privateFieldName, parameterName, "根据字段名称");
     }
 
@@ -296,6 +299,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         StringBuilder sb,
         IPropertySymbol indexerSymbol,
         InterfaceDeclarationSyntax interfaceDeclaration,
+        bool isItemIndex,
         string elementImplType,
         string privateFieldName,
         string parameterName)
@@ -305,7 +309,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine($"                if ({parameterName} < 1)");
         sb.AppendLine("                      throw new IndexOutOfRangeException(\"索引参数不能少于1\");");
 
-        CommonGetLogic(sb, indexerSymbol, interfaceDeclaration, elementImplType,
+        CommonGetLogic(sb, indexerSymbol, interfaceDeclaration, isItemIndex, elementImplType,
             privateFieldName, parameterName, "根据索引");
     }
 
@@ -313,6 +317,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         StringBuilder sb,
         IPropertySymbol indexerSymbol,
         InterfaceDeclarationSyntax interfaceDeclaration,
+        bool isItemIndex,
         string elementImplType,
         string privateFieldName,
         string parameterName,
@@ -321,7 +326,6 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         var comNamespace = GetComNamespace(interfaceDeclaration);
         var isEnumType = IsEnumType(indexerSymbol.Type);
         var defaultValue = GetDefaultValue(interfaceDeclaration, indexerSymbol, indexerSymbol.Type);
-        var isItemIndex = AttributeDataHelper.HasAttribute(indexerSymbol, ComWrapConstants.ItemIndexAttributeNames);
         var idConvertValue = IsNeedConvert(indexerSymbol);
         sb.AppendLine("                try");
         sb.AppendLine("                {");
@@ -376,7 +380,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
     private void GenerateStringSetIndex(
         StringBuilder sb,
         IPropertySymbol indexerSymbol,
-        InterfaceDeclarationSyntax interfaceDeclaration,
+        InterfaceDeclarationSyntax interfaceDeclaration, bool isItemIndex,
         string elementImplType,
         string privateFieldName,
         string parameterName)
@@ -388,7 +392,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine("                try");
         sb.AppendLine("                {");
 
-        CommonSetLogic(sb, indexerSymbol, interfaceDeclaration, elementImplType, privateFieldName, parameterName, "value");
+        CommonSetLogic(sb, indexerSymbol, interfaceDeclaration, isItemIndex, elementImplType, privateFieldName, parameterName, "value");
 
         sb.AppendLine("                }");
         sb.AppendLine("                catch (COMException ce)");
@@ -400,7 +404,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
     private void GenerateIntSetIndex(
         StringBuilder sb,
         IPropertySymbol indexerSymbol,
-        InterfaceDeclarationSyntax interfaceDeclaration,
+        InterfaceDeclarationSyntax interfaceDeclaration, bool isItemIndex,
         string elementImplType,
         string privateFieldName,
         string parameterName)
@@ -410,7 +414,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine("                try");
         sb.AppendLine("                {");
 
-        CommonSetLogic(sb, indexerSymbol, interfaceDeclaration, elementImplType, privateFieldName, parameterName, "value");
+        CommonSetLogic(sb, indexerSymbol, interfaceDeclaration, isItemIndex, elementImplType, privateFieldName, parameterName, "value");
 
         sb.AppendLine("                }");
         sb.AppendLine("                catch (COMException ce)");
@@ -422,7 +426,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
     private void GenerateEnumSetIndex(
         StringBuilder sb,
         IPropertySymbol indexerSymbol,
-        InterfaceDeclarationSyntax interfaceDeclaration,
+        InterfaceDeclarationSyntax interfaceDeclaration, bool isItemIndex,
         string elementImplType,
         string privateFieldName,
         string parameterName)
@@ -432,7 +436,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine("                try");
         sb.AppendLine("                {");
 
-        CommonSetLogic(sb, indexerSymbol, interfaceDeclaration, elementImplType, privateFieldName, parameterName, "value");
+        CommonSetLogic(sb, indexerSymbol, interfaceDeclaration, isItemIndex, elementImplType, privateFieldName, parameterName, "value");
 
         sb.AppendLine("                }");
         sb.AppendLine("                catch (COMException ce)");
@@ -445,13 +449,13 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         StringBuilder sb,
         IPropertySymbol indexerSymbol,
         InterfaceDeclarationSyntax interfaceDeclaration,
+        bool isItemIndex,
         string elementImplType,
         string privateFieldName,
         string parameterName,
         string valueExpression)
     {
         var isEnumType = IsEnumType(indexerSymbol.Type);
-        var isItemIndex = AttributeDataHelper.HasAttribute(indexerSymbol, ComWrapConstants.ItemIndexAttributeNames);
 
         // 处理value表达式，根据类型进行转换
         string setValue = valueExpression;
