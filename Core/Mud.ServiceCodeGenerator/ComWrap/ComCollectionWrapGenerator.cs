@@ -214,8 +214,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
             }
             else
             {
-                // 默认实现
-                sb.AppendLine($"                throw new NotSupportedException(\"不支持的索引器参数类型: {parameterType}\");");
+                GenerateObjectIndex(sb, indexerSymbol, interfaceDeclaration, isItemIndex, elementImplType, privateFieldName, parameterName);
             }
 
             sb.AppendLine("            }");
@@ -308,6 +307,24 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine($"                     throw new ObjectDisposedException(nameof({privateFieldName}));");
         sb.AppendLine($"                if ({parameterName} < 1)");
         sb.AppendLine("                      throw new IndexOutOfRangeException(\"索引参数不能少于1\");");
+
+        CommonGetLogic(sb, indexerSymbol, interfaceDeclaration, isItemIndex, elementImplType,
+            privateFieldName, parameterName, "根据索引");
+    }
+
+    private void GenerateObjectIndex(
+       StringBuilder sb,
+       IPropertySymbol indexerSymbol,
+       InterfaceDeclarationSyntax interfaceDeclaration,
+       bool isItemIndex,
+       string elementImplType,
+       string privateFieldName,
+       string parameterName)
+    {
+        sb.AppendLine($"                if ({privateFieldName} == null)");
+        sb.AppendLine($"                     throw new ObjectDisposedException(nameof({privateFieldName}));");
+        sb.AppendLine($"                if ({parameterName} == null)");
+        sb.AppendLine($"                    throw new ArgumentNullException(nameof({parameterName}));");
 
         CommonGetLogic(sb, indexerSymbol, interfaceDeclaration, isItemIndex, elementImplType,
             privateFieldName, parameterName, "根据索引");
