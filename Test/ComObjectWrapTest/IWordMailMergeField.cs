@@ -14,6 +14,7 @@ public interface IWordMailMergeField : IDisposable
     [ComPropertyWrap(DefaultValue = nameof(WdFieldType.wdFieldEmpty))]
     WdFieldType Type { get; }
 
+    //[ComPropertyWrap(NeedConvert = true)]
     IWordRange? Code { get; set; }
 
     //IWordRange? XX { get; }
@@ -26,6 +27,7 @@ public interface IWordMailMergeField : IDisposable
 
     //void Delete(int? index, WdFieldType wdFieldType);
 
+    //[ReturnValueConvert]
     //IWordCell? FindCell(string? name, int? index, WdFieldType wdFieldType = WdFieldType.wdFieldAddin);
 
 }

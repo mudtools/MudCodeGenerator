@@ -10,7 +10,7 @@ namespace Mud.ServiceCodeGenerator.ComWrapSourceGenerator;
 /// <summary>
 /// COM对象包装生成器常量配置
 /// </summary>
-internal static class ComWrapGeneratorConstants
+internal static class ComWrapConstants
 {
     /// <summary>
     /// ComObjectWrap特性名称数组
@@ -42,6 +42,16 @@ internal static class ComWrapGeneratorConstants
     /// 忽略生成器特性名称
     /// </summary>
     public const string IgnoreGeneratorAttribute = "IgnoreGeneratorAttribute";
+
+    /// <summary>
+    /// 用于标注方法的返回参数是否需要转换
+    /// </summary>
+    public static readonly string[] ReturnValueConvertAttributes = ["ReturnValueConvertAttribute", "ReturnValueConvert"];
+
+    /// <summary>
+    /// 获取COM命名空间属性名称
+    /// </summary>
+    public const string ComNamespaceProperty = "ComNamespace";
 
     /// <summary>
     /// 是否需要转换属性名称
