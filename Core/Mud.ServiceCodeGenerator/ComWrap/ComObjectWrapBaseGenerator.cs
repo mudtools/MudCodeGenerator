@@ -447,6 +447,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         {
             var paramType = param.Type.ToDisplayString();
             var paramName = param.Name;
+            var refKind = param.RefKind;
 
             // 检查是否有 [ConvertTriState] 特性
             var hasConvertTriState = HasConvertTriStateAttribute(param);
@@ -455,15 +456,22 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
                 // 在方法签名中使用原始类型，在方法体中处理转换
             }
 
-            // 处理可选参数的默认值
-            if (param.HasExplicitDefaultValue)
+            // 处理ref和out参数
+            string refModifier = "";
+            if (refKind == RefKind.Out)
+                refModifier = "out ";
+            else if (refKind == RefKind.Ref)
+                refModifier = "ref ";
+
+            // 处理可选参数的默认值（out和ref参数不能有默认值）
+            if (param.HasExplicitDefaultValue && refKind == RefKind.None)
             {
                 var defaultValue = GetParameterDefaultValue(param);
-                parameters.Add($"{paramType} {paramName} = {defaultValue}");
+                parameters.Add($"{refModifier}{paramType} {paramName} = {defaultValue}");
             }
             else
             {
-                parameters.Add($"{paramType} {paramName}");
+                parameters.Add($"{refModifier}{paramType} {paramName}");
             }
         }
 
@@ -513,10 +521,41 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             bool isObjectType = IsComObjectType(param.Type);
             bool hasConvertTriState = HasConvertTriStateAttribute(param);
             bool convertToInteger = AttributeDataHelper.HasAttribute(param, ComWrapConstants.ConvertIntAttributeNames);
+            bool isOut = param.RefKind == RefKind.Out;
 
             var defaultValue = GetDefaultValue(interfaceDeclaration, param, param.Type);
             var comNamespace = GetComNamespace(interfaceDeclaration);
             var enumValueName = GetEnumValueWithoutNamespace(defaultValue);
+
+            // 处理out参数
+            if (isOut)
+            {
+                // 为out参数声明变量
+                if (isEnumType)
+                {
+                    if (convertToInteger)
+                        sb.AppendLine($"            int {param.Name}Obj;");
+                    else
+                        sb.AppendLine($"            {comNamespace}.{enumValueName} {param.Name}Obj;");
+                }
+                else if (isObjectType)
+                {
+                    var constructType = GetImplementationType(param.Type.Name);
+                    sb.AppendLine($"            {constructType} {param.Name}Obj;");
+                }
+                else
+                {
+                    // 普通out参数，根据类型声明变量
+                    if (pType == "string")
+                        sb.AppendLine($"            string {param.Name}Obj = string.Empty;");
+                    else if (pType == "int")
+                        sb.AppendLine($"            int {param.Name}Obj = 0;");
+                    else
+                        sb.AppendLine($"            {pType} {param.Name}Obj = null;");
+                }
+                continue;
+            }
+
             if (pType.EndsWith("?", StringComparison.Ordinal))
             {
                 if (isEnumType)
@@ -565,7 +604,6 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
                 if (convertToInteger)
                     sb.AppendLine($"            var {param.Name}Obj = {param.Name}.ConvertToInt();");
                 else
-
                     sb.AppendLine($"            var {param.Name}Obj = {param.Name} ?? System.Type.Missing;");
             }
         }
@@ -587,6 +625,8 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         var comNamespace = GetComNamespace(interfaceDeclaration);
         var needConvert = AttributeDataHelper.HasAttribute(methodSymbol, ComWrapConstants.ReturnValueConvertAttributes);
         string returnType = methodSymbol.ReturnType.ToDisplayString();
+        var isEnunType = IsEnumType(methodSymbol.ReturnType);
+        var defaultValue = GetDefaultValue(interfaceDeclaration, methodSymbol, methodSymbol.ReturnType);
         sb.AppendLine("            try");
         sb.AppendLine("            {");
 
@@ -596,6 +636,9 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         if (returnType == "void")
         {
             sb.AppendLine($"                {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{methodName}({callParameters});");
+
+            // 处理out参数的返回值赋值
+            GenerateOutParameterAssignment(sb, methodSymbol, interfaceDeclaration);
         }
         else if (isObjectType)
         {
@@ -622,7 +665,18 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         }
         else
         {
-            sb.AppendLine($"                return {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{methodName}({callParameters});");
+            sb.AppendLine($"                var returnValue = {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{methodName}({callParameters});");
+            // 处理out参数的返回值赋值
+            GenerateOutParameterAssignment(sb, methodSymbol, interfaceDeclaration);
+
+            if (isEnunType)
+            {
+                sb.AppendLine($"                return returnValue.EnumConvert({defaultValue});");
+            }
+            else
+            {
+                sb.AppendLine("                return returnValue;");
+            }
         }
 
         sb.AppendLine("            }");
@@ -659,8 +713,14 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             bool isEnumType = IsEnumType(param.Type);
             bool isObjectType = IsComObjectType(param.Type);
             bool hasConvertTriState = HasConvertTriStateAttribute(param);
+            bool isOut = param.RefKind == RefKind.Out;
 
-            if (pType.EndsWith("?", StringComparison.Ordinal) || isEnumType || isObjectType || hasConvertTriState || pType == "object")
+            if (isOut)
+            {
+                // out参数需要添加out关键字
+                parameters.Add($"out {param.Name}Obj");
+            }
+            else if (pType.EndsWith("?", StringComparison.Ordinal) || isEnumType || isObjectType || hasConvertTriState || pType == "object")
             {
                 parameters.Add($"{param.Name}Obj");
             }
@@ -671,6 +731,52 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         }
 
         return string.Join(", ", parameters);
+    }
+
+    /// <summary>
+    /// 生成out参数的返回值赋值
+    /// </summary>
+    private void GenerateOutParameterAssignment(StringBuilder sb, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
+    {
+        var comNamespace = GetComNamespace(interfaceDeclaration);
+
+        foreach (var param in methodSymbol.Parameters)
+        {
+            if (param.RefKind != RefKind.Out)
+                continue;
+
+            var pType = param.Type.ToDisplayString();
+            bool isEnumType = IsEnumType(param.Type);
+            bool isObjectType = IsComObjectType(param.Type);
+            bool convertToInteger = AttributeDataHelper.HasAttribute(param, ComWrapConstants.ConvertIntAttributeNames);
+
+            if (isEnumType)
+            {
+                if (convertToInteger)
+                {
+                    // 枚举转整数的out参数
+                    sb.AppendLine($"                {param.Name} = ({pType}){param.Name}Obj;");
+                }
+                else
+                {
+                    // 普通枚举out参数
+                    var defaultValue = GetDefaultValue(interfaceDeclaration, param, param.Type);
+                    var enumValueName = GetEnumValueWithoutNamespace(defaultValue);
+                    sb.AppendLine($"                {param.Name} = {param.Name}Obj.EnumConvert({defaultValue});");
+                }
+            }
+            else if (isObjectType)
+            {
+                // COM对象out参数
+                var constructType = GetImplementationType(param.Type.Name);
+                sb.AppendLine($"                {param.Name} = new {constructType}({param.Name}Obj);");
+            }
+            else
+            {
+                // 普通out参数
+                sb.AppendLine($"                {param.Name} = {param.Name}Obj;");
+            }
+        }
     }
 
     /// <summary>
