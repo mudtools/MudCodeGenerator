@@ -255,9 +255,50 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
             sb.AppendLine("        }");
             sb.AppendLine();
         }
+        else if (indexerSymbol.Parameters.Length == 2)
+        {
+            // 处理两个参数的索引器
+            var param1 = indexerSymbol.Parameters[0];
+            var param2 = indexerSymbol.Parameters[1];
+            var param1Type = param1.Type.ToString();
+            var param2Type = param2.Type.ToString();
+            var param1EnumType = IsEnumType(param1.Type);
+            var param2EnumType = IsEnumType(param2.Type);
+            var param1Name = "index1";
+            var param2Name = "index2";
+
+            // 生成索引器签名
+            sb.AppendLine($"        ///  <inheritdoc/>");
+            sb.AppendLine($"        {GeneratedCodeAttribute}");
+            sb.AppendLine($"        public {elementType} this[{param1Type} {param1Name}, {param2Type} {param2Name}]");
+            sb.AppendLine("        {");
+            sb.AppendLine("            get");
+            sb.AppendLine("            {");
+
+            // 处理两个参数的索引器get逻辑
+            GenerateTwoParameterIndexGet(sb, indexerSymbol, interfaceDeclaration, isItemIndex, 
+                elementImplType, privateFieldName, param1, param2, param1Name, param2Name);
+
+            sb.AppendLine("            }");
+
+            if (indexerSymbol.SetMethod != null)
+            {
+                sb.AppendLine("            set");
+                sb.AppendLine("            {");
+
+                // 处理两个参数的索引器set逻辑
+                GenerateTwoParameterIndexSet(sb, indexerSymbol, interfaceDeclaration, isItemIndex,
+                    elementImplType, privateFieldName, param1, param2, param1Name, param2Name);
+
+                sb.AppendLine("            }");
+            }
+
+            sb.AppendLine("        }");
+            sb.AppendLine();
+        }
         else
         {
-            sb.AppendLine($"                throw new NotSupportedException(\"不支持多参数的索引器参数类型 \");");
+            sb.AppendLine($"                throw new NotSupportedException(\"不支持超过2个参数的索引器参数类型 \");");
         }
     }
 
@@ -495,6 +536,327 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         {
             sb.AppendLine($"                    {privateFieldName}[{parameterName}] = {setValue};");
         }
+    }
+
+    /// <summary>
+    /// 生成两个参数索引器的get逻辑
+    /// </summary>
+    private void GenerateTwoParameterIndexGet(
+        StringBuilder sb,
+        IPropertySymbol indexerSymbol,
+        InterfaceDeclarationSyntax interfaceDeclaration,
+        bool isItemIndex,
+        string elementImplType,
+        string privateFieldName,
+        IParameterSymbol param1,
+        IParameterSymbol param2,
+        string param1Name,
+        string param2Name)
+    {
+        var param1Type = param1.Type.ToString();
+        var param2Type = param2.Type.ToString();
+        var param1EnumType = IsEnumType(param1.Type);
+        var param2EnumType = IsEnumType(param2.Type);
+
+        // 参数验证
+        sb.AppendLine($"                if ({privateFieldName} == null)");
+        sb.AppendLine($"                     throw new ObjectDisposedException(nameof({privateFieldName}));");
+
+        // 验证第一个参数
+        if (param1Type == "int")
+        {
+            sb.AppendLine($"                if ({param1Name} < 1)");
+            sb.AppendLine("                      throw new IndexOutOfRangeException(\"第一个索引参数不能少于1\");");
+        }
+        else if (param1Type == "string")
+        {
+            sb.AppendLine($"                if ({param1Name} == null)");
+            sb.AppendLine($"                    throw new ArgumentNullException(nameof({param1Name}));");
+        }
+        else if (param1EnumType)
+        {
+            sb.AppendLine($"                if ({param1Name} == null)");
+            sb.AppendLine($"                    throw new ArgumentNullException(nameof({param1Name}));");
+        }
+        else
+        {
+            sb.AppendLine($"                if ({param1Name} == null)");
+            sb.AppendLine($"                    throw new ArgumentNullException(nameof({param1Name}));");
+        }
+
+        // 验证第二个参数
+        if (param2Type == "int")
+        {
+            sb.AppendLine($"                if ({param2Name} < 1)");
+            sb.AppendLine("                      throw new IndexOutOfRangeException(\"第二个索引参数不能少于1\");");
+        }
+        else if (param2Type == "string")
+        {
+            sb.AppendLine($"                if ({param2Name} == null)");
+            sb.AppendLine($"                    throw new ArgumentNullException(nameof({param2Name}));");
+        }
+        else if (param2EnumType)
+        {
+            sb.AppendLine($"                if ({param2Name} == null)");
+            sb.AppendLine($"                    throw new ArgumentNullException(nameof({param2Name}));");
+        }
+        else
+        {
+            sb.AppendLine($"                if ({param2Name} == null)");
+            sb.AppendLine($"                    throw new ArgumentNullException(nameof({param2Name}));");
+        }
+
+        // 处理参数转换
+        string processedParam1 = param1Name;
+        string processedParam2 = param2Name;
+
+        // 处理枚举参数
+        if (param1EnumType)
+        {
+            var enumParamDefaultValue = GetDefaultValue(interfaceDeclaration, param1, param1.Type);
+            var isConvertIntIndex = AttributeDataHelper.HasAttribute(param1, ComWrapConstants.ConvertIntAttributeNames);
+            if (isConvertIntIndex)
+                processedParam1 = $"{param1Name}.ConvertToInt()";
+            else
+                processedParam1 = $"{param1Name}.EnumConvert({enumParamDefaultValue})";
+        }
+
+        if (param2EnumType)
+        {
+            var enumParamDefaultValue = GetDefaultValue(interfaceDeclaration, param2, param2.Type);
+            var isConvertIntIndex = AttributeDataHelper.HasAttribute(param2, ComWrapConstants.ConvertIntAttributeNames);
+            if (isConvertIntIndex)
+                processedParam2 = $"{param2Name}.ConvertToInt()";
+            else
+                processedParam2 = $"{param2Name}.EnumConvert({enumParamDefaultValue})";
+        }
+
+        // 生成获取逻辑
+        CommonTwoParameterGetLogic(sb, indexerSymbol, interfaceDeclaration, isItemIndex, elementImplType,
+            privateFieldName, processedParam1, processedParam2);
+    }
+
+    /// <summary>
+    /// 生成两个参数索引器的set逻辑
+    /// </summary>
+    private void GenerateTwoParameterIndexSet(
+        StringBuilder sb,
+        IPropertySymbol indexerSymbol,
+        InterfaceDeclarationSyntax interfaceDeclaration,
+        bool isItemIndex,
+        string elementImplType,
+        string privateFieldName,
+        IParameterSymbol param1,
+        IParameterSymbol param2,
+        string param1Name,
+        string param2Name)
+    {
+        var param1Type = param1.Type.ToString();
+        var param2Type = param2.Type.ToString();
+        var param1EnumType = IsEnumType(param1.Type);
+        var param2EnumType = IsEnumType(param2.Type);
+
+        // 参数验证
+        sb.AppendLine($"                if ({privateFieldName} == null)");
+        sb.AppendLine($"                     throw new ObjectDisposedException(nameof({privateFieldName}));");
+
+        // 验证第一个参数
+        if (param1Type == "int")
+        {
+            sb.AppendLine($"                if ({param1Name} < 1)");
+            sb.AppendLine("                      throw new IndexOutOfRangeException(\"第一个索引参数不能少于1\");");
+        }
+        else if (param1Type == "string")
+        {
+            sb.AppendLine($"                if ({param1Name} == null)");
+            sb.AppendLine($"                    throw new ArgumentNullException(nameof({param1Name}));");
+        }
+        else if (param1EnumType)
+        {
+            sb.AppendLine($"                if ({param1Name} == null)");
+            sb.AppendLine($"                    throw new ArgumentNullException(nameof({param1Name}));");
+        }
+        else
+        {
+            sb.AppendLine($"                if ({param1Name} == null)");
+            sb.AppendLine($"                    throw new ArgumentNullException(nameof({param1Name}));");
+        }
+
+        // 验证第二个参数
+        if (param2Type == "int")
+        {
+            sb.AppendLine($"                if ({param2Name} < 1)");
+            sb.AppendLine("                      throw new IndexOutOfRangeException(\"第二个索引参数不能少于1\");");
+        }
+        else if (param2Type == "string")
+        {
+            sb.AppendLine($"                if ({param2Name} == null)");
+            sb.AppendLine($"                    throw new ArgumentNullException(nameof({param2Name}));");
+        }
+        else if (param2EnumType)
+        {
+            sb.AppendLine($"                if ({param2Name} == null)");
+            sb.AppendLine($"                    throw new ArgumentNullException(nameof({param2Name}));");
+        }
+        else
+        {
+            sb.AppendLine($"                if ({param2Name} == null)");
+            sb.AppendLine($"                    throw new ArgumentNullException(nameof({param2Name}));");
+        }
+
+        // 处理参数转换
+        string processedParam1 = param1Name;
+        string processedParam2 = param2Name;
+
+        // 处理枚举参数
+        if (param1EnumType)
+        {
+            var enumParamDefaultValue = GetDefaultValue(interfaceDeclaration, param1, param1.Type);
+            var isConvertIntIndex = AttributeDataHelper.HasAttribute(param1, ComWrapConstants.ConvertIntAttributeNames);
+            if (isConvertIntIndex)
+                processedParam1 = $"{param1Name}.ConvertToInt()";
+            else
+                processedParam1 = $"{param1Name}.EnumConvert({enumParamDefaultValue})";
+        }
+
+        if (param2EnumType)
+        {
+            var enumParamDefaultValue = GetDefaultValue(interfaceDeclaration, param2, param2.Type);
+            var isConvertIntIndex = AttributeDataHelper.HasAttribute(param2, ComWrapConstants.ConvertIntAttributeNames);
+            if (isConvertIntIndex)
+                processedParam2 = $"{param2Name}.ConvertToInt()";
+            else
+                processedParam2 = $"{param2Name}.EnumConvert({enumParamDefaultValue})";
+        }
+
+        // 生成设置逻辑
+        CommonTwoParameterSetLogic(sb, indexerSymbol, interfaceDeclaration, isItemIndex, elementImplType,
+            privateFieldName, processedParam1, processedParam2);
+    }
+
+    /// <summary>
+    /// 两个参数索引器的通用获取逻辑
+    /// </summary>
+    private void CommonTwoParameterGetLogic(
+        StringBuilder sb,
+        IPropertySymbol indexerSymbol,
+        InterfaceDeclarationSyntax interfaceDeclaration,
+        bool isItemIndex,
+        string elementImplType,
+        string privateFieldName,
+        string processedParam1,
+        string processedParam2)
+    {
+        var comNamespace = GetComNamespace(interfaceDeclaration);
+        var isEnumType = IsEnumType(indexerSymbol.Type);
+        var defaultValue = GetDefaultValue(interfaceDeclaration, indexerSymbol, indexerSymbol.Type);
+        var needConvert = IsNeedConvert(indexerSymbol);
+        
+        sb.AppendLine("                try");
+        sb.AppendLine("                {");
+        if (isItemIndex)
+        {
+            sb.AppendLine($"                    var comElement = {privateFieldName}.Item[{processedParam1}, {processedParam2}];");
+        }
+        else
+        {
+            sb.AppendLine($"                    var comElement = {privateFieldName}[{processedParam1}, {processedParam2}];");
+        }
+
+        if (IsBasicType(elementImplType) || isEnumType)
+        {
+            if (isEnumType)
+                sb.AppendLine($"                    return comElement.EnumConvert({defaultValue});");
+            else if (needConvert)
+            {
+                var convertCode = GetConvertCode(indexerSymbol, "comElement");
+                sb.AppendLine($"                    return {convertCode};");
+            }
+            else
+                sb.AppendLine($"                    return ({elementImplType})comElement;");
+        }
+        else
+        {
+            if (needConvert)
+            {
+                var ordinalComType = GetImplementationOrdinalType(indexerSymbol.Type.ToDisplayString());
+                var comType = GetOrdinalComType(ordinalComType);
+                sb.AppendLine($"                    if(comElement is {comNamespace}.{comType} rComObj)");
+                sb.AppendLine($"                        return new {elementImplType}(rComObj);");
+                sb.AppendLine($"                    else");
+                sb.AppendLine("                        return null;");
+            }
+            else
+                sb.AppendLine($"                    return new {elementImplType}(comElement);");
+        }
+
+        sb.AppendLine("                }");
+        sb.AppendLine("                catch (COMException ce)");
+        sb.AppendLine("                {");
+        sb.AppendLine($"                    throw new ExcelOperationException(\"根据双索引获取 {elementImplType} 对象失败: \" + ce.Message, ce);");
+        sb.AppendLine("                }");
+        sb.AppendLine("                catch (Exception ex)");
+        sb.AppendLine("                {");
+        sb.AppendLine($"                    throw new ExcelOperationException(\"根据双索引获取 {elementImplType} 对象失败\", ex);");
+        sb.AppendLine("                }");
+    }
+
+    /// <summary>
+    /// 两个参数索引器的通用设置逻辑
+    /// </summary>
+    private void CommonTwoParameterSetLogic(
+        StringBuilder sb,
+        IPropertySymbol indexerSymbol,
+        InterfaceDeclarationSyntax interfaceDeclaration,
+        bool isItemIndex,
+        string elementImplType,
+        string privateFieldName,
+        string processedParam1,
+        string processedParam2)
+    {
+        var isEnumType = IsEnumType(indexerSymbol.Type);
+
+        // 处理value表达式，根据类型进行转换
+        string valueExpression = "value";
+        if (elementImplType.EndsWith("?", StringComparison.Ordinal))
+        {
+            valueExpression = "value.Value";
+        }
+
+        if (isEnumType)
+        {
+            valueExpression = $"{valueExpression}.EnumUnderlyingValue()";
+        }
+        else if (IsComObjectType(indexerSymbol.Type))
+        {
+            var constructType = GetImplementationType(indexerSymbol.Type.Name);
+            valueExpression = $"(({constructType}){valueExpression}).InternalComObject";
+        }
+        else if (!IsBasicType(elementImplType))
+        {
+            var constructType = GetImplementationType(indexerSymbol.Type.Name);
+            valueExpression = $"(({constructType}){valueExpression}).InternalComObject";
+        }
+
+        sb.AppendLine("                try");
+        sb.AppendLine("                {");
+        if (isItemIndex)
+        {
+            sb.AppendLine($"                    {privateFieldName}.Item[{processedParam1}, {processedParam2}] = {valueExpression};");
+        }
+        else
+        {
+            sb.AppendLine($"                    {privateFieldName}[{processedParam1}, {processedParam2}] = {valueExpression};");
+        }
+        sb.AppendLine("                }");
+        sb.AppendLine("                catch (COMException ce)");
+        sb.AppendLine("                {");
+        sb.AppendLine($"                    throw new ExcelOperationException(\"根据双索引设置 {elementImplType} 对象失败: \" + ce.Message, ce);");
+        sb.AppendLine("                }");
+        sb.AppendLine("                catch (Exception ex)");
+        sb.AppendLine("                {");
+        sb.AppendLine($"                    throw new ExcelOperationException(\"根据双索引设置 {elementImplType} 对象失败\", ex);");
+        sb.AppendLine("                }");
     }
 
     private void GenerateEnumerableImplementation(

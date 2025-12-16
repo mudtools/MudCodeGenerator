@@ -1175,7 +1175,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         };
     }
 
-    private string GetConvertCode(IPropertySymbol typeSymbol, string fieldName)
+    protected string GetConvertCode(IPropertySymbol typeSymbol, string fieldName)
     {
         // 检查是否为可空类型
         if (typeSymbol.Type is INamedTypeSymbol namedType &&
@@ -1192,7 +1192,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         return GetConvertCodeForType(typeSymbol.Type, fieldName);
     }
 
-    private string GetConvertCodeForType(ITypeSymbol typeSymbol, string fieldName)
+    protected string GetConvertCodeForType(ITypeSymbol typeSymbol, string fieldName)
     {
         var specialType = typeSymbol.SpecialType;
 
