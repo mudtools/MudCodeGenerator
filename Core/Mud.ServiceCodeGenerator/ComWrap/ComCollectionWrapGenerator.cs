@@ -93,8 +93,10 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
     {
         var comNamespace = GetComNamespace(interfaceDeclaration);
         var comClassName = GetComClassName(interfaceDeclaration);
+        var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
 
-        sb.AppendLine($"        private {comNamespace}.{comClassName}? {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)};");
+
+        sb.AppendLine($"        private {comNamespace}.{comClassName}? {privateFieldName};");
         sb.AppendLine("        private bool _disposedValue;");
         sb.AppendLine("        private readonly DisposableList _disposableList = new();");
 
@@ -102,7 +104,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine($"        /// <summary>");
         sb.AppendLine($"        /// 用于方便内部调用的 <see cref=\"{comNamespace}.{comClassName}\"/> COM对象。");
         sb.AppendLine($"        /// </summary>");
-        sb.AppendLine($"        public {comNamespace}.{comClassName}? InternalComObject => {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)};");
+        sb.AppendLine($"        public {comNamespace}.{comClassName}? InternalComObject => {privateFieldName};");
         sb.AppendLine();
     }
 

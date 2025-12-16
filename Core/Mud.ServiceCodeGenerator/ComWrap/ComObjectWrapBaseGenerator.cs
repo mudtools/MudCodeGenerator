@@ -636,6 +636,8 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         var isObjectType = IsComObjectType(methodSymbol.ReturnType);
         var comClassName = GetComClassName(interfaceDeclaration);
         var comNamespace = GetComNamespace(interfaceDeclaration);
+        var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
+
         var needConvert = AttributeDataHelper.HasAttribute(methodSymbol, ComWrapConstants.ReturnValueConvertAttributes);
         string returnType = methodSymbol.ReturnType.ToDisplayString();
         var isEnunType = IsEnumType(methodSymbol.ReturnType);
@@ -648,7 +650,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 
         if (returnType == "void")
         {
-            sb.AppendLine($"                {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{methodName}({callParameters});");
+            sb.AppendLine($"                {privateFieldName}?.{methodName}({callParameters});");
 
             // 处理out参数的返回值赋值
             GenerateOutParameterAssignment(sb, methodSymbol, interfaceDeclaration);
@@ -657,7 +659,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         {
             var objectType = StringExtensions.RemoveInterfacePrefix(returnType);
             var constructType = GetImplementationType(objectType);
-            sb.AppendLine($"                var comObj = {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{methodName}({callParameters});");
+            sb.AppendLine($"                var comObj = {privateFieldName}?.{methodName}({callParameters});");
             sb.AppendLine("                if (comObj == null)");
             if (returnType.EndsWith("?", StringComparison.Ordinal))
                 sb.AppendLine("                    return null;");
@@ -678,7 +680,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         }
         else
         {
-            sb.AppendLine($"                var returnValue = {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{methodName}({callParameters});");
+            sb.AppendLine($"                var returnValue = {privateFieldName}?.{methodName}({callParameters});");
             // 处理out参数的返回值赋值
             GenerateOutParameterAssignment(sb, methodSymbol, interfaceDeclaration);
 
@@ -1353,6 +1355,8 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 
         var comClassName = GetComClassName(interfaceDeclaration);
         var impClassName = GetImplementationClassName(interfaceSymbol.Name);
+        var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
+
 
         sb.AppendLine("        #region IDisposable 实现");
         if (!NoneDisposed(interfaceSymbol))
@@ -1364,10 +1368,10 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             sb.AppendLine();
             sb.AppendLine($"            if (disposing)");
             sb.AppendLine("            {");
-            sb.AppendLine($"                if({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
+            sb.AppendLine($"                if({privateFieldName} != null)");
             sb.AppendLine("                {");
-            sb.AppendLine($"                    Marshal.ReleaseComObject({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)});");
-            sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} = null;");
+            sb.AppendLine($"                    Marshal.ReleaseComObject({privateFieldName});");
+            sb.AppendLine($"                    {privateFieldName} = null;");
             sb.AppendLine("                }");
             GenerateAdditionalDisposalLogic(sb, interfaceSymbol, interfaceDeclaration);
             sb.AppendLine("            }");
