@@ -212,7 +212,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     private void GenerateObjectProperty(StringBuilder sb, IPropertySymbol propertySymbol, InterfaceDeclarationSyntax interfaceDeclaration, bool needConvert, string comClassName)
     {
         var defaultValue = GetDefaultValue(interfaceDeclaration, propertySymbol, propertySymbol.Type);
-
+        var fieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
         var propertyName = propertySymbol.Name;
         var propertyType = propertySymbol.Type.ToDisplayString();
 
@@ -222,17 +222,17 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         sb.AppendLine("        {");
         sb.AppendLine($"            get");
         sb.AppendLine("            {");
-        sb.AppendLine($"                if({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} == null)");
-        sb.AppendLine($"                    throw new ObjectDisposedException(nameof({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}));");
+        sb.AppendLine($"                if({fieldName} == null)");
+        sb.AppendLine($"                    throw new ObjectDisposedException(nameof({fieldName}));");
 
         if (needConvert)
         {
-            var convertMethod = GetConvertCode(propertySymbol);
-            sb.AppendLine($"                return {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName}.{convertMethod};");
+            var convertMethod = GetConvertCode(propertySymbol, $"{fieldName}.{propertyName}");
+            sb.AppendLine($"                return {convertMethod};");
         }
         else
         {
-            sb.AppendLine($"                return {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName};");
+            sb.AppendLine($"                return {fieldName}.{propertyName};");
         }
         sb.AppendLine("             }");
 
@@ -251,18 +251,22 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
                 {
                     setValue = $"value.Value.ConvertTriState()";
                 }
-                sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null && value != null)");
-                sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = {setValue};");
+                sb.AppendLine($"                if ({fieldName} != null && value != null)");
+                sb.AppendLine($"                    {fieldName}.{propertyName} = {setValue};");
             }
             else
             {
                 string setValue = "value";
-                if (needConvert && propertyType.StartsWith("bool", StringComparison.OrdinalIgnoreCase))
+                if (needConvert)
                 {
-                    setValue = $"value.ConvertTriState()";
+                    if (propertyType.StartsWith("bool", StringComparison.OrdinalIgnoreCase))
+                        setValue = $"value.ConvertTriState()";
+                    else if (IsSystemDrawingColor(propertySymbol.Type))
+                        setValue = $"ColorHelper.ConvertToComColor(value)";
+
                 }
-                sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
-                sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = {setValue};");
+                sb.AppendLine($"                if ({fieldName} != null)");
+                sb.AppendLine($"                    {fieldName}.{propertyName} = {setValue};");
             }
             sb.AppendLine("            }");
         }
@@ -1165,7 +1169,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         };
     }
 
-    private string GetConvertCode(IPropertySymbol typeSymbol)
+    private string GetConvertCode(IPropertySymbol typeSymbol, string fieldName)
     {
         // 检查是否为可空类型
         if (typeSymbol.Type is INamedTypeSymbol namedType &&
@@ -1175,35 +1179,46 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             var underlyingType = namedType.TypeArguments[0];
 
             // 为可空类型生成带有空值检查的转换代码
-            return GetConvertCodeForType(underlyingType);
+            return GetConvertCodeForType(underlyingType, fieldName);
         }
 
         // 对于非可空类型，直接获取转换代码
-        return GetConvertCodeForType(typeSymbol.Type);
+        return GetConvertCodeForType(typeSymbol.Type, fieldName);
     }
 
-    private string GetConvertCodeForType(ITypeSymbol typeSymbol)
+    private string GetConvertCodeForType(ITypeSymbol typeSymbol, string fieldName)
     {
         var specialType = typeSymbol.SpecialType;
 
-        return specialType switch
+        return typeSymbol switch
         {
-            SpecialType.System_Boolean => "ConvertToBool()",
-            SpecialType.System_SByte => "Convert.ToByte()",
-            SpecialType.System_Byte => "Convert.ToByte()",
-            SpecialType.System_Int16 => "ConvertToFloat()",
-            SpecialType.System_UInt16 => "ConvertToFloat()",
-            SpecialType.System_Int32 => "ConvertToInt()",
-            SpecialType.System_UInt32 => "ConvertToInt()",
-            SpecialType.System_Int64 => "ConvertToLong()",
-            SpecialType.System_UInt64 => "ConvertToLong()",
-            SpecialType.System_Single => "ConvertToFloat()",
-            SpecialType.System_Double => "ConvertToDouble()",
-            SpecialType.System_Decimal => "ConvertToDecimal()",
-            SpecialType.System_String => "ToString()",
-            SpecialType.System_DateTime => "ConvertToDateTime()",
+            ITypeSymbol ts when IsSystemDrawingColor(ts) => $"ColorHelper.ConvertToColor({fieldName})",
+            { SpecialType: SpecialType.System_Boolean } => $"{fieldName}.ConvertToBool()",
+            { SpecialType: SpecialType.System_SByte } => $"{fieldName}.Convert.ToByte()",
+            { SpecialType: SpecialType.System_Byte } => $"{fieldName}.Convert.ToByte()",
+            { SpecialType: SpecialType.System_Int16 } => $"{fieldName}.ConvertToFloat()",
+            { SpecialType: SpecialType.System_UInt16 } => $"{fieldName}.ConvertToFloat()",
+            { SpecialType: SpecialType.System_Int32 } => $"{fieldName}.ConvertToInt()",
+            { SpecialType: SpecialType.System_UInt32 } => $"{fieldName}.ConvertToInt()",
+            { SpecialType: SpecialType.System_Int64 } => $"{fieldName}.ConvertToLong()",
+            { SpecialType: SpecialType.System_UInt64 } => $"{fieldName}.ConvertToLong()",
+            { SpecialType: SpecialType.System_Single } => $"{fieldName}.ConvertToFloat()",
+            { SpecialType: SpecialType.System_Double } => $"{fieldName}.ConvertToDouble()",
+            { SpecialType: SpecialType.System_Decimal } => $"{fieldName}.ConvertToDecimal()",
+            { SpecialType: SpecialType.System_String } => $"{fieldName}.ToString()",
+            { SpecialType: SpecialType.System_DateTime } => $"{fieldName}.ConvertToDateTime()",
             _ => "ToString()"
         };
+    }
+
+    private bool IsSystemDrawingColor(ITypeSymbol typeSymbol)
+    {
+        if (typeSymbol == null)
+            return false;
+
+        // 更健壮的检查方式，包括命名空间和类型名称
+        return typeSymbol.ContainingNamespace?.ToDisplayString() == "System.Drawing" &&
+               typeSymbol.Name == "Color";
     }
 
     /// <summary>
