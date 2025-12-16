@@ -48,7 +48,7 @@ internal static class AttributeDataHelper
         if (attributeData == null)
             return defaultValue;
 
-        return GetStringValueFromAttribute(attributeData, attributeNames, 0, defaultValue);
+        return GetStringValueFromAttribute(attributeData, [propertyName], 0, defaultValue);
     }
 
 
