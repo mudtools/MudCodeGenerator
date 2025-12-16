@@ -49,6 +49,11 @@ internal static class ComWrapConstants
     public static readonly string[] ReturnValueConvertAttributes = ["ReturnValueConvertAttribute", "ReturnValueConvert"];
 
     /// <summary>
+    /// 用于标识COM组件所在的命名空间。
+    /// </summary>
+    public static readonly string[] ComNamespaceAttributes = ["ComNamespaceAttribute", "ComNamespace"];
+
+    /// <summary>
     /// 获取COM命名空间属性名称
     /// </summary>
     public const string ComNamespaceProperty = "ComNamespace";

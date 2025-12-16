@@ -525,6 +525,11 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 
             var defaultValue = GetDefaultValue(interfaceDeclaration, param, param.Type);
             var comNamespace = GetComNamespace(interfaceDeclaration);
+
+            var paramcomNamespace = AttributeDataHelper.GetStringValueFromSymbol(param, ComWrapConstants.ComNamespaceAttributes, "Name", "");
+            if (!string.IsNullOrEmpty(paramcomNamespace))
+                comNamespace = paramcomNamespace;
+
             var enumValueName = GetEnumValueWithoutNamespace(defaultValue);
 
             // 处理out参数
