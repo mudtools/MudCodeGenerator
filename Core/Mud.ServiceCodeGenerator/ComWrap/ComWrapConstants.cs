@@ -34,6 +34,11 @@ internal static class ComWrapConstants
     public static readonly string[] ItemIndexAttributeNames = ["ItemIndexAttribute", "ItemIndex"];
 
     /// <summary>
+    /// 指示当前COM组件不能进行枚举取值
+    /// </summary>
+    public static readonly string[] NoneEnumerableAttributes = ["NoneEnumerableAttribute", "NoneEnumerable"];
+
+    /// <summary>
     /// 转换为整数特性名称数组
     /// </summary>
     public static readonly string[] ConvertIntAttributeNames = ["ConvertIntAttribute", "ConvertInt"];

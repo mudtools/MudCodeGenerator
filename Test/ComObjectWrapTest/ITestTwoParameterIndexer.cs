@@ -5,7 +5,7 @@ namespace ComObjectWrapTest
     /// Test interface for two-parameter indexers
     /// </summary>
     [ComCollectionWrap(ComNamespace = "MsExcel", ComClassName = "Axes"), ItemIndex]
-    public interface ITestTwoParameterIndexer
+    public interface ITestTwoParameterIndexer : IEnumerable<IExcelAxis>, IDisposable
     {
         /// <summary>
         /// Two int parameters indexer
@@ -13,11 +13,11 @@ namespace ComObjectWrapTest
         /// <param name="x">Row index</param>
         /// <param name="y">Column index</param>
         /// <returns>Cell value</returns>
-        ITestIndex this[XlAxisType x, XlAxisGroup y] { get; }
+        IExcelAxis this[XlAxisType x, XlAxisGroup y] { get; }
     }
 
-    [ComObjectWrap(ComClassName = "Axis", ComNamespace = "MsExcel")]
-    public interface ITestIndex
+    [ComObjectWrap(ComNamespace = "MsExcel")]
+    public interface IExcelAxis : IDisposable
     {
 
     }
