@@ -4,7 +4,6 @@
 		<Description>Mud.EntityCodeGenerator</Description>
 		<Product>Mud Entity Code Generator</Product>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<GenerateDocumentationFile>False</GenerateDocumentationFile>
 		<Description>Mud 实体代码生成器是一个基于 Roslyn 的源代码生成器，用于根据实体类自动生成VO、BO以及实体映射相关各种代码的工具组件。</Description>
