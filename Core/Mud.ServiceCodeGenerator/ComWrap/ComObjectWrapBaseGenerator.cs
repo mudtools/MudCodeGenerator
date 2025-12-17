@@ -212,7 +212,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     private void GenerateObjectProperty(StringBuilder sb, IPropertySymbol propertySymbol, InterfaceDeclarationSyntax interfaceDeclaration, bool needConvert, string comClassName)
     {
         var defaultValue = GetDefaultValue(interfaceDeclaration, propertySymbol, propertySymbol.Type);
-
+        var fieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
         var propertyName = propertySymbol.Name;
         var propertyType = propertySymbol.Type.ToDisplayString();
 
@@ -222,17 +222,17 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         sb.AppendLine("        {");
         sb.AppendLine($"            get");
         sb.AppendLine("            {");
-        sb.AppendLine($"                if({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} == null)");
-        sb.AppendLine($"                    throw new ObjectDisposedException(nameof({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}));");
+        sb.AppendLine($"                if({fieldName} == null)");
+        sb.AppendLine($"                    throw new ObjectDisposedException(nameof({fieldName}));");
 
         if (needConvert)
         {
-            var convertMethod = GetConvertCode(propertySymbol);
-            sb.AppendLine($"                return {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName}.{convertMethod};");
+            var convertMethod = GetConvertCode(propertySymbol, $"{fieldName}.{propertyName}");
+            sb.AppendLine($"                return {convertMethod};");
         }
         else
         {
-            sb.AppendLine($"                return {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName};");
+            sb.AppendLine($"                return {fieldName}.{propertyName};");
         }
         sb.AppendLine("             }");
 
@@ -251,18 +251,22 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
                 {
                     setValue = $"value.Value.ConvertTriState()";
                 }
-                sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null && value != null)");
-                sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = {setValue};");
+                sb.AppendLine($"                if ({fieldName} != null && value != null)");
+                sb.AppendLine($"                    {fieldName}.{propertyName} = {setValue};");
             }
             else
             {
                 string setValue = "value";
-                if (needConvert && propertyType.StartsWith("bool", StringComparison.OrdinalIgnoreCase))
+                if (needConvert)
                 {
-                    setValue = $"value.ConvertTriState()";
+                    if (propertyType.StartsWith("bool", StringComparison.OrdinalIgnoreCase))
+                        setValue = $"value.ConvertTriState()";
+                    else if (IsSystemDrawingColor(propertySymbol.Type))
+                        setValue = $"ColorHelper.ConvertToComColor(value)";
+
                 }
-                sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
-                sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = {setValue};");
+                sb.AppendLine($"                if ({fieldName} != null)");
+                sb.AppendLine($"                    {fieldName}.{propertyName} = {setValue};");
             }
             sb.AppendLine("            }");
         }
@@ -301,6 +305,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 
         var impType = propertySymbol.Type.Name.Trim('?');
         var fieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(impType, FieldNamingStyle.UnderscoreCamel) + "_" + propertySymbol.Name;
+        var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
 
         sb.AppendLine($"        ///  <inheritdoc/>");
         sb.AppendLine($"        {GeneratedCodeAttribute}");
@@ -308,9 +313,9 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         sb.AppendLine("        {");
         sb.AppendLine("             get");
         sb.AppendLine("             {");
-        sb.AppendLine($"                if({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} == null)");
-        sb.AppendLine($"                    throw new ObjectDisposedException(nameof({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}));");
-        sb.AppendLine($"                var comObj = {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{propertyName};");
+        sb.AppendLine($"                if({privateFieldName} == null)");
+        sb.AppendLine($"                    throw new ObjectDisposedException(nameof({privateFieldName}));");
+        sb.AppendLine($"                var comObj = {privateFieldName}?.{propertyName};");
         sb.AppendLine("                if (comObj == null)");
         sb.AppendLine("                    return null;");
         sb.AppendLine($"                if ({fieldName} != null)");
@@ -332,10 +337,10 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         {
             sb.AppendLine("             set");
             sb.AppendLine("             {");
-            sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null && value != null)");
+            sb.AppendLine($"                if ({privateFieldName} != null && value != null)");
             sb.AppendLine($"                {{");
             sb.AppendLine($"                    var comObj = (({constructType})value).InternalComObject;");
-            sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = comObj;");
+            sb.AppendLine($"                    {privateFieldName}.{propertyName} = comObj;");
             sb.AppendLine($"                }}");
             sb.AppendLine("             }");
         }
@@ -356,6 +361,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         var propertyType = propertySymbol.Type.ToDisplayString();
         var comNamespace = GetComNamespace(interfaceDeclaration);
         var comClassName = GetComClassName(interfaceDeclaration);
+        var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
 
         var defaultValue = GetDefaultValue(interfaceDeclaration, propertySymbol, propertySymbol.Type);
         var enumValueName = GetEnumValueWithoutNamespace(defaultValue);
@@ -370,17 +376,17 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         sb.AppendLine("        {");
         sb.AppendLine("            get");
         sb.AppendLine("            {");
-        sb.AppendLine($"                if({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} == null)");
-        sb.AppendLine($"                    throw new ObjectDisposedException(nameof({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}));");
-        sb.AppendLine($"                return {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName}.EnumConvert({defaultValue});");
+        sb.AppendLine($"                if({privateFieldName} == null)");
+        sb.AppendLine($"                    throw new ObjectDisposedException(nameof({privateFieldName}));");
+        sb.AppendLine($"                return {privateFieldName}.{propertyName}.EnumConvert({defaultValue});");
         sb.AppendLine("             }");
 
         if (propertySymbol.SetMethod != null)
         {
             sb.AppendLine("            set");
             sb.AppendLine("            {");
-            sb.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
-            sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}.{propertyName} = value.EnumConvert({comNamespace}.{enumValueName});");
+            sb.AppendLine($"                if ({privateFieldName} != null)");
+            sb.AppendLine($"                    {privateFieldName}.{propertyName} = value.EnumConvert({comNamespace}.{enumValueName});");
             sb.AppendLine("            }");
         }
         sb.AppendLine("        }");
@@ -491,10 +497,12 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         InterfaceDeclarationSyntax interfaceDeclaration)
     {
         var comClassName = GetComClassName(interfaceDeclaration);
+        var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
+
         var hasParameters = methodSymbol.Parameters.Length > 0;
 
-        sb.AppendLine($"            if({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} == null)");
-        sb.AppendLine($"                throw new ObjectDisposedException(nameof({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}));");
+        sb.AppendLine($"            if({privateFieldName} == null)");
+        sb.AppendLine($"                throw new ObjectDisposedException(nameof({privateFieldName}));");
 
         // 参数预处理（如有必要）
         if (hasParameters)
@@ -525,6 +533,11 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 
             var defaultValue = GetDefaultValue(interfaceDeclaration, param, param.Type);
             var comNamespace = GetComNamespace(interfaceDeclaration);
+
+            var paramcomNamespace = AttributeDataHelper.GetStringValueFromSymbol(param, ComWrapConstants.ComNamespaceAttributes, "Name", "");
+            if (!string.IsNullOrEmpty(paramcomNamespace))
+                comNamespace = paramcomNamespace;
+
             var enumValueName = GetEnumValueWithoutNamespace(defaultValue);
 
             // 处理out参数
@@ -623,6 +636,8 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         var isObjectType = IsComObjectType(methodSymbol.ReturnType);
         var comClassName = GetComClassName(interfaceDeclaration);
         var comNamespace = GetComNamespace(interfaceDeclaration);
+        var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
+
         var needConvert = AttributeDataHelper.HasAttribute(methodSymbol, ComWrapConstants.ReturnValueConvertAttributes);
         string returnType = methodSymbol.ReturnType.ToDisplayString();
         var isEnunType = IsEnumType(methodSymbol.ReturnType);
@@ -635,7 +650,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 
         if (returnType == "void")
         {
-            sb.AppendLine($"                {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{methodName}({callParameters});");
+            sb.AppendLine($"                {privateFieldName}?.{methodName}({callParameters});");
 
             // 处理out参数的返回值赋值
             GenerateOutParameterAssignment(sb, methodSymbol, interfaceDeclaration);
@@ -644,7 +659,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         {
             var objectType = StringExtensions.RemoveInterfacePrefix(returnType);
             var constructType = GetImplementationType(objectType);
-            sb.AppendLine($"                var comObj = {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{methodName}({callParameters});");
+            sb.AppendLine($"                var comObj = {privateFieldName}?.{methodName}({callParameters});");
             sb.AppendLine("                if (comObj == null)");
             if (returnType.EndsWith("?", StringComparison.Ordinal))
                 sb.AppendLine("                    return null;");
@@ -665,7 +680,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         }
         else
         {
-            sb.AppendLine($"                var returnValue = {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)}?.{methodName}({callParameters});");
+            sb.AppendLine($"                var returnValue = {privateFieldName}?.{methodName}({callParameters});");
             // 处理out参数的返回值赋值
             GenerateOutParameterAssignment(sb, methodSymbol, interfaceDeclaration);
 
@@ -1160,7 +1175,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         };
     }
 
-    private string GetConvertCode(IPropertySymbol typeSymbol)
+    protected string GetConvertCode(IPropertySymbol typeSymbol, string fieldName)
     {
         // 检查是否为可空类型
         if (typeSymbol.Type is INamedTypeSymbol namedType &&
@@ -1170,35 +1185,46 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             var underlyingType = namedType.TypeArguments[0];
 
             // 为可空类型生成带有空值检查的转换代码
-            return GetConvertCodeForType(underlyingType);
+            return GetConvertCodeForType(underlyingType, fieldName);
         }
 
         // 对于非可空类型，直接获取转换代码
-        return GetConvertCodeForType(typeSymbol.Type);
+        return GetConvertCodeForType(typeSymbol.Type, fieldName);
     }
 
-    private string GetConvertCodeForType(ITypeSymbol typeSymbol)
+    protected string GetConvertCodeForType(ITypeSymbol typeSymbol, string fieldName)
     {
         var specialType = typeSymbol.SpecialType;
 
-        return specialType switch
+        return typeSymbol switch
         {
-            SpecialType.System_Boolean => "ConvertToBool()",
-            SpecialType.System_SByte => "Convert.ToByte()",
-            SpecialType.System_Byte => "Convert.ToByte()",
-            SpecialType.System_Int16 => "ConvertToFloat()",
-            SpecialType.System_UInt16 => "ConvertToFloat()",
-            SpecialType.System_Int32 => "ConvertToInt()",
-            SpecialType.System_UInt32 => "ConvertToInt()",
-            SpecialType.System_Int64 => "ConvertToLong()",
-            SpecialType.System_UInt64 => "ConvertToLong()",
-            SpecialType.System_Single => "ConvertToFloat()",
-            SpecialType.System_Double => "ConvertToDouble()",
-            SpecialType.System_Decimal => "ConvertToDecimal()",
-            SpecialType.System_String => "ToString()",
-            SpecialType.System_DateTime => "ConvertToDateTime()",
+            ITypeSymbol ts when IsSystemDrawingColor(ts) => $"ColorHelper.ConvertToColor({fieldName})",
+            { SpecialType: SpecialType.System_Boolean } => $"{fieldName}.ConvertToBool()",
+            { SpecialType: SpecialType.System_SByte } => $"{fieldName}.Convert.ToByte()",
+            { SpecialType: SpecialType.System_Byte } => $"{fieldName}.Convert.ToByte()",
+            { SpecialType: SpecialType.System_Int16 } => $"{fieldName}.ConvertToFloat()",
+            { SpecialType: SpecialType.System_UInt16 } => $"{fieldName}.ConvertToFloat()",
+            { SpecialType: SpecialType.System_Int32 } => $"{fieldName}.ConvertToInt()",
+            { SpecialType: SpecialType.System_UInt32 } => $"{fieldName}.ConvertToInt()",
+            { SpecialType: SpecialType.System_Int64 } => $"{fieldName}.ConvertToLong()",
+            { SpecialType: SpecialType.System_UInt64 } => $"{fieldName}.ConvertToLong()",
+            { SpecialType: SpecialType.System_Single } => $"{fieldName}.ConvertToFloat()",
+            { SpecialType: SpecialType.System_Double } => $"{fieldName}.ConvertToDouble()",
+            { SpecialType: SpecialType.System_Decimal } => $"{fieldName}.ConvertToDecimal()",
+            { SpecialType: SpecialType.System_String } => $"{fieldName}.ToString()",
+            { SpecialType: SpecialType.System_DateTime } => $"{fieldName}.ConvertToDateTime()",
             _ => "ToString()"
         };
+    }
+
+    private bool IsSystemDrawingColor(ITypeSymbol typeSymbol)
+    {
+        if (typeSymbol == null)
+            return false;
+
+        // 更健壮的检查方式，包括命名空间和类型名称
+        return typeSymbol.ContainingNamespace?.ToDisplayString() == "System.Drawing" &&
+               typeSymbol.Name == "Color";
     }
 
     /// <summary>
@@ -1329,6 +1355,8 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 
         var comClassName = GetComClassName(interfaceDeclaration);
         var impClassName = GetImplementationClassName(interfaceSymbol.Name);
+        var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
+
 
         sb.AppendLine("        #region IDisposable 实现");
         if (!NoneDisposed(interfaceSymbol))
@@ -1340,10 +1368,10 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             sb.AppendLine();
             sb.AppendLine($"            if (disposing)");
             sb.AppendLine("            {");
-            sb.AppendLine($"                if({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} != null)");
+            sb.AppendLine($"                if({privateFieldName} != null)");
             sb.AppendLine("                {");
-            sb.AppendLine($"                    Marshal.ReleaseComObject({PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)});");
-            sb.AppendLine($"                    {PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName)} = null;");
+            sb.AppendLine($"                    Marshal.ReleaseComObject({privateFieldName});");
+            sb.AppendLine($"                    {privateFieldName} = null;");
             sb.AppendLine("                }");
             GenerateAdditionalDisposalLogic(sb, interfaceSymbol, interfaceDeclaration);
             sb.AppendLine("            }");

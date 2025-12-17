@@ -29,6 +29,28 @@ internal static class AttributeDataHelper
         return timeoutArg.Value.Value is int value ? value : defaultVal;
     }
 
+    /// <summary>
+    /// 从<see cref="ISymbol"/>对象中获取指定特性的属性值。
+    /// </summary>
+    /// <param name="typeSymbol"><see cref="ISymbol"/>对象</param>
+    /// <param name="attributeNames">特性数组。</param>
+    /// <param name="propertyName">属性名。</param>
+    /// <param name="defaultValue">属性默认值。</param>
+    /// <returns></returns>
+    public static string? GetStringValueFromSymbol(ISymbol typeSymbol, string[] attributeNames, string propertyName, string? defaultValue = null)
+    {
+        if (typeSymbol == null || attributeNames == null)
+            return defaultValue;
+        if (attributeNames.Length < 1)
+            return defaultValue;
+
+        var attributeData = GetAttributeDataFromSymbol(typeSymbol, attributeNames);
+        if (attributeData == null)
+            return defaultValue;
+
+        return GetStringValueFromAttribute(attributeData, [propertyName], 0, defaultValue);
+    }
+
 
     /// <summary>
     /// 从特性数据中获取字符串属性值。

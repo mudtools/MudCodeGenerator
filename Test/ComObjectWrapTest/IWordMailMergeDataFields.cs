@@ -4,7 +4,7 @@
     /// 邮件合并过程中表示数据字段集合的接口。
     /// </summary>
     [ComCollectionWrap(ComNamespace = "MsWord")]
-    public interface IWordMailMergeDataFields : IEnumerable<IWordMailMergeDataField>, IDisposable
+    public interface IWordMailMergeDataFields : IEnumerable<IWordMailMergeDataField?>, IDisposable
     {
         /// <summary>
         /// 获取此数据字段集合所属的 Word 应用程序对象。

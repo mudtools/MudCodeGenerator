@@ -34,6 +34,11 @@ internal static class ComWrapConstants
     public static readonly string[] ItemIndexAttributeNames = ["ItemIndexAttribute", "ItemIndex"];
 
     /// <summary>
+    /// 指示当前COM组件不能进行枚举取值
+    /// </summary>
+    public static readonly string[] NoneEnumerableAttributes = ["NoneEnumerableAttribute", "NoneEnumerable"];
+
+    /// <summary>
     /// 转换为整数特性名称数组
     /// </summary>
     public static readonly string[] ConvertIntAttributeNames = ["ConvertIntAttribute", "ConvertInt"];
@@ -47,6 +52,11 @@ internal static class ComWrapConstants
     /// 用于标注方法的返回参数是否需要转换
     /// </summary>
     public static readonly string[] ReturnValueConvertAttributes = ["ReturnValueConvertAttribute", "ReturnValueConvert"];
+
+    /// <summary>
+    /// 用于标识COM组件所在的命名空间。
+    /// </summary>
+    public static readonly string[] ComNamespaceAttributes = ["ComNamespaceAttribute", "ComNamespace"];
 
     /// <summary>
     /// 获取COM命名空间属性名称
