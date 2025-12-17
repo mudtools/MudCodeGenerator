@@ -742,7 +742,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
             }
             else
             {
-                sb.AppendLine($"                {elementImplType} returnValue = null;");
+                sb.AppendLine($"                {elementImplType}? returnValue = null;");
                 sb.AppendLine($"                if(item is {comNamespace}.{ordinalComType} rComObj)");
                 sb.AppendLine($"                     returnValue = new {elementImplType}(rComObj);");
                 sb.AppendLine("                if (returnValue != null)");
