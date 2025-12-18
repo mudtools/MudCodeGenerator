@@ -487,19 +487,19 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         }
         else
         {
-            sb.AppendLine($"                    {elementImplType} result = null;");
+            string returnType = indexerSymbol.Type.ToDisplayString();
+            var ordinalComType = GetImplementationOrdinalType(returnType);
+            var comType = GetOrdinalComType(ordinalComType);
+            returnType = returnType.EndsWith("?", StringComparison.Ordinal) ? returnType : returnType + "?";
+            sb.AppendLine($"                    {returnType} result = null;");
             if (needConvert)
             {
-                string returnType = indexerSymbol.Type.ToDisplayString();
-                var ordinalComType = GetImplementationOrdinalType(returnType);
-                var comType = GetOrdinalComType(ordinalComType);
-
                 sb.AppendLine($"                    if(comElement is {comNamespace}.{comType} rComObj)");
                 sb.AppendLine($"                       result = new {elementImplType}(rComObj);");
             }
             else
             {
-                sb.AppendLine("                    if(comElement!=null)");
+                sb.AppendLine("                    if(comElement != null)");
                 sb.AppendLine($"                       result = new {elementImplType}(comElement);");
             }
             sb.AppendLine("                    if (result != null)");

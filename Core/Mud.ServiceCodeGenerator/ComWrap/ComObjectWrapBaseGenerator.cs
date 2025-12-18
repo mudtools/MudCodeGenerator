@@ -539,6 +539,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
                 comNamespace = paramcomNamespace;
 
             var enumValueName = GetEnumValueWithoutNamespace(defaultValue);
+            var constructType = GetImplementationType(param.Type.ToDisplayString());
 
             // 处理out参数
             if (isOut)
@@ -553,7 +554,6 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
                 }
                 else if (isObjectType)
                 {
-                    var constructType = GetImplementationType(param.Type.Name);
                     sb.AppendLine($"            {constructType} {param.Name}Obj;");
                 }
                 else
@@ -580,7 +580,6 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
                 }
                 else if (isObjectType)
                 {
-                    var constructType = GetImplementationType(param.Type.Name.TrimEnd('?'));
                     sb.AppendLine($"            var {param.Name}Obj = {param.Name} != null ? (({constructType}){param.Name}).InternalComObject : System.Type.Missing;");
                 }
                 else
@@ -608,7 +607,6 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             else if (isObjectType)
             {
                 // COM对象参数
-                var constructType = GetImplementationType(param.Type.Name);
                 sb.AppendLine($"            var {param.Name}Obj = (({constructType}){param.Name}).InternalComObject;");
             }
             else if (pType == "object")
@@ -1430,18 +1428,40 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     {
         if (IsBasicType(elementType))
             return elementType;
-        var elementImplType = StringExtensions.RemoveInterfacePrefix(elementType).TrimEnd('?');
+
+        // 移除可空标记
+        var elementImplType = elementType.TrimEnd('?');
+
+        // 分割命名空间
         var types = elementImplType.Split(['.'], StringSplitOptions.RemoveEmptyEntries);
-        string resultType = "";
-        for (int i = 0; i < types.Length; i++)
+
+        if (types.Length == 0)
+            return elementType;
+
+        // 处理最后一个类型名（接口名）
+        string lastName = types[types.Length - 1];
+
+        // 移除接口前缀 "I"，但确保不是全大写的情况（如"ID"）
+        if (lastName.Length > 1 && lastName.StartsWith("I", StringComparison.Ordinal) && char.IsUpper(lastName[1]))
         {
-            if (i == types.Length - 1)
-            {
-                resultType += "Imps.";
-            }
-            resultType += types[i] + ".";
+            lastName = lastName.Substring(1);
         }
-        return resultType.TrimEnd('.');
+
+        // 重建类型名
+        var result = new StringBuilder();
+
+        // 添加命名空间部分（除了最后一个）
+        for (int i = 0; i < types.Length - 1; i++)
+        {
+            result.Append(types[i]);
+            result.Append('.');
+        }
+
+        // 添加 "Imps." 和实现类名
+        result.Append("Imps.");
+        result.Append(lastName);
+
+        return result.ToString();
     }
 
     protected string GetImplementationOrdinalType(string elementType)
