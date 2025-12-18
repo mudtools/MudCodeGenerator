@@ -18,6 +18,8 @@ namespace Mud.ServiceCodeGenerator;
 /// </remarks>
 public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
 {
+    #region Configuration
+
     /// <inheritdoc/>
     protected override System.Collections.ObjectModel.Collection<string> GetFileUsingNameSpaces()
     {
@@ -37,6 +39,10 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     }
 
     protected virtual string[] ApiWrapAttributeNames() => HttpClientGeneratorConstants.HttpClientApiAttributeNames;
+
+    #endregion
+
+    #region Generator Initialization and Execution
 
     /// <summary>
     /// 初始化源代码生成器
@@ -74,6 +80,10 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
         ImmutableArray<InterfaceDeclarationSyntax> interfaces,
         SourceProductionContext context,
         AnalyzerConfigOptionsProvider configOptionsProvider);
+
+    #endregion
+
+    #region Interface and Method Helpers
 
     /// <summary>
     /// 获取包装接口名称
@@ -115,6 +125,9 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
             .Any(attr => HttpClientGeneratorConstants.SupportedHttpMethods.Contains(attr.AttributeClass?.Name));
     }
 
+    /// <summary>
+    /// 查找HTTP方法特性
+    /// </summary>
     protected AttributeSyntax? FindHttpMethodAttribute(MethodDeclarationSyntax methodSyntax)
     {
         if (methodSyntax == null)
@@ -123,6 +136,8 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
             .SelectMany(a => a.Attributes)
             .FirstOrDefault(a => HttpClientGeneratorConstants.SupportedHttpMethods.Contains(a.Name.ToString()));
     }
+
+    #endregion
 
     #region Common Utility Methods
     /// <summary>

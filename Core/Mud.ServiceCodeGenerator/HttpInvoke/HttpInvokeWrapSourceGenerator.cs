@@ -18,7 +18,13 @@ namespace Mud.ServiceCodeGenerator.ApiSourceGenerator;
 /// </summary>
 public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenerator
 {
+    #region Configuration
+
     protected override string[] ApiWrapAttributeNames() => HttpClientGeneratorConstants.HttpClientApiWrapAttributeNames;
+
+    #endregion
+
+    #region Generator Execution
 
     /// <summary>
     /// 更新Execute方法以使用验证
@@ -54,6 +60,9 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
 
     protected abstract void GenerateWrapCode(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl, INamedTypeSymbol interfaceSymbol, AttributeData wrapAttribute, SourceProductionContext context);
 
+    #endregion
+
+    #region File and Class Generation
 
     /// <summary>
     /// 生成文件头部（命名空间和头部注释）
@@ -88,6 +97,10 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
         sb.AppendLine($"{(isInterface ? "public partial interface" : "internal partial class")} {typeName}{parentName}");
         sb.AppendLine("{");
     }
+
+    #endregion
+
+    #region Token and Method Generation
 
     /// <summary>
     /// 根据 Token 类型获取对应的方法名
@@ -145,6 +158,10 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
     }
 
     protected abstract string GenerateWrapMethod(MethodAnalysisResult methodInfo, MethodDeclarationSyntax methodSyntax, string interfaceName, string tokenManageInterfaceName);
+
+    #endregion
+
+    #region Wrap Method Generation
 
     /// <summary>
     /// 生成包装方法的通用逻辑
@@ -257,6 +274,10 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
         return sb.ToString();
     }
 
+    #endregion
+
+    #region Documentation Processing
+
     /// <summary>
     /// 获取方法的XML文档注释
     /// </summary>
@@ -300,6 +321,10 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
 
         return result.ToString().TrimEnd();
     }
+
+    #endregion
+
+    #region Diagnostics and Validation
 
     /// <summary>
     /// 报告诊断错误
@@ -352,6 +377,8 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
 
         return true;
     }
+
+    #endregion
 
     #region 共享的代码生成方法
     /// <summary>
