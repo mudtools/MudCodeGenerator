@@ -14,9 +14,11 @@ namespace Mud.ServiceCodeGenerator.ComWrap;
 
 public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 {
+    #region Constants and Fields
     private static readonly string[] KnownPrefixes = { "IWord", "IExcel", "IOffice", "IPowerPoint", "IVbe" };
+    #endregion
 
-
+    #region Generator Initialization and Execution
     /// <inheritdoc/>
     protected override System.Collections.ObjectModel.Collection<string> GetFileUsingNameSpaces()
     {
@@ -87,8 +89,9 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     /// <param name="interfaceSymbol">接口符号</param>
     /// <returns>生成的源代码</returns>
     protected abstract string GenerateImplementationClass(InterfaceDeclarationSyntax interfaceDeclaration, INamedTypeSymbol interfaceSymbol);
+    #endregion
 
-
+    #region Constructor and Field Generation
     /// <summary>
     /// 生成构造函数 />
     /// </summary>
@@ -143,7 +146,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 
     protected void GeneratePrivateFieldDisposable(StringBuilder sb, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
     {
-        if (interfaceSymbol == null || interfaceDeclaration == null)
+        if (interfaceSymbol == null || interfaceDeclaration == null || sb == null)
             return;
 
         foreach (var member in interfaceSymbol.GetMembers().OfType<IPropertySymbol>())
@@ -167,8 +170,9 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             sb.AppendLine($"                {fieldName}_{propertyName} = null;");
         }
     }
+    #endregion
 
-
+    #region Property Generation
     /// <summary>
     /// 生成单个属性实现
     /// </summary>
@@ -180,8 +184,6 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         if (sb == null || propertySymbol == null || interfaceDeclaration == null)
             return;
 
-        var propertyName = propertySymbol.Name;
-        var propertyType = propertySymbol.Type.ToDisplayString();
         var isEnumType = IsEnumType(propertySymbol.Type);
         var isObjectType = IsComObjectType(propertySymbol.Type);
 
@@ -211,7 +213,6 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     /// <param name="comClassName">COM类名</param>
     private void GenerateObjectProperty(StringBuilder sb, IPropertySymbol propertySymbol, InterfaceDeclarationSyntax interfaceDeclaration, bool needConvert, string comClassName)
     {
-        var defaultValue = GetDefaultValue(interfaceDeclaration, propertySymbol, propertySymbol.Type);
         var fieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
         var propertyName = propertySymbol.Name;
         var propertyType = propertySymbol.Type.ToDisplayString();
@@ -393,6 +394,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         sb.AppendLine();
     }
 
+    #region Method Generation
     /// <summary>
     /// 生成方法实现
     /// </summary>
@@ -400,6 +402,9 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     /// <param name="interfaceSymbol">接口符号</param>
     protected void GenerateMethods(StringBuilder sb, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
     {
+        if (interfaceDeclaration == null || sb == null || interfaceSymbol == null)
+            return;
+
         sb.AppendLine("        #region 方法实现");
         sb.AppendLine();
 
@@ -414,6 +419,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         sb.AppendLine("        #endregion");
         sb.AppendLine();
     }
+    #endregion
 
     /// <summary>
     /// 生成单个方法实现
@@ -762,6 +768,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         };
     }
 
+    #region Parameter Processing
     /// <summary>
     /// 检查参数是否有 [ConvertTriState] 特性
     /// </summary>
@@ -855,6 +862,8 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         // 如果找不到对应的枚举成员，使用强制转换
         return $"({enumTypeName}){value}";
     }
+    #endregion
+
     #region Helper Methods
     /// <summary>
     /// 是否需要需要生成构造函数。
@@ -1327,6 +1336,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         sb.AppendLine("        #endregion");
         sb.AppendLine();
     }
+    #endregion
 
     /// <summary>
     /// 生成额外的释放逻辑（可被子类重写）
@@ -1436,11 +1446,12 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     }
     #endregion
 
+    #region Refactored Parameter Processing Methods
     /// <summary>
     /// 生成out参数变量声明
     /// </summary>
-    private void GenerateOutParameterVariable(StringBuilder sb, IParameterSymbol param, bool isEnumType, 
-        bool isObjectType, bool convertToInteger, string pType, string comNamespace, 
+    private void GenerateOutParameterVariable(StringBuilder sb, IParameterSymbol param, bool isEnumType,
+        bool isObjectType, bool convertToInteger, string pType, string comNamespace,
         string enumValueName, string constructType)
     {
         if (isEnumType)
@@ -1483,13 +1494,13 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     /// <summary>
     /// 生成参数对象处理逻辑
     /// </summary>
-    private void GenerateParameterObject(StringBuilder sb, IParameterSymbol param, string pType, 
-        bool isEnumType, bool isObjectType, bool hasConvertTriState, bool convertToInteger, 
+    private void GenerateParameterObject(StringBuilder sb, IParameterSymbol param, string pType,
+        bool isEnumType, bool isObjectType, bool hasConvertTriState, bool convertToInteger,
         string comNamespace, string enumValueName, string constructType)
     {
         if (pType.EndsWith("?", StringComparison.Ordinal))
         {
-            GenerateNullableParameterObject(sb, param, pType, isEnumType, isObjectType, 
+            GenerateNullableParameterObject(sb, param, pType, isEnumType, isObjectType,
                 convertToInteger, comNamespace, enumValueName, constructType);
         }
         else if (hasConvertTriState && pType == "bool")
@@ -1499,7 +1510,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         }
         else
         {
-            GenerateNonNullableParameterObject(sb, param, pType, isEnumType, isObjectType, 
+            GenerateNonNullableParameterObject(sb, param, pType, isEnumType, isObjectType,
                 convertToInteger, comNamespace, enumValueName, constructType);
         }
     }
@@ -1561,5 +1572,6 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
                 sb.AppendLine($"            var {param.Name}Obj = {param.Name} ?? System.Type.Missing;");
         }
     }
+    #endregion
 
 }
