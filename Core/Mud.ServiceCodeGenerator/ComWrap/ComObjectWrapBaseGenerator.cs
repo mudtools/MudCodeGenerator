@@ -544,79 +544,12 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             // 处理out参数
             if (isOut)
             {
-                // 为out参数声明变量
-                if (isEnumType)
-                {
-                    if (convertToInteger)
-                        sb.AppendLine($"            int {param.Name}Obj;");
-                    else
-                        sb.AppendLine($"            {comNamespace}.{enumValueName} {param.Name}Obj;");
-                }
-                else if (isObjectType)
-                {
-                    sb.AppendLine($"            {constructType} {param.Name}Obj;");
-                }
-                else
-                {
-                    // 普通out参数，根据类型声明变量
-                    if (pType == "string")
-                        sb.AppendLine($"            string {param.Name}Obj = string.Empty;");
-                    else if (pType == "int")
-                        sb.AppendLine($"            int {param.Name}Obj = 0;");
-                    else
-                        sb.AppendLine($"            {pType} {param.Name}Obj = null;");
-                }
+                GenerateOutParameterVariable(sb, param, isEnumType, isObjectType, convertToInteger, pType, comNamespace, enumValueName, constructType);
                 continue;
             }
 
-            if (pType.EndsWith("?", StringComparison.Ordinal))
-            {
-                if (isEnumType)
-                {
-                    if (convertToInteger)
-                        sb.AppendLine($"            var {param.Name}Obj = (int){param.Name} ?? 0;");
-                    else
-                        sb.AppendLine($"            var {param.Name}Obj = {param.Name}?.EnumConvert({comNamespace}.{enumValueName}) ?? System.Type.Missing;");
-                }
-                else if (isObjectType)
-                {
-                    sb.AppendLine($"            var {param.Name}Obj = {param.Name} != null ? (({constructType}){param.Name}).InternalComObject : System.Type.Missing;");
-                }
-                else
-                {
-                    // 普通可空参数
-                    if (convertToInteger)
-                        sb.AppendLine($"            var {param.Name}Obj = {param.Name} != null ? {param.Name}.ConvertToInt() : 0;");
-                    else
-                        sb.AppendLine($"            var {param.Name}Obj = {param.Name} != null ? (object){param.Name} : System.Type.Missing;");
-                }
-            }
-            else if (hasConvertTriState && pType == "bool")
-            {
-                // 带有ConvertTriState特性的bool参数
-                sb.AppendLine($"            var {param.Name}Obj = {param.Name}.ConvertTriState();");
-            }
-            else if (isEnumType)
-            {
-                // 枚举参数
-                if (convertToInteger)
-                    sb.AppendLine($"            var {param.Name}Obj = (int){param.Name};");
-                else
-                    sb.AppendLine($"            var {param.Name}Obj = {param.Name}.EnumConvert({comNamespace}.{enumValueName});");
-            }
-            else if (isObjectType)
-            {
-                // COM对象参数
-                sb.AppendLine($"            var {param.Name}Obj = (({constructType}){param.Name}).InternalComObject;");
-            }
-            else if (pType == "object")
-            {
-                // object类型参数
-                if (convertToInteger)
-                    sb.AppendLine($"            var {param.Name}Obj = {param.Name}.ConvertToInt();");
-                else
-                    sb.AppendLine($"            var {param.Name}Obj = {param.Name} ?? System.Type.Missing;");
-            }
+            // 生成参数对象处理逻辑
+            GenerateParameterObject(sb, param, pType, isEnumType, isObjectType, hasConvertTriState, convertToInteger, comNamespace, enumValueName, constructType);
         }
         sb.AppendLine();
     }
@@ -1502,5 +1435,131 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         };
     }
     #endregion
+
+    /// <summary>
+    /// 生成out参数变量声明
+    /// </summary>
+    private void GenerateOutParameterVariable(StringBuilder sb, IParameterSymbol param, bool isEnumType, 
+        bool isObjectType, bool convertToInteger, string pType, string comNamespace, 
+        string enumValueName, string constructType)
+    {
+        if (isEnumType)
+        {
+            if (convertToInteger)
+                sb.AppendLine($"            int {param.Name}Obj;");
+            else
+                sb.AppendLine($"            {comNamespace}.{enumValueName} {param.Name}Obj;");
+        }
+        else if (isObjectType)
+        {
+            sb.AppendLine($"            {constructType} {param.Name}Obj;");
+        }
+        else
+        {
+            // 普通out参数，根据类型声明变量
+            GenerateBasicOutParameterVariable(sb, param, pType);
+        }
+    }
+
+    /// <summary>
+    /// 生成基本类型的out参数变量声明
+    /// </summary>
+    private void GenerateBasicOutParameterVariable(StringBuilder sb, IParameterSymbol param, string pType)
+    {
+        switch (pType)
+        {
+            case "string":
+                sb.AppendLine($"            string {param.Name}Obj = string.Empty;");
+                break;
+            case "int":
+                sb.AppendLine($"            int {param.Name}Obj = 0;");
+                break;
+            default:
+                sb.AppendLine($"            {pType} {param.Name}Obj = null;");
+                break;
+        }
+    }
+
+    /// <summary>
+    /// 生成参数对象处理逻辑
+    /// </summary>
+    private void GenerateParameterObject(StringBuilder sb, IParameterSymbol param, string pType, 
+        bool isEnumType, bool isObjectType, bool hasConvertTriState, bool convertToInteger, 
+        string comNamespace, string enumValueName, string constructType)
+    {
+        if (pType.EndsWith("?", StringComparison.Ordinal))
+        {
+            GenerateNullableParameterObject(sb, param, pType, isEnumType, isObjectType, 
+                convertToInteger, comNamespace, enumValueName, constructType);
+        }
+        else if (hasConvertTriState && pType == "bool")
+        {
+            // 带有ConvertTriState特性的bool参数
+            sb.AppendLine($"            var {param.Name}Obj = {param.Name}.ConvertTriState();");
+        }
+        else
+        {
+            GenerateNonNullableParameterObject(sb, param, pType, isEnumType, isObjectType, 
+                convertToInteger, comNamespace, enumValueName, constructType);
+        }
+    }
+
+    /// <summary>
+    /// 生成可空参数对象处理逻辑
+    /// </summary>
+    private void GenerateNullableParameterObject(StringBuilder sb, IParameterSymbol param, string pType,
+        bool isEnumType, bool isObjectType, bool convertToInteger, string comNamespace,
+        string enumValueName, string constructType)
+    {
+        if (isEnumType)
+        {
+            if (convertToInteger)
+                sb.AppendLine($"            var {param.Name}Obj = (int){param.Name} ?? 0;");
+            else
+                sb.AppendLine($"            var {param.Name}Obj = {param.Name}?.EnumConvert({comNamespace}.{enumValueName}) ?? System.Type.Missing;");
+        }
+        else if (isObjectType)
+        {
+            sb.AppendLine($"            var {param.Name}Obj = {param.Name} != null ? (({constructType}){param.Name}).InternalComObject : System.Type.Missing;");
+        }
+        else
+        {
+            // 普通可空参数
+            if (convertToInteger)
+                sb.AppendLine($"            var {param.Name}Obj = {param.Name} != null ? {param.Name}.ConvertToInt() : 0;");
+            else
+                sb.AppendLine($"            var {param.Name}Obj = {param.Name} != null ? (object){param.Name} : System.Type.Missing;");
+        }
+    }
+
+    /// <summary>
+    /// 生成非可空参数对象处理逻辑
+    /// </summary>
+    private void GenerateNonNullableParameterObject(StringBuilder sb, IParameterSymbol param, string pType,
+        bool isEnumType, bool isObjectType, bool convertToInteger, string comNamespace,
+        string enumValueName, string constructType)
+    {
+        if (isEnumType)
+        {
+            // 枚举参数
+            if (convertToInteger)
+                sb.AppendLine($"            var {param.Name}Obj = (int){param.Name};");
+            else
+                sb.AppendLine($"            var {param.Name}Obj = {param.Name}.EnumConvert({comNamespace}.{enumValueName});");
+        }
+        else if (isObjectType)
+        {
+            // COM对象参数
+            sb.AppendLine($"            var {param.Name}Obj = (({constructType}){param.Name}).InternalComObject;");
+        }
+        else if (pType == "object")
+        {
+            // object类型参数
+            if (convertToInteger)
+                sb.AppendLine($"            var {param.Name}Obj = {param.Name}.ConvertToInt();");
+            else
+                sb.AppendLine($"            var {param.Name}Obj = {param.Name} ?? System.Type.Missing;");
+        }
+    }
 
 }
