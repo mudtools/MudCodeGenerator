@@ -11,6 +11,14 @@ namespace Mud.CodeGenerator;
 
 internal static class StringExtensions
 {
+
+    public static HashSet<T> ToHashSet<T>(this IEnumerable<T> values)
+    {
+        if (values == null)
+            return [];
+        return [.. values];
+    }
+
     /// <summary>
     /// 移除接口名前的"I"前缀
     /// </summary>

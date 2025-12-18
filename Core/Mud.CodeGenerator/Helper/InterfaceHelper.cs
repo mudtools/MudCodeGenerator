@@ -9,6 +9,8 @@ namespace Mud.CodeGenerator.Helper;
 
 internal sealed class InterfaceHelper
 {
+    #region 类型信息获取
+
     /// <summary>
     /// 获取类型或接口的完整命名空间
     /// </summary>
@@ -30,6 +32,10 @@ internal sealed class InterfaceHelper
         return typeName;
     }
 
+    #endregion
+
+    #region 方法信息处理
+
     /// <summary>
     /// 获取方法参数列表字符串
     /// </summary>
@@ -41,40 +47,46 @@ internal sealed class InterfaceHelper
         return string.Join(", ", methodSymbol.Parameters.Select(p => $"{p.Type} {p.Name}"));
     }
 
-    public static bool HasInterfaceAttribute(INamedTypeSymbol interfaceSymbol, string attributeType, string attributeValue)
-    {
-        if (interfaceSymbol == null)
-            return false;
-
-        var attributeName = attributeType + "Attribute";
-
-        return interfaceSymbol.GetAttributes()
-            .Any(attr =>
-                (attr.AttributeClass?.Name == attributeName || attr.AttributeClass?.Name == attributeType) &&
-                attr.ConstructorArguments.Length > 0 &&
-                attr.ConstructorArguments[0].Value?.ToString() == attributeValue);
-    }
-
     /// <summary>
     /// 递归获取接口及其所有父接口的所有方法（去重）
     /// </summary>
     /// <param name="interfaceSymbol">接口符号</param>
     /// <param name="includeParentInterfaces">是否包含父接口的方法</param>
-    public static IEnumerable<IMethodSymbol> GetAllInterfaceMethods(INamedTypeSymbol interfaceSymbol, bool includeParentInterfaces = true)
+    /// <param name="excludedInterfaces">要排除的接口名称列表（可选）</param>
+    public static IEnumerable<IMethodSymbol> GetAllMethods(
+        INamedTypeSymbol interfaceSymbol,
+        bool includeParentInterfaces = true,
+        IEnumerable<string> excludedInterfaces = null)
     {
         if (interfaceSymbol == null)
             return [];
+
         var visitedInterfaces = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
-        return GetAllInterfaceMethodsRecursive(interfaceSymbol, visitedInterfaces, includeParentInterfaces);
+        var excludedSet = excludedInterfaces.ToHashSet();
+        return GetAllRecursive(interfaceSymbol, visitedInterfaces, includeParentInterfaces, excludedSet);
     }
 
-    private static IEnumerable<IMethodSymbol> GetAllInterfaceMethodsRecursive(INamedTypeSymbol interfaceSymbol, HashSet<INamedTypeSymbol> visitedInterfaces, bool includeParentInterfaces)
+    private static IEnumerable<IMethodSymbol> GetAllRecursive(
+        INamedTypeSymbol interfaceSymbol,
+        HashSet<INamedTypeSymbol> visitedInterfaces,
+        bool includeParentInterfaces,
+        HashSet<string> excludedInterfaces)
     {
         // 避免循环引用
         if (visitedInterfaces.Contains(interfaceSymbol))
             yield break;
 
         visitedInterfaces.Add(interfaceSymbol);
+
+        // 检查当前接口是否在排除列表中
+        if (excludedInterfaces != null && excludedInterfaces.Count > 0)
+        {
+            // 检查简单名称或完整名称是否在排除列表中
+            if (ShouldExcludeInterface(interfaceSymbol, excludedInterfaces))
+            {
+                yield break; // 跳过整个接口及其方法
+            }
+        }
 
         // 首先处理当前接口的方法
         foreach (var method in interfaceSymbol.GetMembers().OfType<IMethodSymbol>())
@@ -89,12 +101,62 @@ internal sealed class InterfaceHelper
         // 然后递归处理所有父接口
         foreach (var baseInterface in interfaceSymbol.Interfaces)
         {
-            foreach (var baseMethod in GetAllInterfaceMethodsRecursive(baseInterface, visitedInterfaces, includeParentInterfaces))
+            foreach (var baseMethod in GetAllRecursive(
+                baseInterface,
+                visitedInterfaces,
+                includeParentInterfaces,
+                excludedInterfaces))
             {
                 yield return baseMethod;
             }
         }
     }
+
+    #endregion
+
+    #region 属性特性处理
+
+    /// <summary>
+    /// 检查接口是否具有指定的特性
+    /// </summary>
+    /// <param name="interfaceSymbol">接口符号</param>
+    /// <param name="attributeType">特性类型</param>
+    /// <param name="attributeValue">特性值</param>
+    /// <returns>如果接口具有指定特性返回true，否则返回false</returns>
+    public static bool HasPropertyAttribute(INamedTypeSymbol interfaceSymbol, string attributeType, string attributeValue)
+    {
+        if (interfaceSymbol == null)
+            return false;
+
+        var attributeName = attributeType + "Attribute";
+
+        return interfaceSymbol.GetAttributes()
+                              .Any(attr =>
+                                  (attr.AttributeClass?.Name == attributeName || attr.AttributeClass?.Name == attributeType) &&
+                                  attr.ConstructorArguments.Length > 0 &&
+                                  attr.ConstructorArguments[0].Value?.ToString() == attributeValue);
+    }
+
+
+    /// <summary>
+    /// 判断属性是否具有特定特性
+    /// </summary>
+    public static bool HasPropertyAttribute(IPropertySymbol propertySymbol, string attributeName)
+    {
+        if (propertySymbol == null || string.IsNullOrEmpty(attributeName))
+            return false;
+
+        var fullAttributeName = attributeName.EndsWith("Attribute", StringComparison.Ordinal)
+            ? attributeName
+            : attributeName + "Attribute";
+
+        return propertySymbol.GetAttributes()
+            .Any(attr => attr.AttributeClass?.Name == fullAttributeName ||
+                         attr.AttributeClass?.Name == attributeName);
+    }
+    #endregion
+
+    #region 类名称生成
 
     /// <summary>
     /// 根据接口名称获取实现类名称
@@ -117,6 +179,8 @@ internal sealed class InterfaceHelper
     /// <summary>
     /// 获取包装类名称
     /// </summary>
+    /// <param name="wrapInterfaceName">包装接口名称</param>
+    /// <returns>包装类名称</returns>
     public static string GetWrapClassName(string wrapInterfaceName)
     {
         if (string.IsNullOrEmpty(wrapInterfaceName))
@@ -128,4 +192,123 @@ internal sealed class InterfaceHelper
         }
         return wrapInterfaceName + HttpClientGeneratorConstants.DefaultWrapSuffix;
     }
+
+    #endregion
+
+    #region 获取所有属性列表
+    /// <summary>
+    /// 递归获取接口及其所有父接口的所有属性（去重）
+    /// </summary>
+    /// <param name="interfaceSymbol">接口符号</param>
+    /// <param name="includeParentInterfaces">是否包含父接口的属性</param>
+    /// <param name="excludedInterfaces">要排除的接口名称列表（可选）</param>
+    public static IEnumerable<IPropertySymbol> GetAllProperties(
+        INamedTypeSymbol interfaceSymbol,
+        bool includeParentInterfaces = true,
+        IEnumerable<string> excludedInterfaces = null)
+    {
+        if (interfaceSymbol == null)
+            return [];
+
+        var visitedInterfaces = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+        var excludedSet = excludedInterfaces.ToHashSet();
+        return GetAllPropertiesRecursive(interfaceSymbol, visitedInterfaces, includeParentInterfaces, excludedSet);
+    }
+
+    private static IEnumerable<IPropertySymbol> GetAllPropertiesRecursive(
+        INamedTypeSymbol interfaceSymbol,
+        HashSet<INamedTypeSymbol> visitedInterfaces,
+        bool includeParentInterfaces,
+        HashSet<string> excludedInterfaces)
+    {
+        // 避免循环引用
+        if (visitedInterfaces.Contains(interfaceSymbol))
+            yield break;
+
+        visitedInterfaces.Add(interfaceSymbol);
+
+        // 检查当前接口是否在排除列表中
+        if (excludedInterfaces != null && excludedInterfaces.Count > 0)
+        {
+            if (ShouldExcludeInterface(interfaceSymbol, excludedInterfaces))
+            {
+                yield break; // 跳过整个接口及其属性
+            }
+        }
+
+        // 首先处理当前接口的属性
+        foreach (var property in interfaceSymbol.GetMembers().OfType<IPropertySymbol>())
+        {
+            yield return property;
+        }
+
+        // 如果不需要父接口的属性，则直接返回
+        if (!includeParentInterfaces)
+            yield break;
+
+        // 然后递归处理所有父接口
+        foreach (var baseInterface in interfaceSymbol.Interfaces)
+        {
+            foreach (var baseProperty in GetAllPropertiesRecursive(
+                baseInterface,
+                visitedInterfaces,
+                includeParentInterfaces,
+                excludedInterfaces))
+            {
+                yield return baseProperty;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 检查接口是否应该被排除（支持泛型）
+    /// </summary>
+    private static bool ShouldExcludeInterface(
+        INamedTypeSymbol interfaceSymbol,
+        HashSet<string> excludedInterfaces)
+    {
+        if (excludedInterfaces == null || excludedInterfaces.Count == 0)
+            return false;
+
+        // 检查各种可能的名称格式
+        var namesToCheck = new List<string>
+    {
+        interfaceSymbol.Name,                              // 简单名称：IDisposable
+        interfaceSymbol.ToDisplayString(),                 // 完整名称：System.IDisposable
+        interfaceSymbol.MetadataName,                      // 元数据名称：IDisposable
+        interfaceSymbol.ToString()                         // 字符串表示
+    };
+
+        // 添加命名空间和名称的组合
+        if (!string.IsNullOrEmpty(interfaceSymbol.ContainingNamespace?.Name))
+        {
+            namesToCheck.Add($"{interfaceSymbol.ContainingNamespace}.{interfaceSymbol.Name}");
+        }
+
+        // 检查泛型接口
+        if (interfaceSymbol.IsGenericType)
+        {
+            // 添加泛型定义
+            var originalDefinition = interfaceSymbol.OriginalDefinition;
+            namesToCheck.Add(originalDefinition.ToDisplayString());
+            namesToCheck.Add(originalDefinition.MetadataName);
+
+            // 添加无参数版本的泛型名称
+            var genericNameWithoutArity = interfaceSymbol.Name;
+            if (genericNameWithoutArity.Contains('`'))
+            {
+                namesToCheck.Add(genericNameWithoutArity.Substring(0, genericNameWithoutArity.IndexOf('`')));
+            }
+        }
+
+        // 检查是否有匹配的排除项
+        foreach (var name in namesToCheck)
+        {
+            if (excludedInterfaces.Contains(name))
+                return true;
+        }
+
+        return false;
+    }
+    #endregion
 }

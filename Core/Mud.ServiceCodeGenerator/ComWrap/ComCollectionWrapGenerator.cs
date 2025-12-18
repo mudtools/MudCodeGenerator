@@ -144,7 +144,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine("        #region 属性");
         sb.AppendLine();
 
-        foreach (var member in interfaceSymbol.GetMembers().OfType<IPropertySymbol>())
+        foreach (var member in InterfaceHelper.GetAllProperties(interfaceSymbol))
         {
             if (!ShouldIgnoreMember(member))
             {

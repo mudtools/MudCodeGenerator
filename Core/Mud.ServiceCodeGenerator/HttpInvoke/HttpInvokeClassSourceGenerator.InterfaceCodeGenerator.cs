@@ -388,7 +388,7 @@ internal class InterfaceImpCodeGenerator
         // 根据IsAbstract和InheritedFrom决定是否包含父接口方法
         var includeParentInterfaces = GetIncludeParentInterfaces();
 
-        IEnumerable<IMethodSymbol> methodsToGenerate = InterfaceHelper.GetAllInterfaceMethods(_interfaceSymbol, includeParentInterfaces);
+        IEnumerable<IMethodSymbol> methodsToGenerate = InterfaceHelper.GetAllMethods(_interfaceSymbol, includeParentInterfaces);
 
         foreach (var methodSymbol in methodsToGenerate)
         {
@@ -423,8 +423,8 @@ internal class InterfaceImpCodeGenerator
 
         var hasTokenManager = !string.IsNullOrEmpty(_tokenManage);
         var tokenManagerType = hasTokenManager ? InterfaceHelper.GetrTypeAllDisplayString(_compilation, _tokenManage!) : null;
-        var hasAuthorizationHeader = InterfaceHelper.HasInterfaceAttribute(_interfaceSymbol!, "Header", "Authorization");
-        var hasAuthorizationQuery = InterfaceHelper.HasInterfaceAttribute(_interfaceSymbol!, "Query", "Authorization");
+        var hasAuthorizationHeader = InterfaceHelper.HasPropertyAttribute(_interfaceSymbol!, "Header", "Authorization");
+        var hasAuthorizationQuery = InterfaceHelper.HasPropertyAttribute(_interfaceSymbol!, "Query", "Authorization");
 
         _codeBuilder.AppendLine();
         _codeBuilder.AppendLine($"        /// <summary>");
@@ -494,7 +494,7 @@ internal class InterfaceImpCodeGenerator
     private void GenerateClassPartialMethods()
     {
         var includeParentInterfaces = GetIncludeParentInterfaces();
-        IEnumerable<IMethodSymbol> methodsToProcess = InterfaceHelper.GetAllInterfaceMethods(_interfaceSymbol, includeParentInterfaces);
+        IEnumerable<IMethodSymbol> methodsToProcess = InterfaceHelper.GetAllMethods(_interfaceSymbol, includeParentInterfaces);
 
         var processedMethods = new HashSet<string>();
 

@@ -408,7 +408,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         sb.AppendLine("        #region 方法实现");
         sb.AppendLine();
 
-        foreach (var member in interfaceSymbol.GetMembers().OfType<IMethodSymbol>())
+        foreach (var member in InterfaceHelper.GetAllMethods(interfaceSymbol, excludedInterfaces: new[] { "IDisposable", "System.IDisposable", "System.Collections.Generic.IEnumerable" }))
         {
             if (member.MethodKind == MethodKind.Ordinary && !ShouldIgnoreMember(member))
             {
