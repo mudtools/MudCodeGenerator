@@ -20,6 +20,7 @@ namespace Mud.ServiceCodeGenerator.ComWrap;
 [Generator]
 public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
 {
+    #region Generator Override Methods
     /// <summary>
     /// 获取COM对象包装特性名称数组
     /// </summary>
@@ -82,7 +83,9 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
 
         return sb.ToString();
     }
+    #endregion
 
+    #region Field Generation
     /// <summary>
     /// 生成私有字段
     /// </summary>
@@ -106,7 +109,9 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine($"        public {comNamespace}.{comClassName}? InternalComObject => {privateFieldName};");
         sb.AppendLine();
     }
+    #endregion
 
+    #region Helper Methods
     /// <summary>
     /// 获取集合元素类型
     /// </summary>
@@ -125,7 +130,9 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         }
         return null;
     }
+    #endregion
 
+    #region Property and Indexer Generation
     /// <summary>
     /// 生成集合属性和索引器实现
     /// </summary>
@@ -157,7 +164,9 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine("        #endregion");
         sb.AppendLine();
     }
+    #endregion
 
+    #region Indexer Implementation
     /// <summary>
     /// 生成索引器实现
     /// </summary>
@@ -212,7 +221,9 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine("        }");
         sb.AppendLine();
     }
+    #endregion
 
+    #region Two Parameter Indexer
     /// <summary>
     /// 生成双参数索引器实现
     /// </summary>
@@ -240,7 +251,9 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine("        }");
         sb.AppendLine();
     }
+    #endregion
 
+    #region Indexer Helper Methods
     /// <summary>
     /// 生成索引器签名
     /// </summary>
@@ -323,7 +336,9 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
 
         sb.AppendLine("            }");
     }
+    #endregion
 
+    #region Parameter Processing and Validation
     /// <summary>
     /// 生成参数验证和预处理逻辑
     /// </summary>
@@ -452,7 +467,9 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
             privateFieldName, processedParameter, "value");
         AddSetExceptionHandling(sb, elementImplType, operationType);
     }
+    #endregion
 
+    #region Indexer Logic Implementation
     private void CommonGetLogic(
         StringBuilder sb,
         IPropertySymbol indexerSymbol,
@@ -530,6 +547,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine($"                    throw new ExcelOperationException(\"{operationType}设置 {elementImplType} 对象失败\", ex);");
         sb.AppendLine("                }");
     }
+    #endregion
 
     private void CommonSetLogic(
         StringBuilder sb,
@@ -693,6 +711,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine("                }");
     }
 
+    #region Enumerable Implementation
     private void GenerateEnumerableImplementation(
         StringBuilder sb,
         INamedTypeSymbol interfaceSymbol,
@@ -763,7 +782,9 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine("        #endregion");
         sb.AppendLine();
     }
+    #endregion
 
+    #region Override Methods
     /// <summary>
     /// 生成额外的释放逻辑（重写基类方法）
     /// </summary>
@@ -775,4 +796,5 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine("                _disposableList.Dispose();");
         GeneratePrivateFieldDisposable(sb, interfaceSymbol, interfaceDeclaration);
     }
+    #endregion
 }

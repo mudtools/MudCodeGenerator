@@ -19,11 +19,17 @@ namespace Mud.ServiceCodeGenerator.ComWrapSourceGenerator;
 [Generator]
 public class ComObjectWrapGenerator : ComObjectWrapBaseGenerator
 {
+    #region Generator Configuration
+
     /// <summary>
     /// 获取COM对象包装特性名称数组
     /// </summary>
     /// <returns>特性名称数组</returns>
     protected override string[] ComWrapAttributeNames() => ComWrapConstants.ComObjectWrapAttributeNames;
+
+    #endregion
+
+    #region Main Implementation Generation
 
     /// <summary>
     /// 生成COM对象包装实现类
@@ -79,6 +85,10 @@ public class ComObjectWrapGenerator : ComObjectWrapBaseGenerator
         return sb.ToString();
     }
 
+    #endregion
+
+    #region Property Generation
+
     /// <summary>
     /// 生成属性实现
     /// </summary>
@@ -102,7 +112,9 @@ public class ComObjectWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine();
     }
 
-    #region Generate Implementation Members
+    #endregion
+
+    #region Field Generation
 
     /// <summary>
     /// 生成私有字段
@@ -121,6 +133,9 @@ public class ComObjectWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine();
     }
 
+    #endregion
+
+    #region Disposable Implementation
 
     /// <summary>
     /// 生成额外的释放逻辑（重写基类方法）
