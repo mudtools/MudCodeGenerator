@@ -18,7 +18,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Helper\AttributeSyntaxHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helper\ClassHierarchyAnalyzer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helper\ErrorHandler.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Helper\PrivateFieldNamingHelper.cs" />
+    <Compile Include="..\Mud.CodeGenerator\Helper\PrivateFieldHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helper\ProjectConfigHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helper\SyntaxHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helper\SyntaxNodeHelper.cs" />

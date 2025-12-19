@@ -32,7 +32,7 @@ public enum FieldNamingStyle
 }
 
 /// <summary>
-/// 命名风格工具类
+/// 私有字段命名工具类
 /// </summary>
 internal static class PrivateFieldNamingHelper
 {
@@ -198,17 +198,26 @@ internal static class PrivateFieldNamingHelper
         if (string.IsNullOrEmpty(input))
             return input;
 
+        // 如果已经是camelCase（首字母小写），直接返回
+        if (char.IsLower(input[0]))
+        {
+            // 但需要确保后续的单词首字母大写
+            return EnsureProperCamelCase(input);
+        }
+
         var sb = new StringBuilder();
         bool makeUpper = false;
+        bool firstCharProcessed = false;
 
         foreach (char c in input)
         {
             if (char.IsLetterOrDigit(c))
             {
-                if (sb.Length == 0)
+                if (!firstCharProcessed)
                 {
                     // 第一个字符确保小写
                     sb.Append(char.ToLower(c, CultureInfo.CurrentCulture));
+                    firstCharProcessed = true;
                 }
                 else if (makeUpper)
                 {
@@ -217,13 +226,50 @@ internal static class PrivateFieldNamingHelper
                 }
                 else
                 {
-                    sb.Append(char.ToLower(c, CultureInfo.CurrentCulture));
+                    sb.Append(c);
                 }
             }
             else
             {
                 // 遇到分隔符，下一个字符要大写
-                makeUpper = sb.Length > 0;
+                makeUpper = firstCharProcessed;
+            }
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// 确保已经是camelCase的字符串中后续单词首字母大写
+    /// </summary>
+    private static string EnsureProperCamelCase(string input)
+    {
+        var sb = new StringBuilder();
+        bool nextShouldBeUpper = false;
+        bool firstCharProcessed = false;
+
+        foreach (char c in input)
+        {
+            if (char.IsLetterOrDigit(c))
+            {
+                if (!firstCharProcessed)
+                {
+                    sb.Append(c);
+                    firstCharProcessed = true;
+                }
+                else if (nextShouldBeUpper)
+                {
+                    sb.Append(char.ToUpper(c, CultureInfo.CurrentCulture));
+                    nextShouldBeUpper = false;
+                }
+                else
+                {
+                    sb.Append(c);
+                }
+            }
+            else
+            {
+                nextShouldBeUpper = firstCharProcessed;
             }
         }
 
