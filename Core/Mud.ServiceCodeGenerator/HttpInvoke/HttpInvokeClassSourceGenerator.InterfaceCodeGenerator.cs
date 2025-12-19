@@ -428,7 +428,7 @@ internal class InterfaceImpCodeGenerator
 
         _codeBuilder.AppendLine();
         _codeBuilder.AppendLine($"        /// <summary>");
-        _codeBuilder.AppendLine($"        /// <inheritdoc cref=\"{methodInfo.MethodOwnerInterfaceName}.{methodSymbol.Name} \"/>");
+        _codeBuilder.AppendLine($"        /// <inheritdoc />");
         _codeBuilder.AppendLine($"        /// </summary>");
         _codeBuilder.AppendLine($"        {GeneratedCodeConsts.GeneratedCodeAttribute}");
         // 根据方法返回类型决定是否添加 async 关键字
@@ -769,11 +769,21 @@ internal class InterfaceImpCodeGenerator
         }
         else
         {
-            _codeBuilder.AppendLine($"            if ({param.Name} != null)");
-            var formatExpression = !string.IsNullOrEmpty(formatString)
-                ? $".ToString(\"{formatString}\")"
-                : ".ToString()";
-            _codeBuilder.AppendLine($"                queryParams.Add(\"{paramName}\", {param.Name}{formatExpression});");
+            if (param.Name.EndsWith("?", StringComparison.Ordinal))
+            {
+                _codeBuilder.AppendLine($"            if ({param.Name} != null)");
+                var formatExpression = !string.IsNullOrEmpty(formatString)
+                   ? $".ToString(\"{formatString}\")"
+                   : ".ToString()";
+                _codeBuilder.AppendLine($"                queryParams.Add(\"{paramName}\", {param.Name}{formatExpression});");
+            }
+            else
+            {
+                var formatExpression = !string.IsNullOrEmpty(formatString)
+                  ? $".ToString(\"{formatString}\")"
+                  : ".ToString()";
+                _codeBuilder.AppendLine($"            queryParams.Add(\"{paramName}\", {param.Name}{formatExpression});");
+            }
         }
     }
 
