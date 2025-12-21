@@ -116,7 +116,7 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
         var (baseUrl, timeout) = ExtractAttributeParameters(httpClientApiAttribute);
         var registryGroupName = AttributeDataHelper.GetStringValueFromAttribute(httpClientApiAttribute, HttpClientGeneratorConstants.RegistryGroupNameProperty);
 
-        var implementationName = InterfaceHelper.GetImplementationClassName(interfaceSymbol.Name);
+        var implementationName = TypeSymbolHelper.GetImplementationClassName(interfaceSymbol.Name);
         var namespaceName = SyntaxHelper.GetNamespaceName(interfaceSyntax);
 
         return new HttpClientApiInfo(
@@ -151,7 +151,7 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
 
         var (baseUrl, timeout) = ExtractAttributeParameters(httpClientApiWrapAttribute);
         var wrapInterfaceName = GetWrapInterfaceName(interfaceSymbol, httpClientApiWrapAttribute);
-        var wrapClassName = InterfaceHelper.GetWrapClassName(wrapInterfaceName);
+        var wrapClassName = TypeSymbolHelper.GetWrapClassName(wrapInterfaceName);
         var namespaceName = SyntaxHelper.GetNamespaceName(interfaceSyntax);
 
         return new HttpClientWrapApiInfo(

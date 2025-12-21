@@ -7,7 +7,7 @@
 
 namespace Mud.CodeGenerator.Helper;
 
-internal sealed class InterfaceHelper
+internal sealed class TypeSymbolHelper
 {
     #region 类型信息获取
 
@@ -324,5 +324,91 @@ internal sealed class InterfaceHelper
 
         return false;
     }
+    #endregion
+
+    #region Type Display Helpers
+
+    /// <summary>
+    /// 获取参数类型的显示字符串，正确处理多维数组、交错数组和泛型类型
+    /// </summary>
+    /// <param name="typeSymbol">类型符号</param>
+    /// <returns>正确的类型显示字符串</returns>
+    public static string GetParameterTypeDisplayString(ITypeSymbol typeSymbol)
+    {
+        if (typeSymbol == null)
+            return string.Empty;
+
+        // 处理数组类型（包括多维数组和交错数组）
+        if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol)
+        {
+            return GetArrayTypeDisplayString(arrayTypeSymbol);
+        }
+
+        // 处理指针类型
+        if (typeSymbol is IPointerTypeSymbol pointerTypeSymbol)
+        {
+            return GetParameterTypeDisplayString(pointerTypeSymbol.PointedAtType) + "*";
+        }
+
+        // 处理可为null的值类型（Nullable<T>）
+        if (typeSymbol.IsValueType && typeSymbol.NullableAnnotation == NullableAnnotation.Annotated)
+        {
+            var underlyingType = ((INamedTypeSymbol)typeSymbol).TypeArguments[0];
+            return GetParameterTypeDisplayString(underlyingType) + "?";
+        }
+
+        // 对于非数组类型，使用适当的显示格式
+        var displayFormat = new SymbolDisplayFormat(
+            globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.Omitted,
+            typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
+            genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
+            miscellaneousOptions: SymbolDisplayMiscellaneousOptions.UseSpecialTypes |
+                               SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier,
+            parameterOptions: SymbolDisplayParameterOptions.IncludeType,
+            propertyStyle: SymbolDisplayPropertyStyle.ShowReadWriteDescriptor,
+            localOptions: SymbolDisplayLocalOptions.IncludeType,
+            memberOptions: SymbolDisplayMemberOptions.IncludeType |
+                         SymbolDisplayMemberOptions.IncludeParameters |
+                         SymbolDisplayMemberOptions.IncludeContainingType,
+            delegateStyle: SymbolDisplayDelegateStyle.NameAndSignature,
+            extensionMethodStyle: SymbolDisplayExtensionMethodStyle.StaticMethod);
+
+        return typeSymbol.ToDisplayString(displayFormat);
+    }
+
+    /// <summary>
+    /// 专门处理数组类型的显示字符串
+    /// </summary>
+    private static string GetArrayTypeDisplayString(IArrayTypeSymbol arrayTypeSymbol)
+    {
+        // 递归获取元素类型的显示字符串
+        var elementTypeDisplay = GetParameterTypeDisplayString(arrayTypeSymbol.ElementType);
+
+        // 处理多维数组
+        if (arrayTypeSymbol.Rank > 1)
+        {
+            // 对于多维数组，使用逗号表示维度，例如 int[,] 或 string[,,]
+            var commas = new string(',', arrayTypeSymbol.Rank - 1);
+            return $"{elementTypeDisplay}[{commas}]";
+        }
+        // 处理一维数组（包括交错数组）
+        else
+        {
+            // 对于一维数组，检查元素类型是否也是数组（交错数组）
+            if (arrayTypeSymbol.ElementType is IArrayTypeSymbol)
+            {
+                // 交错数组：int[][], string[][][] 等
+                // 元素类型已经包含了自己的[]，所以这里不需要额外处理
+                // 但需要确保格式正确，例如 int[][] 而不是 int[] []
+                return elementTypeDisplay + "[]";
+            }
+            else
+            {
+                // 普通一维数组
+                return $"{elementTypeDisplay}[]";
+            }
+        }
+    }
+
     #endregion
 }

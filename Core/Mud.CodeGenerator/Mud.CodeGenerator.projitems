@@ -24,6 +24,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Helper\SyntaxNodeHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Model\ClassHierarchyInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)TransitiveCodeGenerator.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Helper\InterfaceHelper.cs" />
+    <Compile Include="..\Mud.CodeGenerator\Helper\TypeSymbolHelper.cs" />
   </ItemGroup>
 </Project>

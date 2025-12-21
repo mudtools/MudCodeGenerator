@@ -95,13 +95,13 @@ internal class InterfaceImpCodeGenerator
 
         GenerateImplementationClass();
 
-        var className = InterfaceHelper.GetImplementationClassName(_interfaceSymbol.Name);
+        var className = TypeSymbolHelper.GetImplementationClassName(_interfaceSymbol.Name);
         _context.AddSource($"{className}.g.cs", SourceText.From(_codeBuilder.ToString(), Encoding.UTF8));
     }
 
     private void GenerateImplementationClass()
     {
-        var className = InterfaceHelper.GetImplementationClassName(_interfaceSymbol.Name);
+        var className = TypeSymbolHelper.GetImplementationClassName(_interfaceSymbol.Name);
         var namespaceName = SyntaxHelper.GetNamespaceName(_interfaceDecl);
 
         GenerateClassStructure(className, namespaceName);
@@ -175,7 +175,7 @@ internal class InterfaceImpCodeGenerator
             InheritedFrom = _inheritedFrom,
             TokenManager = _tokenManage,
             TokenManagerType = !string.IsNullOrEmpty(_tokenManage)
-                ? InterfaceHelper.GetrTypeAllDisplayString(_compilation, _tokenManage!)
+                ? TypeSymbolHelper.GetrTypeAllDisplayString(_compilation, _tokenManage!)
                 : null
         };
     }
@@ -388,7 +388,7 @@ internal class InterfaceImpCodeGenerator
         // 根据IsAbstract和InheritedFrom决定是否包含父接口方法
         var includeParentInterfaces = GetIncludeParentInterfaces();
 
-        IEnumerable<IMethodSymbol> methodsToGenerate = InterfaceHelper.GetAllMethods(_interfaceSymbol, includeParentInterfaces);
+        IEnumerable<IMethodSymbol> methodsToGenerate = TypeSymbolHelper.GetAllMethods(_interfaceSymbol, includeParentInterfaces);
 
         foreach (var methodSymbol in methodsToGenerate)
         {
@@ -422,9 +422,9 @@ internal class InterfaceImpCodeGenerator
         var model = _compilation.GetSemanticModel(_interfaceDecl.SyntaxTree);
 
         var hasTokenManager = !string.IsNullOrEmpty(_tokenManage);
-        var tokenManagerType = hasTokenManager ? InterfaceHelper.GetrTypeAllDisplayString(_compilation, _tokenManage!) : null;
-        var hasAuthorizationHeader = InterfaceHelper.HasPropertyAttribute(_interfaceSymbol!, "Header", "Authorization");
-        var hasAuthorizationQuery = InterfaceHelper.HasPropertyAttribute(_interfaceSymbol!, "Query", "Authorization");
+        var tokenManagerType = hasTokenManager ? TypeSymbolHelper.GetrTypeAllDisplayString(_compilation, _tokenManage!) : null;
+        var hasAuthorizationHeader = TypeSymbolHelper.HasPropertyAttribute(_interfaceSymbol!, "Header", "Authorization");
+        var hasAuthorizationQuery = TypeSymbolHelper.HasPropertyAttribute(_interfaceSymbol!, "Query", "Authorization");
 
         _codeBuilder.AppendLine();
         _codeBuilder.AppendLine($"        /// <summary>");
@@ -433,7 +433,7 @@ internal class InterfaceImpCodeGenerator
         _codeBuilder.AppendLine($"        {GeneratedCodeConsts.GeneratedCodeAttribute}");
         // 根据方法返回类型决定是否添加 async 关键字
         var asyncKeyword = methodInfo.IsAsyncMethod ? "async " : "";
-        _codeBuilder.AppendLine($"        public {asyncKeyword}{methodSymbol.ReturnType} {methodSymbol.Name}({InterfaceHelper.GetParameterList(methodSymbol)})");
+        _codeBuilder.AppendLine($"        public {asyncKeyword}{methodSymbol.ReturnType} {methodSymbol.Name}({TypeSymbolHelper.GetParameterList(methodSymbol)})");
         _codeBuilder.AppendLine("        {");
 
         // 如果需要Token管理器，获取access_token
@@ -494,7 +494,7 @@ internal class InterfaceImpCodeGenerator
     private void GenerateClassPartialMethods()
     {
         var includeParentInterfaces = GetIncludeParentInterfaces();
-        IEnumerable<IMethodSymbol> methodsToProcess = InterfaceHelper.GetAllMethods(_interfaceSymbol, includeParentInterfaces);
+        IEnumerable<IMethodSymbol> methodsToProcess = TypeSymbolHelper.GetAllMethods(_interfaceSymbol, includeParentInterfaces);
 
         var processedMethods = new HashSet<string>();
 
@@ -506,7 +506,7 @@ internal class InterfaceImpCodeGenerator
             GenerateMethodPartialMethods(methodSymbol.Name);
         }
 
-        var interfaceName = InterfaceHelper.GetImplementationClassName(_interfaceSymbol.Name);
+        var interfaceName = TypeSymbolHelper.GetImplementationClassName(_interfaceSymbol.Name);
         if (processedMethods.Add(interfaceName))
         {
             GenerateInterfacePartialMethods(interfaceName);
@@ -867,7 +867,7 @@ internal class InterfaceImpCodeGenerator
     private void GenerateRequestExecution(MethodAnalysisResult methodInfo)
     {
         var (cancellationTokenArg, _) = GetCancellationTokenParams(methodInfo);
-        var interfaceName = InterfaceHelper.GetImplementationClassName(methodInfo.CurrentInterfaceName);
+        var interfaceName = TypeSymbolHelper.GetImplementationClassName(methodInfo.CurrentInterfaceName);
 
         _codeBuilder.AppendLine("            try");
         _codeBuilder.AppendLine("            {");

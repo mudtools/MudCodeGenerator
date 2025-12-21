@@ -132,7 +132,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
                 continue;
 
             var propertyName = member.Name;
-            var propertyType = member.Type.ToDisplayString();
+            var propertyType = TypeSymbolHelper.GetParameterTypeDisplayString(member.Type);
             var isObjectType = IsComObjectType(member.Type);
             if (!isObjectType)
                 continue;
@@ -158,7 +158,6 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             if (!needDispose)
                 continue;
             var propertyName = member.Name;
-            var propertyType = member.Type.ToDisplayString();
             var isObjectType = IsComObjectType(member.Type);
             if (!isObjectType)
                 continue;
@@ -215,7 +214,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     {
         var fieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
         var propertyName = propertySymbol.Name;
-        var propertyType = propertySymbol.Type.ToDisplayString();
+        var propertyType = TypeSymbolHelper.GetParameterTypeDisplayString(propertySymbol.Type);
 
         sb.AppendLine($"        ///  <inheritdoc/>");
         sb.AppendLine($"        {GeneratedCodeAttribute}");
@@ -303,7 +302,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     {
         var comNamespace = GetComNamespace(interfaceDeclaration);
         var propertyName = propertySymbol.Name;
-        var propertyType = propertySymbol.Type.ToDisplayString();
+        var propertyType = TypeSymbolHelper.GetParameterTypeDisplayString(propertySymbol.Type);
         var objectType = StringExtensions.RemoveInterfacePrefix(propertyType);
         var constructType = GetImplementationType(objectType);
 
@@ -365,7 +364,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     private void GenerateEnumProperty(StringBuilder sb, IPropertySymbol propertySymbol, InterfaceDeclarationSyntax interfaceDeclaration)
     {
         var propertyName = propertySymbol.Name;
-        var propertyType = propertySymbol.Type.ToDisplayString();
+        var propertyType = TypeSymbolHelper.GetParameterTypeDisplayString(propertySymbol.Type);
         var comNamespace = GetComNamespace(interfaceDeclaration);
         var comClassName = GetComClassName(interfaceDeclaration);
         var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
@@ -420,7 +419,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         sb.AppendLine("        #region 方法实现");
         sb.AppendLine();
 
-        foreach (var member in InterfaceHelper.GetAllMethods(interfaceSymbol, excludedInterfaces: new[] { "IDisposable", "System.IDisposable", "System.Collections.Generic.IEnumerable" }))
+        foreach (var member in TypeSymbolHelper.GetAllMethods(interfaceSymbol, excludedInterfaces: new[] { "IDisposable", "System.IDisposable", "System.Collections.Generic.IEnumerable" }))
         {
             if (member.MethodKind == MethodKind.Ordinary && !ShouldIgnoreMember(member))
             {
@@ -464,12 +463,12 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         IMethodSymbol methodSymbol)
     {
         var methodName = methodSymbol.Name;
-        var returnType = methodSymbol.ReturnType.ToDisplayString();
+        var returnType = TypeSymbolHelper.GetParameterTypeDisplayString(methodSymbol.ReturnType);
         var parameters = new List<string>();
 
         foreach (var param in methodSymbol.Parameters)
         {
-            var paramType = param.Type.ToDisplayString();
+            var paramType = TypeSymbolHelper.GetParameterTypeDisplayString(param.Type);
             var paramName = param.Name;
             var refKind = param.RefKind;
 
@@ -542,7 +541,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     {
         foreach (var param in methodSymbol.Parameters)
         {
-            var pType = param.Type.ToDisplayString();
+            var pType = TypeSymbolHelper.GetParameterTypeDisplayString(param.Type);
             bool isEnumType = IsEnumType(param.Type);
             bool isObjectType = IsComObjectType(param.Type);
             bool hasConvertTriState = HasConvertTriStateAttribute(param);
@@ -557,7 +556,8 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
                 comNamespace = paramcomNamespace;
 
             var enumValueName = GetEnumValueWithoutNamespace(defaultValue);
-            var constructType = GetImplementationType(param.Type.ToDisplayString());
+            // 对于枚举类型，直接使用类型名，不需要转换为实现类型
+            var constructType = isEnumType ? TypeSymbolHelper.GetParameterTypeDisplayString(param.Type) : GetImplementationType(TypeSymbolHelper.GetParameterTypeDisplayString(param.Type));
 
             // 处理out参数
             if (isOut)
@@ -588,7 +588,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
 
         var needConvert = AttributeDataHelper.HasAttribute(methodSymbol, ComWrapConstants.ReturnValueConvertAttributes);
-        string returnType = methodSymbol.ReturnType.ToDisplayString();
+        string returnType = TypeSymbolHelper.GetParameterTypeDisplayString(methodSymbol.ReturnType);
         var isEnunType = IsEnumType(methodSymbol.ReturnType);
         var defaultValue = GetDefaultValue(interfaceDeclaration, methodSymbol, methodSymbol.ReturnType);
         sb.AppendLine("            try");
@@ -673,7 +673,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 
         foreach (var param in methodSymbol.Parameters)
         {
-            var pType = param.Type.ToDisplayString();
+            var pType = TypeSymbolHelper.GetParameterTypeDisplayString(param.Type);
             bool isEnumType = IsEnumType(param.Type);
             bool isObjectType = IsComObjectType(param.Type);
             bool hasConvertTriState = HasConvertTriStateAttribute(param);
@@ -709,7 +709,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             if (param.RefKind != RefKind.Out)
                 continue;
 
-            var pType = param.Type.ToDisplayString();
+            var pType = TypeSymbolHelper.GetParameterTypeDisplayString(param.Type);
             bool isEnumType = IsEnumType(param.Type);
             bool isObjectType = IsComObjectType(param.Type);
             bool convertToInteger = AttributeDataHelper.HasAttribute(param, ComWrapConstants.ConvertIntAttributeNames);
@@ -802,7 +802,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         if (value == null)
             return "null";
 
-        var type = parameter.Type.ToDisplayString();
+        var type = TypeSymbolHelper.GetParameterTypeDisplayString(parameter.Type);
         var typeSymbol = parameter.Type;
 
         // 处理枚举类型
@@ -1585,5 +1585,4 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         }
     }
     #endregion
-
 }

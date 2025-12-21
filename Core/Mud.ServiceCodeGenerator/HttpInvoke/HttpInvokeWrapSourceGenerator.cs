@@ -128,7 +128,7 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
     {
         if (compilation == null || interfaceSymbol == null || sb == null) return;
 
-        var allMethods = InterfaceHelper.GetAllMethods(interfaceSymbol);
+        var allMethods = TypeSymbolHelper.GetAllMethods(interfaceSymbol);
 
         foreach (var methodSymbol in allMethods)
         {
