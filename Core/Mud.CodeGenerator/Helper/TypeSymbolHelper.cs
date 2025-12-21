@@ -17,7 +17,7 @@ internal sealed class TypeSymbolHelper
     /// <param name="compilation">编译对象</param>
     /// <param name="typeName">类型或接口名称</param>
     /// <returns>类型或接口的完整命名空间</returns>
-    public static string GetrTypeAllDisplayString(Compilation compilation, string typeName)
+    public static string GetTypeAllDisplayString(Compilation compilation, string typeName)
     {
         if (compilation != null)
         {

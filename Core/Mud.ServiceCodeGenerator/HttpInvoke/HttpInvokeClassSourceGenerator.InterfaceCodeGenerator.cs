@@ -175,7 +175,7 @@ internal class InterfaceImpCodeGenerator
             InheritedFrom = _inheritedFrom,
             TokenManager = _tokenManage,
             TokenManagerType = !string.IsNullOrEmpty(_tokenManage)
-                ? TypeSymbolHelper.GetrTypeAllDisplayString(_compilation, _tokenManage!)
+                ? TypeSymbolHelper.GetTypeAllDisplayString(_compilation, _tokenManage!)
                 : null
         };
     }
@@ -422,7 +422,7 @@ internal class InterfaceImpCodeGenerator
         var model = _compilation.GetSemanticModel(_interfaceDecl.SyntaxTree);
 
         var hasTokenManager = !string.IsNullOrEmpty(_tokenManage);
-        var tokenManagerType = hasTokenManager ? TypeSymbolHelper.GetrTypeAllDisplayString(_compilation, _tokenManage!) : null;
+        var tokenManagerType = hasTokenManager ? TypeSymbolHelper.GetTypeAllDisplayString(_compilation, _tokenManage!) : null;
         var hasAuthorizationHeader = TypeSymbolHelper.HasPropertyAttribute(_interfaceSymbol!, "Header", "Authorization");
         var hasAuthorizationQuery = TypeSymbolHelper.HasPropertyAttribute(_interfaceSymbol!, "Query", "Authorization");
 
