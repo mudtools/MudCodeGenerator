@@ -241,10 +241,15 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         {
             sb.AppendLine("            set");
             sb.AppendLine("            {");
-
+            sb.AppendLine($"                if ({fieldName} == null)");
+            sb.AppendLine($"                    throw new ObjectDisposedException(nameof({fieldName}));");
 
             if (propertyType.EndsWith("?", StringComparison.Ordinal))
             {
+                sb.AppendLine($"                if (value == null)");
+                sb.AppendLine($"                    throw new ArgumentNullException(nameof(value));");
+
+
                 string setValue = "value.Value";
                 if (ShouldUseDirectValueForNullable(propertyType))
                     setValue = "value";
@@ -252,8 +257,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
                 {
                     setValue = $"value.Value.ConvertTriState()";
                 }
-                sb.AppendLine($"                if ({fieldName} != null && value != null)");
-                sb.AppendLine($"                    {fieldName}.{propertyName} = {setValue};");
+                sb.AppendLine($"                {fieldName}.{propertyName} = {setValue};");
             }
             else
             {
@@ -266,8 +270,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
                         setValue = $"ColorHelper.ConvertToComColor(value)";
 
                 }
-                sb.AppendLine($"                if ({fieldName} != null)");
-                sb.AppendLine($"                    {fieldName}.{propertyName} = {setValue};");
+                sb.AppendLine($"                {fieldName}.{propertyName} = {setValue};");
             }
             sb.AppendLine("            }");
         }
@@ -338,11 +341,14 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         {
             sb.AppendLine("             set");
             sb.AppendLine("             {");
-            sb.AppendLine($"                if ({privateFieldName} != null && value != null)");
-            sb.AppendLine($"                {{");
-            sb.AppendLine($"                    var comObj = (({constructType})value).InternalComObject;");
-            sb.AppendLine($"                    {privateFieldName}.{propertyName} = comObj;");
-            sb.AppendLine($"                }}");
+            sb.AppendLine($"                if ({privateFieldName} == null )");
+            sb.AppendLine($"                    throw new ObjectDisposedException(nameof({privateFieldName}));");
+            sb.AppendLine($"                if (value != null)");
+            sb.AppendLine($"                    throw new ArgumentNullException(nameof(value));");
+
+            sb.AppendLine($"                var comObj = (({constructType})value).InternalComObject;");
+            sb.AppendLine($"                {privateFieldName}.{propertyName} = comObj;");
+
             sb.AppendLine("             }");
         }
         sb.AppendLine("        }");
@@ -384,10 +390,16 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 
         if (propertySymbol.SetMethod != null)
         {
+            var isConvertIntIndex = AttributeDataHelper.HasAttribute(propertySymbol, ComWrapConstants.ConvertIntAttributeNames);
             sb.AppendLine("            set");
             sb.AppendLine("            {");
-            sb.AppendLine($"                if ({privateFieldName} != null)");
-            sb.AppendLine($"                    {privateFieldName}.{propertyName} = value.EnumConvert({comNamespace}.{enumValueName});");
+            sb.AppendLine($"                if({privateFieldName} == null)");
+            sb.AppendLine($"                    throw new ObjectDisposedException(nameof({privateFieldName}));");
+
+            if (isConvertIntIndex)
+                sb.AppendLine($"                {privateFieldName}.{propertyName} = value.ConvertToInt();");
+            else
+                sb.AppendLine($"                {privateFieldName}.{propertyName} = value.EnumConvert({comNamespace}.{enumValueName});");
             sb.AppendLine("            }");
         }
         sb.AppendLine("        }");
