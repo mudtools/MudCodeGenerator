@@ -457,6 +457,7 @@ internal class InterfaceImpCodeGenerator
                 _codeBuilder.AppendLine($"            {{");
                 _codeBuilder.AppendLine($"                throw new ArgumentNullException(nameof({para.Name}));");
                 _codeBuilder.AppendLine($"            }}");
+                _codeBuilder.AppendLine($"            {para.Name} = {para.Name}.Trim();");
             }
         }
 
@@ -614,12 +615,12 @@ internal class InterfaceImpCodeGenerator
             if (isAbsoluteUrl)
             {
                 // 绝对 URL 直接使用
-                urlCode = $"            var url = \"{urlTemplate}\";";
+                urlCode = $"            var url = $\"{urlTemplate}\";";
             }
             else
             {
                 // 相对 URL 需要与 BaseAddress 组合
-                urlCode = $"            var url = \"{urlTemplate}\";";
+                urlCode = $"            var url = $\"{urlTemplate}\";";
             }
         }
         else
