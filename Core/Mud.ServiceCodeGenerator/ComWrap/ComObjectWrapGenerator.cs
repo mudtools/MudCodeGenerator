@@ -45,7 +45,7 @@ public class ComObjectWrapGenerator : ComObjectWrapBaseGenerator
 
         var namespaceName = SyntaxHelper.GetNamespaceName(interfaceDeclaration);
         var interfaceName = interfaceSymbol.Name;
-        var className = GetImplementationClassName(interfaceName);
+        var className = TypeSymbolHelper.GetImplementationClassName(interfaceName);
 
         // 添加Imps命名空间
         var impNamespace = $"{namespaceName}.Imps";

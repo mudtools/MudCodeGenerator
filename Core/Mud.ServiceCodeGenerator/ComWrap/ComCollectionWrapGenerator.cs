@@ -40,7 +40,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
 
         var namespaceName = SyntaxHelper.GetNamespaceName(interfaceDeclaration);
         var interfaceName = interfaceSymbol.Name;
-        var className = GetImplementationClassName(interfaceName);
+        var className = TypeSymbolHelper.GetImplementationClassName(interfaceName);
 
         // 添加Imps命名空间
         var impNamespace = $"{namespaceName}.Imps";
@@ -353,7 +353,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
             var param = parameters[i];
             var paramName = parameterNames[i];
             var paramType = param.Type.ToString();
-            var paramEnumType = IsEnumType(param.Type);
+            var paramEnumType = TypeSymbolHelper.IsEnumType(param.Type);
 
             // 添加通用对象检查
             if (!isGetMethod)
@@ -481,7 +481,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         string operationType)
     {
         var comNamespace = GetComNamespace(interfaceDeclaration);
-        var isEnumType = IsEnumType(indexerSymbol.Type);
+        var isEnumType = TypeSymbolHelper.IsEnumType(indexerSymbol.Type);
         var defaultValue = GetDefaultValue(interfaceDeclaration, indexerSymbol, indexerSymbol.Type);
         var needConvert = IsNeedConvert(indexerSymbol);
         sb.AppendLine("                try");
@@ -495,7 +495,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
             sb.AppendLine($"                    var comElement = {privateFieldName}[{parameterName}];");
         }
 
-        if (IsBasicType(elementImplType) || isEnumType)
+        if (TypeSymbolHelper.IsBasicType(elementImplType) || isEnumType)
         {
             if (isEnumType)
                 sb.AppendLine($"                    return comElement.EnumConvert({defaultValue});");
@@ -559,7 +559,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         string parameterName,
         string valueExpression)
     {
-        var isEnumType = IsEnumType(indexerSymbol.Type);
+        var isEnumType = TypeSymbolHelper.IsEnumType(indexerSymbol.Type);
         sb.AppendLine("                try");
         sb.AppendLine("                {");
         // 处理value表达式，根据类型进行转换
@@ -597,7 +597,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         string privateFieldName,
         string[] processedParameters)
     {
-        var isEnumType = IsEnumType(indexerSymbol.Type);
+        var isEnumType = TypeSymbolHelper.IsEnumType(indexerSymbol.Type);
 
         // 处理value表达式，根据类型进行转换
         string setValue = "value";
@@ -610,12 +610,12 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         {
             setValue = $"{setValue}.EnumUnderlyingValue()";
         }
-        else if (IsComObjectType(indexerSymbol.Type))
+        else if (TypeSymbolHelper.IsComplexObjectType(indexerSymbol.Type))
         {
             var constructType = GetImplementationType(indexerSymbol.Type.Name);
             setValue = $"(({constructType}){setValue}).InternalComObject";
         }
-        else if (!IsBasicType(elementImplType))
+        else if (!TypeSymbolHelper.IsBasicType(elementImplType))
         {
             var constructType = GetImplementationType(indexerSymbol.Type.Name);
             setValue = $"(({constructType}){setValue}).InternalComObject";
@@ -658,7 +658,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         string processedParam2)
     {
         var comNamespace = GetComNamespace(interfaceDeclaration);
-        var isEnumType = IsEnumType(indexerSymbol.Type);
+        var isEnumType = TypeSymbolHelper.IsEnumType(indexerSymbol.Type);
         var defaultValue = GetDefaultValue(interfaceDeclaration, indexerSymbol, indexerSymbol.Type);
         var needConvert = IsNeedConvert(indexerSymbol);
 
@@ -673,7 +673,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
             sb.AppendLine($"                    var comElement = {privateFieldName}[{processedParam1}, {processedParam2}];");
         }
 
-        if (IsBasicType(elementImplType) || isEnumType)
+        if (TypeSymbolHelper.IsBasicType(elementImplType) || isEnumType)
         {
             if (isEnumType)
                 sb.AppendLine($"                    return comElement.EnumConvert({defaultValue});");
@@ -725,7 +725,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         var comClassName = GetComClassName(interfaceDeclaration);
         var ordinalComType = GetOrdinalComType(elementType.Name);
         var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
-        var isEnumType = IsEnumType(elementType);
+        var isEnumType = TypeSymbolHelper.IsEnumType(elementType);
         var defaultValue = GetDefaultValue(interfaceDeclaration, elementType, elementType);
         var elementImplType = GetImplementationType(elementType.ToDisplayString());
         var isNoneEnumerableObj = AttributeDataHelper.HasAttribute(interfaceSymbol, ComWrapConstants.NoneEnumerableAttributes);
@@ -749,7 +749,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         {
             sb.AppendLine($"            foreach (var item in {privateFieldName})");
             sb.AppendLine("            {");
-            if (IsBasicType(elementImplType) || isEnumType)
+            if (TypeSymbolHelper.IsBasicType(elementImplType) || isEnumType)
             {
                 if (isEnumType)
                     sb.AppendLine($"                var returnValue = item.ObjectConvertEnum<{elementType}>();");

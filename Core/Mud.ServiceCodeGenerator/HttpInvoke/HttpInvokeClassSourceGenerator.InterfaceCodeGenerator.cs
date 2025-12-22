@@ -447,6 +447,19 @@ internal class InterfaceImpCodeGenerator
             _codeBuilder.AppendLine();
         }
 
+        foreach (var para in methodInfo.Parameters)
+        {
+            if (para.Type.EndsWith("?", StringComparison.Ordinal))
+                continue;
+            if (para.Type.EndsWith("string", StringComparison.OrdinalIgnoreCase))
+            {
+                _codeBuilder.AppendLine($"            if (string.IsNullOrEmpty({para.Name}))");
+                _codeBuilder.AppendLine($"            {{");
+                _codeBuilder.AppendLine($"                throw new ArgumentNullException(nameof({para.Name}));");
+                _codeBuilder.AppendLine($"            }}");
+            }
+        }
+
         GenerateRequestSetup(methodInfo);
         GenerateParameterHandling(methodInfo);
 

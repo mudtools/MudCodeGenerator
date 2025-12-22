@@ -411,4 +411,81 @@ internal sealed class TypeSymbolHelper
     }
 
     #endregion
+
+    #region 对象类型判断
+
+    /// <summary>
+    /// 检查是否为.net基本数据类型
+    /// </summary>
+    /// <param name="typeName">类型名称</param>
+    /// <returns>如果是基本类型返回true，否则返回false</returns>
+    public static bool IsBasicType(string typeName)
+    {
+        return typeName switch
+        {
+            "string" or "string?" => true,
+            "int" or "int?" => true,
+            "short" or "short?" => true,
+            "long" or "long?" => true,
+            "float" or "float?" => true,
+            "double" or "double?" => true,
+            "decimal" or "decimal?" => true,
+            "bool" or "bool?" => true,
+            "byte" or "byte?" => true,
+            "char" or "char?" => true,
+            "uint" or "uint?" => true,
+            "ushort" or "ushort?" => true,
+            "ulong" or "ulong?" => true,
+            "sbyte" or "sbyte?" => true,
+            "object" or "object?" => true,
+            _ => false
+        };
+    }
+
+    /// <summary>
+    /// 通过语义分析判断类型是否为.net枚举类型
+    /// </summary>
+    /// <param name="typeSymbol">类型符号</param>
+    /// <returns>如果是枚举类型返回true，否则返回false</returns>
+    public static bool IsEnumType(ITypeSymbol typeSymbol)
+    {
+        if (typeSymbol == null)
+            return false;
+        // 首先检查是否是直接的枚举类型
+        if (typeSymbol.TypeKind == TypeKind.Enum)
+            return true;
+
+        // 如果是可空类型，获取其底层类型再检查
+        if (typeSymbol is INamedTypeSymbol namedType && namedType.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T)
+        {
+            var underlyingType = namedType.TypeArguments.FirstOrDefault();
+            return underlyingType?.TypeKind == TypeKind.Enum;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 通过语义分析判断类型是否为复杂对象类型
+    /// </summary>
+    /// <param name="typeSymbol">类型符号</param>
+    /// <returns>如果是复杂对象类型返回true，否则返回false</returns>
+    public static bool IsComplexObjectType(ITypeSymbol typeSymbol)
+    {
+        if (typeSymbol == null)
+            return false;
+        // 首先检查是否是直接的枚举类型
+        if (typeSymbol.TypeKind == TypeKind.Interface)
+            return true;
+        // 如果是可空类型，获取其底层类型再检查
+        if (typeSymbol is INamedTypeSymbol namedType &&
+            namedType.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T)
+        {
+            var underlyingType = namedType.TypeArguments.FirstOrDefault();
+            return underlyingType?.TypeKind == TypeKind.Interface;
+        }
+
+        return false;
+    }
+    #endregion
 }

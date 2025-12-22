@@ -133,7 +133,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 
             var propertyName = member.Name;
             var propertyType = TypeSymbolHelper.GetParameterTypeDisplayString(member.Type);
-            var isObjectType = IsComObjectType(member.Type);
+            var isObjectType = TypeSymbolHelper.IsComplexObjectType(member.Type);
             if (!isObjectType)
                 continue;
 
@@ -158,7 +158,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             if (!needDispose)
                 continue;
             var propertyName = member.Name;
-            var isObjectType = IsComObjectType(member.Type);
+            var isObjectType = TypeSymbolHelper.IsComplexObjectType(member.Type);
             if (!isObjectType)
                 continue;
 
@@ -183,8 +183,8 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         if (sb == null || propertySymbol == null || interfaceDeclaration == null)
             return;
 
-        var isEnumType = IsEnumType(propertySymbol.Type);
-        var isObjectType = IsComObjectType(propertySymbol.Type);
+        var isEnumType = TypeSymbolHelper.IsEnumType(propertySymbol.Type);
+        var isObjectType = TypeSymbolHelper.IsComplexObjectType(propertySymbol.Type);
 
         var comClassName = GetComClassName(interfaceDeclaration);
         var needConvert = IsNeedConvert(propertySymbol);
@@ -542,8 +542,8 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         foreach (var param in methodSymbol.Parameters)
         {
             var pType = TypeSymbolHelper.GetParameterTypeDisplayString(param.Type);
-            bool isEnumType = IsEnumType(param.Type);
-            bool isObjectType = IsComObjectType(param.Type);
+            bool isEnumType = TypeSymbolHelper.IsEnumType(param.Type);
+            bool isObjectType = TypeSymbolHelper.IsComplexObjectType(param.Type);
             bool hasConvertTriState = HasConvertTriStateAttribute(param);
             bool convertToInteger = AttributeDataHelper.HasAttribute(param, ComWrapConstants.ConvertIntAttributeNames);
             bool isOut = param.RefKind == RefKind.Out;
@@ -582,14 +582,14 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         bool hasParameters)
     {
         var methodName = methodSymbol.Name;
-        var isObjectType = IsComObjectType(methodSymbol.ReturnType);
+        var isObjectType = TypeSymbolHelper.IsComplexObjectType(methodSymbol.ReturnType);
         var comClassName = GetComClassName(interfaceDeclaration);
         var comNamespace = GetComNamespace(interfaceDeclaration);
         var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
 
         var needConvert = AttributeDataHelper.HasAttribute(methodSymbol, ComWrapConstants.ReturnValueConvertAttributes);
         string returnType = TypeSymbolHelper.GetParameterTypeDisplayString(methodSymbol.ReturnType);
-        var isEnunType = IsEnumType(methodSymbol.ReturnType);
+        var isEnunType = TypeSymbolHelper.IsEnumType(methodSymbol.ReturnType);
         var defaultValue = GetDefaultValue(interfaceDeclaration, methodSymbol, methodSymbol.ReturnType);
         sb.AppendLine("            try");
         sb.AppendLine("            {");
@@ -674,8 +674,8 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         foreach (var param in methodSymbol.Parameters)
         {
             var pType = TypeSymbolHelper.GetParameterTypeDisplayString(param.Type);
-            bool isEnumType = IsEnumType(param.Type);
-            bool isObjectType = IsComObjectType(param.Type);
+            bool isEnumType = TypeSymbolHelper.IsEnumType(param.Type);
+            bool isObjectType = TypeSymbolHelper.IsComplexObjectType(param.Type);
             bool hasConvertTriState = HasConvertTriStateAttribute(param);
             bool isOut = param.RefKind == RefKind.Out;
 
@@ -710,8 +710,8 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
                 continue;
 
             var pType = TypeSymbolHelper.GetParameterTypeDisplayString(param.Type);
-            bool isEnumType = IsEnumType(param.Type);
-            bool isObjectType = IsComObjectType(param.Type);
+            bool isEnumType = TypeSymbolHelper.IsEnumType(param.Type);
+            bool isObjectType = TypeSymbolHelper.IsComplexObjectType(param.Type);
             bool convertToInteger = AttributeDataHelper.HasAttribute(param, ComWrapConstants.ConvertIntAttributeNames);
 
             if (isEnumType)
@@ -815,7 +815,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         if (type.EndsWith("?", StringComparison.Ordinal))
         {
             var nonNullType = type.TrimEnd('?');
-            if (IsEnumType(parameter.Type) && value != null)
+            if (TypeSymbolHelper.IsEnumType(parameter.Type) && value != null)
             {
                 // 获取非可空枚举类型符号
                 var originalDefinition = typeSymbol.OriginalDefinition;
@@ -955,50 +955,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         return needDispose;
     }
 
-    /// <summary>
-    /// 通过语义分析判断类型是否为枚举类型
-    /// </summary>
-    /// <param name="typeSymbol">类型符号</param>
-    /// <returns>如果是枚举类型返回true，否则返回false</returns>
-    protected bool IsEnumType(ITypeSymbol typeSymbol)
-    {
-        if (typeSymbol == null)
-            return false;
-        // 首先检查是否是直接的枚举类型
-        if (typeSymbol.TypeKind == TypeKind.Enum)
-            return true;
 
-        // 如果是可空类型，获取其底层类型再检查
-        if (typeSymbol is INamedTypeSymbol namedType && namedType.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T)
-        {
-            var underlyingType = namedType.TypeArguments.FirstOrDefault();
-            return underlyingType?.TypeKind == TypeKind.Enum;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// 通过语义分析判断类型是否为COM对象类型
-    /// </summary>
-    /// <param name="typeSymbol">类型符号</param>
-    /// <returns>如果是COM对象类型返回true，否则返回false</returns>
-    protected bool IsComObjectType(ITypeSymbol typeSymbol)
-    {
-        if (typeSymbol == null)
-            return false;
-        // 首先检查是否是直接的枚举类型
-        if (typeSymbol.TypeKind == TypeKind.Interface)
-            return true;
-        // 如果是可空类型，获取其底层类型再检查
-        if (typeSymbol is INamedTypeSymbol namedType && namedType.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T)
-        {
-            var underlyingType = namedType.TypeArguments.FirstOrDefault();
-            return underlyingType?.TypeKind == TypeKind.Interface;
-        }
-
-        return false;
-    }
 
 
     /// <summary>
@@ -1179,24 +1136,6 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
                typeSymbol.Name == "Color";
     }
 
-    /// <summary>
-    /// 根据接口名称获取实现类名称
-    /// </summary>
-    /// <param name="interfaceName">接口名称</param>
-    /// <returns>实现类名称</returns>
-    /// <remarks>
-    /// 如果接口名称以"I"开头且第二个字符为大写，则移除"I"前缀；否则添加"Impl"后缀
-    /// </remarks>
-    protected string GetImplementationClassName(string interfaceName)
-    {
-        if (string.IsNullOrEmpty(interfaceName))
-            return "NullOrEmptyInterfaceName";
-
-        return interfaceName.StartsWith("I", StringComparison.Ordinal) && interfaceName.Length > 1 && char.IsUpper(interfaceName[1])
-            ? interfaceName.Substring(1)
-            : interfaceName + "Impl";
-    }
-
 
     /// <summary>
     /// 从ComObjectWrap特性中获取COM命名空间
@@ -1306,7 +1245,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             return;
 
         var comClassName = GetComClassName(interfaceDeclaration);
-        var impClassName = GetImplementationClassName(interfaceSymbol.Name);
+        var impClassName = TypeSymbolHelper.GetImplementationClassName(interfaceSymbol.Name);
         var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
 
 
@@ -1381,7 +1320,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 
     protected string GetImplementationType(string elementType)
     {
-        if (IsBasicType(elementType))
+        if (TypeSymbolHelper.IsBasicType(elementType))
             return elementType;
 
         // 移除可空标记
@@ -1421,40 +1360,12 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 
     protected string GetImplementationOrdinalType(string elementType)
     {
-        if (IsBasicType(elementType) || string.IsNullOrEmpty(elementType))
+        if (TypeSymbolHelper.IsBasicType(elementType) || string.IsNullOrEmpty(elementType))
             return elementType;
         var types = elementType.Split(['.'], StringSplitOptions.RemoveEmptyEntries);
         if (types.Length > 1)
             return types[types.Length - 1];
         return types[0];
-    }
-
-    /// <summary>
-    /// 检查是否为基本类型
-    /// </summary>
-    /// <param name="typeName">类型名称</param>
-    /// <returns>如果是基本类型返回true，否则返回false</returns>
-    protected static bool IsBasicType(string typeName)
-    {
-        return typeName switch
-        {
-            "string" or "string?" => true,
-            "int" or "int?" => true,
-            "short" or "short?" => true,
-            "long" or "long?" => true,
-            "float" or "float?" => true,
-            "double" or "double?" => true,
-            "decimal" or "decimal?" => true,
-            "bool" or "bool?" => true,
-            "byte" or "byte?" => true,
-            "char" or "char?" => true,
-            "uint" or "uint?" => true,
-            "ushort" or "ushort?" => true,
-            "ulong" or "ulong?" => true,
-            "sbyte" or "sbyte?" => true,
-            "object" or "object?" => true,
-            _ => false
-        };
     }
     #endregion
 
