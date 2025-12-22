@@ -7,8 +7,11 @@
 
 namespace Mud.CodeGenerator.Helper;
 
-internal sealed class TypeSymbolHelper
+internal static class TypeSymbolHelper
 {
+    // 可空类型后缀
+    private const string NullableSuffix = "?";
+
     #region 类型信息获取
 
     /// <summary>
@@ -414,6 +417,36 @@ internal sealed class TypeSymbolHelper
 
     #region 对象类型判断
 
+    // 定义基本类型的完整名称集合（包含别名）
+    private static readonly HashSet<string> BasicTypeNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        // 基本值类型
+        "System.Boolean", "bool",
+        "System.Byte", "byte",
+        "System.SByte", "sbyte",
+        "System.Char", "char",
+        "System.Decimal", "decimal",
+        "System.Double", "double",
+        "System.Single", "float",
+        "System.Int32", "int",
+        "System.UInt32", "uint",
+        "System.Int64", "long",
+        "System.UInt64", "ulong",
+        "System.Int16", "short",
+        "System.UInt16", "ushort",
+        "System.DateTime","DateTime",
+        
+        // 特殊类型
+        "System.IntPtr", "nint",
+        "System.UIntPtr", "nuint",
+        "System.Half",
+        
+        // 引用类型
+        "System.String", "string",
+        "System.Object", "object"
+    };
+
+
     /// <summary>
     /// 检查是否为.net基本数据类型
     /// </summary>
@@ -421,71 +454,142 @@ internal sealed class TypeSymbolHelper
     /// <returns>如果是基本类型返回true，否则返回false</returns>
     public static bool IsBasicType(string typeName)
     {
-        return typeName switch
+        if (string.IsNullOrWhiteSpace(typeName))
+            return false;
+
+        // 处理可空类型
+        string normalizedName = typeName.Trim();
+        if (normalizedName.EndsWith(NullableSuffix, StringComparison.Ordinal))
         {
-            "string" or "string?" => true,
-            "int" or "int?" => true,
-            "short" or "short?" => true,
-            "long" or "long?" => true,
-            "float" or "float?" => true,
-            "double" or "double?" => true,
-            "decimal" or "decimal?" => true,
-            "bool" or "bool?" => true,
-            "byte" or "byte?" => true,
-            "char" or "char?" => true,
-            "uint" or "uint?" => true,
-            "ushort" or "ushort?" => true,
-            "ulong" or "ulong?" => true,
-            "sbyte" or "sbyte?" => true,
-            "object" or "object?" => true,
+            normalizedName = normalizedName.Substring(0, normalizedName.Length - NullableSuffix.Length).Trim();
+        }
+
+        // 检查是否为基本类型
+        return BasicTypeNames.Contains(normalizedName);
+    }
+
+    /// <summary>
+    /// 检查是否为 .NET 基本数据类型（通过类型符号）
+    /// </summary>
+    /// <param name="typeSymbol">类型符号</param>
+    /// <returns>如果是基本类型返回 true，否则返回 false</returns>
+    public static bool IsBasicType(ITypeSymbol typeSymbol)
+    {
+        if (typeSymbol == null)
+            return false;
+
+        // 处理可空类型
+        var typeToCheck = typeSymbol;
+        if (typeSymbol is INamedTypeSymbol { IsValueType: true, ConstructedFrom.SpecialType: SpecialType.System_Nullable_T })
+        {
+            typeToCheck = typeSymbol.GetNullableUnderlyingType();
+        }
+
+        // 检查是否为特殊类型（内置类型）
+        var specialType = typeToCheck.SpecialType;
+        return specialType switch
+        {
+            // 值类型
+            SpecialType.System_Boolean => true,
+            SpecialType.System_Byte => true,
+            SpecialType.System_SByte => true,
+            SpecialType.System_Char => true,
+            SpecialType.System_Decimal => true,
+            SpecialType.System_Double => true,
+            SpecialType.System_Single => true,
+            SpecialType.System_Int32 => true,
+            SpecialType.System_UInt32 => true,
+            SpecialType.System_Int64 => true,
+            SpecialType.System_UInt64 => true,
+            SpecialType.System_Int16 => true,
+            SpecialType.System_UInt16 => true,
+            SpecialType.System_IntPtr => true,
+            SpecialType.System_UIntPtr => true,
+            SpecialType.System_DateTime => true,
+
+            // 引用类型
+            SpecialType.System_String => true,
+            SpecialType.System_Object => true,
+
             _ => false
         };
     }
 
     /// <summary>
-    /// 通过语义分析判断类型是否为.net枚举类型
+    /// 获取可空类型的底层类型（扩展方法）
+    /// </summary>
+    private static ITypeSymbol GetNullableUnderlyingType(this ITypeSymbol typeSymbol)
+    {
+        if (typeSymbol is INamedTypeSymbol { ConstructedFrom.SpecialType: SpecialType.System_Nullable_T } nullableType)
+        {
+            return nullableType.TypeArguments.FirstOrDefault();
+        }
+        return typeSymbol;
+    }
+
+    /// <summary>
+    /// 通过语义分析判断类型是否为 .NET 枚举类型
     /// </summary>
     /// <param name="typeSymbol">类型符号</param>
-    /// <returns>如果是枚举类型返回true，否则返回false</returns>
+    /// <returns>如果是枚举类型返回 true，否则返回 false</returns>
     public static bool IsEnumType(ITypeSymbol typeSymbol)
     {
         if (typeSymbol == null)
             return false;
-        // 首先检查是否是直接的枚举类型
-        if (typeSymbol.TypeKind == TypeKind.Enum)
-            return true;
 
-        // 如果是可空类型，获取其底层类型再检查
-        if (typeSymbol is INamedTypeSymbol namedType && namedType.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T)
+        // 使用模式匹配简化代码
+        return typeSymbol switch
         {
-            var underlyingType = namedType.TypeArguments.FirstOrDefault();
-            return underlyingType?.TypeKind == TypeKind.Enum;
-        }
-
-        return false;
+            { TypeKind: TypeKind.Enum } => true,
+            INamedTypeSymbol { ConstructedFrom.SpecialType: SpecialType.System_Nullable_T } nullableType
+                => nullableType.TypeArguments.FirstOrDefault()?.TypeKind == TypeKind.Enum,
+            _ => false
+        };
     }
 
     /// <summary>
     /// 通过语义分析判断类型是否为复杂对象类型
+    /// （复杂对象：类、结构体、记录等非基本类型）
     /// </summary>
     /// <param name="typeSymbol">类型符号</param>
-    /// <returns>如果是复杂对象类型返回true，否则返回false</returns>
+    /// <returns>如果是复杂对象类型返回 true，否则返回 false</returns>
     public static bool IsComplexObjectType(ITypeSymbol typeSymbol)
     {
         if (typeSymbol == null)
             return false;
-        // 首先检查是否是直接的枚举类型
-        if (typeSymbol.TypeKind == TypeKind.Interface)
-            return true;
-        // 如果是可空类型，获取其底层类型再检查
-        if (typeSymbol is INamedTypeSymbol namedType &&
-            namedType.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T)
+
+        // 首先排除基本类型
+        if (IsBasicType(typeSymbol))
+            return false;
+
+        // 排除枚举类型
+        if (IsEnumType(typeSymbol))
+            return false;
+
+        // 排除委托和指针等特殊类型
+        if (typeSymbol.TypeKind is TypeKind.Delegate or TypeKind.Pointer or TypeKind.Dynamic)
+            return false;
+
+        // 处理可空类型
+        var typeToCheck = typeSymbol;
+        if (typeSymbol is INamedTypeSymbol { ConstructedFrom.SpecialType: SpecialType.System_Nullable_T })
         {
-            var underlyingType = namedType.TypeArguments.FirstOrDefault();
-            return underlyingType?.TypeKind == TypeKind.Interface;
+            typeToCheck = typeSymbol.GetNullableUnderlyingType();
+
+            // 可空的基本类型已经排除，这里只需要检查可空的复杂类型
+            if (IsBasicType(typeToCheck) || IsEnumType(typeToCheck))
+                return false;
         }
 
-        return false;
+        // 复杂对象类型包括：类、结构体、记录、接口、数组等
+        return typeToCheck.TypeKind switch
+        {
+            TypeKind.Class => true,
+            TypeKind.Struct => !IsBasicType(typeToCheck), // 再次确认不是基本结构体
+            TypeKind.Interface => true,
+            TypeKind.Array => true,
+            _ => false
+        };
     }
     #endregion
 }
