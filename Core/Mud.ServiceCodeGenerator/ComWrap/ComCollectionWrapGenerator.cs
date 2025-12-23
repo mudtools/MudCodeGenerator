@@ -388,7 +388,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
 
         switch (paramType)
         {
-            case "int":
+            case "int" or "long" or "float" or "short" or "double":
                 sb.AppendLine($"                if ({paramName} < 1)");
                 sb.AppendLine($"                    throw new IndexOutOfRangeException(\"{paramDescription}索引参数不能少于1\");");
                 break;
