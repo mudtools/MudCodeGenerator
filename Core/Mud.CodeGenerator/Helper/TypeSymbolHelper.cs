@@ -506,6 +506,7 @@ internal static class TypeSymbolHelper
             SpecialType.System_IntPtr => true,
             SpecialType.System_UIntPtr => true,
             SpecialType.System_DateTime => true,
+            SpecialType.System_Array => true,
 
             // 引用类型
             SpecialType.System_String => true,
@@ -657,7 +658,6 @@ internal static class TypeSymbolHelper
             TypeKind.Class => true,
             TypeKind.Struct => !IsBasicType(typeToCheck), // 再次确认不是基本结构体
             TypeKind.Interface => true,
-            TypeKind.Array => true,
             _ => false
         };
     }

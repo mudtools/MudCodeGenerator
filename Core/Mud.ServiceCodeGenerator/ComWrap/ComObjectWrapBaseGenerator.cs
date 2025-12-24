@@ -126,7 +126,8 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         if (interfaceSymbol == null || interfaceDeclaration == null)
             return;
 
-        foreach (var member in interfaceSymbol.GetMembers().OfType<IPropertySymbol>())
+
+        foreach (var member in TypeSymbolHelper.GetAllProperties(interfaceSymbol))
         {
             if (member.IsIndexer)
                 continue;
@@ -238,21 +239,24 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         sb.AppendLine($"        {GeneratedCodeAttribute}");
         sb.AppendLine($"        public {propertyType} {orgPropertyName}");
         sb.AppendLine("        {");
-        sb.AppendLine($"            get");
-        sb.AppendLine("            {");
-        sb.AppendLine($"                if({fieldName} == null)");
-        sb.AppendLine($"                    throw new ObjectDisposedException(nameof({fieldName}));");
+        if (propertySymbol.GetMethod != null)
+        {
+            sb.AppendLine($"            get");
+            sb.AppendLine("            {");
+            sb.AppendLine($"                if({fieldName} == null)");
+            sb.AppendLine($"                    throw new ObjectDisposedException(nameof({fieldName}));");
 
-        if (needConvert)
-        {
-            var convertMethod = GetConvertCode(propertySymbol, $"{GetPropertyGetString(fieldName, propertyName, isMethod)}");
-            sb.AppendLine($"                return {convertMethod};");
+            if (needConvert)
+            {
+                var convertMethod = GetConvertCode(propertySymbol, $"{GetPropertyGetString(fieldName, propertyName, isMethod)}");
+                sb.AppendLine($"                return {convertMethod};");
+            }
+            else
+            {
+                sb.AppendLine($"                return {GetPropertyGetString(fieldName, propertyName, isMethod)};");
+            }
+            sb.AppendLine("             }");
         }
-        else
-        {
-            sb.AppendLine($"                return {GetPropertyGetString(fieldName, propertyName, isMethod)};");
-        }
-        sb.AppendLine("             }");
 
         if (propertySymbol.SetMethod != null)
         {
@@ -334,27 +338,30 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         sb.AppendLine($"        {GeneratedCodeAttribute}");
         sb.AppendLine($"        public {propertyType} {orgPropertyName}");
         sb.AppendLine("        {");
-        sb.AppendLine("             get");
-        sb.AppendLine("             {");
-        sb.AppendLine($"                if({privateFieldName} == null)");
-        sb.AppendLine($"                    throw new ObjectDisposedException(nameof({privateFieldName}));");
-        sb.AppendLine($"                var comObj = {GetPropertyGetString(privateFieldName, propertyName, isMethod)};");
-        sb.AppendLine("                if (comObj == null)");
-        sb.AppendLine("                    return null;");
-        sb.AppendLine($"                if ({fieldName} != null)");
-        sb.AppendLine($"                   return {fieldName};");
-
-        if (!needConvert)
-            sb.AppendLine($"                {fieldName} = new {constructType}(comObj);");
-        else
+        if (propertySymbol.GetMethod != null)
         {
-            var ordinalComType = GetImplementationOrdinalType(propertyType);
-            var comType = GetOrdinalComType(ordinalComType);
-            sb.AppendLine($"                if(comObj is {comNamespace}.{comType} rComObj)");
-            sb.AppendLine($"                    {fieldName} = new {constructType}(rComObj);");
+            sb.AppendLine("             get");
+            sb.AppendLine("             {");
+            sb.AppendLine($"                if({privateFieldName} == null)");
+            sb.AppendLine($"                    throw new ObjectDisposedException(nameof({privateFieldName}));");
+            sb.AppendLine($"                var comObj = {GetPropertyGetString(privateFieldName, propertyName, isMethod)};");
+            sb.AppendLine("                if (comObj == null)");
+            sb.AppendLine("                    return null;");
+            sb.AppendLine($"                if ({fieldName} != null)");
+            sb.AppendLine($"                   return {fieldName};");
+
+            if (!needConvert)
+                sb.AppendLine($"                {fieldName} = new {constructType}(comObj);");
+            else
+            {
+                var ordinalComType = GetImplementationOrdinalType(propertyType);
+                var comType = GetOrdinalComType(ordinalComType);
+                sb.AppendLine($"                if(comObj is {comNamespace}.{comType} rComObj)");
+                sb.AppendLine($"                    {fieldName} = new {constructType}(rComObj);");
+            }
+            sb.AppendLine($"                return {fieldName};");
+            sb.AppendLine("             }");
         }
-        sb.AppendLine($"                return {fieldName};");
-        sb.AppendLine("             }");
 
         if (propertySymbol.SetMethod != null)
         {
@@ -405,12 +412,15 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         sb.AppendLine($"        {GeneratedCodeAttribute}");
         sb.AppendLine($"        public {propertyType} {orgPropertyName}");
         sb.AppendLine("        {");
-        sb.AppendLine("            get");
-        sb.AppendLine("            {");
-        sb.AppendLine($"                if({privateFieldName} == null)");
-        sb.AppendLine($"                    throw new ObjectDisposedException(nameof({privateFieldName}));");
-        sb.AppendLine($"                return {GetPropertyGetString(privateFieldName, propertyName, isMethod)}.EnumConvert({defaultValue});");
-        sb.AppendLine("             }");
+        if (propertySymbol.GetMethod != null)
+        {
+            sb.AppendLine("            get");
+            sb.AppendLine("            {");
+            sb.AppendLine($"                if({privateFieldName} == null)");
+            sb.AppendLine($"                    throw new ObjectDisposedException(nameof({privateFieldName}));");
+            sb.AppendLine($"                return {GetPropertyGetString(privateFieldName, propertyName, isMethod)}.EnumConvert({defaultValue});");
+            sb.AppendLine("             }");
+        }
 
         if (propertySymbol.SetMethod != null)
         {
@@ -849,18 +859,22 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         }
 
         // 处理可空枚举类型
-        if (type.EndsWith("?", StringComparison.Ordinal))
+        if (type.EndsWith("?", StringComparison.Ordinal) && TypeSymbolHelper.IsEnumType(parameter.Type))
         {
-            var nonNullType = type.TrimEnd('?');
-            if (TypeSymbolHelper.IsEnumType(parameter.Type) && value != null)
+            if (value != null)
             {
                 // 获取非可空枚举类型符号
-                var originalDefinition = typeSymbol.OriginalDefinition;
-                if (originalDefinition is INamedTypeSymbol namedType && namedType.TypeArguments.Length > 0)
+                if (parameter.Type is INamedTypeSymbol namedType &&
+                    namedType.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T &&
+                    namedType.TypeArguments.Length > 0)
                 {
                     var enumType = namedType.TypeArguments[0];
                     return GetEnumDefaultValue(enumType, value);
                 }
+            }
+            else
+            {
+                return "null";
             }
         }
 
