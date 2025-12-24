@@ -27,6 +27,9 @@
         [ComPropertyWrap(DefaultValue = "-1", NeedConvert = true)]
         float LeftPadding { get; set; }
 
+        [ComPropertyWrap(DefaultValue = "-1", NeedConvert = true, PropertyName = "LeftPadding")]
+        float LeftPaddinggg { get; set; }
+
         /// <summary>
         /// 获取或设置单元格垂直对齐方式。
         /// </summary>

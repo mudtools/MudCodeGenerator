@@ -25,6 +25,9 @@
         /// <value>一个整数，代表权限的按位组合。</value>
         int Permission { get; }
 
+        [ComPropertyWrap(PropertyName = "Permission")]
+        int Permission1111 { get; }
+
         /// <summary>
         /// 从活动文档的权限集合中删除此用户及其关联的权限集。
         /// 调用此方法后，该接口实例不应再被使用。

@@ -203,6 +203,22 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         }
     }
 
+    private string GetPropertyGetString(string fieldName, string propertyName, bool isMethod)
+    {
+        if (isMethod)
+            return $"{fieldName}.get_{propertyName}()";
+        else
+            return $"{fieldName}.{propertyName}";
+    }
+
+    private string GetPropertySetString(string fieldName, string propertyName, bool isMethod, string setValue)
+    {
+        if (isMethod)
+            return $"{fieldName}.set_{propertyName}({setValue})";
+        else
+            return $"{fieldName}.{propertyName} = {setValue}";
+    }
+
     /// <summary>
     /// 生成普通对象属性实现
     /// </summary>
@@ -213,12 +229,14 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     private void GenerateObjectProperty(StringBuilder sb, IPropertySymbol propertySymbol, InterfaceDeclarationSyntax interfaceDeclaration, bool needConvert, string comClassName)
     {
         var fieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
-        var propertyName = propertySymbol.Name;
+        var propertyName = GetPropertyName(propertySymbol);
+        var isMethod = IsMethod(propertySymbol);
+        var orgPropertyName = propertySymbol.Name;
         var propertyType = TypeSymbolHelper.GetParameterTypeDisplayString(propertySymbol.Type);
 
         sb.AppendLine($"        ///  <inheritdoc/>");
         sb.AppendLine($"        {GeneratedCodeAttribute}");
-        sb.AppendLine($"        public {propertyType} {propertyName}");
+        sb.AppendLine($"        public {propertyType} {orgPropertyName}");
         sb.AppendLine("        {");
         sb.AppendLine($"            get");
         sb.AppendLine("            {");
@@ -227,12 +245,12 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 
         if (needConvert)
         {
-            var convertMethod = GetConvertCode(propertySymbol, $"{fieldName}.{propertyName}");
+            var convertMethod = GetConvertCode(propertySymbol, $"{GetPropertyGetString(fieldName, propertyName, isMethod)}");
             sb.AppendLine($"                return {convertMethod};");
         }
         else
         {
-            sb.AppendLine($"                return {fieldName}.{propertyName};");
+            sb.AppendLine($"                return {GetPropertyGetString(fieldName, propertyName, isMethod)};");
         }
         sb.AppendLine("             }");
 
@@ -256,7 +274,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
                 {
                     setValue = $"value.Value.ConvertTriState()";
                 }
-                sb.AppendLine($"                {fieldName}.{propertyName} = {setValue};");
+                sb.AppendLine($"                {GetPropertySetString(fieldName, propertyName, isMethod, setValue)};");
             }
             else
             {
@@ -269,7 +287,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
                         setValue = $"ColorHelper.ConvertToComColor(value)";
 
                 }
-                sb.AppendLine($"                {fieldName}.{propertyName} = {setValue};");
+                sb.AppendLine($"                {GetPropertySetString(fieldName, propertyName, isMethod, setValue)};");
             }
             sb.AppendLine("            }");
         }
@@ -301,7 +319,9 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
                 string comClassName)
     {
         var comNamespace = GetComNamespace(interfaceDeclaration);
-        var propertyName = propertySymbol.Name;
+        var orgPropertyName = propertySymbol.Name;
+        var propertyName = GetPropertyName(propertySymbol);
+        var isMethod = IsMethod(propertySymbol);
         var propertyType = TypeSymbolHelper.GetParameterTypeDisplayString(propertySymbol.Type);
         var objectType = StringExtensions.RemoveInterfacePrefix(propertyType);
         var constructType = GetImplementationType(objectType);
@@ -312,13 +332,13 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 
         sb.AppendLine($"        ///  <inheritdoc/>");
         sb.AppendLine($"        {GeneratedCodeAttribute}");
-        sb.AppendLine($"        public {propertyType} {propertyName}");
+        sb.AppendLine($"        public {propertyType} {orgPropertyName}");
         sb.AppendLine("        {");
         sb.AppendLine("             get");
         sb.AppendLine("             {");
         sb.AppendLine($"                if({privateFieldName} == null)");
         sb.AppendLine($"                    throw new ObjectDisposedException(nameof({privateFieldName}));");
-        sb.AppendLine($"                var comObj = {privateFieldName}?.{propertyName};");
+        sb.AppendLine($"                var comObj = {GetPropertyGetString(privateFieldName, propertyName, isMethod)};");
         sb.AppendLine("                if (comObj == null)");
         sb.AppendLine("                    return null;");
         sb.AppendLine($"                if ({fieldName} != null)");
@@ -345,8 +365,11 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             sb.AppendLine($"                if (value != null)");
             sb.AppendLine($"                    throw new ArgumentNullException(nameof(value));");
 
-            sb.AppendLine($"                var comObj = (({constructType})value).InternalComObject;");
-            sb.AppendLine($"                {privateFieldName}.{propertyName} = comObj;");
+            sb.AppendLine($"                if(value is {constructType} internalComObject)");
+            sb.AppendLine("                {");
+            sb.AppendLine($"                    var comObj = internalComObject.InternalComObject;");
+            sb.AppendLine($"                    {GetPropertySetString(privateFieldName, propertyName, isMethod, "comObj")};");
+            sb.AppendLine("                }");
 
             sb.AppendLine("             }");
         }
@@ -363,8 +386,10 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
     /// <param name="defaultValue">默认值</param>
     private void GenerateEnumProperty(StringBuilder sb, IPropertySymbol propertySymbol, InterfaceDeclarationSyntax interfaceDeclaration)
     {
-        var propertyName = propertySymbol.Name;
+        var orgPropertyName = propertySymbol.Name;
+        var propertyName = GetPropertyName(propertySymbol);
         var propertyType = TypeSymbolHelper.GetParameterTypeDisplayString(propertySymbol.Type);
+        var isMethod = IsMethod(propertySymbol);
         var comNamespace = GetComNamespace(interfaceDeclaration);
         var comClassName = GetComClassName(interfaceDeclaration);
         var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
@@ -378,13 +403,13 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 
         sb.AppendLine($"        ///  <inheritdoc/>");
         sb.AppendLine($"        {GeneratedCodeAttribute}");
-        sb.AppendLine($"        public {propertyType} {propertyName}");
+        sb.AppendLine($"        public {propertyType} {orgPropertyName}");
         sb.AppendLine("        {");
         sb.AppendLine("            get");
         sb.AppendLine("            {");
         sb.AppendLine($"                if({privateFieldName} == null)");
         sb.AppendLine($"                    throw new ObjectDisposedException(nameof({privateFieldName}));");
-        sb.AppendLine($"                return {privateFieldName}.{propertyName}.EnumConvert({defaultValue});");
+        sb.AppendLine($"                return {GetPropertyGetString(privateFieldName, propertyName, isMethod)}.EnumConvert({defaultValue});");
         sb.AppendLine("             }");
 
         if (propertySymbol.SetMethod != null)
@@ -396,9 +421,9 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             sb.AppendLine($"                    throw new ObjectDisposedException(nameof({privateFieldName}));");
 
             if (isConvertIntIndex)
-                sb.AppendLine($"                {privateFieldName}.{propertyName} = value.ConvertToInt();");
+                sb.AppendLine($"                {GetPropertySetString(privateFieldName, propertyName, isMethod, "value.ConvertToInt()")};");
             else
-                sb.AppendLine($"                {privateFieldName}.{propertyName} = value.EnumConvert({comNamespace}.{enumValueName});");
+                sb.AppendLine($"                {GetPropertySetString(privateFieldName, propertyName, isMethod, $"value.EnumConvert({comNamespace}.{enumValueName})")};");
             sb.AppendLine("            }");
         }
         sb.AppendLine("        }");
@@ -581,12 +606,15 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         InterfaceDeclarationSyntax interfaceDeclaration,
         bool hasParameters)
     {
-        var methodName = methodSymbol.Name;
+        var methodName = AttributeDataHelper.GetStringValueFromSymbol(methodSymbol, ComWrapConstants.MethodNameAttributes, "Name", "");
+        if (string.IsNullOrEmpty(methodName))
+            methodName = methodSymbol.Name;
         var isObjectType = TypeSymbolHelper.IsComplexObjectType(methodSymbol.ReturnType);
         var comClassName = GetComClassName(interfaceDeclaration);
         var comNamespace = GetComNamespace(interfaceDeclaration);
         var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
 
+        var isIndexMethod = AttributeDataHelper.HasAttribute(methodSymbol, ComWrapConstants.MethodIndexAttributes);
         var needConvert = AttributeDataHelper.HasAttribute(methodSymbol, ComWrapConstants.ReturnValueConvertAttributes);
         string returnType = TypeSymbolHelper.GetParameterTypeDisplayString(methodSymbol.ReturnType);
         var isEnunType = TypeSymbolHelper.IsEnumType(methodSymbol.ReturnType);
@@ -599,7 +627,10 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 
         if (returnType == "void")
         {
-            sb.AppendLine($"                {privateFieldName}?.{methodName}({callParameters});");
+            if (isIndexMethod)
+                sb.AppendLine($"                {privateFieldName}?.{methodName}[{callParameters}];");
+            else
+                sb.AppendLine($"                {privateFieldName}?.{methodName}({callParameters});");
 
             // 处理out参数的返回值赋值
             GenerateOutParameterAssignment(sb, methodSymbol, interfaceDeclaration);
@@ -608,7 +639,10 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         {
             var objectType = StringExtensions.RemoveInterfacePrefix(returnType);
             var constructType = GetImplementationType(objectType);
-            sb.AppendLine($"                var comObj = {privateFieldName}?.{methodName}({callParameters});");
+            if (isIndexMethod)
+                sb.AppendLine($"                var comObj = {privateFieldName}?.{methodName}[{callParameters}];");
+            else
+                sb.AppendLine($"                var comObj = {privateFieldName}?.{methodName}({callParameters});");
             sb.AppendLine("                if (comObj == null)");
             if (returnType.EndsWith("?", StringComparison.Ordinal))
                 sb.AppendLine("                    return null;");
@@ -629,7 +663,10 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         }
         else
         {
-            sb.AppendLine($"                var returnValue = {privateFieldName}?.{methodName}({callParameters});");
+            if (isIndexMethod)
+                sb.AppendLine($"                var returnValue = {privateFieldName}?.{methodName}[{callParameters}];");
+            else
+                sb.AppendLine($"                var returnValue = {privateFieldName}?.{methodName}({callParameters});");
             // 处理out参数的返回值赋值
             GenerateOutParameterAssignment(sb, methodSymbol, interfaceDeclaration);
 
@@ -922,8 +959,22 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         if (propertyWrapAttr == null)
             return string.Empty;
 
-        var needConvert = AttributeDataHelper.GetStringValueFromAttribute(propertyWrapAttr, ComWrapConstants.ComNamespaceProperty, string.Empty);
-        return needConvert;
+        var nameSpace = AttributeDataHelper.GetStringValueFromAttribute(propertyWrapAttr, ComWrapConstants.ComNamespaceProperty, string.Empty);
+        return nameSpace;
+    }
+
+    protected string GetPropertyName(IPropertySymbol propertySymbol)
+    {
+        if (propertySymbol == null)
+            return string.Empty;
+        var propertyWrapAttr = AttributeDataHelper.GetAttributeDataFromSymbol(propertySymbol, ComWrapConstants.ComPropertyWrapAttributeNames);
+        if (propertyWrapAttr == null)
+            return propertySymbol.Name;
+
+        var propertyName = AttributeDataHelper.GetStringValueFromAttribute(propertyWrapAttr, ComWrapConstants.PropertyNameProperty, string.Empty);
+        if (string.IsNullOrEmpty(propertyName))
+            return propertySymbol.Name;
+        return propertyName;
     }
 
     /// <summary>
@@ -955,6 +1006,19 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         return needDispose;
     }
 
+    /// <summary>
+    /// 属性是否采用get、set方法进行访问。
+    /// </summary>
+    /// <param name="propertySymbol"></param>
+    /// <returns></returns>
+    protected bool IsMethod(IPropertySymbol propertySymbol)
+    {
+        var propertyData = AttributeDataHelper.GetAttributeDataFromSymbol(propertySymbol, ComWrapConstants.ComPropertyWrapAttributeNames);
+        if (propertyData == null)
+            return false;
+        var isMethod = AttributeDataHelper.GetBoolValueFromAttribute(propertyData, ComWrapConstants.IsMethodProperty, false);
+        return isMethod;
+    }
 
 
 

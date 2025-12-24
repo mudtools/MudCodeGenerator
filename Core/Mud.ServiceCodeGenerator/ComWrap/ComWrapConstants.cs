@@ -34,6 +34,12 @@ internal static class ComWrapConstants
     public static readonly string[] ItemIndexAttributeNames = ["ItemIndexAttribute", "ItemIndex"];
 
     /// <summary>
+    /// 标记方法的访问采用索引方式
+    /// </summary>
+    public static readonly string[] MethodIndexAttributes = ["MethodIndexAttribute", "MethodIndex"];
+
+
+    /// <summary>
     /// 指示当前COM组件不能进行枚举取值
     /// </summary>
     public static readonly string[] NoneEnumerableAttributes = ["NoneEnumerableAttribute", "NoneEnumerable"];
@@ -52,6 +58,11 @@ internal static class ComWrapConstants
     /// 用于标注方法的返回参数是否需要转换
     /// </summary>
     public static readonly string[] ReturnValueConvertAttributes = ["ReturnValueConvertAttribute", "ReturnValueConvert"];
+
+    /// <summary>
+    /// 标记方法的COM方法名
+    /// </summary>
+    public static readonly string[] MethodNameAttributes = ["MethodNameAttribute", "MethodName"];
 
     /// <summary>
     /// 用于标识COM组件所在的命名空间。
@@ -82,6 +93,16 @@ internal static class ComWrapConstants
     /// 不生成资源释放函数属性名称
     /// </summary>
     public const string NoneDisposedProperty = "NoneDisposed";
+
+    /// <summary>
+    /// 标记该属性采用get、set方法进行访问。
+    /// </summary>
+    public const string IsMethodProperty = "IsMethod";
+
+    /// <summary>
+    /// 获取或设置属性名，默认为空（即原始属性名。）
+    /// </summary>
+    public const string PropertyNameProperty = "PropertyName";
 
     /// <summary>
     /// 默认COM命名空间
