@@ -487,7 +487,7 @@ internal static class TypeSymbolHelper
 
         // 检查是否为特殊类型（内置类型）
         var specialType = typeToCheck.SpecialType;
-        return specialType switch
+        bool isBasic = specialType switch
         {
             // 值类型
             SpecialType.System_Boolean => true,
@@ -513,6 +513,76 @@ internal static class TypeSymbolHelper
 
             _ => false
         };
+        if (isBasic)
+            return true;
+
+        // 检查是否为 System.Drawing.Color 类型
+        if (IsSystemDrawingColor(typeToCheck))
+            return true;
+
+        if (IsObjectArray(typeToCheck))
+            return true;
+
+        return false;
+    }
+
+    /// <summary>
+    /// 检查是否为 System.Drawing.Color 类型
+    /// </summary>
+    private static bool IsSystemDrawingColor(ITypeSymbol typeSymbol)
+    {
+        if (typeSymbol == null)
+            return false;
+
+        // 方法1：检查完整类型名称
+        var fullName = typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        if (fullName == "System.Drawing.Color" || fullName == "global::System.Drawing.Color")
+            return true;
+
+        // 方法2：检查命名空间和类型名称
+        if (typeSymbol.ContainingNamespace?.ToString() == "System.Drawing" && typeSymbol.Name == "Color")
+            return true;
+
+        // 方法3：检查元数据名称（最可靠）
+        if (typeSymbol is INamedTypeSymbol namedType)
+        {
+            // 检查完全限定名称
+            var metadataName = namedType.GetFullMetadataName();
+            if (metadataName == "System.Drawing.Color")
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 检查是否为 object 数组（任意维度）
+    /// </summary>
+    public static bool IsObjectArray(ITypeSymbol typeSymbol)
+    {
+        if (typeSymbol is not IArrayTypeSymbol arrayType)
+            return false;
+
+        // 检查元素类型是否为 object
+        var elementType = arrayType.ElementType;
+        return elementType.SpecialType == SpecialType.System_Object;
+    }
+
+    /// <summary>
+    /// 扩展方法：获取类型的完整元数据名称
+    /// </summary>
+    private static string GetFullMetadataName(this ITypeSymbol typeSymbol)
+    {
+        if (typeSymbol == null)
+            return string.Empty;
+
+        var namespaceName = typeSymbol.ContainingNamespace?.ToString();
+        var typeName = typeSymbol.Name;
+
+        if (!string.IsNullOrEmpty(namespaceName))
+            return $"{namespaceName}.{typeName}";
+
+        return typeName;
     }
 
     /// <summary>
