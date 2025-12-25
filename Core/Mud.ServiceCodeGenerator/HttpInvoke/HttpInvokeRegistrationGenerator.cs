@@ -338,17 +338,8 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
         var fullyQualifiedInterface = $"global::{api.Namespace}.{api.InterfaceName}";
         var fullyQualifiedImplementation = $"global::{api.Namespace}.{api.ImplementationName}";
 
-        codeBuilder.AppendLine($"            // 注册 {api.InterfaceName} 的 HttpClient 实现");
-        codeBuilder.AppendLine($"            services.AddHttpClient<{fullyQualifiedInterface}, {fullyQualifiedImplementation}>(client =>");
-        codeBuilder.AppendLine("            {");
-
-        if (!string.IsNullOrEmpty(api.BaseUrl))
-        {
-            codeBuilder.AppendLine($"                client.BaseAddress = new Uri(\"{api.BaseUrl}\");");
-        }
-
-        codeBuilder.AppendLine($"                client.Timeout = TimeSpan.FromSeconds({api.Timeout});");
-        codeBuilder.AppendLine("            });");
+        codeBuilder.AppendLine($"            // 注册 {api.InterfaceName} 的 HttpClient 包装实现类（瞬时服务）");
+        codeBuilder.AppendLine($"            services.AddTransient<{fullyQualifiedInterface}, {fullyQualifiedImplementation}>();");
     }
 
     private void GenerateHttpClientWrapRegistration(StringBuilder codeBuilder, HttpClientWrapApiInfo wrapApi)
