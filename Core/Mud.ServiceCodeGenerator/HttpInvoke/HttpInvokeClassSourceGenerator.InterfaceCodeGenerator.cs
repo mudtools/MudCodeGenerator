@@ -56,7 +56,7 @@ internal class InterfaceImpCodeGenerator
     private SourceProductionContext _context;
     private HttpInvokeClassSourceGenerator _httpInvokeClassSourceGenerator;
 
-    private AttributeData? _httpClientApiAttribute;
+    private AttributeData? _feishuHttpClientApiAttribute;
     private bool _isAbstract;
     private string? _inheritedFrom;
     private string? _tokenManage;
@@ -88,10 +88,10 @@ internal class InterfaceImpCodeGenerator
             return;
         _interfaceSymbol = interfaceSymbolObj;
         // 获取HttpClientApi特性中的属性值
-        _httpClientApiAttribute = AttributeDataHelper.GetAttributeDataFromSymbol(_interfaceSymbol, HttpClientGeneratorConstants.HttpClientApiAttributeNames);
-        _isAbstract = AttributeDataHelper.GetBoolValueFromAttribute(_httpClientApiAttribute, HttpClientGeneratorConstants.IsAbstractProperty);
-        _inheritedFrom = AttributeDataHelper.GetStringValueFromAttribute(_httpClientApiAttribute, HttpClientGeneratorConstants.InheritedFromProperty);
-        _tokenManage = AttributeDataHelper.GetStringValueFromAttribute(_httpClientApiAttribute, HttpClientGeneratorConstants.TokenManageProperty);
+        _feishuHttpClientApiAttribute = AttributeDataHelper.GetAttributeDataFromSymbol(_interfaceSymbol, HttpClientGeneratorConstants.HttpClientApiAttributeNames);
+        _isAbstract = AttributeDataHelper.GetBoolValueFromAttribute(_feishuHttpClientApiAttribute, HttpClientGeneratorConstants.IsAbstractProperty);
+        _inheritedFrom = AttributeDataHelper.GetStringValueFromAttribute(_feishuHttpClientApiAttribute, HttpClientGeneratorConstants.InheritedFromProperty);
+        _tokenManage = AttributeDataHelper.GetStringValueFromAttribute(_feishuHttpClientApiAttribute, HttpClientGeneratorConstants.TokenManageProperty);
 
         GenerateImplementationClass();
 
@@ -168,9 +168,9 @@ internal class InterfaceImpCodeGenerator
         return new Configuration
         {
             HttpClientOptionsName = httpClientOptionsName,
-            DefaultContentType = GetHttpClientApiContentTypeFromAttribute(_httpClientApiAttribute),
-            TimeoutFromAttribute = AttributeDataHelper.GetIntValueFromAttribute(_httpClientApiAttribute, HttpClientGeneratorConstants.TimeoutProperty, 100),
-            BaseAddressFromAttribute = AttributeDataHelper.GetStringValueFromAttributeConstructor(_httpClientApiAttribute, HttpClientGeneratorConstants.BaseAddressProperty),
+            DefaultContentType = GetHttpClientApiContentTypeFromAttribute(_feishuHttpClientApiAttribute),
+            TimeoutFromAttribute = AttributeDataHelper.GetIntValueFromAttribute(_feishuHttpClientApiAttribute, HttpClientGeneratorConstants.TimeoutProperty, 100),
+            BaseAddressFromAttribute = AttributeDataHelper.GetStringValueFromAttributeConstructor(_feishuHttpClientApiAttribute, HttpClientGeneratorConstants.BaseAddressProperty),
             IsAbstract = _isAbstract,
             InheritedFrom = _inheritedFrom,
             TokenManager = _tokenManage,
@@ -184,10 +184,8 @@ internal class InterfaceImpCodeGenerator
     {
         if (context.HasInheritedFrom) return;
 
-        _codeBuilder.AppendLine($"        {context.FieldAccessibility}readonly HttpClient _httpClient;");
-        _codeBuilder.AppendLine($"        {context.FieldAccessibility}readonly {context.LoggerType} _logger;");
+        _codeBuilder.AppendLine($"        {context.FieldAccessibility}readonly IFeishuHttpClient _feishuHttpClient;");
         _codeBuilder.AppendLine($"        {context.FieldAccessibility}readonly JsonSerializerOptions _jsonSerializerOptions;");
-        _codeBuilder.AppendLine($"        {context.FieldAccessibility}readonly {context.Config.HttpClientOptionsName} {context.OptionsFieldName};");
 
         if (context.HasTokenManager)
         {
@@ -209,10 +207,8 @@ internal class InterfaceImpCodeGenerator
         _codeBuilder.AppendLine("        /// <summary>");
         _codeBuilder.AppendLine($"        /// 构建 <see cref = \"{context.ClassName}\"/> 类的实例。");
         _codeBuilder.AppendLine("        /// </summary>");
-        _codeBuilder.AppendLine("        /// <param name=\"httpClient\">HttpClient实例</param>");
-        _codeBuilder.AppendLine("        /// <param name=\"logger\">日志记录器</param>");
+        _codeBuilder.AppendLine("        /// <param name=\"httpClient\">FeishuHttpClient实例</param>");
         _codeBuilder.AppendLine("        /// <param name=\"option\">Json序列化参数</param>");
-        _codeBuilder.AppendLine($"        /// <param name=\"{context.OptionsParameterName}\">飞书配置选项</param>");
 
         if (context.HasTokenManager)
         {
@@ -224,10 +220,8 @@ internal class InterfaceImpCodeGenerator
     {
         var parameters = new List<string>
         {
-            "HttpClient httpClient",
-            $"{context.ConstructorLoggerType} logger",
-            "IOptions<JsonSerializerOptions> option",
-            $"IOptions<{context.Config.HttpClientOptionsName}> {context.OptionsParameterName}"
+            "IFeishuHttpClient httpClient",
+            "IOptions<JsonSerializerOptions> option"
         };
 
         if (context.HasTokenManager)
@@ -243,9 +237,7 @@ internal class InterfaceImpCodeGenerator
             var baseParameters = new List<string>
             {
                 "httpClient",
-                "logger",
                 "option",
-                context.OptionsParameterName
             };
             if (context.HasTokenManager)
             {
@@ -265,47 +257,21 @@ internal class InterfaceImpCodeGenerator
 
         if (!context.HasInheritedFrom)
         {
-            _codeBuilder.AppendLine("            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));");
-            _codeBuilder.AppendLine("            _logger = logger ?? throw new ArgumentNullException(nameof(logger));");
+            _codeBuilder.AppendLine("            _feishuHttpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));");
             _codeBuilder.AppendLine("            _jsonSerializerOptions = option.Value;");
-            _codeBuilder.AppendLine($"            {context.OptionsFieldName} = {context.OptionsParameterName}?.Value ?? throw new ArgumentNullException(nameof({context.OptionsParameterName}));");
 
             if (context.HasTokenManager)
             {
                 _codeBuilder.AppendLine("            _tokenManager = tokenManager ?? throw new ArgumentNullException(nameof(tokenManager));");
             }
-            _codeBuilder.AppendLine();
         }
 
-        GenerateHttpClientConfiguration(context);
         _codeBuilder.AppendLine("        }");
         _codeBuilder.AppendLine();
     }
 
-    private void GenerateHttpClientConfiguration(GenerationContext context)
-    {
-        if (context.Config.IsAbstract) return;
-
-        _codeBuilder.AppendLine("            // 设置 HttpClient BaseAddress（用于相对路径请求）");
-        _codeBuilder.AppendLine("            var finalBaseAddress = GetFinalBaseAddress();");
-        _codeBuilder.AppendLine("            if (!string.IsNullOrEmpty(finalBaseAddress))");
-        _codeBuilder.AppendLine("            {");
-        _codeBuilder.AppendLine("                _httpClient.BaseAddress = new Uri(finalBaseAddress);");
-        _codeBuilder.AppendLine("            }");
-        _codeBuilder.AppendLine();
-
-        _codeBuilder.AppendLine("            // 配置HttpClient超时时间");
-        _codeBuilder.AppendLine("            var finalTimeout = GetFinalTimeout();");
-        _codeBuilder.AppendLine("            _httpClient.Timeout = TimeSpan.FromSeconds(finalTimeout);");
-    }
-
     private void GenerateHelperMethods(GenerationContext context)
     {
-        if (!context.Config.IsAbstract)
-        {
-            GenerateConfigurationHelperMethods(context);
-        }
-
         if (context.HasInheritedFrom) return;
 
         GenerateGetMediaTypeMethod(context);
@@ -336,55 +302,8 @@ internal class InterfaceImpCodeGenerator
         _codeBuilder.AppendLine();
     }
 
-    private void GenerateConfigurationHelperMethods(GenerationContext context)
-    {
-        GenerateGetFinalTimeoutMethod(context);
-        GenerateGetFinalBaseAddressMethod(context);
-    }
-
-    private void GenerateGetFinalTimeoutMethod(GenerationContext context)
-    {
-        _codeBuilder.AppendLine("        /// <summary>");
-        _codeBuilder.AppendLine($"        /// 获取最终的超时时间，优先使用 HttpClientApi 特性中的设置，否则使用 {context.Config.HttpClientOptionsName}.TimeOut");
-        _codeBuilder.AppendLine("        /// </summary>");
-        _codeBuilder.AppendLine("        /// <returns>超时秒数</returns>");
-        _codeBuilder.AppendLine("        private int GetFinalTimeout()");
-        _codeBuilder.AppendLine("        {");
-        _codeBuilder.AppendLine($"            // 优先使用 HttpClientApi 特性中的超时设置");
-        _codeBuilder.AppendLine($"            var attributeTimeout = {context.Config.TimeoutFromAttribute};");
-        _codeBuilder.AppendLine($"            if (attributeTimeout > 0)");
-        _codeBuilder.AppendLine($"                return attributeTimeout;");
-        _codeBuilder.AppendLine();
-        _codeBuilder.AppendLine($"            // 尝试使用 {context.Config.HttpClientOptionsName}.TimeOut");
-        _codeBuilder.AppendLine($"            var optionsTimeout = {context.OptionsFieldName}.TimeOut;");
-        _codeBuilder.AppendLine($"            return !string.IsNullOrEmpty(optionsTimeout) && int.TryParse(optionsTimeout, out var parsedTimeout)");
-        _codeBuilder.AppendLine($"                ? parsedTimeout");
-        _codeBuilder.AppendLine($"                : 60; // 默认60秒超时");
-        _codeBuilder.AppendLine("        }");
-        _codeBuilder.AppendLine();
-    }
-
-    private void GenerateGetFinalBaseAddressMethod(GenerationContext context)
-    {
-        _codeBuilder.AppendLine("        /// <summary>");
-        _codeBuilder.AppendLine($"        /// 获取最终的 BaseAddress，优先使用 HttpClientApi 特性中的设置，否则使用 {context.Config.HttpClientOptionsName}.BaseUrl");
-        _codeBuilder.AppendLine("        /// </summary>");
-        _codeBuilder.AppendLine("        /// <returns>BaseAddress</returns>");
-        _codeBuilder.AppendLine("        private string? GetFinalBaseAddress()");
-        _codeBuilder.AppendLine("        {");
-        _codeBuilder.AppendLine($"            // 优先使用 HttpClientApi 特性中的 BaseAddress");
-        _codeBuilder.AppendLine($"            var attributeAddress = \"{context.Config.BaseAddressFromAttribute}\";");
-        _codeBuilder.AppendLine($"            return !string.IsNullOrEmpty(attributeAddress)");
-        _codeBuilder.AppendLine($"                ? attributeAddress");
-        _codeBuilder.AppendLine($"                : {context.OptionsFieldName}.BaseUrl;");
-        _codeBuilder.AppendLine("        }");
-        _codeBuilder.AppendLine();
-    }
-
     private void GenerateMethods()
     {
-        GenerateClassPartialMethods();
-
         // 根据IsAbstract和InheritedFrom决定是否包含父接口方法
         var includeParentInterfaces = GetIncludeParentInterfaces();
 
@@ -505,93 +424,12 @@ internal class InterfaceImpCodeGenerator
         _codeBuilder.AppendLine();
     }
 
-    private void GenerateClassPartialMethods()
-    {
-        var includeParentInterfaces = GetIncludeParentInterfaces();
-        IEnumerable<IMethodSymbol> methodsToProcess = TypeSymbolHelper.GetAllMethods(_interfaceSymbol, includeParentInterfaces);
-
-        var processedMethods = new HashSet<string>();
-
-        foreach (var methodSymbol in methodsToProcess)
-        {
-            if (!processedMethods.Add(methodSymbol.Name))
-                continue;
-
-            GenerateMethodPartialMethods(methodSymbol.Name);
-        }
-
-        var interfaceName = TypeSymbolHelper.GetImplementationClassName(_interfaceSymbol.Name);
-        if (processedMethods.Add(interfaceName))
-        {
-            GenerateInterfacePartialMethods(interfaceName);
-        }
-    }
-
-    private void GenerateMethodPartialMethods(string methodName)
-    {
-        var events = new[]
-        {
-            ("Before", "方法调用之前", "HttpRequestMessage request"),
-            ("After", "方法调用之后", "HttpResponseMessage response"),
-            ("Fail", "方法调用失败", "HttpResponseMessage response"),
-            ("Error", "方法调用发生错误", "Exception error")
-        };
-
-        foreach (var (eventType, description, parameter) in events)
-        {
-            _codeBuilder.AppendLine();
-            _codeBuilder.AppendLine($"        /// <summary>");
-            _codeBuilder.AppendLine($"        /// {methodName} {description}。");
-            _codeBuilder.AppendLine($"        /// </summary>");
-            _codeBuilder.AppendLine($"        {GeneratedCodeConsts.GeneratedCodeAttribute}");
-            _codeBuilder.AppendLine($"        partial void On{StringExtensions.ConvertFunctionName(methodName, eventType)}({parameter}, string url);");
-        }
-    }
-
-    private void GenerateInterfacePartialMethods(string interfaceName)
-    {
-        var events = new[]
-        {
-            ("RequestBefore", "方法调用之前", "HttpRequestMessage request"),
-            ("RequestAfter", "方法调用之后", "HttpResponseMessage response"),
-            ("RequestFail", "方法调用失败", "HttpResponseMessage response"),
-            ("RequestError", "方法调用发生错误", "Exception error")
-        };
-
-        foreach (var (eventType, description, parameter) in events)
-        {
-            _codeBuilder.AppendLine();
-            _codeBuilder.AppendLine($"        /// <summary>");
-            _codeBuilder.AppendLine($"        /// {interfaceName} {description}。");
-            _codeBuilder.AppendLine($"        /// </summary>");
-            _codeBuilder.AppendLine($"        {GeneratedCodeConsts.GeneratedCodeAttribute}");
-            _codeBuilder.AppendLine($"        partial void On{StringExtensions.ConvertFunctionName(interfaceName, "Api", eventType)}({parameter}, string url);");
-        }
-    }
-
 
     private void GenerateRequestSetup(MethodAnalysisResult methodInfo)
     {
         var urlCode = BuildUrlString(methodInfo);
         _codeBuilder.AppendLine(urlCode);
 
-        // 检查是否需要 BaseAddress（仅当 URL 为相对路径时）
-        var isAbsoluteUrl = methodInfo.UrlTemplate.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
-                           methodInfo.UrlTemplate.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
-
-        if (!isAbsoluteUrl)
-        {
-            _codeBuilder.AppendLine("            // 检查 BaseAddress 是否已设置（相对路径 URL 需要 BaseAddress）");
-            _codeBuilder.AppendLine("            if (_httpClient.BaseAddress == null)");
-            _codeBuilder.AppendLine("            {");
-            _codeBuilder.AppendLine($"                throw new InvalidOperationException(\"BaseAddress 配置缺失，相对路径 URL 需要在 HttpClientApi 特性或 {httpClientOptionsName}.BaseUrl 中设置有效的基地址\");");
-            _codeBuilder.AppendLine("            }");
-        }
-
-        _codeBuilder.AppendLine($"            if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(httpClientOptionsName)}.EnableLogging)");
-        _codeBuilder.AppendLine($"            {{");
-        _codeBuilder.AppendLine($"                _logger.LogDebug(\"开始HTTP {methodInfo.HttpMethod}请求: {{Url}}\", url);");
-        _codeBuilder.AppendLine($"            }}");
         _codeBuilder.AppendLine($"            using var request = new HttpRequestMessage(HttpMethod.{methodInfo.HttpMethod}, url);");
         //codeBuilder.AppendLine($"            request.Headers.Add(\"Content-Type\", _defaultContentType);");
     }
@@ -882,122 +720,33 @@ internal class InterfaceImpCodeGenerator
     {
         var (cancellationTokenArg, _) = GetCancellationTokenParams(methodInfo);
         var interfaceName = TypeSymbolHelper.GetImplementationClassName(methodInfo.CurrentInterfaceName);
-
-        _codeBuilder.AppendLine("            try");
-        _codeBuilder.AppendLine("            {");
         GenerateRequestExecutionCore(methodInfo, interfaceName, cancellationTokenArg);
-        _codeBuilder.AppendLine("            }");
-        _codeBuilder.AppendLine("            catch (System.Exception ex)");
-        _codeBuilder.AppendLine("            {");
-        GenerateExceptionHandling(methodInfo, interfaceName);
-        _codeBuilder.AppendLine("            }");
     }
 
     private void GenerateRequestExecutionCore(MethodAnalysisResult methodInfo, string interfaceName, string cancellationTokenArg)
     {
-        _codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(interfaceName, "Api", "RequestBefore")}(request, url);");
-        _codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "Before")}(request, url);");
-        _codeBuilder.AppendLine($"                using var response = await _httpClient.SendAsync(request{cancellationTokenArg});");
-        _codeBuilder.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(httpClientOptionsName)}.EnableLogging)");
-        _codeBuilder.AppendLine("                {");
-        _codeBuilder.AppendLine("                    _logger.LogDebug(\"HTTP请求完成: {StatusCode}\", (int)response.StatusCode);");
-        _codeBuilder.AppendLine("                }");
+        var filePathParam = methodInfo.Parameters.Where(p => p.Attributes.Any(attr => attr.Name == HttpClientGeneratorConstants.FilePathAttribute)).FirstOrDefault();
+
+        var deserializeType = methodInfo.IsAsyncMethod ? methodInfo.AsyncInnerReturnType : methodInfo.ReturnType;
         _codeBuilder.AppendLine();
-        _codeBuilder.AppendLine("                if (!response.IsSuccessStatusCode)");
-        _codeBuilder.AppendLine("                {");
-        GenerateErrorResponseHandling(methodInfo, interfaceName);
-        _codeBuilder.AppendLine("                }");
-        _codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(interfaceName, "Api", "RequestAfter")}(response, url);");
-        _codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "After")}(response, url);");
 
-        GenerateResponseProcessing(methodInfo, cancellationTokenArg);
-    }
-
-    private void GenerateErrorResponseHandling(MethodAnalysisResult methodInfo, string interfaceName)
-    {
-        var (_, cancellationTokenArgForRead) = GetCancellationTokenParams(methodInfo);
-        _codeBuilder.AppendLine($"                    On{StringExtensions.ConvertFunctionName(interfaceName, "Api", "RequestFail")}(response, url);");
-        _codeBuilder.AppendLine($"                    On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "Fail")}(response, url);");
-        _codeBuilder.AppendLine($"                    var errorContent = await response.Content.ReadAsStringAsync({cancellationTokenArgForRead});");
-        _codeBuilder.AppendLine($"                    if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(httpClientOptionsName)}.EnableLogging)");
-        _codeBuilder.AppendLine("                    {");
-        _codeBuilder.AppendLine("                        _logger.LogError(\"HTTP请求失败: {StatusCode}, 响应: {Response}\", (int)response.StatusCode, errorContent);");
-        _codeBuilder.AppendLine("                    }");
-        _codeBuilder.AppendLine("                    throw new HttpRequestException($\"HTTP请求失败: {(int)response.StatusCode}\");");
-    }
-
-    private void GenerateResponseProcessing(MethodAnalysisResult methodInfo, string cancellationTokenArg)
-    {
-        // 检查是否有 FilePath 参数，直接保存到文件
-        var filePathParam = methodInfo.Parameters.FirstOrDefault(p => p.Attributes.Any(attr => attr.Name == HttpClientGeneratorConstants.FilePathAttribute));
-        var hasFilePathParam = filePathParam != null;
-
-        // 检查是否为文件下载场景：异步方法且内部返回类型为 byte[]
-        var isFileDownload = methodInfo.IsAsyncMethod &&
-                             methodInfo.AsyncInnerReturnType.Equals("byte[]", StringComparison.OrdinalIgnoreCase);
-        var (cancellationTokenArgForCopy, cancellationTokenArgForRead) = GetCancellationTokenParams(methodInfo);
-        if (hasFilePathParam)
+        if (filePathParam != null)
         {
 
-            // FilePath 参数场景：直接保存到指定路径
-            _codeBuilder.AppendLine($"                using (var stream = await response.Content.ReadAsStreamAsync({cancellationTokenArgForRead}))");
-            _codeBuilder.AppendLine($"                using (var fileStream = File.Create({filePathParam.Name}))");
-            _codeBuilder.AppendLine("                {");
-
-            // 从 FilePathAttribute 中读取 BufferSize 参数
-            var filePathAttr = filePathParam.Attributes.First(a => a.Name == HttpClientGeneratorConstants.FilePathAttribute);
-            var bufferSize = GetBufferSizeFromAttribute(filePathAttr);
-
-            _codeBuilder.AppendLine($"                    await stream.CopyToAsync(fileStream, {bufferSize}{cancellationTokenArgForCopy});");
-            _codeBuilder.AppendLine("                }");
-
-            // 对于有 FilePath 参数的方法，不返回任何值（void 或 Task）
-            if (!methodInfo.IsAsyncMethod || (methodInfo.IsAsyncMethod && methodInfo.AsyncInnerReturnType.Equals("void", StringComparison.OrdinalIgnoreCase)))
-            {
-                _codeBuilder.AppendLine("                return;");
-            }
-            else if (methodInfo.IsAsyncMethod && !string.IsNullOrEmpty(methodInfo.AsyncInnerReturnType) && !methodInfo.AsyncInnerReturnType.Equals("void", StringComparison.OrdinalIgnoreCase))
-            {
-                // 如果是异步方法且有非void返回类型，返回默认值
-                _codeBuilder.AppendLine("                return default;");
-            }
-            // 对于 Task 类型的异步方法，不需要 return 语句
-        }
-        else if (isFileDownload)
-        {
-            // 文件下载场景：直接读取为字节数组
-            _codeBuilder.AppendLine($"                byte[] fileBytes = await response.Content.ReadAsByteArrayAsync({cancellationTokenArgForRead});");
-            _codeBuilder.AppendLine("                return fileBytes;");
+            _codeBuilder.AppendLine($"            await _feishuHttpClient.DownloadLargeFileRequestAsync(request,{filePathParam.Name}{cancellationTokenArg});");
         }
         else
         {
-            // 常规 JSON 反序列化场景
-            _codeBuilder.AppendLine($"                using var stream = await response.Content.ReadAsStreamAsync({cancellationTokenArgForRead});");
-            _codeBuilder.AppendLine();
-            _codeBuilder.AppendLine("                if (stream.Length == 0)");
-            _codeBuilder.AppendLine("                {");
-            _codeBuilder.AppendLine("                    return default;");
-            _codeBuilder.AppendLine("                }");
-            _codeBuilder.AppendLine();
-
-            // 对于异步方法，使用内部返回类型；对于同步方法，使用完整返回类型
-            var deserializeType = methodInfo.IsAsyncMethod ? methodInfo.AsyncInnerReturnType : methodInfo.ReturnType;
-            _codeBuilder.AppendLine($"                var result = await JsonSerializer.DeserializeAsync<{deserializeType}>(stream, _jsonSerializerOptions{cancellationTokenArg});");
-            _codeBuilder.AppendLine("                return result;");
+            if (IsByteArrayType(deserializeType))
+            {
+                _codeBuilder.AppendLine($"            return await _feishuHttpClient.DownloadFileRequestAsync(request{cancellationTokenArg});");
+            }
+            else
+            {
+                _codeBuilder.AppendLine($"            return await _feishuHttpClient.SendFeishuRequestAsync<{deserializeType}>(request{cancellationTokenArg});");
+            }
         }
     }
-
-    private void GenerateExceptionHandling(MethodAnalysisResult methodInfo, string interfaceName)
-    {
-        _codeBuilder.AppendLine($"                if ({PrivateFieldNamingHelper.GeneratePrivateFieldName(httpClientOptionsName)}.EnableLogging)");
-        _codeBuilder.AppendLine("                {");
-        _codeBuilder.AppendLine("                    _logger.LogError(ex, \"HTTP请求异常: {{Url}}\", url);");
-        _codeBuilder.AppendLine("                }");
-        _codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(interfaceName, "Api", "RequestError")}(ex, url);");
-        _codeBuilder.AppendLine($"                On{StringExtensions.ConvertFunctionName(methodInfo.MethodName, "Error")}(ex, url);");
-        _codeBuilder.AppendLine("                throw;");
-    }
-
 
     private bool IsSimpleType(string typeName)
     {
@@ -1006,6 +755,12 @@ internal class InterfaceImpCodeGenerator
                                   "string[]", "int[]", "long[]", "float[]", "double[]", "decimal[]",
                                   "DateTime[]", "System.DateTime[]", "Guid[]", "System.Guid[]",};
         return simpleTypes.Contains(typeName) || typeName.EndsWith("?", StringComparison.OrdinalIgnoreCase) && simpleTypes.Contains(typeName.TrimEnd('?'));
+    }
+
+    private bool IsByteArrayType(string typeName)
+    {
+        var byteArray = new[] { "byte[]" };
+        return byteArray.Contains(typeName) || typeName.EndsWith("?", StringComparison.OrdinalIgnoreCase) && byteArray.Contains(typeName.TrimEnd('?'));
     }
 
     private bool IsStringType(string typeName)
@@ -1074,35 +829,5 @@ internal class InterfaceImpCodeGenerator
             withComma: paramValue != null ? $", {paramValue}" : "",
             withoutComma: paramValue ?? ""
         );
-    }
-
-    /// <summary>
-    /// 从 FilePathAttribute 中获取 BufferSize 参数
-    /// </summary>
-    /// <param name="filePathAttr">FilePath特性</param>
-    /// <returns>缓冲区大小</returns>
-    private int GetBufferSizeFromAttribute(ParameterAttributeInfo filePathAttr)
-    {
-        // 首先检查命名参数
-        if (filePathAttr.NamedArguments.TryGetValue("BufferSize", out var bufferSizeValue))
-        {
-            if (int.TryParse(bufferSizeValue?.ToString(), out var bufferSize))
-            {
-                return bufferSize;
-            }
-        }
-
-        // 然后检查构造函数参数
-        if (filePathAttr.Arguments.Length > 0)
-        {
-            var firstArg = filePathAttr.Arguments[0];
-            if (int.TryParse(firstArg?.ToString(), out var bufferSize))
-            {
-                return bufferSize;
-            }
-        }
-
-        // 如果都没有设置，使用默认值 81920 (80KB)
-        return 81920;
     }
 }
