@@ -71,6 +71,9 @@ public class ComObjectWrapGenerator : ComObjectWrapBaseGenerator
         // 生成构造函数
         GenerateConstructor(sb, className, interfaceSymbol, interfaceDeclaration);
 
+        // 生成公共接口方法。
+        GenerateCommonInterfaceMethod(sb, className, interfaceSymbol, interfaceDeclaration);
+
         // 生成属性
         GenerateProperties(sb, interfaceSymbol, interfaceDeclaration);
 

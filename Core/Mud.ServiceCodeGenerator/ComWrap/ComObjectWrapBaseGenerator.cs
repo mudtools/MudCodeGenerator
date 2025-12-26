@@ -108,6 +108,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 
         var comNamespace = GetComNamespace(interfaceDeclaration);
         var comClassName = GetComClassName(interfaceDeclaration);
+        var interfaceName = interfaceSymbol.Name;
 
         sb.AppendLine();
         sb.AppendLine($"        /// <summary>");
@@ -119,6 +120,28 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         sb.AppendLine("            _disposedValue = false;");
         sb.AppendLine("        }");
         sb.AppendLine();
+
+    }
+
+    protected void GenerateCommonInterfaceMethod(StringBuilder sb, string className, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
+    {
+        if (interfaceDeclaration == null || interfaceSymbol == null || sb == null)
+            return;
+
+        var comNamespace = GetComNamespace(interfaceDeclaration);
+        var comClassName = GetComClassName(interfaceDeclaration);
+        var interfaceName = interfaceSymbol.Name;
+
+        sb.AppendLine();
+        sb.AppendLine($"        ///  <inheritdoc/>");
+        sb.AppendLine($"        {GeneratedCodeAttribute}");
+        sb.AppendLine($"        public {interfaceName}? LoadFromObject(object comObject)");
+        sb.AppendLine("        {");
+        sb.AppendLine("            if(comObject == null) return null;");
+        sb.AppendLine($"            if(comObject is {comNamespace}.{comClassName} comInstance)");
+        sb.AppendLine($"               return new {className}(comInstance);");
+        sb.AppendLine("            return null;");
+        sb.AppendLine("        }");
     }
 
     protected void GeneratePrivateField(StringBuilder sb, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
@@ -454,7 +477,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         sb.AppendLine("        #region 方法实现");
         sb.AppendLine();
 
-        foreach (var member in TypeSymbolHelper.GetAllMethods(interfaceSymbol, excludedInterfaces: new[] { "IDisposable", "System.IDisposable", "System.Collections.Generic.IEnumerable" }))
+        foreach (var member in TypeSymbolHelper.GetAllMethods(interfaceSymbol, excludedInterfaces: ["IOfficeObject", "IDisposable", "System.IDisposable", "System.Collections.Generic.IEnumerable"]))
         {
             if (member.MethodKind == MethodKind.Ordinary && !ShouldIgnoreMember(member))
             {

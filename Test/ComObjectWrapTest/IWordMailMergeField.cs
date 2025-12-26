@@ -4,7 +4,7 @@
 [ComObjectWrap(ComNamespace = "MsWord", ComClassName = "MailMergeField")]
 public interface IWordMailMergeField : IDisposable
 {
-    [ComPropertyWrap(NeedDispose = false)]
+    [ComPropertyWrap(NeedDispose = false, NeedConvert = true)]
     IWordApplication? Application { get; }
 
     object? Parent { get; }
