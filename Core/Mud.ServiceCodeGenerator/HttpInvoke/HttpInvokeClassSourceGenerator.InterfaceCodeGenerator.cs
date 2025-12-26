@@ -56,7 +56,7 @@ internal class InterfaceImpCodeGenerator
     private SourceProductionContext _context;
     private HttpInvokeClassSourceGenerator _httpInvokeClassSourceGenerator;
 
-    private AttributeData? _feishuHttpClientApiAttribute;
+    private AttributeData? _httpClientApiAttribute;
     private bool _isAbstract;
     private string? _inheritedFrom;
     private string? _tokenManage;
@@ -88,10 +88,10 @@ internal class InterfaceImpCodeGenerator
             return;
         _interfaceSymbol = interfaceSymbolObj;
         // 获取HttpClientApi特性中的属性值
-        _feishuHttpClientApiAttribute = AttributeDataHelper.GetAttributeDataFromSymbol(_interfaceSymbol, HttpClientGeneratorConstants.HttpClientApiAttributeNames);
-        _isAbstract = AttributeDataHelper.GetBoolValueFromAttribute(_feishuHttpClientApiAttribute, HttpClientGeneratorConstants.IsAbstractProperty);
-        _inheritedFrom = AttributeDataHelper.GetStringValueFromAttribute(_feishuHttpClientApiAttribute, HttpClientGeneratorConstants.InheritedFromProperty);
-        _tokenManage = AttributeDataHelper.GetStringValueFromAttribute(_feishuHttpClientApiAttribute, HttpClientGeneratorConstants.TokenManageProperty);
+        _httpClientApiAttribute = AttributeDataHelper.GetAttributeDataFromSymbol(_interfaceSymbol, HttpClientGeneratorConstants.HttpClientApiAttributeNames);
+        _isAbstract = AttributeDataHelper.GetBoolValueFromAttribute(_httpClientApiAttribute, HttpClientGeneratorConstants.IsAbstractProperty);
+        _inheritedFrom = AttributeDataHelper.GetStringValueFromAttribute(_httpClientApiAttribute, HttpClientGeneratorConstants.InheritedFromProperty);
+        _tokenManage = AttributeDataHelper.GetStringValueFromAttribute(_httpClientApiAttribute, HttpClientGeneratorConstants.TokenManageProperty);
 
         GenerateImplementationClass();
 
@@ -168,9 +168,9 @@ internal class InterfaceImpCodeGenerator
         return new Configuration
         {
             HttpClientOptionsName = httpClientOptionsName,
-            DefaultContentType = GetHttpClientApiContentTypeFromAttribute(_feishuHttpClientApiAttribute),
-            TimeoutFromAttribute = AttributeDataHelper.GetIntValueFromAttribute(_feishuHttpClientApiAttribute, HttpClientGeneratorConstants.TimeoutProperty, 100),
-            BaseAddressFromAttribute = AttributeDataHelper.GetStringValueFromAttributeConstructor(_feishuHttpClientApiAttribute, HttpClientGeneratorConstants.BaseAddressProperty),
+            DefaultContentType = GetHttpClientApiContentTypeFromAttribute(_httpClientApiAttribute),
+            TimeoutFromAttribute = AttributeDataHelper.GetIntValueFromAttribute(_httpClientApiAttribute, HttpClientGeneratorConstants.TimeoutProperty, 100),
+            BaseAddressFromAttribute = AttributeDataHelper.GetStringValueFromAttributeConstructor(_httpClientApiAttribute, HttpClientGeneratorConstants.BaseAddressProperty),
             IsAbstract = _isAbstract,
             InheritedFrom = _inheritedFrom,
             TokenManager = _tokenManage,
@@ -184,7 +184,7 @@ internal class InterfaceImpCodeGenerator
     {
         if (context.HasInheritedFrom) return;
 
-        _codeBuilder.AppendLine($"        {context.FieldAccessibility}readonly IFeishuHttpClient _feishuHttpClient;");
+        _codeBuilder.AppendLine($"        {context.FieldAccessibility}readonly IEnhancedHttpClient _httpClient;");
         _codeBuilder.AppendLine($"        {context.FieldAccessibility}readonly JsonSerializerOptions _jsonSerializerOptions;");
 
         if (context.HasTokenManager)
@@ -220,7 +220,7 @@ internal class InterfaceImpCodeGenerator
     {
         var parameters = new List<string>
         {
-            "IFeishuHttpClient httpClient",
+            "IEnhancedHttpClient httpClient",
             "IOptions<JsonSerializerOptions> option"
         };
 
@@ -257,7 +257,7 @@ internal class InterfaceImpCodeGenerator
 
         if (!context.HasInheritedFrom)
         {
-            _codeBuilder.AppendLine("            _feishuHttpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));");
+            _codeBuilder.AppendLine("            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));");
             _codeBuilder.AppendLine("            _jsonSerializerOptions = option.Value;");
 
             if (context.HasTokenManager)
@@ -430,7 +430,19 @@ internal class InterfaceImpCodeGenerator
         var urlCode = BuildUrlString(methodInfo);
         _codeBuilder.AppendLine(urlCode);
 
-        _codeBuilder.AppendLine($"            using var request = new HttpRequestMessage(HttpMethod.{methodInfo.HttpMethod}, url);");
+        if (methodInfo.HttpMethod.Equals("patch", StringComparison.OrdinalIgnoreCase))
+        {
+            _codeBuilder.AppendLine("#if NETSTANDARD2_0");
+            _codeBuilder.AppendLine("            HttpMethod httpMethod = new HttpMethod(\"PATCH\");");
+            _codeBuilder.AppendLine($"            using var request = new HttpRequestMessage(httpMethod, url);");
+            _codeBuilder.AppendLine("#else");
+            _codeBuilder.AppendLine($"            using var request = new HttpRequestMessage(HttpMethod.{methodInfo.HttpMethod}, url);");
+            _codeBuilder.AppendLine("#endif");
+        }
+        else
+        {
+            _codeBuilder.AppendLine($"            using var request = new HttpRequestMessage(HttpMethod.{methodInfo.HttpMethod}, url);");
+        }
         //codeBuilder.AppendLine($"            request.Headers.Add(\"Content-Type\", _defaultContentType);");
     }
 
@@ -733,17 +745,17 @@ internal class InterfaceImpCodeGenerator
         if (filePathParam != null)
         {
 
-            _codeBuilder.AppendLine($"            await _feishuHttpClient.DownloadLargeFileRequestAsync(request,{filePathParam.Name}{cancellationTokenArg});");
+            _codeBuilder.AppendLine($"            await _httpClient.DownloadLargeAsync(request, {filePathParam.Name}{cancellationTokenArg});");
         }
         else
         {
             if (IsByteArrayType(deserializeType))
             {
-                _codeBuilder.AppendLine($"            return await _feishuHttpClient.DownloadFileRequestAsync(request{cancellationTokenArg});");
+                _codeBuilder.AppendLine($"            return await _httpClient.DownloadAsync(request{cancellationTokenArg});");
             }
             else
             {
-                _codeBuilder.AppendLine($"            return await _feishuHttpClient.SendFeishuRequestAsync<{deserializeType}>(request{cancellationTokenArg});");
+                _codeBuilder.AppendLine($"            return await _httpClient.SendAsync<{deserializeType}>(request{cancellationTokenArg});");
             }
         }
     }
@@ -826,7 +838,7 @@ internal class InterfaceImpCodeGenerator
         var paramValue = cancellationTokenParam?.Name;
 
         return (
-            withComma: paramValue != null ? $", {paramValue}" : "",
+            withComma: paramValue != null ? $", cancellationToken: {paramValue}" : "",
             withoutComma: paramValue ?? ""
         );
     }
