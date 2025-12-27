@@ -112,6 +112,16 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 
         sb.AppendLine();
         sb.AppendLine($"        /// <summary>");
+        sb.AppendLine($"        ///  无参初始化默认实例");
+        sb.AppendLine($"        /// </summary>");
+        sb.AppendLine($"        public {className}()");
+        sb.AppendLine("        {");
+        sb.AppendLine("            _disposedValue = false;");
+        sb.AppendLine("        }");
+        sb.AppendLine();
+
+        sb.AppendLine();
+        sb.AppendLine($"        /// <summary>");
         sb.AppendLine($"        ///  使用 <see cref=\"{comNamespace}.{comClassName}\"/> COM对象初始化当前实例");
         sb.AppendLine($"        /// </summary>");
         sb.AppendLine($"        internal {className}({comNamespace}.{comClassName} comObject)");
@@ -142,6 +152,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         sb.AppendLine($"               return new {className}(comInstance);");
         sb.AppendLine("            return null;");
         sb.AppendLine("        }");
+        sb.AppendLine();
     }
 
     protected void GeneratePrivateField(StringBuilder sb, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
