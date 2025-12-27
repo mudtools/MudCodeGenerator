@@ -55,9 +55,9 @@ internal static class ComWrapConstants
     public const string IgnoreGeneratorAttribute = "IgnoreGeneratorAttribute";
 
     /// <summary>
-    /// 用于标注方法的返回参数是否需要转换
+    /// 用于标注方法或属性的值是否需要转换
     /// </summary>
-    public static readonly string[] ReturnValueConvertAttributes = ["ReturnValueConvertAttribute", "ReturnValueConvert"];
+    public static readonly string[] ValueConvertAttributes = ["ValueConvertAttribute", "ValueConvert"];
 
     /// <summary>
     /// 标记方法的COM方法名

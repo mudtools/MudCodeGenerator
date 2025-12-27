@@ -15,7 +15,9 @@ namespace Mud.ServiceCodeGenerator.ComWrap;
 public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 {
     #region Constants and Fields
-    private static readonly string[] KnownPrefixes = { "IWord", "IExcel", "IOffice", "IPowerPoint", "IVbe" };
+    private static readonly string[] KnownPrefixes = ["IWord", "IExcel", "IOffice", "IPowerPoint", "IVbe"];
+
+    private static readonly string[] KnownImpPrefixes = ["Word", "Excel", "Office", "PowerPoint", "Vbe"];
     #endregion
 
     #region Generator Initialization and Execution
@@ -659,7 +661,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
 
         var isIndexMethod = AttributeDataHelper.HasAttribute(methodSymbol, ComWrapConstants.MethodIndexAttributes);
-        var needConvert = AttributeDataHelper.HasAttribute(methodSymbol, ComWrapConstants.ReturnValueConvertAttributes);
+        var needConvert = AttributeDataHelper.HasAttribute(methodSymbol, ComWrapConstants.ValueConvertAttributes);
         string returnType = TypeSymbolHelper.GetParameterTypeDisplayString(methodSymbol.ReturnType);
         var isEnunType = TypeSymbolHelper.IsEnumType(methodSymbol.ReturnType);
         var defaultValue = GetDefaultValue(interfaceDeclaration, methodSymbol, methodSymbol.ReturnType);
@@ -693,9 +695,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             else
                 sb.AppendLine("                    return null;");
 
-            if (!needConvert)
-                sb.AppendLine($"                return new {constructType}(comObj);");
-            else
+            if (needConvert)
             {
                 var ordinalComType = GetImplementationOrdinalType(returnType);
                 var comType = GetOrdinalComType(ordinalComType);
@@ -703,6 +703,10 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
                 sb.AppendLine($"                     return new {constructType}(rComObj);");
                 sb.AppendLine($"                else");
                 sb.AppendLine("                     return null;");
+            }
+            else
+            {
+                sb.AppendLine($"                return new {constructType}(comObj);");
             }
         }
         else
@@ -720,7 +724,15 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             }
             else
             {
-                sb.AppendLine("                return returnValue;");
+                if (needConvert)
+                {
+                    string convertCode = GetConvertCodeForType(methodSymbol.ReturnType, "returnValue");
+                    sb.AppendLine($"                return {convertCode};");
+                }
+                else
+                {
+                    sb.AppendLine("                return returnValue;");
+                }
             }
         }
 
@@ -1196,6 +1208,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         };
     }
 
+    #region GetConvertCode
     protected string GetConvertCode(IPropertySymbol typeSymbol, string fieldName)
     {
         // 检查是否为可空类型
@@ -1215,8 +1228,58 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 
     protected string GetConvertCodeForType(ITypeSymbol typeSymbol, string fieldName)
     {
-        var specialType = typeSymbol.SpecialType;
+        if (typeSymbol == null) return string.Empty;
 
+        // 获取实际类型（如果是可空类型，则获取其内部类型）
+        var actualType = typeSymbol;
+        bool isNullable = false;
+
+        // 检查是否为可空值类型 (Nullable<T>)
+        if (typeSymbol is INamedTypeSymbol namedType &&
+            namedType.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
+        {
+            actualType = namedType.TypeArguments[0];
+            isNullable = true;
+        }
+
+        // 检查是否为可空引用类型（C# 8.0+的可空引用类型）
+        if (typeSymbol.NullableAnnotation == NullableAnnotation.Annotated &&
+            typeSymbol.IsReferenceType)
+        {
+            isNullable = true;
+        }
+
+        // 对于可空类型，我们需要进行null检查
+        if (isNullable)
+        {
+            return GenerateNullableConvertCode(actualType, fieldName);
+        }
+
+        // 对于非空类型，使用原有的转换逻辑
+        return GenerateNonNullableConvertCode(typeSymbol, fieldName);
+    }
+
+    private string GenerateNullableConvertCode(ITypeSymbol actualType, string fieldName)
+    {
+        // 对于可空类型，我们生成带null检查的转换代码
+        var conversionCode = GenerateNonNullableConvertCode(actualType, $"{fieldName}!");
+
+        // 生成带null检查的转换代码
+        // 使用条件运算符：如果fieldName不为null，则进行转换，否则返回null/default
+        if (actualType.IsValueType)
+        {
+            // 对于值类型，返回可空类型
+            return $"{fieldName} != null ? {conversionCode} : null";
+        }
+        else
+        {
+            // 对于引用类型，直接返回null
+            return $"{fieldName} != null ? {conversionCode} : null";
+        }
+    }
+
+    private string GenerateNonNullableConvertCode(ITypeSymbol typeSymbol, string fieldName)
+    {
         return typeSymbol switch
         {
             ITypeSymbol ts when IsSystemDrawingColor(ts) => $"ColorHelper.ConvertToColor({fieldName})",
@@ -1234,7 +1297,29 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             { SpecialType: SpecialType.System_Decimal } => $"{fieldName}.ConvertToDecimal()",
             { SpecialType: SpecialType.System_String } => $"{fieldName}.ToString()",
             { SpecialType: SpecialType.System_DateTime } => $"{fieldName}.ConvertToDateTime()",
-            _ => "ToString()"
+            _ => $"{fieldName}.ToString()"
+        };
+    }
+
+    private string GetTypeName(ITypeSymbol typeSymbol)
+    {
+        return typeSymbol.SpecialType switch
+        {
+            SpecialType.System_Boolean => "bool",
+            SpecialType.System_SByte => "sbyte",
+            SpecialType.System_Byte => "byte",
+            SpecialType.System_Int16 => "short",
+            SpecialType.System_UInt16 => "ushort",
+            SpecialType.System_Int32 => "int",
+            SpecialType.System_UInt32 => "uint",
+            SpecialType.System_Int64 => "long",
+            SpecialType.System_UInt64 => "ulong",
+            SpecialType.System_Single => "float",
+            SpecialType.System_Double => "double",
+            SpecialType.System_Decimal => "decimal",
+            SpecialType.System_String => "string",
+            SpecialType.System_DateTime => "DateTime",
+            _ => typeSymbol.Name
         };
     }
 
@@ -1247,7 +1332,7 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         return typeSymbol.ContainingNamespace?.ToDisplayString() == "System.Drawing" &&
                typeSymbol.Name == "Color";
     }
-
+    #endregion
 
     /// <summary>
     /// 从ComObjectWrap特性中获取COM命名空间
@@ -1498,7 +1583,8 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         }
         else if (isObjectType)
         {
-            sb.AppendLine($"            {constructType} {param.Name}Obj;");
+            var comClassName = GetComClassNameByImpClass(constructType);
+            sb.AppendLine($"            {comNamespace}.{comClassName} {param.Name}Obj = null;");
         }
         else
         {
@@ -1606,6 +1692,48 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
             else
                 sb.AppendLine($"            var {param.Name}Obj = {param.Name} ?? System.Type.Missing;");
         }
+    }
+
+    /// <summary>
+    /// 从实现类的类型名字符串中提取有意义的类名
+    /// </summary>
+    /// <param name="typeName">类型名字符串，可以包含命名空间</param>
+    /// <returns>提取出的类名</returns>
+    private static string GetComClassNameByImpClass(string typeName)
+    {
+        if (string.IsNullOrWhiteSpace(typeName))
+            return typeName;
+
+        // 1. 获取最后一个点后面的部分（去掉命名空间）
+        string className = typeName;
+        int lastDotIndex = typeName.LastIndexOf('.');
+        if (lastDotIndex >= 0 && lastDotIndex < typeName.Length - 1)
+        {
+            className = typeName.Substring(lastDotIndex + 1);
+        }
+
+        // 2. 遍历预定义前缀，检查并移除
+        foreach (string prefix in KnownImpPrefixes.OrderByDescending(p => p.Length))
+        {
+            if (className.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                // 检查移除前缀后的部分是否以大写字母开头或为空
+                string remaining = className.Substring(prefix.Length);
+                if (remaining.Length > 0 && char.IsUpper(remaining[0]))
+                {
+                    return remaining;
+                }
+                else if (remaining.Length == 0)
+                {
+                    // 如果整个类名就是前缀本身，直接返回
+                    return className;
+                }
+                // 如果移除前缀后不以大写字母开头，可能不是正确的前缀，继续尝试其他前缀
+            }
+        }
+
+        // 3. 如果没有找到预定义前缀，返回原始类名
+        return className;
     }
     #endregion
 }
