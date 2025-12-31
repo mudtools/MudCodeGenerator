@@ -1574,16 +1574,16 @@ public abstract class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
         bool isObjectType, bool convertToInteger, string pType, string comNamespace,
         string enumValueName, string constructType)
     {
+        var comClassName = GetComClassNameByImpClass(constructType);
         if (isEnumType)
         {
             if (convertToInteger)
                 sb.AppendLine($"            int {param.Name}Obj;");
             else
-                sb.AppendLine($"            {comNamespace}.{enumValueName} {param.Name}Obj;");
+                sb.AppendLine($"            {comNamespace}.{comClassName} {param.Name}Obj = {comNamespace}.{enumValueName};");
         }
         else if (isObjectType)
         {
-            var comClassName = GetComClassNameByImpClass(constructType);
             sb.AppendLine($"            {comNamespace}.{comClassName} {param.Name}Obj = null;");
         }
         else
