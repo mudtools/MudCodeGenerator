@@ -332,11 +332,11 @@ internal static class TypeSymbolHelper
     #region Type Display Helpers
 
     /// <summary>
-    /// 获取参数类型的显示字符串，正确处理多维数组、交错数组和泛型类型
+    /// 获取类型的显示全名（含全名空间），正确处理多维数组、交错数组和泛型类型
     /// </summary>
     /// <param name="typeSymbol">类型符号</param>
     /// <returns>正确的类型显示字符串</returns>
-    public static string GetTypeFullString(ITypeSymbol typeSymbol)
+    public static string GetTypeFullName(ITypeSymbol typeSymbol)
     {
         if (typeSymbol == null)
             return string.Empty;
@@ -350,14 +350,14 @@ internal static class TypeSymbolHelper
         // 处理指针类型
         if (typeSymbol is IPointerTypeSymbol pointerTypeSymbol)
         {
-            return GetTypeFullString(pointerTypeSymbol.PointedAtType) + "*";
+            return GetTypeFullName(pointerTypeSymbol.PointedAtType) + "*";
         }
 
         // 处理可为null的值类型（Nullable<T>）
         if (typeSymbol.IsValueType && typeSymbol.NullableAnnotation == NullableAnnotation.Annotated)
         {
             var underlyingType = ((INamedTypeSymbol)typeSymbol).TypeArguments[0];
-            return GetTypeFullString(underlyingType) + "?";
+            return GetTypeFullName(underlyingType) + "?";
         }
 
         // 对于非数组类型，使用适当的显示格式
@@ -385,7 +385,7 @@ internal static class TypeSymbolHelper
     private static string GetArrayTypeDisplayString(IArrayTypeSymbol arrayTypeSymbol)
     {
         // 递归获取元素类型的显示字符串
-        var elementTypeDisplay = GetTypeFullString(arrayTypeSymbol.ElementType);
+        var elementTypeDisplay = GetTypeFullName(arrayTypeSymbol.ElementType);
 
         // 处理多维数组
         if (arrayTypeSymbol.Rank > 1)
