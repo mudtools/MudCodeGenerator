@@ -1,4 +1,4 @@
-﻿namespace CodeGeneratorTest.WebApi;
+﻿namespace CodeGeneratorTest.WebApi.Internal;
 
 partial class DingTalkDeptApi : IDingTalkDeptApi
 {

@@ -336,7 +336,7 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
     private void GenerateHttpClientRegistration(StringBuilder codeBuilder, HttpClientApiInfo api)
     {
         var fullyQualifiedInterface = $"global::{api.Namespace}.{api.InterfaceName}";
-        var fullyQualifiedImplementation = $"global::{api.Namespace}.{api.ImplementationName}";
+        var fullyQualifiedImplementation = $"global::{api.Namespace}.Internal.{api.ImplementationName}";
 
         codeBuilder.AppendLine($"            // 注册 {api.InterfaceName} 的 HttpClient 包装实现类（瞬时服务）");
         codeBuilder.AppendLine($"            services.AddTransient<{fullyQualifiedInterface}, {fullyQualifiedImplementation}>();");

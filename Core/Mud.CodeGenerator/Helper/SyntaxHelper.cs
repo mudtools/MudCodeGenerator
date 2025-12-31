@@ -289,17 +289,26 @@ internal static class SyntaxHelper
     /// </summary>
     /// <param name="classNode">类声明语法节点。</param>
     /// <returns>命名空间名称。</returns>
-    public static string GetNamespaceName(TypeDeclarationSyntax classNode)
+    public static string GetNamespaceName(TypeDeclarationSyntax classNode, string extNamespace = "")
     {
+        var result = "";
         if (TryGetParentSyntax(classNode, out NamespaceDeclarationSyntax namespaceDeclarationSyntax))
         {
-            return namespaceDeclarationSyntax.Name.ToString();
+            result = namespaceDeclarationSyntax.Name.ToString();
         }
         else if (TryGetParentSyntax(classNode, out FileScopedNamespaceDeclarationSyntax fileScopedNamespaceDeclaration))
         {
-            return fileScopedNamespaceDeclaration.Name.ToString();
+            result = fileScopedNamespaceDeclaration.Name.ToString();
         }
-        return "";
+        if (!string.IsNullOrEmpty(extNamespace))
+        {
+            if (!string.IsNullOrEmpty(result))
+            {
+                result += ".";
+            }
+            result += extNamespace;
+        }
+        return result;
     }
 
     /// <summary>

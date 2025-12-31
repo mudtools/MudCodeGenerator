@@ -102,7 +102,7 @@ internal class InterfaceImpCodeGenerator
     private void GenerateImplementationClass()
     {
         var className = TypeSymbolHelper.GetImplementationClassName(_interfaceSymbol.Name);
-        var namespaceName = SyntaxHelper.GetNamespaceName(_interfaceDecl);
+        var namespaceName = SyntaxHelper.GetNamespaceName(_interfaceDecl, "Internal");
 
         GenerateClassStructure(className, namespaceName);
         GenerateClassFieldsAndConstructor(className);
