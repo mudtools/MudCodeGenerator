@@ -679,10 +679,28 @@ internal class InterfaceImpCodeGenerator
             .Where(p => p.Attributes.Any(attr => attr.Name == HttpClientGeneratorConstants.HeaderAttribute))
             .ToList();
 
+        // 获取接口级别的Header名称（用于覆盖Token参数的Header名称）
+        string? interfaceHeaderName = null;
+        if (methodInfo.InterfaceAttributes?.Any() == true)
+        {
+            var headerAttr = methodInfo.InterfaceAttributes.FirstOrDefault(attr => attr.StartsWith("Header:", StringComparison.Ordinal));
+            if (!string.IsNullOrEmpty(headerAttr))
+            {
+                interfaceHeaderName = headerAttr.Substring(7); // 去掉"Header:"前缀
+            }
+        }
+
         foreach (var param in headerParams)
         {
             var headerAttr = param.Attributes.First(a => a.Name == HttpClientGeneratorConstants.HeaderAttribute);
             var headerName = headerAttr.Arguments.FirstOrDefault()?.ToString() ?? param.Name;
+
+            // 如果参数是Token参数，并且接口级别有定义Header，则使用接口级别的Header名称
+            var isTokenParam = param.Attributes.Any(attr => HttpClientGeneratorConstants.TokenAttributeNames.Contains(attr.Name));
+            if (isTokenParam && !string.IsNullOrEmpty(interfaceHeaderName))
+            {
+                headerName = interfaceHeaderName;
+            }
 
             _codeBuilder.AppendLine($"            if (!string.IsNullOrEmpty({param.Name}))");
             _codeBuilder.AppendLine($"                request.Headers.Add(\"{headerName}\", {param.Name});");

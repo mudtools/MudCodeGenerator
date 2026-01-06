@@ -94,9 +94,11 @@ internal sealed class MethodHelper
 
                 interfaceHeaderAttributes.Add(interfaceHeaderAttr);
 
-                // 保持与现有逻辑的兼容性，如果是Authorization Header，继续添加到InterfaceAttributes中
-                if (headerName == "Authorization")
+                // 检查是否为Authorization Header（无论使用AliasAs与否）
+                var isAuthorizationHeader = AttributeDataHelper.GetStringValueFromAttribute(headerAttr, ["Name"], 0) == "Authorization";
+                if (isAuthorizationHeader)
                 {
+                    // 保持与现有逻辑的兼容性，使用实际的headerName（可能包含AliasAs）
                     interfaceAttributes.Add($"Header:{headerName}");
                 }
             }

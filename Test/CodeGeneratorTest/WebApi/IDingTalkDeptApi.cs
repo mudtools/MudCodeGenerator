@@ -2,6 +2,7 @@
 
 [HttpClientApi("https://api.dingtalk.com", Timeout = 60, RegistryGroupName = "Dingtalk")]
 [HttpClientApiWrap(TokenManage = "ITokenManage", WrapInterface = nameof(DingTalkDept))]
+[Header("Authorization")]
 public interface IDingTalkDeptApi
 {
     [Get("/api/v2/dept/{id}")]
