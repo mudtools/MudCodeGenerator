@@ -27,7 +27,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         public const string IndexerFormat = "this[{0}]";
     }
 
-    
+
     /// <summary>
     /// 元素类型信息封装
     /// </summary>
@@ -74,7 +74,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
     /// <summary>
     /// 重写 GenerateAdditionalImplementations，生成 IEnumerable 实现
     /// </summary>
-    protected override void GenerateAdditionalImplementations(
+    private void GenerateAdditionalImplementations(
         StringBuilder sb,
         INamedTypeSymbol interfaceSymbol,
         InterfaceDeclarationSyntax interfaceDeclaration)
@@ -309,27 +309,6 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine($"                    yield return ({elementInfo.ElementTypeName})returnValue;");
         sb.AppendLine("                }");
         sb.AppendLine("            }");
-    }
-
-    /// <summary>
-    /// 生成基本类型或枚举类型的元素直接 yield
-    /// </summary>
-    private void GenerateBasicOrEnumElementYield(
-        StringBuilder sb,
-        ElementTypeInfo elementInfo,
-        string itemName)
-    {
-        if (elementInfo.IsEnumType)
-        {
-            // 枚举类型：直接调用 ObjectConvertEnum 扩展方法并 yield return
-            sb.AppendLine($"                    yield return {itemName}.ObjectConvertEnum<{elementInfo.ElementTypeName}>();");
-        }
-        else
-        {
-            // 基本类型：使用扩展方法转换并 yield return
-            var convertCode = GenerateBasicTypeConvertCode(elementInfo.ElementType, itemName);
-            sb.AppendLine($"                    yield return {convertCode};");
-        }
     }
 
     /// <summary>

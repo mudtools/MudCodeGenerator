@@ -80,9 +80,6 @@ public class ComObjectWrapGenerator : ComObjectWrapBaseGenerator
         // 生成方法
         GenerateMethods(sb, interfaceSymbol, interfaceDeclaration);
 
-        // 模板方法：生成额外的实现内容（由子类实现）
-        GenerateAdditionalImplementations(sb, interfaceSymbol, interfaceDeclaration);
-
         // 生成IDisposable实现
         GenerateIDisposableImplementation(sb, interfaceDeclaration, interfaceSymbol);
 
