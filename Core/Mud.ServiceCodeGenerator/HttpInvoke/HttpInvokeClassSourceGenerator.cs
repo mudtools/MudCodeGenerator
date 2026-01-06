@@ -19,8 +19,6 @@ namespace Mud.ServiceCodeGenerator;
 [Generator(LanguageNames.CSharp)]
 public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenerator
 {
-    private string httpClientOptionsName = "HttpClientOptions";
-
     /// <inheritdoc/>
     protected override void ExecuteGenerator(Compilation compilation,
         ImmutableArray<InterfaceDeclarationSyntax> interfaces,
@@ -30,16 +28,18 @@ public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenera
         if (compilation == null || interfaces.IsDefaultOrEmpty || configOptionsProvider == null)
             return;
 
+        // 使用局部变量避免实例字段可变性问题
+        var httpClientOptionsName = "HttpClientOptions";
         ProjectConfigHelper.ReadProjectOptions(configOptionsProvider.GlobalOptions, "build_property.HttpClientOptionsName",
            val => httpClientOptionsName = val, "HttpClientOptions");
 
         foreach (var interfaceDecl in interfaces)
         {
-            ProcessInterface(compilation, interfaceDecl, context);
+            ProcessInterface(compilation, interfaceDecl, context, httpClientOptionsName);
         }
     }
 
-    private void ProcessInterface(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl, SourceProductionContext context)
+    private void ProcessInterface(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl, SourceProductionContext context, string httpClientOptionsName)
     {
         try
         {
