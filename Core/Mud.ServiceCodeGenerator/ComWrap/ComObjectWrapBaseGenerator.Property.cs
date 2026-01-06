@@ -1884,6 +1884,9 @@ partial class ComObjectWrapBaseGenerator
             if (member.IsIndexer)
                 continue;
 
+            if (ShouldIgnoreMember(member))
+                continue;
+
             var needDispose = IsNeeDispose(member);
             if (!needDispose)
                 continue;

@@ -91,6 +91,20 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
     /// <param name="interfaceSymbol">接口符号</param>
     /// <returns>生成的源代码</returns>
     protected abstract string GenerateImplementationClass(InterfaceDeclarationSyntax interfaceDeclaration, INamedTypeSymbol interfaceSymbol);
+
+    /// <summary>
+    /// 生成额外的实现内容（模板方法，供子类重写）
+    /// </summary>
+    /// <param name="sb">字符串构建器</param>
+    /// <param name="interfaceSymbol">接口符号</param>
+    /// <param name="interfaceDeclaration">接口声明语法</param>
+    protected virtual void GenerateAdditionalImplementations(
+        StringBuilder sb,
+        INamedTypeSymbol interfaceSymbol,
+        InterfaceDeclarationSyntax interfaceDeclaration)
+    {
+        // 基类默认实现：空
+    }
     #endregion
 
     #region Field Generation
@@ -192,6 +206,8 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
         foreach (var member in TypeSymbolHelper.GetAllProperties(interfaceSymbol))
         {
             if (member.IsIndexer)
+                continue;
+            if (ShouldIgnoreMember(member))
                 continue;
 
             var propertyName = member.Name;
