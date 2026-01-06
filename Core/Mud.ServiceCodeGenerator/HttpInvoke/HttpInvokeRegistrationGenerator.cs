@@ -122,6 +122,21 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
         var (baseUrl, timeout) = ExtractAttributeParameters(httpClientApiAttribute);
         var registryGroupName = AttributeDataHelper.GetStringValueFromAttribute(httpClientApiAttribute, HttpClientGeneratorConstants.RegistryGroupNameProperty);
 
+        // 验证 RegistryGroupName
+        if (!string.IsNullOrEmpty(registryGroupName) && !IsValidCSharpIdentifier(registryGroupName))
+        {
+            var errorDescriptor = new DiagnosticDescriptor(
+                "HTTPCLIENTREG002",
+                "Invalid RegistryGroupName",
+                $"RegistryGroupName '{{0}}' is not a valid C# identifier. Please use alphanumeric characters and underscores only.",
+                "Generation",
+                DiagnosticSeverity.Error,
+                true);
+
+            context.ReportDiagnostic(Diagnostic.Create(errorDescriptor, interfaceSyntax.GetLocation(), registryGroupName));
+            return null;
+        }
+
         var implementationName = TypeSymbolHelper.GetImplementationClassName(interfaceSymbol.Name);
         var namespaceName = SyntaxHelper.GetNamespaceName(interfaceSyntax);
 
@@ -162,6 +177,21 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
             ? AttributeDataHelper.GetStringValueFromAttribute(httpClientApiAttribute, HttpClientGeneratorConstants.RegistryGroupNameProperty)
             : null;
 
+        // 验证 RegistryGroupName
+        if (!string.IsNullOrEmpty(registryGroupName) && !IsValidCSharpIdentifier(registryGroupName))
+        {
+            var errorDescriptor = new DiagnosticDescriptor(
+                "HTTPCLIENTREG002",
+                "Invalid RegistryGroupName",
+                $"RegistryGroupName '{{0}}' is not a valid C# identifier. Please use alphanumeric characters and underscores only.",
+                "Generation",
+                DiagnosticSeverity.Error,
+                true);
+
+            context.ReportDiagnostic(Diagnostic.Create(errorDescriptor, interfaceSyntax.GetLocation(), registryGroupName));
+            return null;
+        }
+
         var (baseUrl, timeout) = ExtractAttributeParameters(httpClientApiWrapAttribute);
         var nonNullBaseUrl = baseUrl ?? string.Empty;
         var wrapInterfaceName = GetWrapInterfaceName(interfaceSymbol, httpClientApiWrapAttribute);
@@ -197,8 +227,12 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
         if (string.IsNullOrEmpty(identifier))
             return false;
 
-        // 检查第一个字符是否为字母或下划线
+        // 检查第一个字符是否为字母或下划线（不能以数字开头）
         if (!char.IsLetter(identifier[0]) && identifier[0] != '_')
+            return false;
+
+        // C# 关键字检查
+        if (IsCSharpKeyword(identifier))
             return false;
 
         // 检查其余字符是否为字母、数字或下划线
@@ -209,6 +243,28 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// 检查字符串是否为C#关键字
+    /// </summary>
+    private bool IsCSharpKeyword(string identifier)
+    {
+        var keywords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char",
+            "checked", "class", "const", "continue", "decimal", "default", "delegate",
+            "do", "double", "else", "enum", "event", "explicit", "extern", "false",
+            "finally", "fixed", "float", "for", "foreach", "goto", "if", "implicit",
+            "in", "int", "interface", "internal", "is", "lock", "long", "namespace",
+            "new", "null", "object", "operator", "out", "override", "params", "private",
+            "protected", "public", "readonly", "ref", "return", "sbyte", "sealed",
+            "short", "sizeof", "stackalloc", "static", "string", "struct", "switch",
+            "this", "throw", "true", "try", "typeof", "uint", "ulong", "unchecked",
+            "unsafe", "ushort", "using", "virtual", "void", "volatile", "while"
+        };
+
+        return keywords.Contains(identifier);
     }
 
     private void ReportInterfaceProcessingError(SourceProductionContext context, InterfaceDeclarationSyntax interfaceSyntax, Exception ex)
@@ -267,28 +323,44 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
     /// </summary>
     private void GenerateDefaultRegistrationMethod(StringBuilder codeBuilder, List<HttpClientApiInfo> apis)
     {
-        var ungroupedApis = apis.Where(api => string.IsNullOrEmpty(api.RegistryGroupName)).ToList();
+        GenerateDefaultRegistrationMethodInternal(codeBuilder, apis, HttpClientApiInfoBaseExtensions, "AddWebApiHttpClient");
+    }
+
+    /// <summary>
+    /// 通用的默认注册函数生成方法
+    /// </summary>
+    private void GenerateDefaultRegistrationMethodInternal<T>(StringBuilder codeBuilder, List<T> apis, Action<StringBuilder, T> registrationGenerator, string methodName)
+    {
+        var ungroupedApis = apis.Where(api => string.IsNullOrEmpty((api as HttpClientApiInfoBase)?.RegistryGroupName)).ToList();
 
         if (ungroupedApis.Count == 0)
             return;
 
         codeBuilder.AppendLine("        /// <summary>");
-        codeBuilder.AppendLine("        /// 注册所有未分组的标记了 [HttpClientApi] 特性的接口及其 HttpClient 实现");
+        codeBuilder.AppendLine("        /// 注册所有未分组的API服务");
         codeBuilder.AppendLine("        /// </summary>");
         codeBuilder.AppendLine("        /// <param name=\"services\">服务集合</param>");
         codeBuilder.AppendLine("        /// <returns>服务集合，用于链式调用</returns>");
         codeBuilder.AppendLine($"        {CompilerGeneratedAttribute}");
         codeBuilder.AppendLine($"        {GeneratedCodeAttribute}");
-        codeBuilder.AppendLine("        public static IServiceCollection AddWebApiHttpClient(this IServiceCollection services)");
+        codeBuilder.AppendLine($"        public static IServiceCollection {methodName}(this IServiceCollection services)");
         codeBuilder.AppendLine("        {");
 
         foreach (var api in ungroupedApis)
         {
-            GenerateHttpClientRegistration(codeBuilder, api);
+            registrationGenerator(codeBuilder, api);
         }
 
         codeBuilder.AppendLine("            return services;");
         codeBuilder.AppendLine("        }");
+    }
+
+    /// <summary>
+    /// HttpClientApiInfo 注册生成的委托
+    /// </summary>
+    private void HttpClientApiInfoBaseExtensions(StringBuilder codeBuilder, HttpClientApiInfo api)
+    {
+        GenerateHttpClientRegistration(codeBuilder, api);
     }
 
     /// <summary>
@@ -299,7 +371,7 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
         GenerateGroupedRegistrations<HttpClientApiInfo>(
             codeBuilder,
             apis,
-            HttpClientApiRegistrationGenerator,
+            HttpClientApiInfoBaseExtensions,
             "HttpClient",
             "注册所有标记了 [HttpClientApi] 特性且 RegistryGroupName = \"{0}\" 的接口及其 HttpClient 实现",
             context);
@@ -380,22 +452,6 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
         codeBuilder.AppendLine("        }");
     }
 
-    /// <summary>
-    /// HttpClientApi 注册生成的委托
-    /// </summary>
-    private void HttpClientApiRegistrationGenerator(StringBuilder codeBuilder, HttpClientApiInfo api)
-    {
-        GenerateHttpClientRegistration(codeBuilder, api);
-    }
-
-    /// <summary>
-    /// HttpClientWrapApi 注册生成的委托
-    /// </summary>
-    private void HttpClientWrapApiRegistrationGenerator(StringBuilder codeBuilder, HttpClientWrapApiInfo wrapApi)
-    {
-        GenerateHttpClientWrapRegistration(codeBuilder, wrapApi);
-    }
-
     private void GenerateAddWebApiHttpClientWrapMethod(StringBuilder codeBuilder, List<HttpClientWrapApiInfo> wrapApis, SourceProductionContext context)
     {
         GenerateDefaultWrapRegistrationMethod(codeBuilder, wrapApis);
@@ -407,29 +463,15 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
     /// </summary>
     private void GenerateDefaultWrapRegistrationMethod(StringBuilder codeBuilder, List<HttpClientWrapApiInfo> wrapApis)
     {
-        var ungroupedWrapApis = wrapApis.Where(api => string.IsNullOrEmpty(api.RegistryGroupName)).ToList();
+        GenerateDefaultRegistrationMethodInternal(codeBuilder, wrapApis, HttpClientWrapApiInfoBaseExtensions, "AddWebApiHttpClientWrap");
+    }
 
-        if (ungroupedWrapApis.Count == 0)
-            return;
-
-        codeBuilder.AppendLine();
-        codeBuilder.AppendLine("        /// <summary>");
-        codeBuilder.AppendLine("        /// 注册所有未分组的包装接口及其包装实现类的瞬时服务");
-        codeBuilder.AppendLine("        /// </summary>");
-        codeBuilder.AppendLine("        /// <param name=\"services\">服务集合</param>");
-        codeBuilder.AppendLine("        /// <returns>服务集合，用于链式调用</returns>");
-        codeBuilder.AppendLine($"        {CompilerGeneratedAttribute}");
-        codeBuilder.AppendLine($"        {GeneratedCodeAttribute}");
-        codeBuilder.AppendLine("        public static IServiceCollection AddWebApiHttpClientWrap(this IServiceCollection services)");
-        codeBuilder.AppendLine("        {");
-
-        foreach (var wrapApi in ungroupedWrapApis)
-        {
-            GenerateHttpClientWrapRegistration(codeBuilder, wrapApi);
-        }
-
-        codeBuilder.AppendLine("            return services;");
-        codeBuilder.AppendLine("        }");
+    /// <summary>
+    /// HttpClientWrapApiInfo 注册生成的委托
+    /// </summary>
+    private void HttpClientWrapApiInfoBaseExtensions(StringBuilder codeBuilder, HttpClientWrapApiInfo wrapApi)
+    {
+        GenerateHttpClientWrapRegistration(codeBuilder, wrapApi);
     }
 
     /// <summary>
@@ -440,7 +482,7 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
         GenerateGroupedRegistrations<HttpClientWrapApiInfo>(
             codeBuilder,
             wrapApis,
-            HttpClientWrapApiRegistrationGenerator,
+            HttpClientWrapApiInfoBaseExtensions,
             "HttpClientWrap",
             "注册所有 RegistryGroupName = \"{0}\" 的包装接口及其包装实现类的瞬时服务",
             context);

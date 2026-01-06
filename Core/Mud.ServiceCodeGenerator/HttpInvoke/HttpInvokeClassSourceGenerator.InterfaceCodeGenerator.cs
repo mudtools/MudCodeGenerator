@@ -390,7 +390,7 @@ internal class InterfaceImpCodeGenerator
             var headerName = "Authorization";
             if (methodInfo.InterfaceAttributes?.Any() == true)
             {
-                var headerAttr = methodInfo.InterfaceAttributes.FirstOrDefault(attr => attr.StartsWith("Header:"));
+                var headerAttr = methodInfo.InterfaceAttributes.FirstOrDefault(attr => attr.StartsWith("Header:", StringComparison.Ordinal));
                 if (!string.IsNullOrEmpty(headerAttr))
                 {
                     headerName = headerAttr.Substring(7); // 去掉"Header:"前缀
@@ -525,7 +525,7 @@ internal class InterfaceImpCodeGenerator
             .ToList();
 
         // 检查接口是否有[Query("Authorization")]特性（支持AliasAs）
-        var hasAuthorizationQuery = methodInfo.InterfaceAttributes?.Any(attr => attr.StartsWith("Query:")) == true;
+        var hasAuthorizationQuery = methodInfo.InterfaceAttributes?.Any(attr => attr.StartsWith("Query:", StringComparison.Ordinal)) == true;
 
         if (!queryParams.Any() && !arrayQueryParams.Any() && !hasAuthorizationQuery)
             return;
@@ -549,7 +549,7 @@ internal class InterfaceImpCodeGenerator
             var queryName = "Authorization";
             if (methodInfo.InterfaceAttributes?.Any() == true)
             {
-                var queryAttr = methodInfo.InterfaceAttributes.FirstOrDefault(attr => attr.StartsWith("Query:"));
+                var queryAttr = methodInfo.InterfaceAttributes.FirstOrDefault(attr => attr.StartsWith("Query:", StringComparison.Ordinal));
                 if (!string.IsNullOrEmpty(queryAttr))
                 {
                     queryName = queryAttr.Substring(6); // 去掉"Query:"前缀
@@ -633,12 +633,12 @@ internal class InterfaceImpCodeGenerator
         }
         else
         {
-            if (param.Name.EndsWith("?", StringComparison.Ordinal))
+            if (IsNullableType(param.Type))
             {
-                _codeBuilder.AppendLine($"            if ({param.Name} != null)");
+                _codeBuilder.AppendLine($"            if ({param.Name}.HasValue)");
                 var formatExpression = !string.IsNullOrEmpty(formatString)
-                   ? $".ToString(\"{formatString}\")"
-                   : ".ToString()";
+                   ? $".Value.ToString(\"{formatString}\")"
+                   : ".Value.ToString()";
                 _codeBuilder.AppendLine($"                queryParams.Add(\"{paramName}\", {param.Name}{formatExpression});");
             }
             else
@@ -649,6 +649,12 @@ internal class InterfaceImpCodeGenerator
                 _codeBuilder.AppendLine($"            queryParams.Add(\"{paramName}\", {param.Name}{formatExpression});");
             }
         }
+    }
+
+    private bool IsNullableType(string typeName)
+    {
+        return typeName.EndsWith("?", StringComparison.Ordinal) ||
+               (typeName.Contains("?<") || typeName.StartsWith("Nullable<", StringComparison.Ordinal));
     }
 
     private void GenerateComplexQueryParameter(ParameterInfo param, string paramName)
