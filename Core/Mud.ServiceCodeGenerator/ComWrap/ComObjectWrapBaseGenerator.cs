@@ -60,26 +60,57 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
         if (interfaces == null) throw new ArgumentNullException(nameof(interfaces));
 
         if (interfaces.IsDefaultOrEmpty)
-            if (interfaces.IsDefaultOrEmpty)
-                return;
+            return;
+
+        var generatedHintNames = new HashSet<string>();
 
         foreach (var interfaceDeclaration in interfaces)
         {
             if (interfaceDeclaration is null)
                 continue;
 
-            var semanticModel = compilation.GetSemanticModel(interfaceDeclaration.SyntaxTree);
-            var interfaceSymbol = semanticModel.GetDeclaredSymbol(interfaceDeclaration);
-
-            if (interfaceSymbol is null)
-                continue;
-
-            var source = GenerateImplementationClass(interfaceDeclaration, interfaceSymbol);
-
-            if (!string.IsNullOrEmpty(source))
+            try
             {
-                var hintName = $"{interfaceSymbol.Name}Impl.g.cs";
-                context.AddSource(hintName, source);
+                var semanticModel = compilation.GetSemanticModel(interfaceDeclaration.SyntaxTree);
+                var interfaceSymbol = semanticModel.GetDeclaredSymbol(interfaceDeclaration);
+
+                if (interfaceSymbol is null)
+                    continue;
+
+                var source = GenerateImplementationClass(interfaceDeclaration, interfaceSymbol);
+
+                if (!string.IsNullOrEmpty(source))
+                {
+                    // 使用完全限定名生成唯一的 hintName
+                    var fullyQualifiedName = interfaceSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                    // 移除全局命名空间前缀并替换 . 为 _ 以符合文件名规范
+                    var safeName = fullyQualifiedName
+                        .TrimStart('G', '.', 'I')
+                        .Replace(".", "_")
+                        .Replace("global::", "");
+                    var hintName = $"{safeName}Impl.g.cs";
+
+                    // 防止重复生成
+                    if (!generatedHintNames.Add(hintName))
+                    {
+                        continue;
+                    }
+
+                    context.AddSource(hintName, source);
+                }
+            }
+            catch (Exception ex)
+            {
+                // 报告代码生成失败
+                var errorDescriptor = new DiagnosticDescriptor(
+                    "COMWRAPGEN001",
+                    "COM Wrap Generation Error",
+                    $"生成COM包装类失败: {{0}}. 错误: {{1}}",
+                    "Generation",
+                    DiagnosticSeverity.Error,
+                    true);
+
+                context.ReportDiagnostic(Diagnostic.Create(errorDescriptor, interfaceDeclaration.GetLocation(), interfaceDeclaration.Identifier.Text, ex.Message));
             }
         }
     }
@@ -100,10 +131,11 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
     /// </summary>
     /// <param name="sb">字符串构建器</param>
     /// <param name="interfaceDeclaration">接口声明语法</param>
-    protected void GenerateFields(StringBuilder sb, InterfaceDeclarationSyntax interfaceDeclaration)
+    /// <param name="interfaceSymbol">接口符号</param>
+    protected void GenerateFields(StringBuilder sb, InterfaceDeclarationSyntax interfaceDeclaration, INamedTypeSymbol interfaceSymbol)
     {
-        var comNamespace = GetComNamespace(interfaceDeclaration);
-        var comClassName = GetComClassName(interfaceDeclaration);
+        var comNamespace = GetComNamespace(interfaceSymbol, interfaceDeclaration);
+        var comClassName = GetComClassName(interfaceSymbol, interfaceDeclaration);
         var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
 
 
@@ -135,8 +167,8 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
         if (NoneConstructor(interfaceSymbol))
             return;
 
-        var comNamespace = GetComNamespace(interfaceDeclaration);
-        var comClassName = GetComClassName(interfaceDeclaration);
+        var comNamespace = GetComNamespace(interfaceSymbol, interfaceDeclaration);
+        var comClassName = GetComClassName(interfaceSymbol, interfaceDeclaration);
         var interfaceName = interfaceSymbol.Name;
 
         sb.AppendLine();
@@ -167,8 +199,8 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
         if (interfaceDeclaration == null || interfaceSymbol == null || sb == null)
             return;
 
-        var comNamespace = GetComNamespace(interfaceDeclaration);
-        var comClassName = GetComClassName(interfaceDeclaration);
+        var comNamespace = GetComNamespace(interfaceSymbol, interfaceDeclaration);
+        var comClassName = GetComClassName(interfaceSymbol, interfaceDeclaration);
         var interfaceName = interfaceSymbol.Name;
 
         sb.AppendLine();
@@ -294,11 +326,11 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
             if (convertToInteger)
                 sb.AppendLine($"            var {param.Name}Obj = (int){param.Name} ?? 0;");
             else
-                sb.AppendLine($"            var {param.Name}Obj = {param.Name}?.EnumConvert({comNamespace}.{enumValueName}) ?? System.Type.Missing;");
+                sb.AppendLine($"            var {param.Name}Obj = {param.Name}?.EnumConvert({comNamespace}.{enumValueName}) ?? global::System.Type.Missing;");
         }
         else if (isObjectType)
         {
-            sb.AppendLine($"            var {param.Name}Obj = {param.Name} != null ? (({constructType}){param.Name}).InternalComObject : System.Type.Missing;");
+            sb.AppendLine($"            var {param.Name}Obj = {param.Name} != null ? (({constructType}){param.Name}).InternalComObject : global::System.Type.Missing;");
         }
         else
         {
@@ -306,7 +338,7 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
             if (convertToInteger)
                 sb.AppendLine($"            var {param.Name}Obj = {param.Name} != null ? {param.Name}.ConvertToInt() : 0;");
             else
-                sb.AppendLine($"            var {param.Name}Obj = {param.Name} != null ? (object){param.Name} : System.Type.Missing;");
+                sb.AppendLine($"            var {param.Name}Obj = {param.Name} != null ? (object){param.Name} : global::System.Type.Missing;");
         }
     }
 
@@ -336,7 +368,7 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
             if (convertToInteger)
                 sb.AppendLine($"            var {param.Name}Obj = {param.Name}.ConvertToInt();");
             else
-                sb.AppendLine($"            var {param.Name}Obj = {param.Name} ?? System.Type.Missing;");
+                sb.AppendLine($"            var {param.Name}Obj = {param.Name} ?? global::System.Type.Missing;");
         }
     }
 

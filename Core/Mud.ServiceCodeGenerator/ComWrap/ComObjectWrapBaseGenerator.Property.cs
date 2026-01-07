@@ -23,7 +23,7 @@ partial class ComObjectWrapBaseGenerator
     private void GenerateIndexerImplementation(StringBuilder sb, IPropertySymbol indexerSymbol, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
     {
         var elementType = indexerSymbol.Type.ToDisplayString();
-        var comClassName = GetComClassName(interfaceDeclaration);
+        var comClassName = GetComClassName(interfaceSymbol, interfaceDeclaration);
         var elementImplType = GetImplementationType(elementType);
         var isItemIndex = AttributeDataHelper.HasAttribute(interfaceSymbol, ComWrapConstants.ItemIndexAttributeNames);
         var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
@@ -56,12 +56,12 @@ partial class ComObjectWrapBaseGenerator
         var parameterName = "index";
 
         GenerateIndexerSignature(sb, elementType, parameterType, parameterName);
-        GenerateIndexerGetBody(sb, indexerSymbol, interfaceDeclaration, isItemIndex,
+        GenerateIndexerGetBody(sb, indexerSymbol, interfaceDeclaration, interfaceSymbol, isItemIndex,
             elementImplType, privateFieldName, new[] { parameter }, new[] { parameterName });
 
         if (indexerSymbol.SetMethod != null)
         {
-            GenerateIndexerSetBody(sb, indexerSymbol, interfaceDeclaration, isItemIndex,
+            GenerateIndexerSetBody(sb, indexerSymbol, interfaceDeclaration, interfaceSymbol, isItemIndex,
                 elementImplType, privateFieldName, new[] { parameter }, new[] { parameterName });
         }
 
@@ -100,25 +100,25 @@ partial class ComObjectWrapBaseGenerator
     /// 生成索引器get方法体
     /// </summary>
     private void GenerateIndexerGetBody(StringBuilder sb, IPropertySymbol indexerSymbol,
-        InterfaceDeclarationSyntax interfaceDeclaration, bool isItemIndex, string elementImplType,
+        InterfaceDeclarationSyntax interfaceDeclaration, INamedTypeSymbol interfaceSymbol, bool isItemIndex, string elementImplType,
         string privateFieldName, IParameterSymbol[] parameters, string[] parameterNames)
     {
         sb.AppendLine("            get");
         sb.AppendLine("            {");
 
         // 生成参数验证和预处理
-        var processedParameters = GenerateParameterValidationAndProcessing(sb, interfaceDeclaration,
+        var processedParameters = GenerateParameterValidationAndProcessing(sb, interfaceDeclaration, interfaceSymbol,
             parameters, parameterNames, privateFieldName, isGetMethod: true);
 
         // 生成获取逻辑
         if (parameters.Length == 1)
         {
-            GenerateSingleParameterGetLogic(sb, indexerSymbol, interfaceDeclaration, isItemIndex,
+            GenerateSingleParameterGetLogic(sb, indexerSymbol, interfaceDeclaration, interfaceSymbol, isItemIndex,
                 elementImplType, privateFieldName, processedParameters[0]);
         }
         else if (parameters.Length == 2)
         {
-            CommonTwoParameterGetLogic(sb, indexerSymbol, interfaceDeclaration, isItemIndex,
+            CommonTwoParameterGetLogic(sb, indexerSymbol, interfaceDeclaration, interfaceSymbol, isItemIndex,
                 elementImplType, privateFieldName, processedParameters[0], processedParameters[1]);
         }
 
@@ -129,14 +129,14 @@ partial class ComObjectWrapBaseGenerator
     /// 生成索引器set方法体
     /// </summary>
     private void GenerateIndexerSetBody(StringBuilder sb, IPropertySymbol indexerSymbol,
-        InterfaceDeclarationSyntax interfaceDeclaration, bool isItemIndex, string elementImplType,
+        InterfaceDeclarationSyntax interfaceDeclaration, INamedTypeSymbol interfaceSymbol, bool isItemIndex, string elementImplType,
         string privateFieldName, IParameterSymbol[] parameters, string[] parameterNames)
     {
         sb.AppendLine("            set");
         sb.AppendLine("            {");
 
         // 生成参数验证和预处理
-        var processedParameters = GenerateParameterValidationAndProcessing(sb, interfaceDeclaration,
+        var processedParameters = GenerateParameterValidationAndProcessing(sb, interfaceDeclaration, interfaceSymbol,
             parameters, parameterNames, privateFieldName, isGetMethod: false);
 
         // 生成设置逻辑
@@ -171,12 +171,12 @@ partial class ComObjectWrapBaseGenerator
         var param2Name = "index2";
 
         GenerateIndexerSignature(sb, elementType, new[] { param1Type, param2Type }, new[] { param1Name, param2Name });
-        GenerateIndexerGetBody(sb, indexerSymbol, interfaceDeclaration, isItemIndex,
+        GenerateIndexerGetBody(sb, indexerSymbol, interfaceDeclaration, interfaceSymbol, isItemIndex,
             elementImplType, privateFieldName, new[] { param1, param2 }, new[] { param1Name, param2Name });
 
         if (indexerSymbol.SetMethod != null)
         {
-            GenerateIndexerSetBody(sb, indexerSymbol, interfaceDeclaration, isItemIndex,
+            GenerateIndexerSetBody(sb, indexerSymbol, interfaceDeclaration, interfaceSymbol, isItemIndex,
                 elementImplType, privateFieldName, new[] { param1, param2 }, new[] { param1Name, param2Name });
         }
 
@@ -190,7 +190,7 @@ partial class ComObjectWrapBaseGenerator
     /// 生成参数验证和预处理逻辑
     /// </summary>
     private string[] GenerateParameterValidationAndProcessing(StringBuilder sb,
-        InterfaceDeclarationSyntax interfaceDeclaration, IParameterSymbol[] parameters,
+        InterfaceDeclarationSyntax interfaceDeclaration, INamedTypeSymbol interfaceSymbol, IParameterSymbol[] parameters,
         string[] parameterNames, string privateFieldName, bool isGetMethod)
     {
         var processedParameters = new string[parameters.Length];
@@ -218,7 +218,7 @@ partial class ComObjectWrapBaseGenerator
             GenerateParameterTypeValidation(sb, paramType, paramName, paramEnumType, i + 1, param.Type.NullableAnnotation == NullableAnnotation.Annotated);
 
             // 处理参数转换
-            processedParameters[i] = ProcessParameter(sb, interfaceDeclaration, param, paramName, paramEnumType);
+            processedParameters[i] = ProcessParameter(sb, interfaceDeclaration, interfaceSymbol, param, paramName, paramEnumType);
         }
 
         sb.AppendLine();
@@ -268,6 +268,7 @@ partial class ComObjectWrapBaseGenerator
     private string ProcessParameter(
         StringBuilder sb,
         InterfaceDeclarationSyntax interfaceDeclaration,
+        INamedTypeSymbol interfaceSymbol,
         IParameterSymbol param,
         string paramName,
         bool isEnumType)
@@ -281,7 +282,7 @@ partial class ComObjectWrapBaseGenerator
             else
             {
                 var sourceEnumType = param.Type.ToDisplayString();
-                var comNamespace = GetComNamespace(interfaceDeclaration);
+                var comNamespace = GetComNamespace(interfaceSymbol, interfaceDeclaration);
                 var targetEnumType = $"{comNamespace}.{param.Type.Name}";
                 return $"{paramName}.EnumConvert<{sourceEnumType}, {targetEnumType}>()";
             }
@@ -294,11 +295,11 @@ partial class ComObjectWrapBaseGenerator
     /// 生成单参数获取逻辑
     /// </summary>
     private void GenerateSingleParameterGetLogic(StringBuilder sb, IPropertySymbol indexerSymbol,
-        InterfaceDeclarationSyntax interfaceDeclaration, bool isItemIndex, string elementImplType,
+        InterfaceDeclarationSyntax interfaceDeclaration, INamedTypeSymbol interfaceSymbol, bool isItemIndex, string elementImplType,
         string privateFieldName, string processedParameter)
     {
         var operationType = processedParameter.Contains("index") ? "根据索引" : "根据字段名称";
-        CommonGetLogic(sb, indexerSymbol, interfaceDeclaration, isItemIndex, elementImplType,
+        CommonGetLogic(sb, indexerSymbol, interfaceDeclaration, interfaceSymbol, isItemIndex, elementImplType,
             privateFieldName, processedParameter, operationType);
     }
 
@@ -417,13 +418,14 @@ partial class ComObjectWrapBaseGenerator
         StringBuilder sb,
         IPropertySymbol indexerSymbol,
         InterfaceDeclarationSyntax interfaceDeclaration,
+        INamedTypeSymbol interfaceSymbol,
         bool isItemIndex,
         string elementImplType,
         string privateFieldName,
         string processedParam1,
         string processedParam2)
     {
-        var comNamespace = GetComNamespace(interfaceDeclaration);
+        var comNamespace = GetComNamespace(interfaceSymbol, interfaceDeclaration);
         var isEnumType = TypeSymbolHelper.IsEnumType(indexerSymbol.Type);
         var defaultValue = GetDefaultValue(interfaceDeclaration, indexerSymbol, indexerSymbol.Type);
         var needConvert = IsNeedConvert(indexerSymbol);
@@ -483,13 +485,14 @@ partial class ComObjectWrapBaseGenerator
         StringBuilder sb,
         IPropertySymbol indexerSymbol,
         InterfaceDeclarationSyntax interfaceDeclaration,
+        INamedTypeSymbol interfaceSymbol,
         bool isItemIndex,
         string elementImplType,
         string privateFieldName,
         string parameterName,
         string operationType)
     {
-        var comNamespace = GetComNamespace(interfaceDeclaration);
+        var comNamespace = GetComNamespace(interfaceSymbol, interfaceDeclaration);
         var isEnumType = TypeSymbolHelper.IsEnumType(indexerSymbol.Type);
         var defaultValue = GetDefaultValue(interfaceDeclaration, indexerSymbol, indexerSymbol.Type);
         var needConvert = IsNeedConvert(indexerSymbol);
@@ -586,7 +589,7 @@ partial class ComObjectWrapBaseGenerator
                 else
                 {
                     // 处理普通属性
-                    GenerateProperty(sb, member, interfaceDeclaration);
+                    GenerateProperty(sb, member, interfaceDeclaration, interfaceSymbol);
                 }
             }
         }
@@ -601,7 +604,7 @@ partial class ComObjectWrapBaseGenerator
     /// <param name="sb">字符串构建器</param>
     /// <param name="propertySymbol">属性符号</param>
     /// <param name="interfaceDeclaration">接口声明语法</param>
-    private void GenerateProperty(StringBuilder sb, IPropertySymbol propertySymbol, InterfaceDeclarationSyntax interfaceDeclaration)
+    private void GenerateProperty(StringBuilder sb, IPropertySymbol propertySymbol, InterfaceDeclarationSyntax interfaceDeclaration, INamedTypeSymbol interfaceSymbol)
     {
         if (sb == null || propertySymbol == null || interfaceDeclaration == null)
             return;
@@ -609,16 +612,16 @@ partial class ComObjectWrapBaseGenerator
         var isEnumType = TypeSymbolHelper.IsEnumType(propertySymbol.Type);
         var isObjectType = TypeSymbolHelper.IsComplexObjectType(propertySymbol.Type);
 
-        var comClassName = GetComClassName(interfaceDeclaration);
+        var comClassName = GetComClassName(interfaceSymbol, interfaceDeclaration);
         var needConvert = IsNeedConvert(propertySymbol);
 
         if (isEnumType)
         {
-            GenerateEnumProperty(sb, propertySymbol, interfaceDeclaration);
+            GenerateEnumProperty(sb, propertySymbol, interfaceDeclaration, interfaceSymbol);
         }
         else if (isObjectType)
         {
-            GenerateComObjectProperty(sb, propertySymbol, interfaceDeclaration, needConvert, comClassName);
+            GenerateComObjectProperty(sb, propertySymbol, interfaceDeclaration, interfaceSymbol, needConvert, comClassName);
         }
         else
         {
@@ -741,10 +744,11 @@ partial class ComObjectWrapBaseGenerator
     private void GenerateComObjectProperty(StringBuilder sb,
                 IPropertySymbol propertySymbol,
                 InterfaceDeclarationSyntax interfaceDeclaration,
+                INamedTypeSymbol interfaceSymbol,
                 bool needConvert,
                 string comClassName)
     {
-        var comNamespace = GetComNamespace(interfaceDeclaration);
+        var comNamespace = GetComNamespace(interfaceSymbol, interfaceDeclaration);
         var orgPropertyName = propertySymbol.Name;
         var propertyName = GetPropertyName(propertySymbol);
         var isMethod = IsMethod(propertySymbol);
@@ -813,14 +817,14 @@ partial class ComObjectWrapBaseGenerator
     /// <param name="propertySymbol">属性符号</param>
     /// <param name="interfaceDeclaration">接口声明语法</param>
     /// <param name="defaultValue">默认值</param>
-    private void GenerateEnumProperty(StringBuilder sb, IPropertySymbol propertySymbol, InterfaceDeclarationSyntax interfaceDeclaration)
+    private void GenerateEnumProperty(StringBuilder sb, IPropertySymbol propertySymbol, InterfaceDeclarationSyntax interfaceDeclaration, INamedTypeSymbol interfaceSymbol)
     {
         var orgPropertyName = propertySymbol.Name;
         var propertyName = GetPropertyName(propertySymbol);
         var propertyType = TypeSymbolHelper.GetTypeFullName(propertySymbol.Type);
         var isMethod = IsMethod(propertySymbol);
-        var comNamespace = GetComNamespace(interfaceDeclaration);
-        var comClassName = GetComClassName(interfaceDeclaration);
+        var comNamespace = GetComNamespace(interfaceSymbol, interfaceDeclaration);
+        var comClassName = GetComClassName(interfaceSymbol, interfaceDeclaration);
         var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
 
         var defaultValue = GetDefaultValue(interfaceDeclaration, propertySymbol, propertySymbol.Type);
@@ -880,7 +884,7 @@ partial class ComObjectWrapBaseGenerator
         {
             if (member.MethodKind == MethodKind.Ordinary && !ShouldIgnoreMember(member))
             {
-                GenerateMethod(sb, member, interfaceDeclaration);
+                GenerateMethod(sb, member, interfaceDeclaration, interfaceSymbol);
             }
         }
 
@@ -898,7 +902,8 @@ partial class ComObjectWrapBaseGenerator
     private void GenerateMethod(
         StringBuilder sb,
         IMethodSymbol methodSymbol,
-        InterfaceDeclarationSyntax interfaceDeclaration)
+        InterfaceDeclarationSyntax interfaceDeclaration,
+        INamedTypeSymbol interfaceSymbol)
     {
         // 生成方法签名
         GenerateMethodSignature(sb, methodSymbol);
@@ -906,7 +911,7 @@ partial class ComObjectWrapBaseGenerator
         sb.AppendLine("        {");
 
         // 生成方法体
-        GenerateMethodBody(sb, methodSymbol, interfaceDeclaration);
+        GenerateMethodBody(sb, methodSymbol, interfaceDeclaration, interfaceSymbol);
 
         sb.AppendLine("        }");
         sb.AppendLine();
@@ -968,9 +973,10 @@ partial class ComObjectWrapBaseGenerator
     private void GenerateMethodBody(
         StringBuilder sb,
         IMethodSymbol methodSymbol,
-        InterfaceDeclarationSyntax interfaceDeclaration)
+        InterfaceDeclarationSyntax interfaceDeclaration,
+        INamedTypeSymbol interfaceSymbol)
     {
-        var comClassName = GetComClassName(interfaceDeclaration);
+        var comClassName = GetComClassName(interfaceSymbol, interfaceDeclaration);
         var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
 
         var hasParameters = methodSymbol.Parameters.Length > 0;
@@ -981,11 +987,11 @@ partial class ComObjectWrapBaseGenerator
         // 参数预处理（如有必要）
         if (hasParameters)
         {
-            GenerateParameterPreprocessing(sb, methodSymbol, interfaceDeclaration);
+            GenerateParameterPreprocessing(sb, methodSymbol, interfaceDeclaration, interfaceSymbol);
         }
 
         // 异常处理和方法调用
-        GenerateMethodCallWithExceptionHandling(sb, methodSymbol, interfaceDeclaration, hasParameters);
+        GenerateMethodCallWithExceptionHandling(sb, methodSymbol, interfaceDeclaration, interfaceSymbol, hasParameters);
     }
 
     /// <summary>
@@ -994,7 +1000,8 @@ partial class ComObjectWrapBaseGenerator
     private void GenerateParameterPreprocessing(
         StringBuilder sb,
         IMethodSymbol methodSymbol,
-        InterfaceDeclarationSyntax interfaceDeclaration)
+        InterfaceDeclarationSyntax interfaceDeclaration,
+        INamedTypeSymbol interfaceSymbol)
     {
         foreach (var param in methodSymbol.Parameters)
         {
@@ -1006,7 +1013,7 @@ partial class ComObjectWrapBaseGenerator
             bool isOut = param.RefKind == RefKind.Out;
 
             var defaultValue = GetDefaultValue(interfaceDeclaration, param, param.Type);
-            var comNamespace = GetComNamespace(interfaceDeclaration);
+            var comNamespace = GetComNamespace(interfaceSymbol, interfaceDeclaration);
 
             var paramcomNamespace = AttributeDataHelper.GetStringValueFromSymbol(param, ComWrapConstants.ComNamespaceAttributes, "Name", "");
             if (!string.IsNullOrEmpty(paramcomNamespace))
@@ -1036,14 +1043,15 @@ partial class ComObjectWrapBaseGenerator
         StringBuilder sb,
         IMethodSymbol methodSymbol,
         InterfaceDeclarationSyntax interfaceDeclaration,
+        INamedTypeSymbol interfaceSymbol,
         bool hasParameters)
     {
         var methodName = AttributeDataHelper.GetStringValueFromSymbol(methodSymbol, ComWrapConstants.MethodNameAttributes, "Name", "");
         if (string.IsNullOrEmpty(methodName))
             methodName = methodSymbol.Name;
         var isObjectType = TypeSymbolHelper.IsComplexObjectType(methodSymbol.ReturnType);
-        var comClassName = GetComClassName(interfaceDeclaration);
-        var comNamespace = GetComNamespace(interfaceDeclaration);
+        var comClassName = GetComClassName(interfaceSymbol, interfaceDeclaration);
+        var comNamespace = GetComNamespace(interfaceSymbol, interfaceDeclaration);
         var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
 
         var isIndexMethod = AttributeDataHelper.HasAttribute(methodSymbol, ComWrapConstants.MethodIndexAttributes);
@@ -1065,7 +1073,7 @@ partial class ComObjectWrapBaseGenerator
                 sb.AppendLine($"                {privateFieldName}?.{methodName}({callParameters});");
 
             // 处理out参数的返回值赋值
-            GenerateOutParameterAssignment(sb, methodSymbol, interfaceDeclaration);
+            GenerateOutParameterAssignment(sb, methodSymbol, interfaceDeclaration, interfaceSymbol);
         }
         else if (isObjectType)
         {
@@ -1102,7 +1110,7 @@ partial class ComObjectWrapBaseGenerator
             else
                 sb.AppendLine($"                var returnValue = {privateFieldName}?.{methodName}({callParameters});");
             // 处理out参数的返回值赋值
-            GenerateOutParameterAssignment(sb, methodSymbol, interfaceDeclaration);
+            GenerateOutParameterAssignment(sb, methodSymbol, interfaceDeclaration, interfaceSymbol);
 
             if (isEnunType)
             {
@@ -1179,9 +1187,9 @@ partial class ComObjectWrapBaseGenerator
     /// <summary>
     /// 生成out参数的返回值赋值
     /// </summary>
-    private void GenerateOutParameterAssignment(StringBuilder sb, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
+    private void GenerateOutParameterAssignment(StringBuilder sb, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDeclaration, INamedTypeSymbol interfaceSymbol)
     {
-        var comNamespace = GetComNamespace(interfaceDeclaration);
+        var comNamespace = GetComNamespace(interfaceSymbol, interfaceDeclaration);
 
         foreach (var param in methodSymbol.Parameters)
         {
@@ -1698,29 +1706,69 @@ partial class ComObjectWrapBaseGenerator
     #endregion
 
     /// <summary>
-    /// 从ComObjectWrap特性中获取COM命名空间
+    /// 从ComObjectWrap特性中获取COM命名空间（使用语义符号）
+    /// </summary>
+    /// <param name="interfaceSymbol">接口符号</param>
+    /// <param name="interfaceDeclaration">接口声明语法（可选，用于降级处理）</param>
+    /// <returns>COM命名空间</returns>
+    protected string GetComNamespace(INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration = null)
+    {
+        if (interfaceSymbol == null)
+            return ComWrapConstants.DefaultComNamespace;
+
+        List<string> attributes = [.. ComWrapConstants.ComObjectWrapAttributeNames];
+        attributes.AddRange(ComWrapConstants.ComCollectionWrapAttributeNames);
+
+        var attribute = AttributeDataHelper.GetAttributeDataFromSymbol(interfaceSymbol, [.. attributes]);
+
+        if (attribute != null)
+        {
+            var namespaceValue = AttributeDataHelper.GetStringValueFromAttribute(
+                attribute,
+                ComWrapConstants.ComNamespaceProperty,
+                ComWrapConstants.DefaultComNamespace);
+
+            if (!string.IsNullOrEmpty(namespaceValue) && namespaceValue != ComWrapConstants.DefaultComNamespace)
+                return namespaceValue;
+        }
+
+        // 降级到语法树处理
+        if (interfaceDeclaration != null)
+            return GetComNamespace(interfaceDeclaration);
+
+        return ComWrapConstants.DefaultComNamespace;
+    }
+
+    /// <summary>
+    /// 从ComObjectWrap特性中获取COM命名空间（仅使用语法树）
     /// </summary>
     /// <param name="interfaceDeclaration">接口声明语法</param>
     /// <returns>COM命名空间</returns>
-    protected string GetComNamespace(InterfaceDeclarationSyntax interfaceDeclaration)
+    private string GetComNamespace(InterfaceDeclarationSyntax interfaceDeclaration)
     {
         if (interfaceDeclaration == null)
             return ComWrapConstants.DefaultComNamespace;
 
         var comObjectWrapAttribute = interfaceDeclaration.AttributeLists
             .SelectMany(al => al.Attributes)
-            .FirstOrDefault(attr => ComWrapAttributeNames().Contains(attr.Name.ToString()));
+            .FirstOrDefault(attr =>
+            {
+                var attrName = attr.Name.ToString();
+                // 检查短名称或完全限定名称
+                return ComWrapAttributeNames().Contains(attrName) ||
+                       attrName.EndsWith("ComObjectWrap", StringComparison.OrdinalIgnoreCase) ||
+                       attrName.EndsWith("ComCollectionWrap", StringComparison.OrdinalIgnoreCase);
+            });
 
         if (comObjectWrapAttribute != null)
         {
             var namespaceArgument = comObjectWrapAttribute.ArgumentList?.Arguments
                 .FirstOrDefault(arg =>
-                    arg.NameEquals?.Name.Identifier.Text == ComWrapConstants.ComNamespaceProperty ||
-                    arg.Expression.ToString().Contains(ComWrapConstants.ComNamespaceProperty));
+                    arg.NameEquals?.Name.Identifier.Text == ComWrapConstants.ComNamespaceProperty);
 
             if (namespaceArgument != null)
             {
-                // 移除引号
+                // 处理字符串字面量
                 var namespaceValue = namespaceArgument.Expression.ToString();
                 return namespaceValue.Trim('"');
             }
@@ -1730,7 +1778,54 @@ partial class ComObjectWrapBaseGenerator
     }
 
     /// <summary>
-    /// 从ComObjectWrap特性中获取COM类名
+    /// 从ComObjectWrap特性中获取COM类名（使用语义符号）
+    /// </summary>
+    /// <param name="interfaceSymbol">接口符号</param>
+    /// <param name="interfaceDeclaration">接口声明语法（可选，用于降级处理）</param>
+    /// <returns>COM类名</returns>
+    /// <remarks>
+    /// 支持字符串字面量和nameof()表达式两种形式
+    /// </remarks>
+    protected string GetComClassName(INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration = null)
+    {
+        if (interfaceSymbol == null)
+            return ComWrapConstants.DefaultComClassName;
+
+        List<string> attributes = [.. ComWrapConstants.ComObjectWrapAttributeNames];
+        attributes.AddRange(ComWrapConstants.ComCollectionWrapAttributeNames);
+
+        var attribute = AttributeDataHelper.GetAttributeDataFromSymbol(interfaceSymbol, [.. attributes]);
+
+        if (attribute != null)
+        {
+            var classNameValue = AttributeDataHelper.GetStringValueFromAttribute(
+                attribute,
+                "ComClassName",
+                string.Empty);
+
+            if (!string.IsNullOrEmpty(classNameValue))
+            {
+                // 处理 nameof() 表达式
+                if (classNameValue.StartsWith("nameof(", StringComparison.OrdinalIgnoreCase) && classNameValue.EndsWith(")", StringComparison.OrdinalIgnoreCase))
+                {
+                    var nameofContent = classNameValue.Substring(7, classNameValue.Length - 8);
+                    return nameofContent.Trim();
+                }
+
+                // 处理字符串字面量，移除引号
+                return classNameValue.Trim('"');
+            }
+        }
+
+        // 降级到语法树处理
+        if (interfaceDeclaration != null)
+            return GetComClassName(interfaceDeclaration);
+
+        return ComWrapConstants.DefaultComClassName;
+    }
+
+    /// <summary>
+    /// 从ComObjectWrap特性中获取COM类名（仅使用语法树）
     /// </summary>
     /// <param name="interfaceDeclaration">接口声明语法</param>
     /// <returns>COM类名</returns>
@@ -1804,7 +1899,7 @@ partial class ComObjectWrapBaseGenerator
         if (interfaceDeclaration == null || interfaceSymbol == null || sb == null)
             return;
 
-        var comClassName = GetComClassName(interfaceDeclaration);
+        var comClassName = GetComClassName(interfaceSymbol, interfaceDeclaration);
         var impClassName = TypeSymbolHelper.GetImplementationClassName(interfaceSymbol.Name);
         var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
 

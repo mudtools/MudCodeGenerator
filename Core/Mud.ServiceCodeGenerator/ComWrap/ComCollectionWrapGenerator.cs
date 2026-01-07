@@ -116,7 +116,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine("    {");
 
         // 生成字段
-        GenerateFields(sb, interfaceDeclaration);
+        GenerateFields(sb, interfaceDeclaration, interfaceSymbol);
         GeneratePrivateField(sb, interfaceSymbol, interfaceDeclaration);
 
         // 生成构造函数
@@ -204,8 +204,8 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
             elementType,
             interfaceDeclaration);
 
-        var comNamespace = GetComNamespace(interfaceDeclaration);
-        var comClassName = GetComClassName(interfaceDeclaration);
+        var comNamespace = GetComNamespace(interfaceSymbol, interfaceDeclaration);
+        var comClassName = GetComClassName(interfaceSymbol, interfaceDeclaration);
         var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
         var isNoneEnumerable = AttributeDataHelper.HasAttribute(interfaceSymbol, ComWrapConstants.NoneEnumerableAttributes);
 
@@ -245,13 +245,17 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         ElementTypeInfo elementInfo)
     {
         // 使用一个本地函数来处理异常，避免在 try-catch 中使用 yield
-        sb.AppendLine($"                for (int i = 1; i <= {CollectionConstants.CountPropertyName}; i++)");
+        sb.AppendLine($"                for (int i = 1; i <= this.{CollectionConstants.CountPropertyName}; i++)");
         sb.AppendLine("                {");
         sb.AppendLine($"                    {elementInfo.ElementTypeName} GetItemAt(int index)");
         sb.AppendLine("                    {");
         sb.AppendLine("                        try");
         sb.AppendLine("                        {");
-        sb.AppendLine($"                            return this[index];");
+        sb.AppendLine("                            var result = this[index];");
+        sb.AppendLine("                            if (result != null)");
+        sb.AppendLine($"                                return ({elementInfo.ElementTypeName})result;");
+        sb.AppendLine("                            else");
+        sb.AppendLine("                                return default;");
         sb.AppendLine("                        }");
         sb.AppendLine("                        catch (COMException ce)");
         sb.AppendLine("                        {");

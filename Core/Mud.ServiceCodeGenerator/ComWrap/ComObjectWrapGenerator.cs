@@ -65,7 +65,7 @@ public class ComObjectWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine("    {");
 
         // 生成字段
-        GenerateFields(sb, interfaceDeclaration);
+        GenerateFields(sb, interfaceDeclaration, interfaceSymbol);
         GeneratePrivateField(sb, interfaceSymbol, interfaceDeclaration);
 
         // 生成构造函数
