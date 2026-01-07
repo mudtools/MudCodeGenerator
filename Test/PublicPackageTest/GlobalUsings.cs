@@ -1,4 +1,5 @@
 ﻿global using CodeBaseTest;
+global using PublicPackageTest;
 global using CodeBaseTest.Interface;
 global using FreeSql.DataAnnotations;
 global using Microsoft.Extensions.Options;
