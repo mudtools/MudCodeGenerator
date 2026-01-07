@@ -16,12 +16,14 @@
     <Compile Include="$(MSBuildThisFileDirectory)Consts\GeneratedCodeConsts.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helper\AttributeDataHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helper\AttributeSyntaxHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helper\CSharpCodeValidator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helper\ClassHierarchyAnalyzer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helper\ErrorHandler.cs" />
     <Compile Include="..\Mud.CodeGenerator\Helper\PrivateFieldHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helper\ProjectConfigHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helper\SyntaxHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helper\SyntaxNodeHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helper\TypeDetectionHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Model\ClassHierarchyInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)TransitiveCodeGenerator.cs" />
     <Compile Include="..\Mud.CodeGenerator\Helper\TypeSymbolHelper.cs" />

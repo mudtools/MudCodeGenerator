@@ -1,5 +1,6 @@
 ﻿namespace CodeGeneratorTest.WebApi;
 
+
 [HttpClientApi("https://api.dingtalk.com", Timeout = 60, RegistryGroupName = "Dingtalk")]
 [HttpClientApiWrap(TokenManage = "ITokenManage", WrapInterface = nameof(DingTalkDept))]
 [Header("Authorization")]

@@ -1,13 +1,10 @@
-﻿using System.Text.Json.Serialization;
-
-namespace CodeGeneratorTest.WebApi;
+﻿namespace CodeGeneratorTest.WebApi;
 
 /// <summary>
 /// 飞书认证授权相关的API
 /// </summary>
 [HttpClientApi("https://api.dingtalk.com", Timeout = 60, RegistryGroupName = "Feishu")]
 [HttpClientApiWrap(TokenManage = "ITokenManage", WrapInterface = nameof(IFeishuAuthentication))]
-
 public interface IFeishuAuthenticationApi
 {
     /// <summary>

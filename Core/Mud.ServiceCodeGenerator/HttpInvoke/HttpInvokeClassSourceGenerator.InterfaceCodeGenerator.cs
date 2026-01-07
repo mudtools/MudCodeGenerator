@@ -334,6 +334,22 @@ internal class InterfaceImpCodeGenerator
         var methodInfo = MethodHelper.AnalyzeMethod(_compilation, methodSymbol, _interfaceDecl);
         if (!methodInfo.IsValid) return;
 
+        // 验证URL模板格式
+        if (!string.IsNullOrEmpty(methodInfo.UrlTemplate) &&
+            !CSharpCodeValidator.IsValidUrlTemplate(methodInfo.UrlTemplate, out var urlError))
+        {
+            // 报告URL模板错误
+            var errorDescriptor = new DiagnosticDescriptor(
+                "HTTPCLIENT005",
+                "Invalid URL Template",
+                $"URL模板错误: {urlError}",
+                "Generation",
+                DiagnosticSeverity.Error,
+                true);
+            _context.ReportDiagnostic(Diagnostic.Create(errorDescriptor, _interfaceDecl.GetLocation(), urlError));
+            return;
+        }
+
         // 检查是否忽略生成实现
         if (methodInfo.IgnoreImplement) return;
 
@@ -400,22 +416,10 @@ internal class InterfaceImpCodeGenerator
             _codeBuilder.AppendLine($"            request.Headers.Add(\"{headerName}\", access_token);");
         }
 
-        // 添加接口上定义的所有Header特性（只添加有固定值的Header）
+        // 添加接口上定义的所有Header特性（支持Replace功能）
         if (methodInfo.InterfaceHeaderAttributes?.Any() == true)
         {
-            var fixedValueHeaders = methodInfo.InterfaceHeaderAttributes
-                .Where(h => !string.IsNullOrEmpty(h.Name) && h.Value != null)
-                .ToList();
-
-            if (fixedValueHeaders.Any())
-            {
-                _codeBuilder.AppendLine($"            // 添加接口定义的Header特性");
-                foreach (var interfaceHeader in fixedValueHeaders)
-                {
-                    var headerValue = interfaceHeader.Value?.ToString() ?? "null";
-                    _codeBuilder.AppendLine($"            request.Headers.Add(\"{interfaceHeader.Name}\", \"{headerValue}\");");
-                }
-            }
+            GenerateInterfaceHeaders(methodInfo);
         }
 
         GenerateRequestExecution(methodInfo);
@@ -454,26 +458,8 @@ internal class InterfaceImpCodeGenerator
 
         var urlTemplate = methodInfo.UrlTemplate;
 
-        // 检查是否为绝对 URL
-        var isAbsoluteUrl = urlTemplate.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
-                           urlTemplate.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
-
-        string urlCode;
-
-        if (!pathParams.Any())
-        {
-            if (isAbsoluteUrl)
-            {
-                // 绝对 URL 直接使用
-                urlCode = $"            var url = $\"{urlTemplate}\";";
-            }
-            else
-            {
-                // 相对 URL 需要与 BaseAddress 组合
-                urlCode = $"            var url = $\"{urlTemplate}\";";
-            }
-        }
-        else
+        // 处理路径参数插值
+        if (pathParams.Any())
         {
             var interpolatedUrl = urlTemplate;
             foreach (var param in pathParams)
@@ -484,20 +470,10 @@ internal class InterfaceImpCodeGenerator
                     interpolatedUrl = FormatUrlParameter(interpolatedUrl, param.Name, formatString);
                 }
             }
-
-            if (isAbsoluteUrl)
-            {
-                // 绝对 URL 直接使用插值结果
-                urlCode = $"            var url = $\"{interpolatedUrl}\";";
-            }
-            else
-            {
-                // 相对 URL 需要与 BaseAddress 组合
-                urlCode = $"            var url = $\"{interpolatedUrl}\";";
-            }
+            return $"            var url = $\"{interpolatedUrl}\";";
         }
 
-        return urlCode;
+        return $"            var url = $\"{urlTemplate}\";";
     }
 
     private string FormatUrlParameter(string url, string paramName, string? formatString)
@@ -571,7 +547,7 @@ internal class InterfaceImpCodeGenerator
         var paramName = GetQueryParameterName(queryAttr, param.Name);
         var formatString = GetFormatString(queryAttr);
 
-        if (IsSimpleType(param.Type))
+        if (TypeDetectionHelper.IsSimpleType(param.Type))
         {
             GenerateSimpleQueryParameter(param, paramName, formatString);
         }
@@ -614,7 +590,7 @@ internal class InterfaceImpCodeGenerator
 
     private void GenerateSimpleQueryParameter(ParameterInfo param, string paramName, string? formatString)
     {
-        if (IsArrayType(param.Type))
+        if (TypeDetectionHelper.IsArrayType(param.Type))
         {
             // 处理数组类型：使用默认分号分隔符格式
             _codeBuilder.AppendLine($"            if ({param.Name} != null && {param.Name}.Length > 0)");
@@ -623,7 +599,7 @@ internal class InterfaceImpCodeGenerator
             _codeBuilder.AppendLine($"                queryParams.Add(\"{paramName}\", joinedValues);");
             _codeBuilder.AppendLine("            }");
         }
-        else if (IsStringType(param.Type))
+        else if (TypeDetectionHelper.IsStringType(param.Type))
         {
             _codeBuilder.AppendLine($"            if (!string.IsNullOrEmpty({param.Name}))");
             _codeBuilder.AppendLine("            {");
@@ -633,7 +609,7 @@ internal class InterfaceImpCodeGenerator
         }
         else
         {
-            if (IsNullableType(param.Type))
+            if (TypeDetectionHelper.IsNullableType(param.Type))
             {
                 _codeBuilder.AppendLine($"            if ({param.Name}.HasValue)");
                 var formatExpression = !string.IsNullOrEmpty(formatString)
@@ -649,12 +625,6 @@ internal class InterfaceImpCodeGenerator
                 _codeBuilder.AppendLine($"            queryParams.Add(\"{paramName}\", {param.Name}{formatExpression});");
             }
         }
-    }
-
-    private bool IsNullableType(string typeName)
-    {
-        return typeName.EndsWith("?", StringComparison.Ordinal) ||
-               (typeName.Contains("?<") || typeName.StartsWith("Nullable<", StringComparison.Ordinal));
     }
 
     private void GenerateComplexQueryParameter(ParameterInfo param, string paramName)
@@ -773,7 +743,7 @@ internal class InterfaceImpCodeGenerator
         }
         else
         {
-            if (IsByteArrayType(deserializeType))
+            if (TypeDetectionHelper.IsByteArrayType(deserializeType))
             {
                 _codeBuilder.AppendLine($"            return await _httpClient.DownloadAsync(request{cancellationTokenArg});");
             }
@@ -782,32 +752,6 @@ internal class InterfaceImpCodeGenerator
                 _codeBuilder.AppendLine($"            return await _httpClient.SendAsync<{deserializeType}>(request{cancellationTokenArg});");
             }
         }
-    }
-
-    private bool IsSimpleType(string typeName)
-    {
-        var simpleTypes = new[] { "string", "int", "long", "float", "double", "decimal", "bool",
-                                  "DateTime", "System.DateTime", "Guid", "System.Guid",
-                                  "string[]", "int[]", "long[]", "float[]", "double[]", "decimal[]",
-                                  "DateTime[]", "System.DateTime[]", "Guid[]", "System.Guid[]",};
-        return simpleTypes.Contains(typeName) || typeName.EndsWith("?", StringComparison.OrdinalIgnoreCase) && simpleTypes.Contains(typeName.TrimEnd('?'));
-    }
-
-    private bool IsByteArrayType(string typeName)
-    {
-        var byteArray = new[] { "byte[]" };
-        return byteArray.Contains(typeName) || typeName.EndsWith("?", StringComparison.OrdinalIgnoreCase) && byteArray.Contains(typeName.TrimEnd('?'));
-    }
-
-    private bool IsStringType(string typeName)
-    {
-        return typeName.Equals("string", StringComparison.OrdinalIgnoreCase) ||
-               typeName.Equals("string?", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private bool IsArrayType(string typeName)
-    {
-        return typeName.EndsWith("[]", StringComparison.OrdinalIgnoreCase) || typeName.EndsWith("[]?", StringComparison.OrdinalIgnoreCase);
     }
 
     private string? GetFormatString(ParameterAttributeInfo attribute)
@@ -865,5 +809,34 @@ internal class InterfaceImpCodeGenerator
             withComma: paramValue != null ? $", cancellationToken: {paramValue}" : "",
             withoutComma: paramValue ?? ""
         );
+    }
+
+    /// <summary>
+    /// 生成接口定义的Header代码（支持Replace功能）
+    /// </summary>
+    private void GenerateInterfaceHeaders(MethodAnalysisResult methodInfo)
+    {
+        foreach (var interfaceHeader in methodInfo.InterfaceHeaderAttributes)
+        {
+            if (string.IsNullOrEmpty(interfaceHeader.Name))
+                continue;
+
+            var headerValue = interfaceHeader.Value?.ToString() ?? "null";
+
+            if (interfaceHeader.Replace)
+            {
+                // 如果需要替换已存在的Header，先删除再添加
+                _codeBuilder.AppendLine($"            // 替换接口定义的Header: {interfaceHeader.Name}");
+                _codeBuilder.AppendLine($"            if (request.Headers.Contains(\"{interfaceHeader.Name}\"))");
+                _codeBuilder.AppendLine($"                request.Headers.Remove(\"{interfaceHeader.Name}\");");
+                _codeBuilder.AppendLine($"            request.Headers.Add(\"{interfaceHeader.Name}\", \"{headerValue}\");");
+            }
+            else
+            {
+                // 添加有固定值的Header
+                _codeBuilder.AppendLine($"            // 添加接口定义的Header: {interfaceHeader.Name}");
+                _codeBuilder.AppendLine($"            request.Headers.Add(\"{interfaceHeader.Name}\", \"{headerValue}\");");
+            }
+        }
     }
 }

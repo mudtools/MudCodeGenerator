@@ -1,5 +1,4 @@
 ﻿
-
 namespace CodeGeneratorTest.WebApi;
 
 /// <summary>

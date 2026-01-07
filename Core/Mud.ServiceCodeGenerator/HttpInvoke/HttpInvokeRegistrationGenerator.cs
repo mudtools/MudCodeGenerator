@@ -8,8 +8,8 @@
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Text;
 using Mud.CodeGenerator.Helper;
-using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Mud.ServiceCodeGenerator;
@@ -23,7 +23,12 @@ namespace Mud.ServiceCodeGenerator;
 [Generator(LanguageNames.CSharp)]
 public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
 {
-    private readonly ConcurrentDictionary<SyntaxTree, SemanticModel> _semanticModelCache = new();
+    /// <summary>
+    /// 语义模型缓存，使用弱引用避免内存泄漏
+    /// </summary>
+    private static readonly ConditionalWeakTable<SyntaxTree, SemanticModel> _semanticModelCache = new();
+
+
 
     /// <inheritdoc/>
     protected override void ExecuteGenerator(Compilation compilation,
@@ -46,10 +51,16 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
 
     /// <summary>
     /// 获取或创建语义模型，使用缓存提高性能
+    /// 使用ConditionalWeakTable避免内存泄漏
     /// </summary>
-    private SemanticModel GetOrCreateSemanticModel(Compilation compilation, SyntaxTree syntaxTree)
+    private static SemanticModel GetOrCreateSemanticModel(Compilation compilation, SyntaxTree syntaxTree)
     {
-        return _semanticModelCache.GetOrAdd(syntaxTree, tree => compilation.GetSemanticModel(tree));
+        if (_semanticModelCache.TryGetValue(syntaxTree, out var model))
+            return model;
+
+        var newModel = compilation.GetSemanticModel(syntaxTree);
+        _semanticModelCache.Add(syntaxTree, newModel);
+        return newModel;
     }
 
     /// <inheritdoc/>
@@ -123,19 +134,8 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
         var registryGroupName = AttributeDataHelper.GetStringValueFromAttribute(httpClientApiAttribute, HttpClientGeneratorConstants.RegistryGroupNameProperty);
 
         // 验证 RegistryGroupName
-        if (!string.IsNullOrEmpty(registryGroupName) && !IsValidCSharpIdentifier(registryGroupName))
-        {
-            var errorDescriptor = new DiagnosticDescriptor(
-                "HTTPCLIENTREG002",
-                "Invalid RegistryGroupName",
-                $"RegistryGroupName '{{0}}' is not a valid C# identifier. Please use alphanumeric characters and underscores only.",
-                "Generation",
-                DiagnosticSeverity.Error,
-                true);
-
-            context.ReportDiagnostic(Diagnostic.Create(errorDescriptor, interfaceSyntax.GetLocation(), registryGroupName));
+        if (!CSharpCodeValidator.ValidateAndReportRegistryGroupName(context, interfaceSyntax.GetLocation(), registryGroupName))
             return null;
-        }
 
         var implementationName = TypeSymbolHelper.GetImplementationClassName(interfaceSymbol.Name);
         var namespaceName = SyntaxHelper.GetNamespaceName(interfaceSyntax);
@@ -178,19 +178,8 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
             : null;
 
         // 验证 RegistryGroupName
-        if (!string.IsNullOrEmpty(registryGroupName) && !IsValidCSharpIdentifier(registryGroupName))
-        {
-            var errorDescriptor = new DiagnosticDescriptor(
-                "HTTPCLIENTREG002",
-                "Invalid RegistryGroupName",
-                $"RegistryGroupName '{{0}}' is not a valid C# identifier. Please use alphanumeric characters and underscores only.",
-                "Generation",
-                DiagnosticSeverity.Error,
-                true);
-
-            context.ReportDiagnostic(Diagnostic.Create(errorDescriptor, interfaceSyntax.GetLocation(), registryGroupName));
+        if (!CSharpCodeValidator.ValidateAndReportRegistryGroupName(context, interfaceSyntax.GetLocation(), registryGroupName))
             return null;
-        }
 
         var (baseUrl, timeout) = ExtractAttributeParameters(httpClientApiWrapAttribute);
         var nonNullBaseUrl = baseUrl ?? string.Empty;
@@ -215,56 +204,6 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
 
         return interfaceSymbol.GetAttributes()
             .FirstOrDefault(a => HttpClientGeneratorConstants.HttpClientApiWrapAttributeNames.Contains(a.AttributeClass?.Name));
-    }
-
-    /// <summary>
-    /// 验证字符串是否为合法的C#标识符
-    /// </summary>
-    /// <param name="identifier">要验证的标识符</param>
-    /// <returns>如果合法返回true，否则返回false</returns>
-    private bool IsValidCSharpIdentifier(string? identifier)
-    {
-        if (string.IsNullOrEmpty(identifier))
-            return false;
-
-        // 检查第一个字符是否为字母或下划线（不能以数字开头）
-        if (!char.IsLetter(identifier[0]) && identifier[0] != '_')
-            return false;
-
-        // C# 关键字检查
-        if (IsCSharpKeyword(identifier))
-            return false;
-
-        // 检查其余字符是否为字母、数字或下划线
-        for (int i = 1; i < identifier.Length; i++)
-        {
-            if (!char.IsLetterOrDigit(identifier[i]) && identifier[i] != '_')
-                return false;
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// 检查字符串是否为C#关键字
-    /// </summary>
-    private bool IsCSharpKeyword(string identifier)
-    {
-        var keywords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char",
-            "checked", "class", "const", "continue", "decimal", "default", "delegate",
-            "do", "double", "else", "enum", "event", "explicit", "extern", "false",
-            "finally", "fixed", "float", "for", "foreach", "goto", "if", "implicit",
-            "in", "int", "interface", "internal", "is", "lock", "long", "namespace",
-            "new", "null", "object", "operator", "out", "override", "params", "private",
-            "protected", "public", "readonly", "ref", "return", "sbyte", "sealed",
-            "short", "sizeof", "stackalloc", "static", "string", "struct", "switch",
-            "this", "throw", "true", "try", "typeof", "uint", "ulong", "unchecked",
-            "unsafe", "ushort", "using", "virtual", "void", "volatile", "while"
-        };
-
-        return keywords.Contains(identifier);
     }
 
     private void ReportInterfaceProcessingError(SourceProductionContext context, InterfaceDeclarationSyntax interfaceSyntax, Exception ex)
@@ -418,17 +357,9 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
         SourceProductionContext context)
     {
         // 验证 RegistryGroupName 是否为合法的 C# 标识符
-        if (!IsValidCSharpIdentifier(groupName))
+        if (!CSharpCodeValidator.IsValidCSharpIdentifier(groupName))
         {
-            var errorDescriptor = new DiagnosticDescriptor(
-                "HTTPCLIENTREG002",
-                "Invalid RegistryGroupName",
-                $"RegistryGroupName '{{0}}' is not a valid C# identifier. Please use alphanumeric characters and underscores only.",
-                "Generation",
-                DiagnosticSeverity.Error,
-                true);
-
-            context.ReportDiagnostic(Diagnostic.Create(errorDescriptor, Location.None, groupName));
+            CSharpCodeValidator.ValidateAndReportRegistryGroupName(context, Location.None, groupName);
             return;
         }
 
