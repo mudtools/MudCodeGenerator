@@ -7,7 +7,7 @@
 
 using System.Text;
 
-namespace Mud.ServiceCodeGenerator.ApiSourceGenerator;
+namespace Mud.ServiceCodeGenerator.HttpInvoke;
 
 /// <summary>
 /// 用于生成包装接口代码的代码生成器。

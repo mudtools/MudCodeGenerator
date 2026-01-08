@@ -7,7 +7,7 @@
 
 using Microsoft.CodeAnalysis.Diagnostics;
 
-namespace Mud.ServiceCodeGenerator;
+namespace Mud.ServiceCodeGenerator.CodeInject;
 
 
 public partial class CodeInjectGenerator

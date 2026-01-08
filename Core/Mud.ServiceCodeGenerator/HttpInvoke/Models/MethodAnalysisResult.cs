@@ -5,7 +5,7 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-namespace Mud.ServiceCodeGenerator;
+namespace Mud.ServiceCodeGenerator.HttpInvoke;
 
 /// <summary>
 /// 接口Header特性信息
@@ -49,10 +49,10 @@ public class MethodAnalysisResult
     /// <summary>
     /// 接口名称（保持向后兼容，等同于MethodOwnerInterfaceName）
     /// </summary>
-    public string InterfaceName 
-    { 
-        get => MethodOwnerInterfaceName; 
-        set => MethodOwnerInterfaceName = value; 
+    public string InterfaceName
+    {
+        get => MethodOwnerInterfaceName;
+        set => MethodOwnerInterfaceName = value;
     }
 
     /// <summary>

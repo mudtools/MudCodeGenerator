@@ -6,11 +6,10 @@
 // -----------------------------------------------------------------------
 
 using Microsoft.CodeAnalysis.Text;
-using Mud.CodeGenerator;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace Mud.ServiceCodeGenerator;
+namespace Mud.ServiceCodeGenerator.CodeInject;
 
 /// <summary>
 /// 自动注册服务代码生成器

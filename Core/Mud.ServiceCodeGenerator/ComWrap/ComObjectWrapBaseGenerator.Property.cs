@@ -5,7 +5,6 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using Mud.ServiceCodeGenerator.ComWrapSourceGenerator;
 using System.Text;
 
 namespace Mud.ServiceCodeGenerator.ComWrap;
@@ -558,7 +557,7 @@ partial class ComObjectWrapBaseGenerator
     /// </summary>
     protected void GenerateDisposedCheck(StringBuilder sb, string privateFieldName)
     {
-        GenerateDisposedCheckWithIndent(sb, privateFieldName,"            ");
+        GenerateDisposedCheckWithIndent(sb, privateFieldName, "            ");
     }
 
     /// <summary>
@@ -566,7 +565,7 @@ partial class ComObjectWrapBaseGenerator
     /// </summary>
     protected void GenerateDisposedCheckWithIndent(StringBuilder sb, string privateFieldName, string indent = "            ")
     {
-        if(sb==null)return;
+        if (sb == null) return;
         sb.AppendLine($"{indent}if ({privateFieldName} == null)");
         sb.AppendLine($"{indent}    throw new ObjectDisposedException(nameof({privateFieldName}));");
     }
@@ -680,7 +679,7 @@ partial class ComObjectWrapBaseGenerator
         {
             sb.AppendLine($"            get");
             sb.AppendLine("            {");
-            GenerateDisposedCheckWithIndent(sb, fieldName,"               ");
+            GenerateDisposedCheckWithIndent(sb, fieldName, "               ");
 
             if (needConvert)
             {
@@ -698,7 +697,7 @@ partial class ComObjectWrapBaseGenerator
         {
             sb.AppendLine("            set");
             sb.AppendLine("            {");
-            GenerateDisposedCheckWithIndent(sb, fieldName,"               ");
+            GenerateDisposedCheckWithIndent(sb, fieldName, "               ");
 
             if (propertyType.EndsWith("?", StringComparison.Ordinal))
             {
@@ -1646,13 +1645,13 @@ partial class ComObjectWrapBaseGenerator
         }
 
         // 对于非空类型，使用原有的转换逻辑
-        return GenerateNonNullableConvertCode(typeSymbol, fieldName);
+        return TypeSymbolHelper.GetBasicTypeConvertCode(typeSymbol, fieldName);
     }
 
     private string GenerateNullableConvertCode(ITypeSymbol actualType, string fieldName)
     {
         // 对于可空类型，我们生成带null检查的转换代码
-        var conversionCode = GenerateNonNullableConvertCode(actualType, $"{fieldName}!");
+        var conversionCode = TypeSymbolHelper.GetBasicTypeConvertCode(actualType, $"{fieldName}!");
 
         // 生成带null检查的转换代码
         // 使用条件运算符：如果fieldName不为null，则进行转换，否则返回null/default
@@ -1668,10 +1667,6 @@ partial class ComObjectWrapBaseGenerator
         }
     }
 
-    private string GenerateNonNullableConvertCode(ITypeSymbol typeSymbol, string fieldName)
-    {
-        return TypeSymbolHelper.GetBasicTypeConvertCode(typeSymbol, fieldName);
-    }
     private bool IsSystemDrawingColor(ITypeSymbol typeSymbol)
     {
         if (typeSymbol == null)

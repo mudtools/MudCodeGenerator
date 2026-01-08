@@ -8,7 +8,7 @@
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Immutable;
 
-namespace Mud.ServiceCodeGenerator;
+namespace Mud.ServiceCodeGenerator.HttpInvoke;
 
 /// <summary>
 /// 生成Http调用代码的源代码生成器基类

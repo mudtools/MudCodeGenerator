@@ -804,6 +804,7 @@ internal static class TypeSymbolHelper
             SpecialType.System_Double => $"Convert.ToDouble({fieldName})",
             SpecialType.System_Decimal => $"Convert.ToDecimal({fieldName})",
             SpecialType.System_Char => $"Convert.ToChar({fieldName})",
+            SpecialType.System_String => $"{fieldName}.ToString()",
             SpecialType.System_DateTime => $"ObjectExtensions.ConvertToDateTime({fieldName})",
             _ => fieldName
         };

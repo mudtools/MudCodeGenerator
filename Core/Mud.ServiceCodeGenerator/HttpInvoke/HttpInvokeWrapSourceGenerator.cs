@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Immutable;
 using System.Text;
 
-namespace Mud.ServiceCodeGenerator.ApiSourceGenerator;
+namespace Mud.ServiceCodeGenerator.HttpInvoke;
 
 /// <summary>
 /// HttpClientApiWrap 源代码生成器

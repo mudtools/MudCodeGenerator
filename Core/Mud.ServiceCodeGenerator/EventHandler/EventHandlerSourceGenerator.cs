@@ -10,7 +10,7 @@ using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Text;
 
-namespace Mud.ServiceCodeGenerator;
+namespace Mud.ServiceCodeGenerator.HttpInvoke;
 
 /// <summary>
 /// 事件处理器源代码生成器，用于为带有EventHandler特性的类生成对应的事件处理器抽象类。

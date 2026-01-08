@@ -5,7 +5,6 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using Mud.ServiceCodeGenerator.ComWrapSourceGenerator;
 using System.Text;
 
 namespace Mud.ServiceCodeGenerator.ComWrap;
@@ -271,10 +270,10 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine("                        {");
         sb.AppendLine($"                            throw new ExcelOperationException(\"枚举集合元素失败: \" + ce.Message, ce);");
         sb.AppendLine("                        }");
-                        sb.AppendLine("                        catch (Exception ex)");
+        sb.AppendLine("                        catch (Exception ex)");
         sb.AppendLine("                        {");
         sb.AppendLine($"                            throw new ExcelOperationException(\"枚举集合元素失败\", ex);");
-                        sb.AppendLine("                        }");
+        sb.AppendLine("                        }");
         sb.AppendLine("                    }");
         sb.AppendLine();
         sb.AppendLine("                    yield return GetItemAt(i);");

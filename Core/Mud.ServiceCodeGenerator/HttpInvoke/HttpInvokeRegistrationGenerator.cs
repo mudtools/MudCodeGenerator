@@ -11,7 +11,7 @@ using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace Mud.ServiceCodeGenerator;
+namespace Mud.ServiceCodeGenerator.HttpInvoke;
 
 /// <summary>
 /// HttpClient API 注册源生成器

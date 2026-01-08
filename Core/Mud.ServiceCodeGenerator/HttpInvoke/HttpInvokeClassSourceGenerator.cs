@@ -6,10 +6,9 @@
 // -----------------------------------------------------------------------
 
 using Microsoft.CodeAnalysis.Diagnostics;
-using Mud.ServiceCodeGenerator.HttpInvoke;
 using System.Collections.Immutable;
 
-namespace Mud.ServiceCodeGenerator;
+namespace Mud.ServiceCodeGenerator.HttpInvoke;
 
 /// <summary>
 /// HttpClient API 源生成器
