@@ -102,15 +102,11 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
             catch (Exception ex)
             {
                 // 报告代码生成失败
-                var errorDescriptor = new DiagnosticDescriptor(
-                    "COMWRAPGEN001",
-                    "COM Wrap Generation Error",
-                    $"生成COM包装类失败: {{0}}. 错误: {{1}}",
-                    "Generation",
-                    DiagnosticSeverity.Error,
-                    true);
-
-                context.ReportDiagnostic(Diagnostic.Create(errorDescriptor, interfaceDeclaration.GetLocation(), interfaceDeclaration.Identifier.Text, ex.Message));
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Diagnostics.ComWrapGenerationError,
+                    interfaceDeclaration.GetLocation(),
+                    interfaceDeclaration.Identifier.Text,
+                    ex.Message));
             }
         }
     }

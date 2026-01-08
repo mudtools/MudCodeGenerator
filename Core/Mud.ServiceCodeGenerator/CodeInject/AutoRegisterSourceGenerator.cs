@@ -67,7 +67,7 @@ public class AutoRegisterSourceGenerator : TransitiveCodeGenerator
                         // 调试信息：显示提取到的元数据
                         foreach (var metadata in metadataList)
                         {
-                            ErrorHandler.ReportInfo(sourceContext, DiagnosticDescriptors.AutoRegisterMetadataDetails,
+                            ErrorHandler.ReportInfo(sourceContext, Diagnostics.AutoRegisterMetadataDetails,
                                 SyntaxHelper.GetClassName(classDeclaration),
                                 metadata.ImplType,
                                 metadata.BaseType,
@@ -78,7 +78,7 @@ public class AutoRegisterSourceGenerator : TransitiveCodeGenerator
                 catch (Exception ex)
                 {
                     // 记录生成错误但不要中断编译
-                    ReportErrorDiagnostic(sourceContext, DiagnosticDescriptors.AutoRegisterGenerationError,
+                    ReportErrorDiagnostic(sourceContext, Diagnostics.AutoRegisterGenerationError,
                         SyntaxHelper.GetClassName(classDeclaration), ex);
                 }
             }

@@ -55,8 +55,4 @@ internal static class HttpClientGeneratorConstants
     // 默认值
     public const string DefaultTokenManageInterface = "ITokenManage";
     public const string DefaultWrapSuffix = "Wrap";
-
-    // 诊断ID
-    public const string GeneratorErrorDiagnosticId = "MCG001";
-    public const string GeneratorWarningDiagnosticId = "MCG002";
 }

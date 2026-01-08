@@ -87,13 +87,13 @@ public abstract class TransitiveBoGenerator : BaseDtoGenerator
     /// <inheritdoc/>
     protected override Microsoft.CodeAnalysis.DiagnosticDescriptor GetFailureDescriptor()
     {
-        return DiagnosticDescriptors.BoGenerationFailure;
+        return Diagnostics.BoGenerationFailure;
     }
 
     /// <inheritdoc/>
     protected override Microsoft.CodeAnalysis.DiagnosticDescriptor GetErrorDescriptor()
     {
-        return DiagnosticDescriptors.BoGenerationError;
+        return Diagnostics.BoGenerationError;
     }
 
     /// <inheritdoc/>

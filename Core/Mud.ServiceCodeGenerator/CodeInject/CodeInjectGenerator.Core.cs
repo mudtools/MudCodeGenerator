@@ -47,14 +47,9 @@ public partial class CodeInjectGenerator
                 {
                     // 记录生成错误但不要中断编译
                     sourceContext.ReportDiagnostic(Diagnostic.Create(
-                        new DiagnosticDescriptor(
-                            "SG001",
-                            "Code generation failed",
-                            $"Failed to generate code for {SyntaxHelper.GetClassName(classDeclaration)}: {ex.Message}",
-                            "CodeGeneration",
-                            DiagnosticSeverity.Warning,
-                            true),
-                        Location.None));
+                        Diagnostics.SourceGeneratorError,
+                        Location.None,
+                        $"Failed to generate code for {SyntaxHelper.GetClassName(classDeclaration)}: {ex.Message}"));
                 }
             }
         });

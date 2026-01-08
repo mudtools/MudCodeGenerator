@@ -136,7 +136,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
             {
                 // 提高容错性，报告初始化错误
                 context.ReportDiagnostic(Diagnostic.Create(
-                    DiagnosticDescriptors.DtoInitializationError,
+                    Diagnostics.DtoInitializationError,
                     Location.None,
                     ex.Message));
             }

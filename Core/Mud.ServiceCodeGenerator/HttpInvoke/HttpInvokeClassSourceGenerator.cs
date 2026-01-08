@@ -62,18 +62,9 @@ public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenera
     {
         var descriptor = ex switch
         {
-            InvalidOperationException => new DiagnosticDescriptor(
-                "HTTPCLIENT003", "HttpClient API语法错误",
-                $"接口{interfaceDecl.Identifier.Text}的语法分析失败: {ex.Message}",
-                "Generation", DiagnosticSeverity.Error, true),
-            ArgumentException => new DiagnosticDescriptor(
-                "HTTPCLIENT004", "HttpClient API参数错误",
-                $"接口{interfaceDecl.Identifier.Text}的参数配置错误: {ex.Message}",
-                "Generation", DiagnosticSeverity.Error, true),
-            _ => new DiagnosticDescriptor(
-                "HTTPCLIENT001", "HttpClient API生成错误",
-                $"生成接口{interfaceDecl.Identifier.Text}的实现时发生错误: {ex.Message}",
-                "Generation", DiagnosticSeverity.Error, true)
+            InvalidOperationException => Diagnostics.HttpClientApiSyntaxError,
+            ArgumentException => Diagnostics.HttpClientApiParameterError,
+            _ => Diagnostics.HttpClientApiGenerationError
         };
 
         ReportErrorDiagnostic(context, descriptor, interfaceDecl.Identifier.Text, ex);

@@ -63,14 +63,9 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
             if (localClass == null)
             {
                 context.ReportDiagnostic(Diagnostic.Create(
-                    new DiagnosticDescriptor(
-                        "EG002",
-                        "QueryInput类生成失败",
-                        $"无法为类 {orgClassName} 生成QueryInput类",
-                        "代码生成",
-                        DiagnosticSeverity.Warning,
-                        true),
-                    Location.None));
+                    Diagnostics.EntityGenerationFailure,
+                    Location.None,
+                    orgClassName));
                 return;
             }
 
@@ -84,14 +79,10 @@ public class TransitiveQueryInputGenerator : TransitiveDtoGenerator
             // 提高容错性，报告生成错误
             var className = orgClassDeclaration != null ? SyntaxHelper.GetClassName(orgClassDeclaration) : "Unknown";
             context.ReportDiagnostic(Diagnostic.Create(
-                new DiagnosticDescriptor(
-                    "QI002",
-                    "QueryInput类生成错误",
-                    $"生成类 {className} 的QueryInput类时发生错误: {ex.Message}",
-                    "代码生成",
-                    DiagnosticSeverity.Error,
-                    true),
-                Location.None));
+                Diagnostics.QueryInputGenerationError,
+                Location.None,
+                className,
+                ex.Message));
         }
     }
 }

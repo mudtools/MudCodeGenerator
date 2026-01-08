@@ -278,12 +278,12 @@ public class TransitiveVoGenerator : BaseDtoGenerator
     /// <inheritdoc/>
     protected override Microsoft.CodeAnalysis.DiagnosticDescriptor GetFailureDescriptor()
     {
-        return DiagnosticDescriptors.VoGenerationFailure;
+        return Diagnostics.VoGenerationFailure;
     }
 
     /// <inheritdoc/>
     protected override Microsoft.CodeAnalysis.DiagnosticDescriptor GetErrorDescriptor()
     {
-        return DiagnosticDescriptors.VoGenerationError;
+        return Diagnostics.VoGenerationError;
     }
 }

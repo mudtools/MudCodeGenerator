@@ -208,15 +208,7 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
 
     private void ReportInterfaceProcessingError(SourceProductionContext context, InterfaceDeclarationSyntax interfaceSyntax, Exception ex)
     {
-        var errorDescriptor = new DiagnosticDescriptor(
-            "HTTPCLIENTREG001",
-            "HttpClient API Register Generation Error",
-            $"Error generating HttpClient API registration for interface '{{0}}': {{1}}",
-            "Generation",
-            DiagnosticSeverity.Error,
-            true);
-
-        ReportErrorDiagnostic(context, errorDescriptor, interfaceSyntax.Identifier.Text, ex);
+        ReportErrorDiagnostic(context, Diagnostics.HttpClientRegistrationGenerationError, interfaceSyntax.Identifier.Text, ex);
     }
 
     private string GenerateSourceCode(Compilation compilation, List<HttpClientApiInfo> apis, List<HttpClientWrapApiInfo> wrapApis, SourceProductionContext context)

@@ -332,14 +332,9 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
     private void ReportDiagnosticError(SourceProductionContext context, InterfaceDeclarationSyntax interfaceDecl, Exception ex)
     {
         context.ReportDiagnostic(Diagnostic.Create(
-            new DiagnosticDescriptor(
-                HttpClientGeneratorConstants.GeneratorErrorDiagnosticId,
-                "HttpClientApiWrap Source Generator Error",
-                $"Error generating wrap interface for {interfaceDecl.Identifier}: {ex.Message}",
-                "Generation",
-                DiagnosticSeverity.Error,
-                true),
-            interfaceDecl.GetLocation()));
+            Diagnostics.GeneratorError,
+            interfaceDecl.GetLocation(),
+            $"Error generating wrap interface for {interfaceDecl.Identifier}: {ex.Message}"));
     }
 
     /// <summary>
@@ -348,14 +343,9 @@ public abstract class HttpInvokeWrapSourceGenerator : HttpInvokeBaseSourceGenera
     private void ReportDiagnosticWarning(SourceProductionContext context, InterfaceDeclarationSyntax interfaceDecl, string message)
     {
         context.ReportDiagnostic(Diagnostic.Create(
-            new DiagnosticDescriptor(
-                HttpClientGeneratorConstants.GeneratorWarningDiagnosticId,
-                "HttpClientApiWrap Source Generator Warning",
-                message,
-                "Generation",
-                DiagnosticSeverity.Warning,
-                true),
-            interfaceDecl.GetLocation()));
+            Diagnostics.GeneratorWarning,
+            interfaceDecl.GetLocation(),
+            message));
     }
 
     /// <summary>

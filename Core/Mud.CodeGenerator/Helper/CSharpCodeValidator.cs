@@ -5,9 +5,6 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Diagnostics;
-
 namespace Mud.CodeGenerator;
 
 /// <summary>
@@ -168,14 +165,6 @@ internal static class CSharpCodeValidator
         Location location,
         string registryGroupName)
     {
-        var errorDescriptor = new DiagnosticDescriptor(
-            "HTTPCLIENTREG002",
-            "Invalid RegistryGroupName",
-            $"RegistryGroupName '{{0}}' is not a valid C# identifier. Please use alphanumeric characters and underscores only.",
-            "Generation",
-            DiagnosticSeverity.Error,
-            true);
-
-        context.ReportDiagnostic(Diagnostic.Create(errorDescriptor, location, registryGroupName));
+        context.ReportDiagnostic(Diagnostic.Create(Diagnostics.HttpClientInvalidRegistryGroupName, location, registryGroupName));
     }
 }

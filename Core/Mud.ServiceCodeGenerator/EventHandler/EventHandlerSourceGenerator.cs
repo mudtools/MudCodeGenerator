@@ -102,13 +102,7 @@ public class EventHandlerSourceGenerator : TransitiveCodeGenerator
             {
                 // 报告生成错误
                 context.ReportDiagnostic(Diagnostic.Create(
-                    new DiagnosticDescriptor(
-                        "EHSG001",
-                        "Event Handler Generator Error",
-                        "Failed to generate event handler for class '{0}': {1}",
-                        "EventHandling",
-                        DiagnosticSeverity.Error,
-                        isEnabledByDefault: true),
+                    Diagnostics.EventHandlerGenerationError,
                     Location.None,
                     eventClass.Identifier.Text,
                     ex.Message));

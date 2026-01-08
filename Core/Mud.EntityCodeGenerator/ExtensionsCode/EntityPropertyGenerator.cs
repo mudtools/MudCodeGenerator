@@ -70,7 +70,7 @@ namespace Mud.EntityCodeGenerator
                 // 提高容错性，检查生成的类是否为空
                 if (localClass == null)
                 {
-                    ReportFailureDiagnostic(context, DiagnosticDescriptors.EntityMethodGenerationFailure, orgClassName);
+                    ReportFailureDiagnostic(context, Diagnostics.EntityMethodGenerationFailure, orgClassName);
                     return;
                 }
 
@@ -81,7 +81,7 @@ namespace Mud.EntityCodeGenerator
             {
                 // 提高容错性，报告生成错误
                 var className = orgClassDeclaration != null ? SyntaxHelper.GetClassName(orgClassDeclaration) : "Unknown";
-                ReportErrorDiagnostic(context, DiagnosticDescriptors.EntityMethodGenerationError, className, ex);
+                ReportErrorDiagnostic(context, Diagnostics.EntityMethodGenerationError, className, ex);
             }
         }
 

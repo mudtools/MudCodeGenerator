@@ -54,7 +54,7 @@ public class BuilderGenerator : TransitiveDtoGenerator
         catch (Exception ex)
         {
             var className = orgClassDeclaration != null ? SyntaxHelper.GetClassName(orgClassDeclaration) : "Unknown";
-            ReportErrorDiagnostic(context, DiagnosticDescriptors.EntityBuilderGenerationError, className, ex);
+            ReportErrorDiagnostic(context, Diagnostics.EntityBuilderGenerationError, className, ex);
         }
     }
 

@@ -339,14 +339,7 @@ internal class InterfaceImpCodeGenerator
             !CSharpCodeValidator.IsValidUrlTemplate(methodInfo.UrlTemplate, out var urlError))
         {
             // 报告URL模板错误
-            var errorDescriptor = new DiagnosticDescriptor(
-                "HTTPCLIENT005",
-                "Invalid URL Template",
-                $"URL模板错误: {urlError}",
-                "Generation",
-                DiagnosticSeverity.Error,
-                true);
-            _context.ReportDiagnostic(Diagnostic.Create(errorDescriptor, _interfaceDecl.GetLocation(), urlError));
+            _context.ReportDiagnostic(Diagnostic.Create(Diagnostics.HttpClientInvalidUrlTemplate, _interfaceDecl.GetLocation(), _interfaceDecl.Identifier.Text, methodInfo.UrlTemplate, urlError));
             return;
         }
 
