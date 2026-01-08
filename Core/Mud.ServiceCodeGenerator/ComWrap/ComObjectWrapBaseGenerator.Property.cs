@@ -558,8 +558,7 @@ partial class ComObjectWrapBaseGenerator
     /// </summary>
     protected void GenerateDisposedCheck(StringBuilder sb, string privateFieldName)
     {
-        sb.AppendLine($"            if ({privateFieldName} == null)");
-        sb.AppendLine($"                throw new ObjectDisposedException(nameof({privateFieldName}));");
+        GenerateDisposedCheckWithIndent(sb, privateFieldName,"            ");
     }
 
     /// <summary>
@@ -567,6 +566,7 @@ partial class ComObjectWrapBaseGenerator
     /// </summary>
     protected void GenerateDisposedCheckWithIndent(StringBuilder sb, string privateFieldName, string indent = "            ")
     {
+        if(sb==null)return;
         sb.AppendLine($"{indent}if ({privateFieldName} == null)");
         sb.AppendLine($"{indent}    throw new ObjectDisposedException(nameof({privateFieldName}));");
     }
