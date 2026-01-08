@@ -32,8 +32,16 @@ public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenera
         ProjectConfigHelper.ReadProjectOptions(configOptionsProvider.GlobalOptions, "build_property.HttpClientOptionsName",
            val => httpClientOptionsName = val, "HttpClientOptions");
 
+        var processedSymbols = new HashSet<int>();
+
         foreach (var interfaceDecl in interfaces)
         {
+            var symbolHashCode = interfaceDecl.GetHashCode();
+            if (!processedSymbols.Add(symbolHashCode))
+            {
+                continue;
+            }
+
             ProcessInterface(compilation, interfaceDecl, context, httpClientOptionsName);
         }
     }
