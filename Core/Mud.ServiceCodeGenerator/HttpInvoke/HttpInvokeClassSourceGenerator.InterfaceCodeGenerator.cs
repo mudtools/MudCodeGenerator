@@ -808,10 +808,26 @@ internal class InterfaceImpCodeGenerator
     /// </summary>
     private void GenerateInterfaceHeaders(MethodAnalysisResult methodInfo)
     {
+        var hasTokenManager = !string.IsNullOrEmpty(_tokenManage);
+        var hasAuthorizationHeader = TypeSymbolHelper.HasPropertyAttribute(_interfaceSymbol!, "Header", "Authorization");
+
         foreach (var interfaceHeader in methodInfo.InterfaceHeaderAttributes)
         {
             if (string.IsNullOrEmpty(interfaceHeader.Name))
                 continue;
+
+            // 跳过由Token管理器处理的Authorization Header
+            if (hasTokenManager && hasAuthorizationHeader &&
+                interfaceHeader.Name.Equals("Authorization", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            // 跳过没有值的Header（由Token管理器处理或参数动态生成）
+            if (interfaceHeader.Value == null)
+            {
+                continue;
+            }
 
             var headerValue = interfaceHeader.Value?.ToString() ?? "null";
 

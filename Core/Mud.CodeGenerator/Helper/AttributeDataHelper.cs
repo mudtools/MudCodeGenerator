@@ -13,6 +13,29 @@ namespace Mud.CodeGenerator;
 internal static class AttributeDataHelper
 {
     /// <summary>
+    /// 检查是否应该被忽略生成代码。
+    /// </summary>
+    /// <param name="field"></param>
+    /// <returns></returns>
+    public static bool IgnoreGenerator(MemberDeclarationSyntax field)
+    {
+        var ignoreAttributes = AttributeSyntaxHelper.GetAttributeSyntaxes(field, GeneratedCodeConsts.IgnoreGeneratorAttribute);
+        return ignoreAttributes?.Any() == true;
+    }
+
+    /// <summary>
+    /// 检查是否应该被忽略生成代码。
+    /// </summary>
+    /// <param name="member">符号</param>
+    /// <returns>如果应该忽略返回true，否则返回false</returns>
+    public static bool IgnoreGenerator(ISymbol member)
+    {
+        if (member == null)
+            return false;
+        return member.GetAttributes().Any(attr => attr.AttributeClass?.Name == GeneratedCodeConsts.IgnoreGeneratorAttribute);
+    }
+
+    /// <summary>
     /// 从特性数据中获取整型属性值。
     /// </summary>
     /// <param name="attribute">特性数据对象</param>

@@ -26,10 +26,6 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     /// </summary>
     protected virtual string ClassSuffix => "";
 
-    /// <summary>
-    /// 识别是否忽略生成特性。
-    /// </summary>
-    protected const string IgnoreGeneratorAttribute = "IgnoreGeneratorAttribute";
     private const string LikeQueryAttributeName = "LikeQueryAttribute";
 
     protected const string CompilerGeneratedAttribute = GeneratedCodeConsts.CompilerGeneratedAttribute;

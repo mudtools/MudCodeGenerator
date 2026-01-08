@@ -43,7 +43,7 @@ public abstract class TransitiveBoGenerator : BaseDtoGenerator
     {
         return member =>
         {
-            if (IsIgnoreGenerator(member))
+            if (AttributeDataHelper.IgnoreGenerator(member))
                 return null;
 
             var isPrimary = IsPrimary(member);
@@ -61,7 +61,7 @@ public abstract class TransitiveBoGenerator : BaseDtoGenerator
     {
         return member =>
         {
-            if (IsIgnoreGenerator(member))
+            if (AttributeDataHelper.IgnoreGenerator(member))
                 return null;
 
             var isPrimary = IsPrimary(member);

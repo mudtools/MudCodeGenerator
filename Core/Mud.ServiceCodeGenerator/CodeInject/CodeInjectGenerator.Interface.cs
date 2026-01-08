@@ -135,18 +135,14 @@ public partial class CodeInjectGenerator
             var fields = SyntaxHelper.GetClassMemberField(context.ClassDeclaration);
             foreach (var field in fields)
             {
-                if (ShouldIgnoreField(field))
+                if (AttributeDataHelper.IgnoreGenerator(field))
                     continue;
 
                 ProcessFieldInjection(context, field);
             }
         }
 
-        private bool ShouldIgnoreField(FieldDeclarationSyntax field)
-        {
-            var ignoreAttributes = AttributeSyntaxHelper.GetAttributeSyntaxes(field, IgnoreGeneratorAttribute);
-            return ignoreAttributes?.Any() == true;
-        }
+
 
         private void ProcessFieldInjection(InjectionContext context, FieldDeclarationSyntax field)
         {

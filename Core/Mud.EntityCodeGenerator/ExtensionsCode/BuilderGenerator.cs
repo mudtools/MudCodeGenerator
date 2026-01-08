@@ -129,7 +129,7 @@ public class BuilderGenerator : TransitiveDtoGenerator
             sb,
             compilation,
             generateSetMethod,
-            IsIgnoreGenerator,
+            AttributeDataHelper.IgnoreGenerator,
             IsPrimary,
             GetBuilderPropertyNames,
             GetPropertyType);

@@ -224,7 +224,7 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
         {
             if (member.IsIndexer)
                 continue;
-            if (ShouldIgnoreMember(member))
+            if (AttributeDataHelper.IgnoreGenerator(member))
                 continue;
 
             var propertyName = member.Name;
@@ -410,6 +410,491 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
 
         // 3. 如果没有找到预定义前缀，返回原始类名
         return className;
+    }
+    #endregion
+
+    #region Method Generation
+    /// <summary>
+    /// 生成方法实现
+    /// </summary>
+    /// <param name="sb">字符串构建器</param>
+    /// <param name="interfaceSymbol">接口符号</param>
+    protected void GenerateMethods(StringBuilder sb, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
+    {
+        if (interfaceDeclaration == null || sb == null || interfaceSymbol == null)
+            return;
+
+        sb.AppendLine("        #region 方法实现");
+        sb.AppendLine();
+
+        foreach (var member in TypeSymbolHelper.GetAllMethods(interfaceSymbol, excludedInterfaces: ["IOfficeObject", "IDisposable", "System.IDisposable", "System.Collections.Generic.IEnumerable"]))
+        {
+            if (member.MethodKind == MethodKind.Ordinary && !AttributeDataHelper.IgnoreGenerator(member))
+            {
+                GenerateMethod(sb, member, interfaceDeclaration, interfaceSymbol);
+            }
+        }
+
+        sb.AppendLine("        #endregion");
+        sb.AppendLine();
+    }
+
+
+    /// <summary>
+    /// 生成单个方法实现
+    /// </summary>
+    /// <param name="sb">字符串构建器</param>
+    /// <param name="methodSymbol">方法符号</param>
+    /// <param name="interfaceDeclaration">接口声明语法</param>
+    private void GenerateMethod(
+        StringBuilder sb,
+        IMethodSymbol methodSymbol,
+        InterfaceDeclarationSyntax interfaceDeclaration,
+        INamedTypeSymbol interfaceSymbol)
+    {
+        // 生成方法签名
+        GenerateMethodSignature(sb, methodSymbol);
+
+        sb.AppendLine("        {");
+
+        // 生成方法体
+        GenerateMethodBody(sb, methodSymbol, interfaceDeclaration, interfaceSymbol);
+
+        sb.AppendLine("        }");
+        sb.AppendLine();
+    }
+
+    /// <summary>
+    /// 生成方法签名
+    /// </summary>
+    private void GenerateMethodSignature(
+        StringBuilder sb,
+        IMethodSymbol methodSymbol)
+    {
+        var methodName = methodSymbol.Name;
+        var returnType = TypeSymbolHelper.GetTypeFullName(methodSymbol.ReturnType);
+        var parameters = new List<string>();
+
+        foreach (var param in methodSymbol.Parameters)
+        {
+            var paramType = TypeSymbolHelper.GetTypeFullName(param.Type);
+            var paramName = param.Name;
+            var refKind = param.RefKind;
+
+            // 检查是否有 [ConvertTriState] 特性
+            var hasConvertTriState = HasConvertTriStateAttribute(param);
+            if (hasConvertTriState && paramType == "bool")
+            {
+                // 在方法签名中使用原始类型，在方法体中处理转换
+            }
+
+            // 处理ref和out参数
+            string refModifier = "";
+            if (refKind == RefKind.Out)
+                refModifier = "out ";
+            else if (refKind == RefKind.Ref)
+                refModifier = "ref ";
+
+            // 处理可选参数的默认值（out和ref参数不能有默认值）
+            if (param.HasExplicitDefaultValue && refKind == RefKind.None)
+            {
+                var defaultValue = GetParameterDefaultValue(param);
+                parameters.Add($"{refModifier}{paramType} {paramName} = {defaultValue}");
+            }
+            else
+            {
+                parameters.Add($"{refModifier}{paramType} {paramName}");
+            }
+        }
+
+        var parametersStr = string.Join(", ", parameters);
+
+        sb.AppendLine($"        ///  <inheritdoc/>");
+        sb.AppendLine($"        {GeneratedCodeAttribute}");
+        sb.AppendLine($"        public {returnType} {methodName}({parametersStr})");
+    }
+
+    /// <summary>
+    /// 生成方法体
+    /// </summary>
+    private void GenerateMethodBody(
+        StringBuilder sb,
+        IMethodSymbol methodSymbol,
+        InterfaceDeclarationSyntax interfaceDeclaration,
+        INamedTypeSymbol interfaceSymbol)
+    {
+        var comClassName = GetComClassName(interfaceSymbol, interfaceDeclaration);
+        var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
+
+        var hasParameters = methodSymbol.Parameters.Length > 0;
+
+        GenerateDisposedCheck(sb, privateFieldName);
+
+        // 参数预处理（如有必要）
+        if (hasParameters)
+        {
+            GenerateParameterPreprocessing(sb, methodSymbol, interfaceDeclaration, interfaceSymbol);
+        }
+
+        // 异常处理和方法调用
+        GenerateMethodCallWithExceptionHandling(sb, methodSymbol, interfaceDeclaration, interfaceSymbol, hasParameters);
+    }
+
+    /// <summary>
+    /// 生成参数预处理逻辑
+    /// </summary>
+    private void GenerateParameterPreprocessing(
+        StringBuilder sb,
+        IMethodSymbol methodSymbol,
+        InterfaceDeclarationSyntax interfaceDeclaration,
+        INamedTypeSymbol interfaceSymbol)
+    {
+        foreach (var param in methodSymbol.Parameters)
+        {
+            var pType = TypeSymbolHelper.GetTypeFullName(param.Type);
+            bool isEnumType = TypeSymbolHelper.IsEnumType(param.Type);
+            bool isObjectType = TypeSymbolHelper.IsComplexObjectType(param.Type);
+            bool hasConvertTriState = HasConvertTriStateAttribute(param);
+            bool convertToInteger = AttributeDataHelper.HasAttribute(param, ComWrapConstants.ConvertIntAttributeNames);
+            bool isOut = param.RefKind == RefKind.Out;
+
+            var defaultValue = GetDefaultValue(interfaceDeclaration, param, param.Type);
+            var comNamespace = GetComNamespace(interfaceSymbol, interfaceDeclaration);
+
+            var paramcomNamespace = AttributeDataHelper.GetStringValueFromSymbol(param, ComWrapConstants.ComNamespaceAttributes, "Name", "");
+            if (!string.IsNullOrEmpty(paramcomNamespace))
+                comNamespace = paramcomNamespace;
+
+            var enumValueName = GetEnumValueWithoutNamespace(defaultValue);
+            // 对于枚举类型，直接使用类型名，不需要转换为实现类型
+            var constructType = isEnumType ? TypeSymbolHelper.GetTypeFullName(param.Type) : GetImplementationType(TypeSymbolHelper.GetTypeFullName(param.Type));
+
+            // 处理out参数
+            if (isOut)
+            {
+                GenerateOutParameterVariable(sb, param, isEnumType, isObjectType, convertToInteger, pType, comNamespace, enumValueName, constructType);
+                continue;
+            }
+
+            // 生成参数对象处理逻辑
+            GenerateParameterObject(sb, param, pType, isEnumType, isObjectType, hasConvertTriState, convertToInteger, comNamespace, enumValueName, constructType);
+        }
+        sb.AppendLine();
+    }
+
+    /// <summary>
+    /// 生成带有异常处理的方法调用
+    /// </summary>
+    private void GenerateMethodCallWithExceptionHandling(
+        StringBuilder sb,
+        IMethodSymbol methodSymbol,
+        InterfaceDeclarationSyntax interfaceDeclaration,
+        INamedTypeSymbol interfaceSymbol,
+        bool hasParameters)
+    {
+        var methodName = AttributeDataHelper.GetStringValueFromSymbol(methodSymbol, ComWrapConstants.MethodNameAttributes, "Name", "");
+        if (string.IsNullOrEmpty(methodName))
+            methodName = methodSymbol.Name;
+        var isObjectType = TypeSymbolHelper.IsComplexObjectType(methodSymbol.ReturnType);
+        var comClassName = GetComClassName(interfaceSymbol, interfaceDeclaration);
+        var comNamespace = GetComNamespace(interfaceSymbol, interfaceDeclaration);
+        var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
+
+        var isIndexMethod = AttributeDataHelper.HasAttribute(methodSymbol, ComWrapConstants.MethodIndexAttributes);
+        var needConvert = AttributeDataHelper.HasAttribute(methodSymbol, ComWrapConstants.ValueConvertAttributes);
+        string returnType = TypeSymbolHelper.GetTypeFullName(methodSymbol.ReturnType);
+        var isEnunType = TypeSymbolHelper.IsEnumType(methodSymbol.ReturnType);
+        var defaultValue = GetDefaultValue(interfaceDeclaration, methodSymbol, methodSymbol.ReturnType);
+        sb.AppendLine("            try");
+        sb.AppendLine("            {");
+
+        // 生成方法调用参数
+        var callParameters = GenerateCallParameters(methodSymbol);
+
+        if (returnType == "void")
+        {
+            if (isIndexMethod)
+                sb.AppendLine($"                {privateFieldName}?.{methodName}[{callParameters}];");
+            else
+                sb.AppendLine($"                {privateFieldName}?.{methodName}({callParameters});");
+
+            // 处理out参数的返回值赋值
+            GenerateOutParameterAssignment(sb, methodSymbol, interfaceDeclaration, interfaceSymbol);
+        }
+        else if (isObjectType)
+        {
+            var objectType = StringExtensions.RemoveInterfacePrefix(returnType);
+            var constructType = GetImplementationType(objectType);
+            if (isIndexMethod)
+                sb.AppendLine($"                var comObj = {privateFieldName}?.{methodName}[{callParameters}];");
+            else
+                sb.AppendLine($"                var comObj = {privateFieldName}?.{methodName}({callParameters});");
+            sb.AppendLine("                if (comObj == null)");
+            if (returnType.EndsWith("?", StringComparison.Ordinal))
+                sb.AppendLine("                    return null;");
+            else
+                sb.AppendLine("                    return null;");
+
+            if (needConvert)
+            {
+                var ordinalComType = GetImplementationOrdinalType(returnType);
+                var comType = GetOrdinalComType(ordinalComType);
+                sb.AppendLine($"                if(comObj is {comNamespace}.{comType} rComObj)");
+                sb.AppendLine($"                     return new {constructType}(rComObj);");
+                sb.AppendLine($"                else");
+                sb.AppendLine("                     return null;");
+            }
+            else
+            {
+                sb.AppendLine($"                return new {constructType}(comObj);");
+            }
+        }
+        else
+        {
+            if (isIndexMethod)
+                sb.AppendLine($"                var returnValue = {privateFieldName}?.{methodName}[{callParameters}];");
+            else
+                sb.AppendLine($"                var returnValue = {privateFieldName}?.{methodName}({callParameters});");
+            // 处理out参数的返回值赋值
+            GenerateOutParameterAssignment(sb, methodSymbol, interfaceDeclaration, interfaceSymbol);
+
+            if (isEnunType)
+            {
+                sb.AppendLine($"                return returnValue.EnumConvert({defaultValue});");
+            }
+            else
+            {
+                if (needConvert)
+                {
+                    string convertCode = GetConvertCodeForType(methodSymbol.ReturnType, "returnValue");
+                    sb.AppendLine($"                return {convertCode};");
+                }
+                else
+                {
+                    sb.AppendLine("                return returnValue;");
+                }
+            }
+        }
+
+        sb.AppendLine("            }");
+
+        // 异常处理
+        GenerateExceptionHandling(sb, methodName);
+    }
+
+
+    /// <summary>
+    /// 生成方法调用参数
+    /// </summary>
+    private string GenerateCallParameters(IMethodSymbol methodSymbol)
+    {
+        var parameters = new List<string>();
+
+        foreach (var param in methodSymbol.Parameters)
+        {
+            var pType = TypeSymbolHelper.GetTypeFullName(param.Type);
+            bool isEnumType = TypeSymbolHelper.IsEnumType(param.Type);
+            bool isObjectType = TypeSymbolHelper.IsComplexObjectType(param.Type);
+            bool hasConvertTriState = HasConvertTriStateAttribute(param);
+            bool isOut = param.RefKind == RefKind.Out;
+
+            if (isOut)
+            {
+                // out参数需要添加out关键字
+                parameters.Add($"out {param.Name}Obj");
+            }
+            else if (pType.EndsWith("?", StringComparison.Ordinal) || isEnumType || isObjectType || hasConvertTriState || pType == "object")
+            {
+                parameters.Add($"{param.Name}Obj");
+            }
+            else
+            {
+                parameters.Add(param.Name);
+            }
+        }
+
+        return string.Join(", ", parameters);
+    }
+
+    /// <summary>
+    /// 生成out参数的返回值赋值
+    /// </summary>
+    private void GenerateOutParameterAssignment(StringBuilder sb, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDeclaration, INamedTypeSymbol interfaceSymbol)
+    {
+        var comNamespace = GetComNamespace(interfaceSymbol, interfaceDeclaration);
+
+        foreach (var param in methodSymbol.Parameters)
+        {
+            if (param.RefKind != RefKind.Out)
+                continue;
+
+            var pType = TypeSymbolHelper.GetTypeFullName(param.Type);
+            bool isEnumType = TypeSymbolHelper.IsEnumType(param.Type);
+            bool isObjectType = TypeSymbolHelper.IsComplexObjectType(param.Type);
+            bool convertToInteger = AttributeDataHelper.HasAttribute(param, ComWrapConstants.ConvertIntAttributeNames);
+
+            if (isEnumType)
+            {
+                if (convertToInteger)
+                {
+                    // 枚举转整数的out参数
+                    sb.AppendLine($"                {param.Name} = ({pType}){param.Name}Obj;");
+                }
+                else
+                {
+                    // 普通枚举out参数
+                    var defaultValue = GetDefaultValue(interfaceDeclaration, param, param.Type);
+                    var enumValueName = GetEnumValueWithoutNamespace(defaultValue);
+                    sb.AppendLine($"                {param.Name} = {param.Name}Obj.EnumConvert({defaultValue});");
+                }
+            }
+            else if (isObjectType)
+            {
+                // COM对象out参数
+                var constructType = GetImplementationType(param.Type.Name);
+                sb.AppendLine($"                {param.Name} = new {constructType}({param.Name}Obj);");
+            }
+            else
+            {
+                // 普通out参数
+                sb.AppendLine($"                {param.Name} = {param.Name}Obj;");
+            }
+        }
+    }
+    #endregion
+
+    #region Parameter Processing
+    /// <summary>
+    /// 检查参数是否有 [ConvertTriState] 特性
+    /// </summary>
+    private bool HasConvertTriStateAttribute(IParameterSymbol parameter)
+    {
+        return parameter.GetAttributes().Any(attr =>
+            attr.AttributeClass?.Name == "ConvertTriStateAttribute");
+    }
+
+    /// <summary>
+    /// 获取参数的默认值
+    /// </summary>
+    private string GetParameterDefaultValue(IParameterSymbol parameter)
+    {
+        if (!parameter.HasExplicitDefaultValue)
+            return string.Empty;
+
+        var value = parameter.ExplicitDefaultValue;
+        if (value == null)
+            return "null";
+
+        var type = TypeSymbolHelper.GetTypeFullName(parameter.Type);
+        var typeSymbol = parameter.Type;
+
+        // 处理枚举类型
+        if (typeSymbol.TypeKind == TypeKind.Enum)
+        {
+            return GetEnumDefaultValue(typeSymbol, value);
+        }
+
+        // 处理可空枚举类型
+        if (type.EndsWith("?", StringComparison.Ordinal) && TypeSymbolHelper.IsEnumType(parameter.Type))
+        {
+            // 获取非可空枚举类型符号
+            if (parameter.Type is INamedTypeSymbol namedType &&
+                namedType.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T &&
+                namedType.TypeArguments.Length > 0)
+            {
+                var enumType = namedType.TypeArguments[0];
+                return GetEnumDefaultValue(enumType, value);
+            }
+        }
+
+        return type switch
+        {
+            "bool" => value.ToString().ToLower(),
+            "int" or "float" or "double" or "decimal" => value.ToString(),
+            "string" => $"\"{value}\"",
+            _ when type.EndsWith("?", StringComparison.Ordinal) => HandleNullableDefaultValue(type, value),
+            _ => value.ToString()
+        };
+    }
+
+
+    protected string GetOrdinalComType(string ordinalComType)
+    {
+        if (string.IsNullOrEmpty(ordinalComType))
+            return ordinalComType;
+        foreach (var preFix in KnownPrefixes)
+        {
+            if (ordinalComType.StartsWith(preFix, StringComparison.Ordinal))
+            {
+                ordinalComType = ordinalComType.Substring(preFix.Length).TrimEnd('?');
+                break;
+            }
+        }
+        return ordinalComType;
+    }
+
+
+    /// <summary>
+    /// 生成异常处理逻辑
+    /// </summary>
+    private void GenerateExceptionHandling(StringBuilder sb, string methodName)
+    {
+        var operationDescription = GetOperationDescription(methodName);
+
+        sb.AppendLine("            catch (COMException cx)");
+        sb.AppendLine("            {");
+        sb.AppendLine($"                throw new ExcelOperationException(\"{operationDescription}失败: \" + cx.Message, cx);");
+        sb.AppendLine("            }");
+        sb.AppendLine("            catch (Exception ex)");
+        sb.AppendLine("            {");
+        sb.AppendLine($"                throw new ExcelOperationException(\"{operationDescription}失败\", ex);");
+        sb.AppendLine("            }");
+    }
+
+    /// <summary>
+    /// 获取操作描述
+    /// </summary>
+    private string GetOperationDescription(string methodName)
+    {
+        // 根据方法名生成更友好的操作描述
+        return methodName switch
+        {
+            "Add" => "添加对象操作",
+            "Remove" => "移除对象操作",
+            "Delete" => "删除对象操作",
+            "Update" => "更新对象操作",
+            "Insert" => "插入对象操作",
+            "Copy" => "复制对象操作",
+            "Paste" => "粘贴对象操作",
+            "Select" => "选择对象",
+            _ => $"执行{methodName}操作"
+        };
+    }
+
+    /// <summary>
+    /// 处理可空类型的默认值
+    /// </summary>
+    private static string HandleNullableDefaultValue(string type, object value)
+    {
+        if (value == null)
+            return "null";
+
+        var nonNullType = type.TrimEnd('?');
+        return nonNullType switch
+        {
+            "bool" => value.ToString().ToLower(),
+            "int" or "float" or "double" or "decimal" => value.ToString(),
+            "string" => $"\"{value}\"",
+            _ => value.ToString()
+        };
+    }
+
+    /// <summary>
+    /// 获取枚举类型的默认值表示
+    /// </summary>
+    private string GetEnumDefaultValue(ITypeSymbol enumType, object value)
+    {
+        return TypeSymbolHelper.GetEnumValueLiteral(enumType, value);
     }
     #endregion
 }

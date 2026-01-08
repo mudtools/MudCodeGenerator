@@ -112,7 +112,7 @@ namespace Mud.EntityCodeGenerator
                     if (!SyntaxHelper.IsValidPrivateField(member))
                         continue;
 
-                    if (IsIgnoreGenerator(member))
+                    if (AttributeDataHelper.IgnoreGenerator(member))
                         continue;
 
                     // 检查字段对应的属性是否已存在

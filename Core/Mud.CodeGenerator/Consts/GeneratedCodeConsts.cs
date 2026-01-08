@@ -12,8 +12,10 @@ namespace Mud.CodeGenerator;
 internal sealed class GeneratedCodeConsts
 {
     public const string CompilerGeneratedAttribute = "[global::System.Runtime.CompilerServices.CompilerGenerated]";
+
     public static string GeneratedCodeAttribute => $"[global::System.CodeDom.Compiler.GeneratedCode(\"Mud.ServiceCodeGenerator\", \"{GetAssemblyVersion()}\")]";
 
+    public static string IgnoreGeneratorAttribute = "IgnoreGeneratorAttribute";
     /// <summary>
     /// 获取当前程序集的版本号
     /// </summary>

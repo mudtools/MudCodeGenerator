@@ -50,11 +50,6 @@ internal static class ComWrapConstants
     public static readonly string[] ConvertIntAttributeNames = ["ConvertIntAttribute", "ConvertInt"];
 
     /// <summary>
-    /// 忽略生成器特性名称
-    /// </summary>
-    public const string IgnoreGeneratorAttribute = "IgnoreGeneratorAttribute";
-
-    /// <summary>
     /// 用于标注方法或属性的值是否需要转换
     /// </summary>
     public static readonly string[] ValueConvertAttributes = ["ValueConvertAttribute", "ValueConvert"];

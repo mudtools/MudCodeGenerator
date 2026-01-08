@@ -27,12 +27,6 @@ public class TransitiveVoGenerator : BaseDtoGenerator
         };
     }
 
-    private const string ViewPropertyAttribute = "PropertyTranslation";
-
-    private const string PropertyValueConvertAttributeName = "PropertyValueConvertAttribute";
-
-    private readonly string[] ViewPropertyConvertAttributes = ["DictFormat", "Translation", "Sensitive"];
-
     /// <inheritdoc/>
     protected override string[] GetPropertyAttributes()
     {
@@ -59,7 +53,7 @@ public class TransitiveVoGenerator : BaseDtoGenerator
     /// <returns></returns>
     private PropertyDeclarationSyntax? GenAttributeFunc(PropertyDeclarationSyntax member)
     {
-        if (IsIgnoreGenerator(member))
+        if (AttributeDataHelper.IgnoreGenerator(member))
             return null;
         return BuildProperty(member);
     }
@@ -71,158 +65,9 @@ public class TransitiveVoGenerator : BaseDtoGenerator
     /// <returns></returns>
     private PropertyDeclarationSyntax? GenAttributeFunc(FieldDeclarationSyntax member)
     {
-        if (IsIgnoreGenerator(member))
+        if (AttributeDataHelper.IgnoreGenerator(member))
             return null;
         return BuildProperty(member, false);
-    }
-
-    /// <summary>
-    /// 生成扩展属性。
-    /// </summary>
-    /// <param name="member"></param>
-    /// <returns></returns>
-    private PropertyDeclarationSyntax? GenExtAttributeFunc(PropertyDeclarationSyntax member)
-    {
-        if (IsIgnoreGenerator(member))
-            return null;
-        var viewAttributes = GetAttributes(member, new[] { ViewPropertyAttribute });
-        if (!viewAttributes.Any())
-            return null;
-
-        var propertyName = GetPropertyName(member);
-        var viewAttribute = viewAttributes[0];
-        var extPropertyName = GetGenPropertyName(viewAttribute, propertyName + "Str");
-        var convertType = GetConvertPropety(viewAttribute);
-        //加入映射到属性
-        var linkPropertyName = SyntaxFactory.AttributeArgument(
-                    SyntaxFactory.NameEquals("MapperFrom"),
-                    null,
-                    SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression,
-                        SyntaxFactory.Literal(propertyName)));
-        var argsList = SyntaxFactory.SeparatedList(new[] { linkPropertyName });
-        //加入转换类型属性
-        if (convertType != null)
-            argsList = argsList.Add(convertType);
-
-        //生成新的属性
-        var nameSyntax = SyntaxFactory.ParseName(PropertyValueConvertAttributeName);
-        var attributeSyntax = SyntaxFactory.Attribute(nameSyntax);
-        var argumentList = SyntaxFactory.AttributeArgumentList(argsList);
-        attributeSyntax = attributeSyntax.WithArgumentList(argumentList);
-        //新的属性
-        var propertyAttributes = SyntaxFactory.SeparatedList(new[] { attributeSyntax });
-
-        //获取原属性上需要迁移到新属性上特性。
-        var attributeList = GetAttributes(member, ViewPropertyConvertAttributes);
-        if (attributeList.Any())
-        {
-            var sttributes = SyntaxFactory.SeparatedList(attributeList);
-            propertyAttributes = propertyAttributes.AddRange(sttributes);
-        }
-        var attributeListSyntax = SyntaxFactory.AttributeList(propertyAttributes);
-
-        var property = BuildProperty(extPropertyName, "string");
-        property = property.AddAttributeLists(attributeListSyntax);
-        // 为扩展属性添加换行注释
-        var extInheritdoc = SyntaxFactory.ParseLeadingTrivia($"\n\n///<inheritdoc cref=\"{propertyName}\"/>\n");
-        property = property.WithLeadingTrivia(extInheritdoc);
-        return property;
-    }
-
-    /// <summary>
-    /// 生成扩展属性。
-    /// </summary>
-    /// <param name="member"></param>
-    /// <returns></returns>
-    private PropertyDeclarationSyntax? GenExtAttributeFunc(FieldDeclarationSyntax member)
-    {
-        if (IsIgnoreGenerator(member))
-            return null;
-
-        var viewAttributes = GetAttributes(member, new[] { ViewPropertyAttribute });
-        if (!viewAttributes.Any())
-            return null;
-
-        var propertyName = GetPropertyName(member);
-        var viewAttribute = viewAttributes[0];
-        var extPropertyName = GetGenPropertyName(viewAttribute, propertyName + "Str");
-        var convertType = GetConvertPropety(viewAttribute);
-        //加入映射到属性
-        var linkPropertyName = SyntaxFactory.AttributeArgument(
-                    SyntaxFactory.NameEquals("MapperFrom"),
-                    null,
-                    SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression,
-                        SyntaxFactory.Literal(propertyName)));
-        var argsList = SyntaxFactory.SeparatedList([linkPropertyName]);
-        //加入转换类型属性
-        if (convertType != null)
-            argsList = argsList.Add(convertType);
-
-        //生成新的属性
-        var nameSyntax = SyntaxFactory.ParseName(PropertyValueConvertAttributeName);
-        var attributeSyntax = SyntaxFactory.Attribute(nameSyntax);
-        var argumentList = SyntaxFactory.AttributeArgumentList(argsList);
-        attributeSyntax = attributeSyntax.WithArgumentList(argumentList);
-        //新的属性
-        var propertyAttributes = SyntaxFactory.SeparatedList([attributeSyntax]);
-
-        //获取原属性上需要迁移到新属性上特性。
-        var attributeList = GetAttributes(member, ViewPropertyConvertAttributes);
-        if (attributeList.Any())
-        {
-            var sttributes = SyntaxFactory.SeparatedList(attributeList);
-            propertyAttributes = propertyAttributes.AddRange(sttributes);
-        }
-        var attributeListSyntax = SyntaxFactory.AttributeList(propertyAttributes);
-
-        var property = BuildProperty(extPropertyName, "string");
-        property = property.AddAttributeLists(attributeListSyntax);
-        // 为扩展属性添加换行注释
-        var extInheritdoc = SyntaxFactory.ParseLeadingTrivia($"\n\n///<inheritdoc cref=\"{propertyName}\"/>\n");
-        property = property.WithLeadingTrivia(extInheritdoc);
-        return property;
-    }
-
-    private AttributeArgumentSyntax? GetConvertPropety(AttributeSyntax attributeSyntax)
-    {
-        // 提高容错性，处理空对象情况
-        if (attributeSyntax?.ArgumentList == null)
-            return null;
-
-        if (!attributeSyntax.ArgumentList.Arguments.Any())
-            return null;
-
-        foreach (var item in attributeSyntax.ArgumentList.Arguments)
-        {
-            // 提高容错性，检查NameEquals和Identifier
-            if (item.NameEquals?.Name?.Identifier.Text?.Equals("convertertype", StringComparison.OrdinalIgnoreCase) == true)
-            {
-                return item;
-            }
-        }
-        return null;
-    }
-
-    private string GetGenPropertyName(AttributeSyntax attributeSyntax, string defaultName)
-    {
-        // 提高容错性，处理空对象情况
-        if (attributeSyntax?.ArgumentList == null)
-            return defaultName;
-
-        if (!attributeSyntax.ArgumentList.Arguments.Any())
-            return defaultName;
-
-        foreach (var item in attributeSyntax.ArgumentList.Arguments)
-        {
-            // 提高容错性，检查NameEquals和Identifier
-            if (item.NameEquals?.Name?.Identifier.Text?.Equals("propertyname", StringComparison.OrdinalIgnoreCase) == true)
-            {
-                var propertyValue = AttributeSyntaxHelper.ExtractValueFromSyntax(item.Expression);
-                return propertyValue != null ? ApplyNameCaseConvention(propertyValue.ToString()) : defaultName;
-            }
-        }
-        return defaultName;
-
     }
 
     /// <inheritdoc/>

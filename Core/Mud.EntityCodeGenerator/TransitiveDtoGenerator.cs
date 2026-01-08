@@ -223,7 +223,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
                 memberProcessor(member, orgPropertyName, propertyName);
             },
             primaryKeyOnly,
-            IsIgnoreGenerator,
+            AttributeDataHelper.IgnoreGenerator,
             IsPrimary,
             GetPropertyNames,
             GetPropertyType);
@@ -248,7 +248,7 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
             compilation,
             memberProcessor,
             primaryKeyOnly,
-            IsIgnoreGenerator,
+            AttributeDataHelper.IgnoreGenerator,
             IsPrimary,
             GetPropertyNames,
             GetPropertyType);
@@ -510,23 +510,6 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
 
         return attributes.Contains(attributeName, StringComparer.OrdinalIgnoreCase);
     }
-
-    /// <summary>
-    /// 是否忽略生成属性。
-    /// </summary>
-    /// <param name="memberDeclaration"></param>
-    /// <returns></returns>
-    protected bool IsIgnoreGenerator<T>(T memberDeclaration)
-        where T : MemberDeclarationSyntax
-    {
-        // 提高容错性，处理空对象情况
-        if (memberDeclaration == null)
-            return true; // 空对象默认忽略生成
-
-        var attributes = AttributeSyntaxHelper.GetAttributeSyntaxes(memberDeclaration, IgnoreGeneratorAttribute);
-        return attributes != null && attributes.Any();
-    }
-
 
     /// <summary>
     /// 判断属性是否为主键属性。
