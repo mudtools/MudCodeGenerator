@@ -62,6 +62,7 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
             return;
 
         var generatedHintNames = new HashSet<string>();
+        var processedSymbols = new HashSet<int>();
 
         foreach (var interfaceDeclaration in interfaces)
         {
@@ -76,17 +77,20 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
                 if (interfaceSymbol is null)
                     continue;
 
+                // 使用符号的唯一标识符防止为同一个 partial 接口重复生成
+                var symbolHashCode = interfaceSymbol.GetHashCode();
+                if (!processedSymbols.Add(symbolHashCode))
+                {
+                    continue;
+                }
+
                 var source = GenerateImplementationClass(interfaceDeclaration, interfaceSymbol);
 
                 if (!string.IsNullOrEmpty(source))
                 {
-                    // 使用完全限定名生成唯一的 hintName
-                    var fullyQualifiedName = interfaceSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                    // 移除全局命名空间前缀并替换 . 为 _ 以符合文件名规范
-                    var safeName = fullyQualifiedName?
-                        .TrimStart('G', '.', 'I')
-                        .Replace(".", "_")
-                        .Replace("global::", "");
+                    // 生成文件名: WordFieldImpl.g.cs
+                    var interfaceName = interfaceSymbol.Name;
+                    var safeName = interfaceName.TrimStart('I');
                     var hintName = $"{safeName}Impl.g.cs";
 
                     // 防止重复生成
