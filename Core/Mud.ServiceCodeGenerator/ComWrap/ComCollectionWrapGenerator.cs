@@ -218,7 +218,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
 
         if (isNoneEnumerable)
         {
-            GenerateIndexerBasedEnumerator(sb, elementInfo);
+            GenerateIndexerBasedEnumerator(sb, elementInfo, interfaceSymbol);
         }
         else
         {
@@ -241,8 +241,19 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
     /// </summary>
     private void GenerateIndexerBasedEnumerator(
         StringBuilder sb,
-        ElementTypeInfo elementInfo)
+        ElementTypeInfo elementInfo,
+        INamedTypeSymbol interfaceSymbol)
     {
+        // 验证Count属性是否存在
+        var hasCountProperty = TypeSymbolHelper.GetAllProperties(interfaceSymbol)
+            .Any(p => p.Name == CollectionConstants.CountPropertyName && !p.IsIndexer);
+
+        if (!hasCountProperty)
+        {
+            GenerateEnumerableWarning(sb, "集合接口缺少Count属性，无法生成基于索引的枚举器");
+            return;
+        }
+
         // 使用一个本地函数来处理异常，避免在 try-catch 中使用 yield
         sb.AppendLine($"                for (int i = 1; i <= this.{CollectionConstants.CountPropertyName}; i++)");
         sb.AppendLine("                {");
@@ -258,12 +269,12 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine("                        }");
         sb.AppendLine("                        catch (COMException ce)");
         sb.AppendLine("                        {");
-        sb.AppendLine($"                            throw new ExcelOperationException(\"枚举 {elementInfo.ElementTypeName} 集合时发生COM异常: \" + ce.Message, ce);");
+        sb.AppendLine($"                            throw new ExcelOperationException(\"枚举集合元素失败: \" + ce.Message, ce);");
         sb.AppendLine("                        }");
-        sb.AppendLine("                        catch (Exception ex)");
+                        sb.AppendLine("                        catch (Exception ex)");
         sb.AppendLine("                        {");
-        sb.AppendLine($"                            throw new ExcelOperationException(\"枚举 {elementInfo.ElementTypeName} 集合时发生异常\", ex);");
-        sb.AppendLine("                        }");
+        sb.AppendLine($"                            throw new ExcelOperationException(\"枚举集合元素失败\", ex);");
+                        sb.AppendLine("                        }");
         sb.AppendLine("                    }");
         sb.AppendLine();
         sb.AppendLine("                    yield return GetItemAt(i);");
@@ -299,11 +310,11 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine("                }");
         sb.AppendLine("                catch (COMException ce)");
         sb.AppendLine("                {");
-        sb.AppendLine($"                    throw new ExcelOperationException(\"转换 {elementInfo.ElementTypeName} 元素时发生COM异常: \" + ce.Message, ce);");
+        sb.AppendLine($"                    throw new ExcelOperationException(\"转换集合元素失败: \" + ce.Message, ce);");
         sb.AppendLine("                }");
         sb.AppendLine("                catch (Exception ex)");
         sb.AppendLine("                {");
-        sb.AppendLine($"                    throw new ExcelOperationException(\"转换 {elementInfo.ElementTypeName} 元素时发生异常\", ex);");
+        sb.AppendLine($"                    throw new ExcelOperationException(\"转换集合元素失败\", ex);");
         sb.AppendLine("                }");
 
         // yield return 必须在 try-catch 块外面
@@ -370,6 +381,15 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
     private void GenerateEnumerableWarning(StringBuilder sb)
     {
         sb.AppendLine("            // 警告: 无法确定集合元素类型，请确保接口实现 IEnumerable<T>");
+        sb.AppendLine("            yield break;");
+    }
+
+    /// <summary>
+    /// 生成警告注释（自定义消息）
+    /// </summary>
+    private void GenerateEnumerableWarning(StringBuilder sb, string message)
+    {
+        sb.AppendLine($"            // 警告: {message}");
         sb.AppendLine("            yield break;");
     }
     #endregion

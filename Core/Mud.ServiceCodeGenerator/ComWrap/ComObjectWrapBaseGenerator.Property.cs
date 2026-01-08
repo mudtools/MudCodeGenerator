@@ -202,16 +202,7 @@ partial class ComObjectWrapBaseGenerator
             var paramEnumType = TypeSymbolHelper.IsEnumType(param.Type);
 
             // 添加通用对象检查
-            if (!isGetMethod)
-            {
-                sb.AppendLine($"                if ({privateFieldName} == null)");
-                sb.AppendLine($"                    throw new ObjectDisposedException(nameof({privateFieldName}));");
-            }
-            else
-            {
-                sb.AppendLine($"                if ({privateFieldName} == null)");
-                sb.AppendLine($"                    throw new ObjectDisposedException(nameof({privateFieldName}));");
-            }
+            GenerateDisposedCheckWithIndent(sb, privateFieldName, "                ");
 
             // 参数类型特定验证
             GenerateParameterTypeValidation(sb, paramType, paramName, paramEnumType, i + 1, param.Type.NullableAnnotation == NullableAnnotation.Annotated);
@@ -560,6 +551,28 @@ partial class ComObjectWrapBaseGenerator
     }
     #endregion
 
+    #region Common Code Generation Helpers
+
+    /// <summary>
+    /// 生成对象已释放检查代码
+    /// </summary>
+    protected void GenerateDisposedCheck(StringBuilder sb, string privateFieldName)
+    {
+        sb.AppendLine($"            if ({privateFieldName} == null)");
+        sb.AppendLine($"                throw new ObjectDisposedException(nameof({privateFieldName}));");
+    }
+
+    /// <summary>
+    /// 生成对象已释放检查代码（带缩进）
+    /// </summary>
+    protected void GenerateDisposedCheckWithIndent(StringBuilder sb, string privateFieldName, string indent = "            ")
+    {
+        sb.AppendLine($"{indent}if ({privateFieldName} == null)");
+        sb.AppendLine($"{indent}    throw new ObjectDisposedException(nameof({privateFieldName}));");
+    }
+
+    #endregion
+
     #region Property Generation
 
     /// <summary>
@@ -667,8 +680,7 @@ partial class ComObjectWrapBaseGenerator
         {
             sb.AppendLine($"            get");
             sb.AppendLine("            {");
-            sb.AppendLine($"                if({fieldName} == null)");
-            sb.AppendLine($"                    throw new ObjectDisposedException(nameof({fieldName}));");
+            GenerateDisposedCheckWithIndent(sb, fieldName,"               ");
 
             if (needConvert)
             {
@@ -686,8 +698,7 @@ partial class ComObjectWrapBaseGenerator
         {
             sb.AppendLine("            set");
             sb.AppendLine("            {");
-            sb.AppendLine($"                if ({fieldName} == null)");
-            sb.AppendLine($"                    throw new ObjectDisposedException(nameof({fieldName}));");
+            GenerateDisposedCheckWithIndent(sb, fieldName,"               ");
 
             if (propertyType.EndsWith("?", StringComparison.Ordinal))
             {
@@ -767,8 +778,7 @@ partial class ComObjectWrapBaseGenerator
         {
             sb.AppendLine("             get");
             sb.AppendLine("             {");
-            sb.AppendLine($"                if({privateFieldName} == null)");
-            sb.AppendLine($"                    throw new ObjectDisposedException(nameof({privateFieldName}));");
+            GenerateDisposedCheck(sb, privateFieldName);
             sb.AppendLine($"                var comObj = {GetPropertyGetString(privateFieldName, propertyName, isMethod)};");
             sb.AppendLine("                if (comObj == null)");
             sb.AppendLine("                    return null;");
@@ -792,9 +802,8 @@ partial class ComObjectWrapBaseGenerator
         {
             sb.AppendLine("             set");
             sb.AppendLine("             {");
-            sb.AppendLine($"                if ({privateFieldName} == null )");
-            sb.AppendLine($"                    throw new ObjectDisposedException(nameof({privateFieldName}));");
-            sb.AppendLine($"                if (value != null)");
+            GenerateDisposedCheck(sb, privateFieldName);
+            sb.AppendLine($"                if (value == null)");
             sb.AppendLine($"                    throw new ArgumentNullException(nameof(value));");
 
             sb.AppendLine($"                if(value is {constructType} internalComObject)");
@@ -841,8 +850,7 @@ partial class ComObjectWrapBaseGenerator
         {
             sb.AppendLine("            get");
             sb.AppendLine("            {");
-            sb.AppendLine($"                if({privateFieldName} == null)");
-            sb.AppendLine($"                    throw new ObjectDisposedException(nameof({privateFieldName}));");
+            GenerateDisposedCheck(sb, privateFieldName);
             sb.AppendLine($"                return {GetPropertyGetString(privateFieldName, propertyName, isMethod)}.EnumConvert({defaultValue});");
             sb.AppendLine("             }");
         }
@@ -852,8 +860,7 @@ partial class ComObjectWrapBaseGenerator
             var isConvertIntIndex = AttributeDataHelper.HasAttribute(propertySymbol, ComWrapConstants.ConvertIntAttributeNames);
             sb.AppendLine("            set");
             sb.AppendLine("            {");
-            sb.AppendLine($"                if({privateFieldName} == null)");
-            sb.AppendLine($"                    throw new ObjectDisposedException(nameof({privateFieldName}));");
+            GenerateDisposedCheck(sb, privateFieldName);
 
             if (isConvertIntIndex)
                 sb.AppendLine($"                {GetPropertySetString(privateFieldName, propertyName, isMethod, "value.ConvertToInt()")};");
@@ -980,8 +987,7 @@ partial class ComObjectWrapBaseGenerator
 
         var hasParameters = methodSymbol.Parameters.Length > 0;
 
-        sb.AppendLine($"            if({privateFieldName} == null)");
-        sb.AppendLine($"                throw new ObjectDisposedException(nameof({privateFieldName}));");
+        GenerateDisposedCheck(sb, privateFieldName);
 
         // 参数预处理（如有必要）
         if (hasParameters)
@@ -1238,7 +1244,7 @@ partial class ComObjectWrapBaseGenerator
 
         sb.AppendLine("            catch (COMException cx)");
         sb.AppendLine("            {");
-        sb.AppendLine($"                throw new InvalidOperationException(\"{operationDescription}失败。\", cx);");
+        sb.AppendLine($"                throw new ExcelOperationException(\"{operationDescription}失败: \" + cx.Message, cx);");
         sb.AppendLine("            }");
         sb.AppendLine("            catch (Exception ex)");
         sb.AppendLine("            {");
@@ -1300,20 +1306,13 @@ partial class ComObjectWrapBaseGenerator
         // 处理可空枚举类型
         if (type.EndsWith("?", StringComparison.Ordinal) && TypeSymbolHelper.IsEnumType(parameter.Type))
         {
-            if (value != null)
+            // 获取非可空枚举类型符号
+            if (parameter.Type is INamedTypeSymbol namedType &&
+                namedType.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T &&
+                namedType.TypeArguments.Length > 0)
             {
-                // 获取非可空枚举类型符号
-                if (parameter.Type is INamedTypeSymbol namedType &&
-                    namedType.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T &&
-                    namedType.TypeArguments.Length > 0)
-                {
-                    var enumType = namedType.TypeArguments[0];
-                    return GetEnumDefaultValue(enumType, value);
-                }
-            }
-            else
-            {
-                return "null";
+                var enumType = namedType.TypeArguments[0];
+                return GetEnumDefaultValue(enumType, value);
             }
         }
 

@@ -83,7 +83,7 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
                     // 使用完全限定名生成唯一的 hintName
                     var fullyQualifiedName = interfaceSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
                     // 移除全局命名空间前缀并替换 . 为 _ 以符合文件名规范
-                    var safeName = fullyQualifiedName
+                    var safeName = fullyQualifiedName?
                         .TrimStart('G', '.', 'I')
                         .Replace(".", "_")
                         .Replace("global::", "");
