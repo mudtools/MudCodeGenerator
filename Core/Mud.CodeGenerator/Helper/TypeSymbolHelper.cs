@@ -5,7 +5,7 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-namespace Mud.CodeGenerator.Helper;
+namespace Mud.CodeGenerator;
 
 internal static class TypeSymbolHelper
 {
@@ -659,6 +659,153 @@ internal static class TypeSymbolHelper
             TypeKind.Struct => !IsBasicType(typeToCheck), // 再次确认不是基本结构体
             TypeKind.Interface => true,
             _ => false
+        };
+    }
+
+    /// <summary>
+    /// 判断类型是否为异步返回类型（Task 或 ValueTask）
+    /// </summary>
+    /// <param name="typeSymbol">类型符号</param>
+    /// <returns>如果是异步类型返回 true，否则返回 false</returns>
+    public static bool IsAsyncType(ITypeSymbol typeSymbol)
+    {
+        if (typeSymbol is INamedTypeSymbol namedType)
+        {
+            return namedType.Name == "Task" && (namedType.TypeArguments.Length == 0 || namedType.TypeArguments.Length == 1) ||
+                   namedType.Name == "ValueTask" && (namedType.TypeArguments.Length == 0 || namedType.TypeArguments.Length == 1);
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// 提取异步方法的内部返回类型（从 Task<T> 或 ValueTask<T> 中提取 T）
+    /// </summary>
+    /// <param name="asyncType">异步类型符号（Task 或 ValueTask）</param>
+    /// <returns>内部返回类型字符串</returns>
+    public static string ExtractAsyncInnerType(ITypeSymbol asyncType)
+    {
+        if (asyncType is not INamedTypeSymbol namedType || !namedType.IsGenericType)
+        {
+            // 如果是 Task 或 ValueTask 而不是 Task<T> 或 ValueTask<T>，返回 void
+            if (asyncType is INamedTypeSymbol simpleType &&
+                (simpleType.Name == "Task" || simpleType.Name == "ValueTask") &&
+                simpleType.TypeArguments.Length == 0)
+            {
+                return "void";
+            }
+            return GetTypeFullName(asyncType);
+        }
+
+        // 提取类型参数
+        var genericType = namedType.TypeArguments[0];
+
+        // 检查是否为可空类型（如 Task<int?>）
+        if (genericType is INamedTypeSymbol genericNamedType &&
+            genericNamedType.IsGenericType &&
+            genericNamedType.Name == "Nullable" &&
+            genericNamedType.TypeArguments.Length > 0)
+        {
+            return GetTypeFullName(genericNamedType.TypeArguments[0]) + "?";
+        }
+
+        return GetTypeFullName(genericType);
+    }
+
+    /// <summary>
+    /// 获取枚举值的字面量表示（包含命名空间）
+    /// </summary>
+    /// <param name="enumType">枚举类型符号</param>
+    /// <param name="value">枚举值</param>
+    /// <returns>枚举值的字面量表示，如 "MyEnum.Value" 或 "(MyEnum)0"</returns>
+    public static string GetEnumValueLiteral(ITypeSymbol enumType, object value)
+    {
+        if (enumType == null)
+            return value?.ToString() ?? "null";
+
+        var enumTypeName = GetTypeFullName(enumType);
+
+        // 尝试根据值找到对应的枚举成员
+        var matchingMember = enumType.GetMembers()
+            .OfType<IFieldSymbol>()
+            .Where(f => f.IsConst && f.HasConstantValue && Equals(f.ConstantValue, value))
+            .Select(f => f.Name)
+            .FirstOrDefault();
+
+        return matchingMember != null
+            ? $"{enumTypeName}.{matchingMember}"
+            : $"({enumTypeName}){value}";
+    }
+
+    /// <summary>
+    /// 获取类型的公共属性列表
+    /// </summary>
+    /// <param name="typeSymbol">类型符号</param>
+    /// <returns>公共属性列表</returns>
+    public static IEnumerable<IPropertySymbol> GetPublicProperties(ITypeSymbol typeSymbol)
+    {
+        if (typeSymbol == null)
+            return [];
+
+        return typeSymbol.GetMembers()
+            .OfType<IPropertySymbol>()
+            .Where(property => property.DeclaredAccessibility == Accessibility.Public);
+    }
+
+    /// <summary>
+    /// 获取类型的公共方法列表
+    /// </summary>
+    /// <param name="typeSymbol">类型符号</param>
+    /// <returns>公共方法列表</returns>
+    public static IEnumerable<IMethodSymbol> GetPublicMethods(ITypeSymbol typeSymbol)
+    {
+        if (typeSymbol == null)
+            return [];
+
+        return typeSymbol.GetMembers()
+            .OfType<IMethodSymbol>()
+            .Where(method => method.DeclaredAccessibility == Accessibility.Public);
+    }
+
+    /// <summary>
+    /// 获取基本类型的转换代码字符串（用于代码生成）
+    /// </summary>
+    /// <param name="typeSymbol">类型符号</param>
+    /// <param name="fieldName">字段名</param>
+    /// <returns>类型转换代码字符串</returns>
+    public static string GetBasicTypeConvertCode(ITypeSymbol typeSymbol, string fieldName)
+    {
+        if (typeSymbol == null || string.IsNullOrEmpty(fieldName))
+            return fieldName;
+
+        // 检查是否为 System.Drawing.Color 类型
+        if (IsSystemDrawingColor(typeSymbol))
+            return $"ColorHelper.ConvertToColor({fieldName})";
+
+        // 处理可空类型
+        var typeToCheck = typeSymbol;
+        if (typeSymbol is INamedTypeSymbol { ConstructedFrom.SpecialType: SpecialType.System_Nullable_T })
+        {
+            typeToCheck = typeSymbol.GetNullableUnderlyingType();
+        }
+
+        // 根据特殊类型返回转换代码
+        return typeToCheck.SpecialType switch
+        {
+            SpecialType.System_Boolean => $"{fieldName}.ConvertToBool()",
+            SpecialType.System_SByte => $"Convert.ToSByte({fieldName})",
+            SpecialType.System_Byte => $"Convert.ToByte({fieldName})",
+            SpecialType.System_Int16 => $"Convert.ToInt16({fieldName})",
+            SpecialType.System_UInt16 => $"Convert.ToUInt16({fieldName})",
+            SpecialType.System_Int32 => $"Convert.ToInt32({fieldName})",
+            SpecialType.System_UInt32 => $"Convert.ToUInt32({fieldName})",
+            SpecialType.System_Int64 => $"Convert.ToInt64({fieldName})",
+            SpecialType.System_UInt64 => $"Convert.ToUInt64({fieldName})",
+            SpecialType.System_Single => $"Convert.ToSingle({fieldName})",
+            SpecialType.System_Double => $"Convert.ToDouble({fieldName})",
+            SpecialType.System_Decimal => $"Convert.ToDecimal({fieldName})",
+            SpecialType.System_Char => $"Convert.ToChar({fieldName})",
+            SpecialType.System_DateTime => $"ObjectExtensions.ConvertToDateTime({fieldName})",
+            _ => fieldName
         };
     }
     #endregion

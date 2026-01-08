@@ -5,7 +5,6 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using Mud.CodeGenerator.Helper;
 using Mud.ServiceCodeGenerator.ComWrapSourceGenerator;
 using System.Text;
 
@@ -1351,19 +1350,7 @@ partial class ComObjectWrapBaseGenerator
     /// </summary>
     private string GetEnumDefaultValue(ITypeSymbol enumType, object value)
     {
-        var enumTypeName = enumType.ToDisplayString();
-
-        // 尝试根据值找到对应的枚举成员
-        foreach (var member in enumType.GetMembers().OfType<IFieldSymbol>())
-        {
-            if (member.HasConstantValue && Equals(member.ConstantValue, value))
-            {
-                return $"{enumTypeName}.{member.Name}";
-            }
-        }
-
-        // 如果找不到对应的枚举成员，使用强制转换
-        return $"({enumTypeName}){value}";
+        return TypeSymbolHelper.GetEnumValueLiteral(enumType, value);
     }
     #endregion
 
@@ -1505,30 +1492,42 @@ partial class ComObjectWrapBaseGenerator
             .OfType<PropertyDeclarationSyntax>()
             .FirstOrDefault(p => p.Identifier.Text == propertySymbol.Name);
 
+
+
         if (propertyDeclaration != null)
         {
-            var defaultValueArgument = propertyDeclaration.AttributeLists
-                .SelectMany(al => al.Attributes)
-                .Where(attr => ComWrapConstants.ComPropertyWrapAttributeNames.Contains(attr.Name.ToString()))
-                .SelectMany(attr => attr.ArgumentList?.Arguments ?? Enumerable.Empty<AttributeArgumentSyntax>())
-                .FirstOrDefault(arg =>
-                    arg.NameEquals?.Name.Identifier.Text == "DefaultValue" ||
-                    arg.Expression.ToString().Contains("DefaultValue"));
-
-            if (defaultValueArgument != null)
+            // 使用 AttributeSyntaxHelper 简化 DefaultValue 提取
+            string? wrapAttribute = null;
+            foreach (var attrName in ComWrapConstants.ComPropertyWrapAttributeNames)
             {
-                // 移除引号
-                var defaultValue = defaultValueArgument.Expression.ToString();
-                // 处理 nameof() 表达式
-                if (defaultValue.StartsWith("nameof(", StringComparison.OrdinalIgnoreCase) && defaultValue.EndsWith(")", StringComparison.OrdinalIgnoreCase))
+                var attributes = AttributeSyntaxHelper.GetAttributeSyntaxes(propertyDeclaration, attrName);
+                if (attributes.Any())
                 {
-                    // 提取 nameof() 中的参数，例如从 "nameof(Field)" 中提取 "Field"
-                    var nameofContent = defaultValue.Substring(7, defaultValue.Length - 8);
-                    return nameofContent.Trim();
+                    wrapAttribute = attrName;
+                    break;
                 }
+            }
 
-                // 处理字符串字面量，移除引号
-                return defaultValue.Trim('"');
+            if (wrapAttribute != null)
+            {
+                var attributes = AttributeSyntaxHelper.GetAttributeSyntaxes(propertyDeclaration, wrapAttribute);
+                if (attributes.Any())
+                {
+                    var defaultValue = attributes[0].GetPropertyValue("DefaultValue", null)?.ToString();
+                    if (defaultValue != null)
+                    {
+                        // 处理 nameof() 表达式
+                        if (defaultValue.StartsWith("nameof(", StringComparison.OrdinalIgnoreCase) && defaultValue.EndsWith(")", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // 提取 nameof() 中的参数，例如从 "nameof(Field)" 中提取 "Field"
+                            var nameofContent = defaultValue.Substring(7, defaultValue.Length - 8);
+                            return nameofContent.Trim();
+                        }
+
+                        // 处理字符串字面量，移除引号
+                        return defaultValue.Trim('"');
+                    }
+                }
             }
         }
 
@@ -1674,25 +1673,7 @@ partial class ComObjectWrapBaseGenerator
 
     private string GenerateNonNullableConvertCode(ITypeSymbol typeSymbol, string fieldName)
     {
-        return typeSymbol switch
-        {
-            ITypeSymbol ts when IsSystemDrawingColor(ts) => $"ColorHelper.ConvertToColor({fieldName})",
-            { SpecialType: SpecialType.System_Boolean } => $"{fieldName}.ConvertToBool()",
-            { SpecialType: SpecialType.System_SByte } => $"{fieldName}.Convert.ToByte()",
-            { SpecialType: SpecialType.System_Byte } => $"{fieldName}.Convert.ToByte()",
-            { SpecialType: SpecialType.System_Int16 } => $"{fieldName}.ConvertToFloat()",
-            { SpecialType: SpecialType.System_UInt16 } => $"{fieldName}.ConvertToFloat()",
-            { SpecialType: SpecialType.System_Int32 } => $"{fieldName}.ConvertToInt()",
-            { SpecialType: SpecialType.System_UInt32 } => $"{fieldName}.ConvertToInt()",
-            { SpecialType: SpecialType.System_Int64 } => $"{fieldName}.ConvertToLong()",
-            { SpecialType: SpecialType.System_UInt64 } => $"{fieldName}.ConvertToLong()",
-            { SpecialType: SpecialType.System_Single } => $"{fieldName}.ConvertToFloat()",
-            { SpecialType: SpecialType.System_Double } => $"{fieldName}.ConvertToDouble()",
-            { SpecialType: SpecialType.System_Decimal } => $"{fieldName}.ConvertToDecimal()",
-            { SpecialType: SpecialType.System_String } => $"{fieldName}.ToString()",
-            { SpecialType: SpecialType.System_DateTime } => $"{fieldName}.ConvertToDateTime()",
-            _ => $"{fieldName}.ToString()"
-        };
+        return TypeSymbolHelper.GetBasicTypeConvertCode(typeSymbol, fieldName);
     }
     private bool IsSystemDrawingColor(ITypeSymbol typeSymbol)
     {

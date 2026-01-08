@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using Microsoft.CodeAnalysis.Text;
+using Mud.CodeGenerator;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -135,7 +136,7 @@ public class AutoRegisterSourceGenerator : TransitiveCodeGenerator
 
             // 获取实现类型的完整名称
             var classSymbol = compilation.GetSemanticModel(classDeclaration.SyntaxTree)?.GetDeclaredSymbol(classDeclaration);
-            var implTypeName = classSymbol?.ToDisplayString() ?? SyntaxHelper.GetClassName(classDeclaration);
+            var implTypeName = classSymbol != null ? TypeSymbolHelper.GetTypeFullName(classSymbol) : SyntaxHelper.GetClassName(classDeclaration);
 
             if (string.IsNullOrEmpty(baseTypeName) && injectType == InjectAttributeType.Regular)
                 baseTypeName = implTypeName;
@@ -149,7 +150,7 @@ public class AutoRegisterSourceGenerator : TransitiveCodeGenerator
                 var baseSymbol = baseTypeInfo?.Symbol as ITypeSymbol;
                 if (baseSymbol != null)
                 {
-                    baseTypeName = baseSymbol.ToDisplayString();
+                    baseTypeName = TypeSymbolHelper.GetTypeFullName(baseSymbol);
                 }
                 else
                 {
@@ -158,7 +159,7 @@ public class AutoRegisterSourceGenerator : TransitiveCodeGenerator
                     var matchingSymbol = allSymbols.OfType<ITypeSymbol>().FirstOrDefault();
                     if (matchingSymbol != null)
                     {
-                        baseTypeName = matchingSymbol.ToDisplayString();
+                        baseTypeName = TypeSymbolHelper.GetTypeFullName(matchingSymbol);
                     }
                     else if (!baseTypeName.Contains("."))
                     {
@@ -267,35 +268,9 @@ public class AutoRegisterSourceGenerator : TransitiveCodeGenerator
         else
         {
             // 处理泛型形式: [AutoRegister<IFoo>] 或 [AutoRegisterKeyed<IFoo>("key")]
-            var attributeString = attributeSyntax.ToString();
-
-            // 首先尝试使用更精确的正则表达式来匹配泛型类型参数
-            string pattern = @"AutoRegister(?:Keyed)?<([^>]+)>";
-            var match = Regex.Match(attributeString, pattern);
-            if (match.Success)
-            {
-                return match.Groups[1].Value;
-            }
-
-            // 如果正则表达式失败，尝试使用更简单的方法
-            var startIndex = attributeString.IndexOf('<');
-            var endIndex = attributeString.IndexOf('>');
-
-            if (startIndex > 0 && endIndex > startIndex)
-            {
-                return attributeString.Substring(startIndex + 1, endIndex - startIndex - 1);
-            }
-
-            // 如果以上方法都失败，尝试使用语法分析
-            if (attributeSyntax.Name is GenericNameSyntax genericName)
-            {
-                if (genericName.TypeArgumentList.Arguments.Count > 0)
-                {
-                    return genericName.TypeArgumentList.Arguments[0].ToString();
-                }
-            }
-
-            return string.Empty;
+            // 使用 AttributeSyntaxHelper 提取构造函数参数
+            var baseType = attributeSyntax.GetConstructorArgument(null, 0);
+            return baseType?.ToString() ?? string.Empty;
         }
     }
 

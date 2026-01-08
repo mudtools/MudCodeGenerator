@@ -5,11 +5,6 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace Mud.CodeGenerator;
 
 public static class ClassHierarchyAnalyzer
@@ -251,9 +246,7 @@ public static class ClassHierarchyAnalyzer
         List<PropertyDeclarationSyntax> propertyDeclarations,
         INamedTypeSymbol contextClassSymbol)
     {
-        var publicProperties = typeSymbol.GetMembers()
-                                         .OfType<IPropertySymbol>()
-                                         .Where(property => property.DeclaredAccessibility == Accessibility.Public && !property.IsStatic);
+        var publicProperties = TypeSymbolHelper.GetPublicProperties(typeSymbol).Where(property => !property.IsStatic);
 
         // 使用HashSet来跟踪已添加的属性名，提高查找性能
         var existingPropertyNames = new HashSet<string>(propertyDeclarations.Select(p => p.Identifier.ValueText));
@@ -404,7 +397,7 @@ public static class ClassHierarchyAnalyzer
         {
             // 如果没有语法引用，手动创建一个属性声明
             var propertyDeclaration = SyntaxFactory.PropertyDeclaration(
-                SyntaxFactory.ParseTypeName(propertySymbol.Type.ToDisplayString()),
+                SyntaxFactory.ParseTypeName(TypeSymbolHelper.GetTypeFullName(propertySymbol.Type)),
                 propertySymbol.Name)
                 .WithModifiers(SyntaxFactory.TokenList(
                     propertySymbol.IsReadOnly ? SyntaxFactory.Token(SyntaxKind.PublicKeyword) : SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
@@ -463,7 +456,7 @@ public static class ClassHierarchyAnalyzer
         if (propertySymbol.Type is ITypeParameterSymbol typeParameter)
         {
             // 在继承链中查找类型参数的具体化
-            return ResolveTypeParameter(typeParameter, contextClassSymbol) ?? propertySymbol.Type.ToDisplayString();
+            return ResolveTypeParameter(typeParameter, contextClassSymbol) ?? TypeSymbolHelper.GetTypeFullName(propertySymbol.Type);
         }
 
         // 如果属性类型是构造的泛型类型，递归解析类型参数
@@ -473,7 +466,7 @@ public static class ClassHierarchyAnalyzer
         }
 
         // 普通类型直接返回
-        return propertySymbol.Type.ToDisplayString();
+        return TypeSymbolHelper.GetTypeFullName(propertySymbol.Type);
     }
 
     private static string ResolveTypeParameter(ITypeParameterSymbol typeParameter, INamedTypeSymbol contextClassSymbol)

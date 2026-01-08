@@ -104,10 +104,10 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
         if (wrapAttribute == null) return GetDefalultWrapInterfaceName(interfaceSymbol.Name);
 
         // 检查特性参数中是否有指定的包装接口名称
-        var wrapInterfaceArg = wrapAttribute.NamedArguments.FirstOrDefault(a => a.Key == "WrapInterface");
-        if (!string.IsNullOrEmpty(wrapInterfaceArg.Value.Value?.ToString()))
+        var wrapInterface = wrapAttribute.NamedArguments.FirstOrDefault(a => a.Key == "WrapInterface").Value.Value?.ToString();
+        if (!string.IsNullOrEmpty(wrapInterface))
         {
-            return wrapInterfaceArg.Value.Value.ToString();
+            return wrapInterface;
         }
 
         // 默认在接口名称后添加"Wrap"

@@ -5,7 +5,7 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using Mud.CodeGenerator.Helper;
+using Mud.CodeGenerator;
 using System.Globalization;
 
 namespace Mud.ServiceCodeGenerator;
@@ -38,17 +38,10 @@ internal sealed class MethodHelper
 
         var parameters = methodSymbol.Parameters.Select(p =>
         {
-            // 创建一个包含可空类型符号的显示格式
-            var parameterFormat = new SymbolDisplayFormat(
-                typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
-                genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
-                miscellaneousOptions: SymbolDisplayMiscellaneousOptions.UseSpecialTypes | SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
-            );
-
             var parameterInfo = new ParameterInfo
             {
                 Name = p.Name,
-                Type = p.Type.ToDisplayString(parameterFormat),
+                Type = TypeSymbolHelper.GetTypeFullName(p.Type),
                 Attributes = p.GetAttributes().Select(attr => new ParameterAttributeInfo
                 {
                     Name = attr.AttributeClass?.Name ?? "",
@@ -126,9 +119,9 @@ internal sealed class MethodHelper
             MethodName = methodSymbol.Name,
             HttpMethod = httpMethod,
             UrlTemplate = urlTemplate,
-            ReturnType = GetReturnTypeDisplayString(methodSymbol.ReturnType),
-            AsyncInnerReturnType = GetAsyncInnerReturnType(methodSymbol.ReturnType),
-            IsAsyncMethod = IsAsyncReturnType(methodSymbol.ReturnType),
+            ReturnType = TypeSymbolHelper.GetTypeFullName(methodSymbol.ReturnType),
+            AsyncInnerReturnType = TypeSymbolHelper.ExtractAsyncInnerType(methodSymbol.ReturnType),
+            IsAsyncMethod = TypeSymbolHelper.IsAsyncType(methodSymbol.ReturnType),
             Parameters = parameters,
             IgnoreImplement = HasMethodAttribute(methodSymbol, HttpClientGeneratorConstants.IgnoreImplementAttributeNames),
             IgnoreWrapInterface = HasMethodAttribute(methodSymbol, HttpClientGeneratorConstants.IgnoreWrapInterfaceAttributeNames),
@@ -140,9 +133,16 @@ internal sealed class MethodHelper
     {
         if (methodSyntax == null)
             return null;
-        return methodSyntax.AttributeLists
-            .SelectMany(a => a.Attributes)
-            .FirstOrDefault(a => HttpClientGeneratorConstants.SupportedHttpMethods.Contains(a.Name.ToString()));
+
+        // 尝试找到任何一个支持的HTTP方法特性
+        foreach (var methodName in HttpClientGeneratorConstants.SupportedHttpMethods)
+        {
+            var attributes = AttributeSyntaxHelper.GetAttributeSyntaxes(methodSyntax, methodName);
+            if (attributes.Any())
+                return attributes[0];
+        }
+
+        return null;
     }
     /// <summary>
     /// 获取Header特性的Replace设置
@@ -276,76 +276,10 @@ internal sealed class MethodHelper
 
     private static object? GetAttributeArgumentValue(AttributeSyntax attribute, int index)
     {
-        if (attribute.ArgumentList == null || index >= attribute.ArgumentList.Arguments.Count)
-            return null;
-
-        return attribute.ArgumentList.Arguments[index].Expression switch
-        {
-            LiteralExpressionSyntax literal => literal.Token.Value,
-            _ => null
-        };
+        return attribute.GetConstructorArgument(null, index);
     }
 
-    private static string GetReturnTypeDisplayString(ITypeSymbol returnType)
-    {
-        // 创建一个包含可空类型符号的显示格式
-        var format = new SymbolDisplayFormat(
-            typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
-            genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
-            miscellaneousOptions: SymbolDisplayMiscellaneousOptions.UseSpecialTypes | SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
-        );
 
-        return returnType.ToDisplayString(format);
-    }
-
-    /// <summary>
-    /// 获取异步方法的内部返回类型
-    /// </summary>
-    private static string GetAsyncInnerReturnType(ITypeSymbol returnType)
-    {
-        // 创建一个包含可空类型符号的显示格式
-        var format = new SymbolDisplayFormat(
-            typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
-            genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
-            miscellaneousOptions: SymbolDisplayMiscellaneousOptions.UseSpecialTypes | SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
-        );
-
-        if (returnType is INamedTypeSymbol namedType && namedType.IsGenericType)
-        {
-            if (namedType.Name == "Task" && namedType.TypeArguments.Length == 1)
-            {
-                var genericType = namedType.TypeArguments[0];
-                return genericType is INamedTypeSymbol genericNamedType &&
-                       genericNamedType.IsGenericType &&
-                       genericNamedType.Name == "Nullable"
-                    ? $"{genericNamedType.TypeArguments[0].ToDisplayString(format)}?"
-                    : genericType.ToDisplayString(format);
-            }
-        }
-
-        // 如果是 Task 而不是 Task<T>，返回 void
-        if (returnType is INamedTypeSymbol taskNamedType &&
-            taskNamedType.Name == "Task" &&
-            taskNamedType.TypeArguments.Length == 0)
-        {
-            return "void";
-        }
-
-        return returnType.ToDisplayString(format);
-    }
-
-    /// <summary>
-    /// 判断返回类型是否为异步类型（Task 或 Task<T>）
-    /// </summary>
-    private static bool IsAsyncReturnType(ITypeSymbol returnType)
-    {
-        if (returnType is INamedTypeSymbol namedType)
-        {
-            return namedType.Name == "Task" &&
-                   (namedType.TypeArguments.Length == 0 || namedType.TypeArguments.Length == 1);
-        }
-        return false;
-    }
 
     /// <summary>
     /// 获取参数的 Token 类型
@@ -429,19 +363,7 @@ internal sealed class MethodHelper
     /// </summary>
     private static string GetEnumLiteral(INamedTypeSymbol enumType, object defaultValue)
     {
-        var enumTypeName = enumType.ToDisplayString();
-
-        // 查找匹配的枚举成员
-        var matchingMember = enumType.GetMembers()
-            .OfType<IFieldSymbol>()
-            .Where(f => f.IsConst && f.HasConstantValue && Equals(f.ConstantValue, defaultValue))
-            .Select(f => f.Name)
-            .FirstOrDefault();
-
-        // 如果找到匹配成员，使用成员名；否则使用数值
-        var valueRepresentation = matchingMember ?? Convert.ToInt64(defaultValue, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture);
-
-        return $"{enumTypeName}.{valueRepresentation}";
+        return TypeSymbolHelper.GetEnumValueLiteral(enumType, defaultValue);
     }
 
     /// <summary>

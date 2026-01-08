@@ -7,7 +7,6 @@
 
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Text;
-using Mud.CodeGenerator.Helper;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Text;

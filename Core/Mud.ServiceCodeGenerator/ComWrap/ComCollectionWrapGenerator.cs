@@ -5,7 +5,6 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using Mud.CodeGenerator.Helper;
 using Mud.ServiceCodeGenerator.ComWrapSourceGenerator;
 using System.Text;
 
@@ -171,11 +170,11 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         ITypeSymbol elementType,
         InterfaceDeclarationSyntax interfaceDeclaration)
     {
-        var elementTypeName = elementType.ToDisplayString();
+        var elementTypeName = TypeSymbolHelper.GetTypeFullName(elementType);
         return new ElementTypeInfo(
             ElementType: elementType,
             ElementTypeName: elementTypeName,
-            IsBasicType: TypeSymbolHelper.IsBasicType(elementTypeName),
+            IsBasicType: TypeSymbolHelper.IsBasicType(elementType),
             IsEnumType: TypeSymbolHelper.IsEnumType(elementType),
             IsComplexType: TypeSymbolHelper.IsComplexObjectType(elementType),
             DefaultValue: GetDefaultValue(interfaceDeclaration, elementType, elementType),
@@ -342,26 +341,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
     /// </summary>
     private string GenerateBasicTypeConvertCode(ITypeSymbol typeSymbol, string fieldName)
     {
-        if (typeSymbol == null) return fieldName;
-
-        return typeSymbol.SpecialType switch
-        {
-            SpecialType.System_Boolean => $"{fieldName}.ConvertToBool()",
-            SpecialType.System_SByte => $"Convert.ToSByte({fieldName})",
-            SpecialType.System_Byte => $"Convert.ToByte({fieldName})",
-            SpecialType.System_Int16 => $"Convert.ToInt16({fieldName})",
-            SpecialType.System_UInt16 => $"Convert.ToUInt16({fieldName})",
-            SpecialType.System_Int32 => $"Convert.ToInt32({fieldName})",
-            SpecialType.System_UInt32 => $"Convert.ToUInt32({fieldName})",
-            SpecialType.System_Int64 => $"Convert.ToInt64({fieldName})",
-            SpecialType.System_UInt64 => $"Convert.ToUInt64({fieldName})",
-            SpecialType.System_Single => $"{fieldName}.ConvertToFloat()",
-            SpecialType.System_Double => $"{fieldName}.ConvertToDouble()",
-            SpecialType.System_Decimal => $"{fieldName}.ConvertToDecimal()",
-            SpecialType.System_String => $"{fieldName}.ToString()",
-            SpecialType.System_DateTime => $"{fieldName}.ConvertToDateTime()",
-            _ => fieldName
-        };
+        return TypeSymbolHelper.GetBasicTypeConvertCode(typeSymbol, fieldName);
     }
 
     /// <summary>

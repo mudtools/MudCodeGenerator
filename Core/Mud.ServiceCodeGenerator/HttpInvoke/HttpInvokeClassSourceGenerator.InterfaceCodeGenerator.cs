@@ -6,7 +6,6 @@
 // -----------------------------------------------------------------------
 
 using Microsoft.CodeAnalysis.Text;
-using Mud.CodeGenerator.Helper;
 using System.Text;
 
 namespace Mud.ServiceCodeGenerator.HttpInvoke;
