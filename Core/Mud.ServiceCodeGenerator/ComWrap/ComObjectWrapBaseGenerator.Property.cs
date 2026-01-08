@@ -21,7 +21,7 @@ partial class ComObjectWrapBaseGenerator
     /// <param name="interfaceDeclaration">接口声明语法</param>
     private void GenerateIndexerImplementation(StringBuilder sb, IPropertySymbol indexerSymbol, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
     {
-        var elementType = indexerSymbol.Type.ToDisplayString();
+        var elementType = TypeSymbolHelper.GetTypeFullName(indexerSymbol.Type);
         var comClassName = GetComClassName(interfaceSymbol, interfaceDeclaration);
         var elementImplType = GetImplementationType(elementType);
         var isItemIndex = AttributeDataHelper.HasAttribute(interfaceSymbol, ComWrapConstants.ItemIndexAttributeNames);
@@ -280,7 +280,7 @@ partial class ComObjectWrapBaseGenerator
                 return $"{paramName}.ConvertToInt()";
             else
             {
-                var sourceEnumType = param.Type.ToDisplayString();
+                var sourceEnumType = TypeSymbolHelper.GetTypeFullName(param.Type);
                 var comNamespace = GetComNamespace(interfaceSymbol, interfaceDeclaration);
                 var targetEnumType = $"{comNamespace}.{param.Type.Name}";
                 return $"{paramName}.EnumConvert<{sourceEnumType}, {targetEnumType}>()";
@@ -456,7 +456,7 @@ partial class ComObjectWrapBaseGenerator
         {
             if (needConvert)
             {
-                var ordinalComType = GetImplementationOrdinalType(indexerSymbol.Type.ToDisplayString());
+                var ordinalComType = GetImplementationOrdinalType(TypeSymbolHelper.GetTypeFullName(indexerSymbol.Type));
                 var comType = GetOrdinalComType(ordinalComType);
                 sb.AppendLine($"                    if(comElement is {comNamespace}.{comType} rComObj)");
                 sb.AppendLine($"                        return new {elementImplType}(rComObj);");
@@ -515,7 +515,7 @@ partial class ComObjectWrapBaseGenerator
         }
         else
         {
-            string returnType = indexerSymbol.Type.ToDisplayString();
+            string returnType = TypeSymbolHelper.GetTypeFullName(indexerSymbol.Type);
             var ordinalComType = GetImplementationOrdinalType(returnType);
             var comType = GetOrdinalComType(ordinalComType);
             returnType = returnType.EndsWith("?", StringComparison.Ordinal) ? returnType : returnType + "?";
@@ -1555,8 +1555,7 @@ partial class ComObjectWrapBaseGenerator
                     .FirstOrDefault(f => f.HasConstantValue);
                 if (firstEnumValue != null)
                 {
-                    var enumTypeName = underlyingType.ToDisplayString();
-                    return $"{enumTypeName}.{firstEnumValue.Name}";
+                    return TypeSymbolHelper.GetEnumValueLiteral(underlyingType, firstEnumValue.ConstantValue);
                 }
             }
 
@@ -1572,8 +1571,7 @@ partial class ComObjectWrapBaseGenerator
                 .FirstOrDefault(f => f.HasConstantValue);
             if (firstEnumValue != null)
             {
-                var enumTypeName = typeSymbol.ToDisplayString();
-                return $"{enumTypeName}.{firstEnumValue.Name}";
+                return TypeSymbolHelper.GetEnumValueLiteral(typeSymbol, firstEnumValue.ConstantValue);
             }
             return "default";
         }
