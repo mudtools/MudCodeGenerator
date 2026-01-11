@@ -10,7 +10,7 @@ using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Text;
 
-namespace Mud.ServiceCodeGenerator.HttpInvoke;
+namespace Mud.ServiceCodeGenerator;
 
 /// <summary>
 /// 事件处理器源代码生成器，用于为带有EventHandler特性的类生成对应的事件处理器抽象类。
@@ -69,6 +69,11 @@ public class EventHandlerSourceGenerator : TransitiveCodeGenerator
         if (eventHandlerClasses.IsDefaultOrEmpty)
             return;
 
+        // 使用 HashSet 检测文件名冲突
+        var generatedFileNames = new HashSet<string>();
+        // 缓存 SemanticModel 以提高性能
+        var semanticModelCache = new Dictionary<SyntaxTree, SemanticModel>();
+
         foreach (var eventClass in eventHandlerClasses)
         {
             if (eventClass == null)
@@ -76,7 +81,13 @@ public class EventHandlerSourceGenerator : TransitiveCodeGenerator
 
             try
             {
-                var semanticModel = compilation.GetSemanticModel(eventClass.SyntaxTree);
+                // 从缓存获取或创建 SemanticModel
+                if (!semanticModelCache.TryGetValue(eventClass.SyntaxTree, out var semanticModel))
+                {
+                    semanticModel = compilation.GetSemanticModel(eventClass.SyntaxTree);
+                    semanticModelCache[eventClass.SyntaxTree] = semanticModel;
+                }
+
                 var classSymbol = semanticModel.GetDeclaredSymbol(eventClass);
 
                 if (classSymbol == null)
@@ -94,6 +105,19 @@ public class EventHandlerSourceGenerator : TransitiveCodeGenerator
                 if (!string.IsNullOrEmpty(generatedCode))
                 {
                     var fileName = $"{GetGeneratedClassName(eventClass, eventHandlerAttribute)}.g.cs";
+
+                    // 检测文件名冲突
+                    if (generatedFileNames.Contains(fileName))
+                    {
+                        context.ReportDiagnostic(Diagnostic.Create(
+                            Diagnostics.EventHandlerGenerationError,
+                            Location.None,
+                            eventClass.Identifier.Text,
+                            $"Duplicate generated file name: {fileName}. Consider using HandlerClassName attribute to specify unique names."));
+                        continue;
+                    }
+
+                    generatedFileNames.Add(fileName);
                     context.AddSource(fileName, generatedCode);
                 }
             }
@@ -186,8 +210,8 @@ public class EventHandlerSourceGenerator : TransitiveCodeGenerator
         sb.AppendLine("        /// <summary>");
         sb.AppendLine("        /// 默认构造函数");
         sb.AppendLine("        /// </summary>");
-        sb.AppendLine("        /// <param name=\"logger\">日志记录对象。</param>");
         sb.AppendLine("        /// <param name=\"businessDeduplicator\">飞书事件去重服务接口</param>");
+        sb.AppendLine("        /// <param name=\"logger\">日志记录对象。</param>");
         sb.AppendLine($"        {GeneratedCodeConsts.GeneratedCodeAttribute}");
         sb.AppendLine($"        public {generatedClassName}(IFeishuEventDeduplicator businessDeduplicator, ILogger logger)");
         sb.AppendLine("            : base(businessDeduplicator,logger)");
@@ -201,8 +225,18 @@ public class EventHandlerSourceGenerator : TransitiveCodeGenerator
             sb.AppendLine("        /// <summary>");
             sb.AppendLine("        /// 支持的事件类型");
             sb.AppendLine("        /// </summary>");
-            // 确保事件类型是字符串字面量
-            var eventTypeValue = eventType.StartsWith("\"", StringComparison.OrdinalIgnoreCase) ? eventType : $"\"{eventType}\"";
+            // 更严格的字符串字面量检查
+            var eventTypeValue = eventType.Trim();
+            if ((eventTypeValue.StartsWith("\"") && eventTypeValue.EndsWith("\"")) ||
+                (eventTypeValue.StartsWith("'") && eventTypeValue.EndsWith("'")))
+            {
+                // 已经是字符串字面量，直接使用（去除首尾空格）
+            }
+            else
+            {
+                // 不是字符串字面量，添加引号
+                eventTypeValue = $"\"{eventTypeValue}\"";
+            }
             sb.AppendLine($"        {GeneratedCodeConsts.GeneratedCodeAttribute}");
             sb.AppendLine($"        public override string SupportedEventType => {eventTypeValue};");
         }
