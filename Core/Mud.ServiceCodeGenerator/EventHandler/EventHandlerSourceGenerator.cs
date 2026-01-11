@@ -132,7 +132,7 @@ public class EventHandlerSourceGenerator : TransitiveCodeGenerator
         var handlerNamespace = GetAttributeParameter(eventHandlerAttribute, "HandlerNamespace", "");
         var handlerClassName = GetAttributeParameter(eventHandlerAttribute, "HandlerClassName", "");
         var eventType = GetEventTypeParameter(eventHandlerAttribute, "");
-        var inheritedFrom = GetAttributeParameter(eventHandlerAttribute, "InheritedFrom", "DefaultFeishuEventHandler");
+        var inheritedFrom = GetAttributeParameter(eventHandlerAttribute, "InheritedFrom", "IdempotentFeishuEventHandler");
 
         // 获取生成的类名
         var generatedClassName = !string.IsNullOrEmpty(handlerClassName) ? handlerClassName : GenerateDefaultHandlerClassName(eventClass.Identifier.Text);
@@ -186,10 +186,11 @@ public class EventHandlerSourceGenerator : TransitiveCodeGenerator
         sb.AppendLine("        /// <summary>");
         sb.AppendLine("        /// 默认构造函数");
         sb.AppendLine("        /// </summary>");
-        sb.AppendLine("        /// <param name=\"logger\"></param>");
+        sb.AppendLine("        /// <param name=\"logger\">日志记录对象。</param>");
+        sb.AppendLine("        /// <param name=\"businessDeduplicator\">飞书事件去重服务接口</param>");
         sb.AppendLine($"        {GeneratedCodeConsts.GeneratedCodeAttribute}");
-        sb.AppendLine($"        public {generatedClassName}(ILogger logger)");
-        sb.AppendLine("            : base(logger)");
+        sb.AppendLine($"        public {generatedClassName}(IFeishuEventDeduplicator businessDeduplicator, ILogger logger)");
+        sb.AppendLine("            : base(businessDeduplicator,logger)");
         sb.AppendLine("        {");
         sb.AppendLine("        }");
         sb.AppendLine();
