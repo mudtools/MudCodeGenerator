@@ -157,7 +157,11 @@ internal class InterfaceImpCodeGenerator
         var context = new GenerationContext(className, config);
 
         GenerateClassFields(context);
-        GenerateConstructor(context);
+
+        GenerateConstructorDocumentation(context);
+        GenerateConstructorSignature(context);
+        GenerateConstructorBody(context);
+
         GenerateHelperMethods(context);
     }
 
@@ -194,12 +198,6 @@ internal class InterfaceImpCodeGenerator
         _codeBuilder.AppendLine();
     }
 
-    private void GenerateConstructor(GenerationContext context)
-    {
-        GenerateConstructorDocumentation(context);
-        GenerateConstructorSignature(context);
-        GenerateConstructorBody(context);
-    }
 
     private void GenerateConstructorDocumentation(GenerationContext context)
     {
@@ -306,7 +304,7 @@ internal class InterfaceImpCodeGenerator
         // 根据IsAbstract和InheritedFrom决定是否包含父接口方法
         var includeParentInterfaces = GetIncludeParentInterfaces();
 
-        IEnumerable<IMethodSymbol> methodsToGenerate = TypeSymbolHelper.GetAllMethods(_interfaceSymbol, includeParentInterfaces);
+        var methodsToGenerate = TypeSymbolHelper.GetAllMethods(_interfaceSymbol, includeParentInterfaces);
 
         foreach (var methodSymbol in methodsToGenerate)
         {
@@ -376,6 +374,13 @@ internal class InterfaceImpCodeGenerator
 
         foreach (var para in methodInfo.Parameters)
         {
+            if (para.Attributes.Any(attr => attr.Name == HttpClientGeneratorConstants.BodyAttribute))
+            {
+                _codeBuilder.AppendLine($"            if ({para.Name} == null)");
+                _codeBuilder.AppendLine($"                throw new ArgumentNullException(nameof({para.Name}));");
+                continue;
+            }
+
             if (para.Type.EndsWith("?", StringComparison.Ordinal))
                 continue;
             if (para.Type.EndsWith("string", StringComparison.OrdinalIgnoreCase))
@@ -387,12 +392,14 @@ internal class InterfaceImpCodeGenerator
                 _codeBuilder.AppendLine($"            {para.Name} = {para.Name}.Trim();");
             }
         }
+        _codeBuilder.AppendLine();
         var urlCode = BuildUrlString(methodInfo);
         _codeBuilder.AppendLine(urlCode);
 
         GenerateQueryParameters(methodInfo);
         GenerateRequestSetup(methodInfo);
         GenerateHeaderParameters(methodInfo);
+        _codeBuilder.AppendLine();
         GenerateBodyParameter(methodInfo);
 
         // 添加Authorization header
@@ -408,7 +415,7 @@ internal class InterfaceImpCodeGenerator
                     headerName = headerAttr.Substring(7); // 去掉"Header:"前缀
                 }
             }
-            _codeBuilder.AppendLine($"            // 添加Authorization header as {headerName}");
+
             _codeBuilder.AppendLine($"            request.Headers.Add(\"{headerName}\", access_token);");
         }
 
@@ -679,20 +686,15 @@ internal class InterfaceImpCodeGenerator
         var hasExplicitContentType = bodyAttr.NamedArguments.ContainsKey("ContentType");
         var contentTypeExpression = hasExplicitContentType ? $"\"{contentType}\"" : "GetMediaType(_defaultContentType)";
 
-        _codeBuilder.AppendLine($"            if ({bodyParam.Name} != null)");
-        _codeBuilder.AppendLine("            {");
-
         if (useStringContent)
         {
-            _codeBuilder.AppendLine($"                request.Content = new StringContent({bodyParam.Name}.ToString() ?? \"\", Encoding.UTF8, {contentTypeExpression});");
+            _codeBuilder.AppendLine($"            request.Content = new StringContent({bodyParam.Name}.ToString() ?? \"\", Encoding.UTF8, {contentTypeExpression});");
         }
         else
         {
-            _codeBuilder.AppendLine($"                var jsonContent = JsonSerializer.Serialize({bodyParam.Name}, _jsonSerializerOptions);");
-            _codeBuilder.AppendLine($"                request.Content = new StringContent(jsonContent, Encoding.UTF8, {contentTypeExpression});");
+            _codeBuilder.AppendLine($"            var jsonContent = JsonSerializer.Serialize({bodyParam.Name}, _jsonSerializerOptions);");
+            _codeBuilder.AppendLine($"            request.Content = new StringContent(jsonContent, Encoding.UTF8, {contentTypeExpression});");
         }
-
-        _codeBuilder.AppendLine("            }");
     }
 
     private string GetBodyContentType(ParameterAttributeInfo bodyAttr)
