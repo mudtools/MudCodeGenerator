@@ -67,7 +67,7 @@ public abstract class DefaultFeishuEventHandler<TEventResult> where TEventResult
     /// 构造函数
     /// </summary>
     /// <param name="logger">日志记录器</param>
-    protected DefaultFeishuEventHandler(ILogger logger)
+    protected DefaultFeishuEventHandler(IFeishuEventDeduplicator businessDeduplicator, ILogger logger)
     {
         _logger = logger;
     }
@@ -81,7 +81,7 @@ public abstract class DefaultFeishuEventHandler<TEventResult> where TEventResult
 /// <summary>
 /// 简单的事件结果类，用于测试默认命名规则
 /// </summary>
-[EventHandler(EventType = "SimpleEvent.Test")]
+[EventHandler(EventType = "SimpleEvent.Test", InheritedFrom = "DefaultFeishuEventHandler")]
 public class SimpleEventResult : IEventResult
 {
     public string? Message { get; set; }
