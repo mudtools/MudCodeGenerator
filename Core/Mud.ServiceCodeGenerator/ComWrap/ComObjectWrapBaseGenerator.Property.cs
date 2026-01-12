@@ -1396,12 +1396,11 @@ partial class ComObjectWrapBaseGenerator
             sb.AppendLine($"                if({privateFieldName} != null)");
             sb.AppendLine("                {");
             sb.AppendLine($"                    // 释放 COM 对象");
-            sb.AppendLine($"                    try {{ while (0 < Marshal.ReleaseComObject({privateFieldName})) {{ }} }} catch {{ }}");
+            sb.AppendLine($"                    Marshal.ReleaseComObject({privateFieldName});");
             sb.AppendLine($"                    {privateFieldName} = null;");
             sb.AppendLine("                }");
             sb.AppendLine("                _disposableList.Dispose();");
             GeneratePrivateFieldDisposable(sb, interfaceSymbol, interfaceDeclaration);
-            sb.AppendLine("                GC.Collect();");
             sb.AppendLine("            }");
             sb.AppendLine();
 
@@ -1419,7 +1418,7 @@ partial class ComObjectWrapBaseGenerator
         sb.AppendLine();
         sb.AppendLine($"        ~{impClassName}()");
         sb.AppendLine("        {");
-        sb.AppendLine("            Dispose(true);");
+        sb.AppendLine("            Dispose(false);");
         sb.AppendLine("        }");
         sb.AppendLine("        #endregion");
         sb.AppendLine();

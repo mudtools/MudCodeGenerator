@@ -387,9 +387,13 @@ internal class InterfaceImpCodeGenerator
                 _codeBuilder.AppendLine($"            {para.Name} = {para.Name}.Trim();");
             }
         }
+        var urlCode = BuildUrlString(methodInfo);
+        _codeBuilder.AppendLine(urlCode);
 
+        GenerateQueryParameters(methodInfo);
         GenerateRequestSetup(methodInfo);
-        GenerateParameterHandling(methodInfo);
+        GenerateHeaderParameters(methodInfo);
+        GenerateBodyParameter(methodInfo);
 
         // 添加Authorization header
         if (hasTokenManager && hasAuthorizationHeader)
@@ -423,9 +427,6 @@ internal class InterfaceImpCodeGenerator
 
     private void GenerateRequestSetup(MethodAnalysisResult methodInfo)
     {
-        var urlCode = BuildUrlString(methodInfo);
-        _codeBuilder.AppendLine(urlCode);
-
         if (methodInfo.HttpMethod.Equals("patch", StringComparison.OrdinalIgnoreCase))
         {
             _codeBuilder.AppendLine("#if NETSTANDARD2_0");
@@ -473,13 +474,6 @@ internal class InterfaceImpCodeGenerator
         return string.IsNullOrEmpty(formatString)
             ? url.Replace($"{{{paramName}}}", $"{{{paramName}}}")
             : url.Replace($"{{{paramName}}}", $"{{{paramName}.ToString(\"{formatString}\")}}");
-    }
-
-    private void GenerateParameterHandling(MethodAnalysisResult methodInfo)
-    {
-        GenerateQueryParameters(methodInfo);
-        GenerateHeaderParameters(methodInfo);
-        GenerateBodyParameter(methodInfo);
     }
 
     private void GenerateQueryParameters(MethodAnalysisResult methodInfo)
