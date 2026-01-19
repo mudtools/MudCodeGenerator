@@ -126,24 +126,24 @@ internal class InterfaceImpCodeGenerator
         _tokenManage = AttributeDataHelper.GetStringValueFromAttribute(_httpClientApiAttribute, HttpClientGeneratorConstants.TokenManageProperty);
 
         // 验证基类（问题26）
-        if (!string.IsNullOrEmpty(_inheritedFrom))
-        {
-            var validationResult = BaseClassValidator.ValidateBaseClass(
-                _compilation,
-                _inheritedFrom,
-                !string.IsNullOrEmpty(_tokenManage),
-                _interfaceSymbol.ContainingNamespace);
+        // if (!string.IsNullOrEmpty(_inheritedFrom))
+        // {
+        //     var validationResult = BaseClassValidator.ValidateBaseClass(
+        //         _compilation,
+        //         _inheritedFrom,
+        //         !string.IsNullOrEmpty(_tokenManage),
+        //         _interfaceSymbol.ContainingNamespace);
 
-            if (!validationResult.IsValid)
-            {
-                _context.ReportDiagnostic(Diagnostic.Create(
-                    Diagnostics.HttpClientApiParameterError,
-                    _interfaceDecl.GetLocation(),
-                    _interfaceSymbol.Name,
-                    validationResult.ErrorMessage));
-                return;
-            }
-        }
+        //     if (!validationResult.IsValid)
+        //     {
+        //         _context.ReportDiagnostic(Diagnostic.Create(
+        //             Diagnostics.HttpClientApiParameterError,
+        //             _interfaceDecl.GetLocation(),
+        //             _interfaceSymbol.Name,
+        //             validationResult.ErrorMessage));
+        //         return;
+        //     }
+        // }
 
         // 初始化各个生成器
         InitializeGenerators();
@@ -153,17 +153,17 @@ internal class InterfaceImpCodeGenerator
         var namespaceName = SyntaxHelper.GetNamespaceName(_interfaceDecl, "Internal");
         var fullClassName = $"{namespaceName}.{className}";
 
-        var existingSymbol = _compilation.GetTypeByMetadataName(fullClassName);
-        if (existingSymbol != null && existingSymbol.Locations.Length > 0)
-        {
-            var location = existingSymbol.Locations[0];
-            _context.ReportDiagnostic(Diagnostic.Create(
-                Diagnostics.HttpClientApiParameterError,
-                _interfaceDecl.GetLocation(),
-                _interfaceSymbol.Name,
-                $"生成的类 '{className}' 已存在于 {location.SourceTree?.FilePath ?? location.GetLineSpan().StartLinePosition.ToString()}"));
-            return;
-        }
+        // var existingSymbol = _compilation.GetTypeByMetadataName(fullClassName);
+        // if (existingSymbol != null && existingSymbol.Locations.Length > 0)
+        // {
+        //     var location = existingSymbol.Locations[0];
+        //     _context.ReportDiagnostic(Diagnostic.Create(
+        //         Diagnostics.HttpClientApiParameterError,
+        //         _interfaceDecl.GetLocation(),
+        //         _interfaceSymbol.Name,
+        //         $"生成的类 '{className}' 已存在于 {location.SourceTree?.FilePath ?? location.GetLineSpan().StartLinePosition.ToString()}"));
+        //     return;
+        // }
 
         GenerateImplementationClass();
     }
