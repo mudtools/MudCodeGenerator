@@ -175,7 +175,20 @@ internal class RequestBuilder
 
         // 检查参数是否明确指定了ContentType
         var hasExplicitContentType = bodyAttr.NamedArguments.ContainsKey("ContentType");
-        var contentTypeExpression = hasExplicitContentType ? $"\"{contentType}\"" : "GetMediaType(_defaultContentType)";
+
+        // 获取有效的内容类型（方法级 > 接口级 > Body参数级 > 默认值）
+        string contentTypeExpression;
+        if (hasExplicitContentType)
+        {
+            contentTypeExpression = $"\"{contentType}\"";
+        }
+        else
+        {
+            var effectiveContentType = methodInfo.GetEffectiveContentType();
+            contentTypeExpression = !string.IsNullOrEmpty(effectiveContentType)
+                ? $"\"{effectiveContentType}\""
+                : "GetMediaType(_defaultContentType)";
+        }
 
         if (useStringContent)
         {

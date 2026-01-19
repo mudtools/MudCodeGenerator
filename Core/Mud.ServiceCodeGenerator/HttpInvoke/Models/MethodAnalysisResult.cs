@@ -116,6 +116,25 @@ public class MethodAnalysisResult
     public List<InterfaceHeaderAttribute> InterfaceHeaderAttributes { get; set; } = [];
 
     /// <summary>
+    /// 接口级别的内容类型（从接口的[HttpContentType]特性获取）
+    /// </summary>
+    public string? InterfaceContentType { get; set; }
+
+    /// <summary>
+    /// 方法级别的内容类型（从方法的[HttpContentType]特性获取）
+    /// </summary>
+    public string? MethodContentType { get; set; }
+
+    /// <summary>
+    /// 获取最终的内容类型（方法级优先于接口级）
+    /// </summary>
+    /// <returns>内容类型字符串，如果方法级和接口级都未定义则返回null</returns>
+    public string? GetEffectiveContentType()
+    {
+        return MethodContentType ?? InterfaceContentType;
+    }
+
+    /// <summary>
     /// 无效的分析结果实例
     /// </summary>
     public static MethodAnalysisResult Invalid => new() { IsValid = false };

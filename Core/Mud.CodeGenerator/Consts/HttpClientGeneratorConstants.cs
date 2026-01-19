@@ -43,6 +43,7 @@ internal static class HttpClientGeneratorConstants
     public const string HeaderAttribute = "HeaderAttribute";
     public const string BodyAttribute = "BodyAttribute";
     public const string FilePathAttribute = "FilePathAttribute";
+    public static readonly string[] HttpContentTypeAttributeNames = ["HttpContentTypeAttribute", "HttpContentType"];
 
 
     public const string TimeoutProperty = "Timeout";

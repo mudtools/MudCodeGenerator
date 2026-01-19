@@ -35,6 +35,9 @@ internal sealed class MethodHelper
         var httpMethod = httpMethodAttr.Name.ToString();
         var urlTemplate = GetAttributeArgumentValue(httpMethodAttr, 0)?.ToString().Trim('"') ?? "";
 
+        // 获取方法级别的HttpContentType特性
+        var methodContentType = GetHttpContentTypeFromSymbol(methodSymbol);
+
         var parameters = methodSymbol.Parameters.Select(p =>
         {
             var parameterInfo = new ParameterInfo
@@ -64,9 +67,13 @@ internal sealed class MethodHelper
         var interfaceSymbol = compilation.GetSemanticModel(interfaceDecl.SyntaxTree).GetDeclaredSymbol(interfaceDecl) as INamedTypeSymbol;
         var interfaceAttributes = new HashSet<string>();
         var interfaceHeaderAttributes = new List<InterfaceHeaderAttribute>();
+        string? interfaceContentType = null;
 
         if (interfaceSymbol != null)
         {
+            // 获取接口级别的HttpContentType特性
+            interfaceContentType = GetHttpContentTypeFromSymbol(interfaceSymbol);
+
             // 检查并处理所有[Header]特性
             var headerAttributes = interfaceSymbol.GetAttributes()
                 .Where(attr => (attr.AttributeClass?.Name == "HeaderAttribute" || attr.AttributeClass?.Name == "Header"));
@@ -125,7 +132,9 @@ internal sealed class MethodHelper
             IgnoreImplement = HasMethodAttribute(methodSymbol, HttpClientGeneratorConstants.IgnoreImplementAttributeNames),
             IgnoreWrapInterface = HasMethodAttribute(methodSymbol, HttpClientGeneratorConstants.IgnoreWrapInterfaceAttributeNames),
             InterfaceAttributes = interfaceAttributes,
-            InterfaceHeaderAttributes = interfaceHeaderAttributes
+            InterfaceHeaderAttributes = interfaceHeaderAttributes,
+            InterfaceContentType = interfaceContentType,
+            MethodContentType = methodContentType
         };
     }
     private static AttributeSyntax? FindHttpMethodAttribute(MethodDeclarationSyntax methodSyntax)
@@ -197,6 +206,36 @@ internal sealed class MethodHelper
         return null;
     }
 
+
+    /// <summary>
+    /// 从符号获取HttpContentType特性的ContentType值
+    /// </summary>
+    /// <param name="symbol">符号（方法或接口）</param>
+    /// <returns>Content-Type值，如果未定义则返回null</returns>
+    private static string? GetHttpContentTypeFromSymbol(ISymbol symbol)
+    {
+        if (symbol == null)
+            return null;
+
+        // 查找HttpContentType特性
+        var httpContentTypeAttr = AttributeDataHelper.GetAttributeDataFromSymbol(
+            symbol,
+            HttpClientGeneratorConstants.HttpContentTypeAttributeNames);
+
+        if (httpContentTypeAttr == null)
+            return null;
+
+        // 优先从构造函数参数获取
+        if (httpContentTypeAttr.ConstructorArguments.Length > 0)
+        {
+            var constructorArg = httpContentTypeAttr.ConstructorArguments[0].Value?.ToString();
+            if (!string.IsNullOrEmpty(constructorArg))
+                return constructorArg;
+        }
+
+        // 从命名参数获取
+        return AttributeDataHelper.GetStringValueFromAttribute(httpContentTypeAttr, ["ContentType"]);
+    }
 
     /// <summary>
     /// 查询方法的语法对象。
