@@ -43,3 +43,7 @@
 /Test/ComWrapGeneratorTest/bin/Debug/net8.0
 /Test/ComWrapGeneratorTest/obj
 /Test/ComObjectWrapTest/bin/Debug
+/Test/HttpContentTypeTest/bin/Debug
+/Test/HttpContentTypeTest/obj
+/Test/HttpClientApiTest/bin/Debug/net10.0
+/Test/HttpClientApiTest/obj
