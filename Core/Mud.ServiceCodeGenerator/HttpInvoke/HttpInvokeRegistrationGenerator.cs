@@ -212,7 +212,9 @@ public class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
 
     private string GenerateSourceCode(Compilation compilation, List<HttpClientApiInfo> apis, List<HttpClientWrapApiInfo> wrapApis, SourceProductionContext context)
     {
-        var codeBuilder = new StringBuilder();
+        // 预估容量：每个API注册约200字符，基础结构约500字符
+        var estimatedCapacity = 500 + ((apis.Count + wrapApis.Count) * 200);
+        var codeBuilder = new StringBuilder(estimatedCapacity);
         GenerateExtensionClass(compilation, codeBuilder, apis, wrapApis, context);
         return codeBuilder.ToString();
     }

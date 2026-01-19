@@ -164,18 +164,6 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     }
 
     /// <summary>
-    /// 检查方法是否具有指定的特性
-    /// </summary>
-    protected bool HasMethodAttribute(IMethodSymbol methodSymbol, params string[] attributeNames)
-    {
-        if (methodSymbol == null)
-            return false;
-
-        return methodSymbol.GetAttributes()
-            .Any(attr => attributeNames.Contains(attr.AttributeClass?.Name));
-    }
-
-    /// <summary>
     /// 生成方法参数列表字符串
     /// </summary>
     protected string GenerateParameterList(IReadOnlyList<ParameterInfo> parameters)

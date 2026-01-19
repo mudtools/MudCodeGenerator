@@ -33,7 +33,15 @@ public class HttpInvokeWrapInterfaceSourceGenerator : HttpInvokeWrapSourceGenera
     /// </summary>
     protected string GenerateWrapInterface(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl, INamedTypeSymbol interfaceSymbol, AttributeData wrapAttribute)
     {
-        var sb = new StringBuilder();
+        // 预估容量：每个方法约150字符，基础结构约500字符
+        var methods = TypeSymbolHelper.GetAllMethods(interfaceSymbol, true);
+        int methodCount = 0;
+        foreach (var method in methods)
+        {
+            methodCount++;
+        }
+        var estimatedCapacity = 500 + (methodCount * 150);
+        var sb = new StringBuilder(estimatedCapacity);
 
         // 生成文件头部
         GenerateFileHeader(sb, interfaceDecl);

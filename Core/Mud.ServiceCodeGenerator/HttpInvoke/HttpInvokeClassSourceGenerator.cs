@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
 
 namespace Mud.ServiceCodeGenerator.HttpInvoke;
@@ -32,12 +33,15 @@ public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenera
         ProjectConfigHelper.ReadProjectOptions(configOptionsProvider.GlobalOptions, "build_property.HttpClientOptionsName",
            val => httpClientOptionsName = val, "HttpClientOptions");
 
-        var processedSymbols = new HashSet<int>();
+        var processedSymbols = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
         foreach (var interfaceDecl in interfaces)
         {
-            var symbolHashCode = interfaceDecl.GetHashCode();
-            if (!processedSymbols.Add(symbolHashCode))
+            var model = compilation.GetSemanticModel(interfaceDecl.SyntaxTree);
+            if (model.GetDeclaredSymbol(interfaceDecl) is not INamedTypeSymbol interfaceSymbol)
+                continue;
+
+            if (!processedSymbols.Add(interfaceSymbol))
             {
                 continue;
             }
