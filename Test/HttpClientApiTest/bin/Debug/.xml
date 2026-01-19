@@ -1,0 +1,1122 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>HttpClientApiTest</name>
+    </assembly>
+    <members>
+        <member name="T:HttpClientApiTest.WebApi.IContentTypeTestApi">
+            <summary>
+            用于测试 HttpContentType 特性的优先级功能
+            测试场景：
+            1. 接口级特性 vs 方法级特性（方法级优先）
+            2. 构造函数参数 vs 命名参数
+            3. 默认值回退
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.IContentTypeTestApi.TestMethod1Async(System.String)">
+            <summary>
+            方法1：接口使用 application/xml，方法覆盖为 application/json
+            预期结果：使用 application/json
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.IContentTypeTestApi.TestMethod2Async(System.String)">
+            <summary>
+            方法2：接口使用 application/xml，方法覆盖为 text/plain
+            预期结果：使用 text/plain
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.IContentTypeTestApi.TestMethod3Async(System.String)">
+            <summary>
+            方法3：接口使用 application/xml，方法未指定
+            预期结果：使用 application/xml（从接口继承）
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.IContentTypeTestApi.TestMethod4Async(System.String)">
+            <summary>
+            方法4：使用命名参数方式指定内容类型
+            预期结果：使用 application/x-www-form-urlencoded
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.IContentTypeTestApi.TestMethod5Async(System.String)">
+            <summary>
+            方法5：使用构造函数参数方式指定内容类型
+            预期结果：使用 multipart/form-data
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.IContentTypeWebApiDefaultTestApi">
+            <summary>
+            用于测试 HttpContentType 特性的默认值回退功能
+            测试场景：
+            接口和方法均未定义 HttpContentType 特性
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.IContentTypeWebApiDefaultTestApi.TestDefaultAsync(System.String)">
+            <summary>
+            方法1：接口和方法均未指定内容类型
+            预期结果：使用默认值 application/json
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.IContentTypeBodyPriorityTestApi">
+            <summary>
+            用于测试 HttpContentType 特性与 Body 参数 ContentType 的优先级
+            测试场景：
+            Body 参数的 ContentType 优先级最高
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.IContentTypeBodyPriorityTestApi.TestPriority1Async(System.String)">
+            <summary>
+            方法1：接口使用 application/xml，方法使用 application/json，Body 参数使用 text/html
+            预期结果：使用 text/html（Body 参数优先级最高）
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.IContentTypeBodyPriorityTestApi.TestPriority2Async(System.String)">
+            <summary>
+            方法2：接口使用 application/xml，方法未指定，Body 参数使用 application/json
+            预期结果：使用 application/json（Body 参数优先级最高）
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.IFeishuUserApi">
+            <summary>
+            飞书用户API接口
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.IFeishuUserApi.GetUserAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            获取用户信息
+            </summary>
+            <param name="userId">用户ID</param>
+            <param name="cancellationToken">取消令牌</param>
+            <returns>用户信息</returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.IFeishuUserApi.GetUserAbsoluteAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            使用绝对URL获取用户信息
+            </summary>
+            <param name="userId">用户ID</param>
+            <param name="cancellationToken">取消令牌</param>
+            <returns>用户信息</returns>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.UserInfo">
+            <summary>
+            用户信息模型
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.UserInfo.UserId">
+            <summary>
+            用户ID
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.UserInfo.Name">
+            <summary>
+            用户名
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.UserInfo.Email">
+            <summary>
+            邮箱
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.SysDeptInfoOutput">
+            <summary>
+            系统部门信息输出模型
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.SysDeptInfoOutput.Id">
+            <summary>
+            部门ID
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.SysDeptInfoOutput.Name">
+            <summary>
+            部门名称
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.SysDeptInfoOutput.ParentId">
+            <summary>
+            父部门ID
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.SysDeptListOutput">
+            <summary>
+            系统部门列表输出模型
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.SysDeptListOutput.Id">
+            <summary>
+            部门ID
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.SysDeptListOutput.Name">
+            <summary>
+            部门名称
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.SysDeptListOutput.Level">
+            <summary>
+            部门层级
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.SysDeptCrInput">
+            <summary>
+            系统部门创建输入模型
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.SysDeptCrInput.Name">
+            <summary>
+            部门名称
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.SysDeptCrInput.ParentId">
+            <summary>
+            父部门ID
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.SysDeptUpInput">
+            <summary>
+            系统部门更新输入模型
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.SysDeptUpInput.Name">
+            <summary>
+            部门名称
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.SysDeptUpInput.Id">
+            <summary>
+            部门ID
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.ProjectQueryInput">
+            <summary>
+            项目查询输入模型
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.ProjectQueryInput.Name">
+            <summary>
+            项目名称
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.ProjectQueryInput.Status">
+            <summary>
+            项目状态
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.DataQueryInput">
+            <summary>
+            数据查询输入模型
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.DataQueryInput.Keyword">
+            <summary>
+            关键字
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.DataQueryInput.PageSize">
+            <summary>
+            分页大小
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.DataQueryInput.PageIndex">
+            <summary>
+            页码
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.AppCredentials">
+            <summary>
+            应用凭证
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.AppCredentials.AppId">
+            <summary>
+            <para> 应用唯一标识，创建应用后获得。有关app_id 的详细介绍。请参考通用参数介绍</para>
+            <para>示例值： "cli_slkdjalasdkjasd"</para>
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.AppCredentials.AppSecret">
+            <summary>
+            <para>应用秘钥，创建应用后获得。有关 app_secret 的详细介绍，请参考通用参数介绍</para>
+            <para>示例值： "dskLLdkasdjlasdKK"</para>
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.FeishuApiResult">
+            <summary>
+            API响应结果模型
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.FeishuApiResult.Code">
+            <summary>
+            错误码，0表示成功，非 0 取值表示失败
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.FeishuApiResult.Msg">
+            <summary>
+            错误描述
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.AppCredentialResult">
+            <summary>
+            自建应用认证响应结果
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.AppCredentialResult.AppAccessToken">
+            <summary>
+            应用访问凭证
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.TenantAppCredentialResult">
+            <summary>
+            自建应用租户认证响应结果
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.TenantAppCredentialResult.Expire">
+            <summary>
+            token 的过期时间，单位为秒
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.TenantAppCredentialResult.TenantAccessToken">
+            <summary>
+            租户访问凭证
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.SysUserInfoOutput">
+            <summary>
+            系统用户信息输出模型
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.SysUserInfoOutput.UserId">
+            <summary>
+            用户ID
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.SysUserInfoOutput.Name">
+            <summary>
+            用户名
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.SysUserInfoOutput.Email">
+            <summary>
+            邮箱
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.SysUserInfoOutput.DeptId">
+            <summary>
+            部门ID
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.SysUserInfoOutput.Phone">
+            <summary>
+            手机号
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.SysUserInfoOutput.Status">
+            <summary>
+            状态
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.ProtectedData">
+            <summary>
+            受保护数据模型
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.ProtectedData.Data">
+            <summary>
+            数据内容
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.ProtectedData.Timestamp">
+            <summary>
+            时间戳
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.UserSearchCriteria">
+            <summary>
+            用户搜索条件
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.UserSearchCriteria.Name">
+            <summary>
+            用户名
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.UserSearchCriteria.Age">
+            <summary>
+            年龄
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.UserSearchCriteria.Department">
+            <summary>
+            部门
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.WebApi.UserSearchCriteria.Phone">
+            <summary>
+            手机号
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi">
+            <summary>
+            <inheritdoc cref="T:HttpClientApiTest.WebApi.IContentTypeTestApi"/>
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi._httpClient">
+            <summary>
+            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi._jsonSerializerOptions">
+            <summary>
+            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions})">
+            <summary>
+            构建 <see cref = "T:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi"/> 类的实例。
+            </summary>
+            <param name="httpClient">FeishuHttpClient实例</param>
+            <param name="option">Json序列化参数</param>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi.GetMediaType(System.String)">
+            <summary>
+            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
+            </summary>
+            <param name="contentType">完整的Content-Type字符串</param>
+            <returns>媒体类型部分</returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi.TestMethod1Async(System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi.TestMethod2Async(System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi.TestMethod3Async(System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi.TestMethod4Async(System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi.TestMethod5Async(System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.Internal.ContentTypeWebApiDefaultTestApi">
+            <summary>
+            <inheritdoc cref="T:HttpClientApiTest.WebApi.IContentTypeWebApiDefaultTestApi"/>
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.ContentTypeWebApiDefaultTestApi._httpClient">
+            <summary>
+            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.ContentTypeWebApiDefaultTestApi._jsonSerializerOptions">
+            <summary>
+            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeWebApiDefaultTestApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions})">
+            <summary>
+            构建 <see cref = "T:HttpClientApiTest.WebApi.Internal.ContentTypeWebApiDefaultTestApi"/> 类的实例。
+            </summary>
+            <param name="httpClient">FeishuHttpClient实例</param>
+            <param name="option">Json序列化参数</param>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeWebApiDefaultTestApi.GetMediaType(System.String)">
+            <summary>
+            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
+            </summary>
+            <param name="contentType">完整的Content-Type字符串</param>
+            <returns>媒体类型部分</returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeWebApiDefaultTestApi.TestDefaultAsync(System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.Internal.ContentTypeBodyPriorityTestApi">
+            <summary>
+            <inheritdoc cref="T:HttpClientApiTest.WebApi.IContentTypeBodyPriorityTestApi"/>
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.ContentTypeBodyPriorityTestApi._httpClient">
+            <summary>
+            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.ContentTypeBodyPriorityTestApi._jsonSerializerOptions">
+            <summary>
+            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeBodyPriorityTestApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions})">
+            <summary>
+            构建 <see cref = "T:HttpClientApiTest.WebApi.Internal.ContentTypeBodyPriorityTestApi"/> 类的实例。
+            </summary>
+            <param name="httpClient">FeishuHttpClient实例</param>
+            <param name="option">Json序列化参数</param>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeBodyPriorityTestApi.GetMediaType(System.String)">
+            <summary>
+            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
+            </summary>
+            <param name="contentType">完整的Content-Type字符串</param>
+            <returns>媒体类型部分</returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeBodyPriorityTestApi.TestPriority1Async(System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeBodyPriorityTestApi.TestPriority2Async(System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.Internal.FeishuUserApi">
+            <summary>
+            <inheritdoc cref="T:HttpClientApiTest.WebApi.IFeishuUserApi"/>
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.FeishuUserApi._httpClient">
+            <summary>
+            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.FeishuUserApi._jsonSerializerOptions">
+            <summary>
+            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.FeishuUserApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions})">
+            <summary>
+            构建 <see cref = "T:HttpClientApiTest.WebApi.Internal.FeishuUserApi"/> 类的实例。
+            </summary>
+            <param name="httpClient">FeishuHttpClient实例</param>
+            <param name="option">Json序列化参数</param>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.FeishuUserApi.GetMediaType(System.String)">
+            <summary>
+            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
+            </summary>
+            <param name="contentType">完整的Content-Type字符串</param>
+            <returns>媒体类型部分</returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.FeishuUserApi.GetUserAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.FeishuUserApi.GetUserAbsoluteAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.HttpClientApiTestApis.IContentTypeDefaultTestApi">
+            <summary>
+            HttpContentType 默认值测试接口
+            测试默认值回退机制
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypeDefaultTestApi.TestDefaultFallbackAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            测试：无任何指定，使用默认值
+            接口：未指定
+            方法：未指定
+            Body：未指定
+            预期：使用 application/json（默认值）
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.HttpClientApiTestApis.IContentTypeEdgeCaseApi">
+            <summary>
+            HttpContentType 边界情况测试接口
+            测试各种边界情况和特殊场景
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypeEdgeCaseApi.TestThreeLevelsAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            测试1：同时指定接口级、方法级和Body参数的ContentType
+            接口：text/plain，方法：application/json，Body：application/xml
+            预期：使用 application/xml（Body参数优先级最高）
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypeEdgeCaseApi.TestContentTypeWithCharsetAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            测试2：包含字符集的内容类型
+            测试 GetMediaType 方法是否能正确提取媒体类型
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypeEdgeCaseApi.TestFullContentTypeAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            测试3：带额外参数的内容类型
+            测试完整的内容类型字符串
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypeEdgeCaseApi.TestMethodOnlyContentTypeAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            测试4：空接口，方法指定ContentType
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypeEdgeCaseApi.TestGetRequestWithContentTypeAsync(System.String)">
+            <summary>
+            测试5：GET请求（理论上不包含Body）
+            测试GET请求是否会错误地应用ContentType
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypeEdgeCaseApi.TestDeleteRequestWithContentTypeAsync(System.String)">
+            <summary>
+            测试6：DELETE请求
+            测试DELETE请求是否会正确处理ContentType
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypeEdgeCaseApi.TestPutRequestWithContentTypeAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            测试7：PUT请求
+            测试PUT请求是否正确应用ContentType
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.HttpClientApiTestApis.IContentTypePriorityTestApi">
+            <summary>
+            HttpContentType 优先级测试接口
+            测试场景：
+            1. 方法级特性 > 接口级特性
+            2. Body参数ContentType > 方法级/接口级特性
+            3. 默认值回退机制
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypePriorityTestApi.TestMethodOverrideInterfaceAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            测试1：方法级别覆盖接口级别
+            接口：application/xml，方法：application/json
+            预期：使用 application/json
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypePriorityTestApi.TestInheritInterfaceAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            测试2：继承接口级别
+            接口：application/xml，方法：未指定
+            预期：使用 application/xml
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypePriorityTestApi.TestBodyParameterPriorityAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            测试3：Body参数优先级最高
+            接口：application/xml，方法：application/json，Body：text/html
+            预期：使用 text/html
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypePriorityTestApi.TestDefaultFallbackAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            测试4：方法未指定，继承接口级别
+            接口：application/xml
+            方法：未指定
+            Body：未指定
+            预期：使用 application/xml（继承接口级别）
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.HttpClientApiTestApis.IContentTypeRealWorldApi">
+            <summary>
+            HttpContentType 真实场景测试接口
+            模拟实际开发中常见的API使用场景
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypeRealWorldApi.CreateDingTalkDepartmentAsync(HttpClientApiTest.Models.Department)">
+            <summary>
+            场景1：钉钉部门API - JSON格式
+            使用 application/json 格式发送请求（继承接口级别）
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypeRealWorldApi.CreateWeChatDepartmentAsync(HttpClientApiTest.Models.Department)">
+            <summary>
+            场景2：企业微信API - XML格式
+            使用 application/xml 格式发送请求（方法覆盖）
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypeRealWorldApi.SubmitFormDataAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            场景3：表单提交 - URL编码格式
+            使用 application/x-www-form-urlencoded 格式
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypeRealWorldApi.UploadFileAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            场景4：文件上传 - multipart格式
+            使用 multipart/form-data 格式上传文件
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypeRealWorldApi.ExecuteGraphQLQueryAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            场景5：GraphQL查询 - JSON格式
+            使用 application/json 格式发送GraphQL查询（继承接口级别）
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypeRealWorldApi.ProcessTextAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            场景6：文本处理 - 纯文本格式
+            使用 text/plain 格式处理文本
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypeRealWorldApi.ProcessHtmlAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            场景7：HTML内容 - HTML格式
+            使用 text/html 格式处理HTML
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypeRealWorldApi.DefaultJsonOperationAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            场景8：混合使用 - 接口级JSON，方法级XML
+            接口使用默认的 application/json，部分方法覆盖为 application/xml
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypeRealWorldApi.XmlOperationAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            场景9：混合使用 - 接口级JSON，特定方法级XML
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.HttpClientApiTestApis.IContentTypeUsageTestApi">
+            <summary>
+            HttpContentType 使用方式测试接口
+            测试场景：
+            1. 构造函数参数方式
+            2. 命名参数方式
+            3. 各种常见的内容类型
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypeUsageTestApi.TestApplicationJsonAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            测试1：构造函数参数方式 - application/json
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypeUsageTestApi.TestApplicationXmlAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            测试2：构造函数参数方式 - application/xml
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypeUsageTestApi.TestFormUrlEncodedAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            测试3：命名参数方式 - application/x-www-form-urlencoded
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypeUsageTestApi.TestMultipartFormDataAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            测试4：构造函数参数方式 - multipart/form-data
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypeUsageTestApi.TestTextPlainAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            测试5：构造函数参数方式 - text/plain
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypeUsageTestApi.TestTextHtmlAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            测试6：构造函数参数方式 - text/html
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypeUsageTestApi.TestApplicationYamlAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            测试7：构造函数参数方式 - application/yaml
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.IContentTypeUsageTestApi.TestProtobufAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            测试8：命名参数方式 - application/protobuf
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeDefaultTestApi">
+            <summary>
+            <inheritdoc cref="T:HttpClientApiTest.HttpClientApiTestApis.IContentTypeDefaultTestApi"/>
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeDefaultTestApi._httpClient">
+            <summary>
+            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeDefaultTestApi._jsonSerializerOptions">
+            <summary>
+            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeDefaultTestApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions})">
+            <summary>
+            构建 <see cref = "T:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeDefaultTestApi"/> 类的实例。
+            </summary>
+            <param name="httpClient">FeishuHttpClient实例</param>
+            <param name="option">Json序列化参数</param>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeDefaultTestApi.GetMediaType(System.String)">
+            <summary>
+            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
+            </summary>
+            <param name="contentType">完整的Content-Type字符串</param>
+            <returns>媒体类型部分</returns>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeDefaultTestApi.TestDefaultFallbackAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeEdgeCaseApi">
+            <summary>
+            <inheritdoc cref="T:HttpClientApiTest.HttpClientApiTestApis.IContentTypeEdgeCaseApi"/>
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeEdgeCaseApi._httpClient">
+            <summary>
+            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeEdgeCaseApi._jsonSerializerOptions">
+            <summary>
+            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeEdgeCaseApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions})">
+            <summary>
+            构建 <see cref = "T:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeEdgeCaseApi"/> 类的实例。
+            </summary>
+            <param name="httpClient">FeishuHttpClient实例</param>
+            <param name="option">Json序列化参数</param>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeEdgeCaseApi.GetMediaType(System.String)">
+            <summary>
+            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
+            </summary>
+            <param name="contentType">完整的Content-Type字符串</param>
+            <returns>媒体类型部分</returns>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeEdgeCaseApi.TestThreeLevelsAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeEdgeCaseApi.TestContentTypeWithCharsetAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeEdgeCaseApi.TestFullContentTypeAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeEdgeCaseApi.TestMethodOnlyContentTypeAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeEdgeCaseApi.TestGetRequestWithContentTypeAsync(System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeEdgeCaseApi.TestDeleteRequestWithContentTypeAsync(System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeEdgeCaseApi.TestPutRequestWithContentTypeAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypePriorityTestApi">
+            <summary>
+            <inheritdoc cref="T:HttpClientApiTest.HttpClientApiTestApis.IContentTypePriorityTestApi"/>
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypePriorityTestApi._httpClient">
+            <summary>
+            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypePriorityTestApi._jsonSerializerOptions">
+            <summary>
+            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypePriorityTestApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions})">
+            <summary>
+            构建 <see cref = "T:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypePriorityTestApi"/> 类的实例。
+            </summary>
+            <param name="httpClient">FeishuHttpClient实例</param>
+            <param name="option">Json序列化参数</param>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypePriorityTestApi.GetMediaType(System.String)">
+            <summary>
+            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
+            </summary>
+            <param name="contentType">完整的Content-Type字符串</param>
+            <returns>媒体类型部分</returns>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypePriorityTestApi.TestMethodOverrideInterfaceAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypePriorityTestApi.TestInheritInterfaceAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypePriorityTestApi.TestBodyParameterPriorityAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypePriorityTestApi.TestDefaultFallbackAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeRealWorldApi">
+            <summary>
+            <inheritdoc cref="T:HttpClientApiTest.HttpClientApiTestApis.IContentTypeRealWorldApi"/>
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeRealWorldApi._httpClient">
+            <summary>
+            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeRealWorldApi._jsonSerializerOptions">
+            <summary>
+            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeRealWorldApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions})">
+            <summary>
+            构建 <see cref = "T:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeRealWorldApi"/> 类的实例。
+            </summary>
+            <param name="httpClient">FeishuHttpClient实例</param>
+            <param name="option">Json序列化参数</param>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeRealWorldApi.GetMediaType(System.String)">
+            <summary>
+            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
+            </summary>
+            <param name="contentType">完整的Content-Type字符串</param>
+            <returns>媒体类型部分</returns>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeRealWorldApi.CreateDingTalkDepartmentAsync(HttpClientApiTest.Models.Department)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeRealWorldApi.CreateWeChatDepartmentAsync(HttpClientApiTest.Models.Department)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeRealWorldApi.SubmitFormDataAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeRealWorldApi.UploadFileAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeRealWorldApi.ExecuteGraphQLQueryAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeRealWorldApi.ProcessTextAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeRealWorldApi.ProcessHtmlAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeRealWorldApi.DefaultJsonOperationAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeRealWorldApi.XmlOperationAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeUsageTestApi">
+            <summary>
+            <inheritdoc cref="T:HttpClientApiTest.HttpClientApiTestApis.IContentTypeUsageTestApi"/>
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeUsageTestApi._httpClient">
+            <summary>
+            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeUsageTestApi._jsonSerializerOptions">
+            <summary>
+            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeUsageTestApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions})">
+            <summary>
+            构建 <see cref = "T:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeUsageTestApi"/> 类的实例。
+            </summary>
+            <param name="httpClient">FeishuHttpClient实例</param>
+            <param name="option">Json序列化参数</param>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeUsageTestApi.GetMediaType(System.String)">
+            <summary>
+            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
+            </summary>
+            <param name="contentType">完整的Content-Type字符串</param>
+            <returns>媒体类型部分</returns>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeUsageTestApi.TestApplicationJsonAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeUsageTestApi.TestApplicationXmlAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeUsageTestApi.TestFormUrlEncodedAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeUsageTestApi.TestMultipartFormDataAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeUsageTestApi.TestTextPlainAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeUsageTestApi.TestTextHtmlAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeUsageTestApi.TestApplicationYamlAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiTestApis.Internal.ContentTypeUsageTestApi.TestProtobufAsync(HttpClientApiTest.Models.TestData)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.IEnhancedHttpClient">
+            <summary>
+            增强的HTTP客户端接口，用于发送HTTP请求
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.IEnhancedHttpClient.SendAsync``1(System.Net.Http.HttpRequestMessage,System.Threading.CancellationToken)">
+            <summary>
+            发送请求并返回指定类型的结果
+            </summary>
+            <typeparam name="TResult">期望的返回结果类型</typeparam>
+            <param name="request">要发送的HTTP请求消息</param>
+            <param name="cancellationToken">用于取消操作的取消令牌</param>
+            <returns>返回类型为TResult的异步任务，可能为null</returns>
+        </member>
+        <member name="M:HttpClientApiTest.IEnhancedHttpClient.DownloadAsync(System.Net.Http.HttpRequestMessage,System.Threading.CancellationToken)">
+            <summary>
+            下载文件内容并以字节数组形式返回
+            </summary>
+            <param name="request">要发送的HTTP请求消息</param>
+            <param name="cancellationToken">用于取消操作的取消令牌</param>
+            <returns>返回字节数组的异步任务，可能为null</returns>
+        </member>
+        <member name="M:HttpClientApiTest.IEnhancedHttpClient.DownloadLargeAsync(System.Net.Http.HttpRequestMessage,System.String,System.Boolean,System.Threading.CancellationToken)">
+            <summary>
+            异步下载大文件并保存到指定路径
+            </summary>
+            <param name="request">要发送的HTTP请求消息</param>
+            <param name="filePath">用于保存文件的本地路径</param>
+            <param name="overwrite">是否覆盖已存在的文件</param>
+            <param name="cancellationToken">用于取消操作的取消令牌</param>
+            <returns>表示异步操作的任务</returns>
+        </member>
+        <member name="T:HttpClientApiTest.Models.TestData">
+            <summary>
+            测试请求数据
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.Models.TestData.Username">
+            <summary>
+            用户名
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.Models.TestData.Email">
+            <summary>
+            邮箱
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.Models.TestData.Age">
+            <summary>
+            年龄
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.Models.TestResponse">
+            <summary>
+            测试响应数据
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.Models.TestResponse.Success">
+            <summary>
+            是否成功
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.Models.TestResponse.Message">
+            <summary>
+            消息
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.Models.TestResponse.Data">
+            <summary>
+            数据
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.Models.Department">
+            <summary>
+            部门信息
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.Models.Department.DeptId">
+            <summary>
+            部门ID
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.Models.Department.DeptName">
+            <summary>
+            部门名称
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.Models.Department.ParentId">
+            <summary>
+            父部门ID
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiExtensions.AddWebApiHttpClient(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>
+            注册所有未分组的API服务
+            </summary>
+            <param name="services">服务集合</param>
+            <returns>服务集合，用于链式调用</returns>
+        </member>
+    </members>
+</doc>

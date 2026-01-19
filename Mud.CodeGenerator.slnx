@@ -1,4 +1,5 @@
 <Solution>
+  <Folder Name="/Core/" />
   <Folder Name="/Src/">
     <Project Path="Core/Mud.CodeGenerator/Mud.CodeGenerator.shproj" />
     <Project Path="Core/Mud.EntityCodeGenerator/Mud.EntityCodeGenerator.csproj" />
@@ -8,6 +9,7 @@
     <Project Path="Test/CodeBaseTest/CodeBaseTest.csproj" />
     <Project Path="Test/CodeGeneratorTest/CodeGeneratorTest.csproj" />
     <Project Path="Test/ComObjectWrapTest/ComObjectWrapTest.csproj" Id="3ca54799-3a37-4102-b7c9-a409550fcfd0" />
+    <Project Path="Test/HttpClientApiTest/HttpClientApiTest.csproj" />
     <Project Path="Test/Mud.Common.CodeGenerator/Mud.Common.CodeGenerator.csproj" />
     <Project Path="Test/PublicPackageTest/PublicPackageTest.csproj" />
   </Folder>
