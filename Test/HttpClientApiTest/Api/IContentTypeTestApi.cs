@@ -1,4 +1,4 @@
-namespace HttpClientApiTest.WebApi;
+namespace HttpClientApiTest.Api;
 
 using Mud.Common.CodeGenerator;
 

@@ -1,18 +1,21 @@
-namespace HttpClientApiTest.WebApi;
+namespace HttpClientApiTest.Api;
 
 using Mud.Common.CodeGenerator;
 using System.Text.Json.Serialization;
 using CodeBaseTest.Interface;
 
 /// <summary>
-/// 飞书认证授权相关的API
+/// 飞书认证授权API测试接口
+/// 测试飞书认证相关的API功能，包括获取tenant_access_token和app_access_token
 /// </summary>
 [HttpClientApi("https://api.dingtalk.com", Timeout = 60, RegistryGroupName = "Feishu")]
 [HttpClientApiWrap(TokenManage = "ITokenManage", WrapInterface = nameof(IFeishuAuthentication))]
 public interface IFeishuAuthenticationApi
 {
     /// <summary>
-    /// 获取自建应用获取 tenant_access_token。
+    /// 测试：获取自建应用的tenant_access_token
+    /// 接口：POST https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal
+    /// 特点：使用完整URL，应用凭证通过Body传递
     /// </summary>
     /// <param name="credentials">应用唯一标识及应用秘钥信息</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
@@ -28,7 +31,9 @@ public interface IFeishuAuthenticationApi
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// 自建应用获取 app_access_token
+    /// 测试：获取自建应用的app_access_token
+    /// 接口：POST https://open.feishu.cn/open-apis/auth/v3/app_access_token/internal
+    /// 特点：使用完整URL，应用凭证通过Body传递
     /// </summary>
     /// <param name="credentials">应用唯一标识及应用秘钥信息</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/>取消操作令牌对象。</param>
