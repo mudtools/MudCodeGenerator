@@ -6,7 +6,7 @@ using Mud.Common.CodeGenerator;
 /// 抽象类继承测试基础接口
 /// 定义抽象方法，不能直接实例化
 /// </summary>
-[HttpClientApi("https://api.example.com", Timeout = 60, IsAbstract = true)]
+[HttpClientApi("https://api.mudtools.cn/", Timeout = 60, IsAbstract = true)]
 public interface IAbstractClassBaseTestApi
 {
     /// <summary>
@@ -46,7 +46,7 @@ public interface IAbstractClassBaseTestApi
 /// 具体产品服务接口
 /// 继承自抽象基接口，实现所有抽象方法
 /// </summary>
-[HttpClientApi("https://api.example.com", Timeout = 90, RegistryGroupName = "ConcreteProductService")]
+[HttpClientApi("https://api.mudtools.cn/", Timeout = 90, RegistryGroupName = "ConcreteProductService")]
 [HttpClientApiWrap(TokenManage = "ITokenManage")]
 [Header("X-Service-Type", "concrete-product")]
 public interface IConcreteProductServiceTestApi : IAbstractClassBaseTestApi
@@ -80,7 +80,7 @@ public interface IConcreteProductServiceTestApi : IAbstractClassBaseTestApi
 /// 高级产品服务接口
 /// 继承自具体产品服务接口，进一步扩展功能
 /// </summary>
-[HttpClientApi("https://api.example.com", Timeout = 120, RegistryGroupName = "AdvancedProductService")]
+[HttpClientApi("https://api.mudtools.cn/", Timeout = 120, RegistryGroupName = "AdvancedProductService")]
 [HttpClientApiWrap(TokenManage = "ITenantTokenManager")]
 [Header("X-Service-Type", "advanced-product")]
 [Header("X-Advanced-Features", "enabled")]

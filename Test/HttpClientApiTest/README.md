@@ -123,7 +123,7 @@ obj/Debug/net10.0/generated/Mud.ServiceCodeGenerator/Mud.ServiceCodeGenerator.Ht
 ### 基本使用
 
 ```csharp
-[HttpClientApi("https://api.example.com")]
+[HttpClientApi("https://api.mudtools.cn/")]
 [HttpContentType("application/xml")]
 public interface IMyApi
 {
@@ -141,7 +141,7 @@ public interface IMyApi
 ### Body 参数优先级
 
 ```csharp
-[HttpClientApi("https://api.example.com")]
+[HttpClientApi("https://api.mudtools.cn/")]
 [HttpContentType("application/xml")]
 public interface IMyApi
 {

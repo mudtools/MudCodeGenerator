@@ -9,7 +9,7 @@ using Mud.Common.CodeGenerator;
 /// HttpContentType 边界情况测试接口
 /// 测试各种边界情况和特殊场景
 /// </summary>
-[HttpClientApi("https://api.example.com")]
+[HttpClientApi("https://api.mudtools.cn/")]
 public interface IContentTypeEdgeCaseApi
 {
     /// <summary>

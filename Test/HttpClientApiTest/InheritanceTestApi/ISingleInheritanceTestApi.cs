@@ -6,7 +6,7 @@ using Mud.Common.CodeGenerator;
 /// 单层继承测试接口
 /// 继承自IBaseInheritanceTestApi，测试单层继承关系
 /// </summary>
-[HttpClientApi("https://api.example.com", Timeout = 90, RegistryGroupName = "SingleInheritance")]
+[HttpClientApi("https://api.mudtools.cn/", Timeout = 90, RegistryGroupName = "SingleInheritance")]
 [HttpClientApiWrap(TokenManage = "ITokenManage")]
 public interface ISingleInheritanceTestApi : IBaseInheritanceTestApi
 {

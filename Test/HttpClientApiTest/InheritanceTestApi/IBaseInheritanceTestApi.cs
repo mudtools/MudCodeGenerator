@@ -6,7 +6,7 @@ using Mud.Common.CodeGenerator;
 /// 基础继承测试接口
 /// 作为所有继承测试的基类接口
 /// </summary>
-[HttpClientApi("https://api.example.com", Timeout = 60, IsAbstract = true)]
+[HttpClientApi("https://api.mudtools.cn/", Timeout = 60, IsAbstract = true)]
 public interface IBaseInheritanceTestApi
 {
     /// <summary>

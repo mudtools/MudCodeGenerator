@@ -503,7 +503,7 @@
         <member name="M:HttpClientApiTest.Api.IFeishuUserApi.GetUserAbsoluteAsync(System.String,System.Threading.CancellationToken)">
             <summary>
             测试：获取用户信息（绝对路径）
-            接口：GET https://api.example.com/users/{userId}
+            接口：GET https://api.mudtools.cn//users/{userId}
             特点：使用绝对URL，覆盖接口级BaseAddress
             </summary>
             <param name="userId">用户ID</param>
@@ -7386,6 +7386,1317 @@
             父部门ID
             </summary>
         </member>
+        <member name="T:HttpClientApiTest.TokenHeaderTestApi.IHeaderFeatureTestApi">
+            <summary>
+            Header特性测试接口
+            用于测试[Header]特性在不同场景下的使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.IHeaderFeatureTestApi.GetWithSingleHeaderAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：单个Header参数
+            接口：GET /api/v1/headers/single
+            特点：单个Header参数
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.IHeaderFeatureTestApi.GetWithMultipleHeadersAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：多个Header参数
+            接口：GET /api/v1/headers/multiple
+            特点：多个Header参数
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.IHeaderFeatureTestApi.GetWithOptionalHeaderAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：可选Header参数
+            接口：GET /api/v1/headers/optional
+            特点：Header参数可选
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.IHeaderFeatureTestApi.GetWithDefaultHeaderAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：默认值Header参数
+            接口：GET /api/v1/headers/default
+            特点：Header参数有默认值
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.IHeaderFeatureTestApi.GetWithDifferentTypeHeadersAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：不同数据类型的Header参数
+            接口：GET /api/v1/headers/types
+            特点：Header参数使用不同数据类型
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.IHeaderFeatureTestApi.GetWithHeaderAndQueryAsync(System.String,System.String,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            测试：Header参数与Query参数结合
+            接口：GET /api/v1/headers/with-query
+            特点：Header参数与Query参数结合使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.IHeaderFeatureTestApi.CreateWithHeadersAsync(System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.HeaderCreateRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：Header参数在POST请求中
+            接口：POST /api/v1/headers
+            特点：Header参数在POST请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.IHeaderFeatureTestApi.UpdateWithHeadersAsync(System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.HeaderUpdateRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：Header参数在PUT请求中
+            接口：PUT /api/v1/headers/{id}
+            特点：Header参数在PUT请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.IHeaderFeatureTestApi.DeleteWithHeadersAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Header参数在DELETE请求中
+            接口：DELETE /api/v1/headers/{id}
+            特点：Header参数在DELETE请求中使用
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.TokenHeaderTestApi.HeaderTestResult">
+            <summary>
+            Header测试结果模型
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.HeaderTestResult.TestId">
+            <summary>
+            测试ID
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.HeaderTestResult.ReceivedHeaders">
+            <summary>
+            接收的Header信息
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.HeaderTestResult.Status">
+            <summary>
+            处理状态
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.HeaderTestResult.ProcessedAt">
+            <summary>
+            处理时间
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.TokenHeaderTestApi.HeaderCreateRequest">
+            <summary>
+            Header创建请求模型
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.HeaderCreateRequest.Name">
+            <summary>
+            Header名称
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.HeaderCreateRequest.Value">
+            <summary>
+            Header值
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.HeaderCreateRequest.Description">
+            <summary>
+            Header描述
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.TokenHeaderTestApi.HeaderUpdateRequest">
+            <summary>
+            Header更新请求模型
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.HeaderUpdateRequest.Value">
+            <summary>
+            Header值
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.HeaderUpdateRequest.Description">
+            <summary>
+            Header描述
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.TokenHeaderTestApi.ITokenFeatureTestApi">
+            <summary>
+            Token特性测试接口
+            用于测试[Token]特性在不同场景下的使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenFeatureTestApi.GetResourceAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：基本Token验证
+            接口：GET /api/v1/resource
+            特点：Token参数作为请求头
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenFeatureTestApi.GetProtectedResourceAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token作为Header参数
+            接口：GET /api/v1/protected/resource
+            特点：Token参数通过[Header]特性指定头名称
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenFeatureTestApi.GetResourceByIdAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token与其他参数结合
+            接口：GET /api/v1/resource/{id}
+            特点：Token参数与Path参数结合使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenFeatureTestApi.GetResourcesAsync(System.String,System.Int32,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token与Query参数结合
+            接口：GET /api/v1/resources
+            特点：Token参数与Query参数结合使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenFeatureTestApi.CreateResourceAsync(System.String,HttpClientApiTest.TokenHeaderTestApi.ResourceCreateRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token在POST请求中
+            接口：POST /api/v1/resource
+            特点：Token参数在POST请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenFeatureTestApi.UpdateResourceAsync(System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.ResourceUpdateRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token在PUT请求中
+            接口：PUT /api/v1/resource/{id}
+            特点：Token参数在PUT请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenFeatureTestApi.DeleteResourceAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token在DELETE请求中
+            接口：DELETE /api/v1/resource/{id}
+            特点：Token参数在DELETE请求中使用
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.TokenHeaderTestApi.ResourceInfo">
+            <summary>
+            资源信息模型
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.ResourceInfo.Id">
+            <summary>
+            资源ID
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.ResourceInfo.Name">
+            <summary>
+            资源名称
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.ResourceInfo.Type">
+            <summary>
+            资源类型
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.ResourceInfo.CreatedAt">
+            <summary>
+            创建时间
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.TokenHeaderTestApi.ResourceDetailInfo">
+            <summary>
+            资源详情信息模型
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.ResourceDetailInfo.Description">
+            <summary>
+            资源描述
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.ResourceDetailInfo.Content">
+            <summary>
+            资源内容
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.ResourceDetailInfo.Size">
+            <summary>
+            资源大小
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.ResourceDetailInfo.UpdatedAt">
+            <summary>
+            最后更新时间
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.TokenHeaderTestApi.ResourceCreateRequest">
+            <summary>
+            资源创建请求模型
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.ResourceCreateRequest.Name">
+            <summary>
+            资源名称
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.ResourceCreateRequest.Type">
+            <summary>
+            资源类型
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.ResourceCreateRequest.Content">
+            <summary>
+            资源内容
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.TokenHeaderTestApi.ResourceUpdateRequest">
+            <summary>
+            资源更新请求模型
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.ResourceUpdateRequest.Name">
+            <summary>
+            资源名称
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.ResourceUpdateRequest.Description">
+            <summary>
+            资源描述
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.ResourceUpdateRequest.Content">
+            <summary>
+            资源内容
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderCombinationTestApi">
+            <summary>
+            Token和Header特性组合测试接口
+            用于测试[Token]和[Header]特性组合使用的各种场景
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderCombinationTestApi.GetWithTokenAndHeaderAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：基本Token和Header组合
+            接口：GET /api/v1/combination/basic
+            特点：Token和单个Header组合使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderCombinationTestApi.GetWithTokenAndMultipleHeadersAsync(System.String,System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和多个Header组合
+            接口：GET /api/v1/combination/multiple
+            特点：Token和多个Header组合使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderCombinationTestApi.GetWithTokenAsHeaderNameAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token作为特定Header名称
+            接口：GET /api/v1/combination/token-header-name
+            特点：Token使用特定的Header名称
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderCombinationTestApi.GetWithTokenAndOptionalHeaderAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和可选Header组合
+            接口：GET /api/v1/combination/optional
+            特点：Token和可选Header组合使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderCombinationTestApi.GetWithTokenAndDefaultHeaderAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和默认值Header组合
+            接口：GET /api/v1/combination/default
+            特点：Token和有默认值的Header组合使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderCombinationTestApi.PostWithTokenAndHeadersAsync(System.String,System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.CombinationCreateRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：POST请求中Token和Header组合
+            接口：POST /api/v1/combination
+            特点：在POST请求中使用Token和Header组合
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderCombinationTestApi.PutWithTokenAndHeadersAsync(System.String,System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.CombinationUpdateRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：PUT请求中Token和Header组合
+            接口：PUT /api/v1/combination/{id}
+            特点：在PUT请求中使用Token和Header组合
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderCombinationTestApi.DeleteWithTokenAndHeadersAsync(System.String,System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：DELETE请求中Token和Header组合
+            接口：DELETE /api/v1/combination/{id}
+            特点：在DELETE请求中使用Token和Header组合
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.TokenHeaderTestApi.CombinationTestResult">
+            <summary>
+            组合测试结果模型
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.CombinationTestResult.TestId">
+            <summary>
+            测试ID
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.CombinationTestResult.ReceivedToken">
+            <summary>
+            接收的Token
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.CombinationTestResult.ReceivedHeaders">
+            <summary>
+            接收的Header信息
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.CombinationTestResult.Status">
+            <summary>
+            处理状态
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.CombinationTestResult.ProcessedAt">
+            <summary>
+            处理时间
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.TokenHeaderTestApi.CombinationCreateRequest">
+            <summary>
+            组合创建请求模型
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.CombinationCreateRequest.Name">
+            <summary>
+            名称
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.CombinationCreateRequest.Description">
+            <summary>
+            描述
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.CombinationCreateRequest.Data">
+            <summary>
+            数据
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.TokenHeaderTestApi.CombinationUpdateRequest">
+            <summary>
+            组合更新请求模型
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.CombinationUpdateRequest.Name">
+            <summary>
+            名称
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.CombinationUpdateRequest.Description">
+            <summary>
+            描述
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.CombinationUpdateRequest.UpdatedData">
+            <summary>
+            更新的数据
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderHttpMethodsTestApi">
+            <summary>
+            Token和Header特性在不同HTTP方法中的测试接口
+            用于测试[Token]和[Header]特性在各种HTTP方法中的使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderHttpMethodsTestApi.TestGetWithTokenAndHeaderAsync(System.String,System.String,System.String,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和Header在GET请求中
+            接口：GET /api/v1/http/get
+            特点：Token和Header在GET请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderHttpMethodsTestApi.TestPostWithTokenAndHeaderAsync(System.String,System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.PostRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和Header在POST请求中
+            接口：POST /api/v1/http/post
+            特点：Token和Header在POST请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderHttpMethodsTestApi.TestPutWithTokenAndHeaderAsync(System.String,System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.PutRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和Header在PUT请求中
+            接口：PUT /api/v1/http/put/{id}
+            特点：Token和Header在PUT请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderHttpMethodsTestApi.TestDeleteWithTokenAndHeaderAsync(System.String,System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和Header在DELETE请求中
+            接口：DELETE /api/v1/http/delete/{id}
+            特点：Token和Header在DELETE请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderHttpMethodsTestApi.TestPatchWithTokenAndHeaderAsync(System.String,System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.PatchRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和Header在PATCH请求中
+            接口：PATCH /api/v1/http/patch/{id}
+            特点：Token和Header在PATCH请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderHttpMethodsTestApi.TestHeadWithTokenAndHeaderAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和Header在HEAD请求中
+            接口：HEAD /api/v1/http/head
+            特点：Token和Header在HEAD请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderHttpMethodsTestApi.TestOptionsWithTokenAndHeaderAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和Header在OPTIONS请求中
+            接口：OPTIONS /api/v1/http/options
+            特点：Token和Header在OPTIONS请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderHttpMethodsTestApi.TestPostWithPathTokenAndHeaderAsync(System.String,System.String,System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.PostRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和Header在POST请求中使用Path参数
+            接口：POST /api/v1/http/post/{resource}
+            特点：Token和Header在POST请求中使用Path参数
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.TokenHeaderTestApi.HttpMethodTestResult">
+            <summary>
+            HTTP方法测试结果模型
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.HttpMethodTestResult.TestId">
+            <summary>
+            测试ID
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.HttpMethodTestResult.HttpMethod">
+            <summary>
+            请求的HTTP方法
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.HttpMethodTestResult.ReceivedToken">
+            <summary>
+            接收的Token
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.HttpMethodTestResult.ReceivedHeaders">
+            <summary>
+            接收的Header信息
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.HttpMethodTestResult.ReceivedParameters">
+            <summary>
+            接收的请求参数
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.HttpMethodTestResult.ProcessedAt">
+            <summary>
+            处理时间
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.TokenHeaderTestApi.PostRequest">
+            <summary>
+            POST请求模型
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.PostRequest.Name">
+            <summary>
+            名称
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.PostRequest.Value">
+            <summary>
+            值
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.PostRequest.Data">
+            <summary>
+            数据
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.TokenHeaderTestApi.PutRequest">
+            <summary>
+            PUT请求模型
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.PutRequest.Name">
+            <summary>
+            名称
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.PutRequest.UpdatedValue">
+            <summary>
+            更新的值
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.PutRequest.UpdateTime">
+            <summary>
+            更新时间
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.TokenHeaderTestApi.PatchRequest">
+            <summary>
+            PATCH请求模型
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.PatchRequest.Field">
+            <summary>
+            要更新的字段
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.PatchRequest.NewValue">
+            <summary>
+            新值
+            </summary>
+        </member>
+        <member name="P:HttpClientApiTest.TokenHeaderTestApi.PatchRequest.Reason">
+            <summary>
+            更新原因
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.TokenHeaderTestApi.Internal.HeaderFeatureTestApi">
+            <summary>
+            <inheritdoc cref="T:HttpClientApiTest.TokenHeaderTestApi.IHeaderFeatureTestApi"/>
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.TokenHeaderTestApi.Internal.HeaderFeatureTestApi._httpClient">
+            <summary>
+            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.TokenHeaderTestApi.Internal.HeaderFeatureTestApi._jsonSerializerOptions">
+            <summary>
+            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.HeaderFeatureTestApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions})">
+            <summary>
+            构建 <see cref = "T:HttpClientApiTest.TokenHeaderTestApi.Internal.HeaderFeatureTestApi"/> 类的实例。
+            </summary>
+            <param name="httpClient">FeishuHttpClient实例</param>
+            <param name="option">Json序列化参数</param>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.HeaderFeatureTestApi.GetMediaType(System.String)">
+            <summary>
+            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
+            </summary>
+            <param name="contentType">完整的Content-Type字符串</param>
+            <returns>媒体类型部分</returns>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.HeaderFeatureTestApi.GetWithSingleHeaderAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.HeaderFeatureTestApi.GetWithMultipleHeadersAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.HeaderFeatureTestApi.GetWithOptionalHeaderAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.HeaderFeatureTestApi.GetWithDefaultHeaderAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.HeaderFeatureTestApi.GetWithDifferentTypeHeadersAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.HeaderFeatureTestApi.GetWithHeaderAndQueryAsync(System.String,System.String,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.HeaderFeatureTestApi.CreateWithHeadersAsync(System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.HeaderCreateRequest,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.HeaderFeatureTestApi.UpdateWithHeadersAsync(System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.HeaderUpdateRequest,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.HeaderFeatureTestApi.DeleteWithHeadersAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenFeatureTestApi">
+            <summary>
+            <inheritdoc cref="T:HttpClientApiTest.TokenHeaderTestApi.ITokenFeatureTestApi"/>
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenFeatureTestApi._httpClient">
+            <summary>
+            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenFeatureTestApi._jsonSerializerOptions">
+            <summary>
+            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenFeatureTestApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions})">
+            <summary>
+            构建 <see cref = "T:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenFeatureTestApi"/> 类的实例。
+            </summary>
+            <param name="httpClient">FeishuHttpClient实例</param>
+            <param name="option">Json序列化参数</param>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenFeatureTestApi.GetMediaType(System.String)">
+            <summary>
+            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
+            </summary>
+            <param name="contentType">完整的Content-Type字符串</param>
+            <returns>媒体类型部分</returns>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenFeatureTestApi.GetResourceAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenFeatureTestApi.GetProtectedResourceAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenFeatureTestApi.GetResourceByIdAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenFeatureTestApi.GetResourcesAsync(System.String,System.Int32,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenFeatureTestApi.CreateResourceAsync(System.String,HttpClientApiTest.TokenHeaderTestApi.ResourceCreateRequest,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenFeatureTestApi.UpdateResourceAsync(System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.ResourceUpdateRequest,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenFeatureTestApi.DeleteResourceAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderCombinationTestApi">
+            <summary>
+            <inheritdoc cref="T:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderCombinationTestApi"/>
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderCombinationTestApi._httpClient">
+            <summary>
+            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderCombinationTestApi._jsonSerializerOptions">
+            <summary>
+            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderCombinationTestApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions})">
+            <summary>
+            构建 <see cref = "T:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderCombinationTestApi"/> 类的实例。
+            </summary>
+            <param name="httpClient">FeishuHttpClient实例</param>
+            <param name="option">Json序列化参数</param>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderCombinationTestApi.GetMediaType(System.String)">
+            <summary>
+            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
+            </summary>
+            <param name="contentType">完整的Content-Type字符串</param>
+            <returns>媒体类型部分</returns>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderCombinationTestApi.GetWithTokenAndHeaderAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderCombinationTestApi.GetWithTokenAndMultipleHeadersAsync(System.String,System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderCombinationTestApi.GetWithTokenAsHeaderNameAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderCombinationTestApi.GetWithTokenAndOptionalHeaderAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderCombinationTestApi.GetWithTokenAndDefaultHeaderAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderCombinationTestApi.PostWithTokenAndHeadersAsync(System.String,System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.CombinationCreateRequest,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderCombinationTestApi.PutWithTokenAndHeadersAsync(System.String,System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.CombinationUpdateRequest,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderCombinationTestApi.DeleteWithTokenAndHeadersAsync(System.String,System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderHttpMethodsTestApi">
+            <summary>
+            <inheritdoc cref="T:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderHttpMethodsTestApi"/>
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderHttpMethodsTestApi._httpClient">
+            <summary>
+            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderHttpMethodsTestApi._jsonSerializerOptions">
+            <summary>
+            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderHttpMethodsTestApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions})">
+            <summary>
+            构建 <see cref = "T:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderHttpMethodsTestApi"/> 类的实例。
+            </summary>
+            <param name="httpClient">FeishuHttpClient实例</param>
+            <param name="option">Json序列化参数</param>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderHttpMethodsTestApi.GetMediaType(System.String)">
+            <summary>
+            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
+            </summary>
+            <param name="contentType">完整的Content-Type字符串</param>
+            <returns>媒体类型部分</returns>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderHttpMethodsTestApi.TestGetWithTokenAndHeaderAsync(System.String,System.String,System.String,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderHttpMethodsTestApi.TestPostWithTokenAndHeaderAsync(System.String,System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.PostRequest,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderHttpMethodsTestApi.TestPutWithTokenAndHeaderAsync(System.String,System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.PutRequest,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderHttpMethodsTestApi.TestDeleteWithTokenAndHeaderAsync(System.String,System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderHttpMethodsTestApi.TestPatchWithTokenAndHeaderAsync(System.String,System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.PatchRequest,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderHttpMethodsTestApi.TestHeadWithTokenAndHeaderAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderHttpMethodsTestApi.TestOptionsWithTokenAndHeaderAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.Internal.TokenHeaderHttpMethodsTestApi.TestPostWithPathTokenAndHeaderAsync(System.String,System.String,System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.PostRequest,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.HeaderFeatureTestWrap.GetWithSingleHeaderAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：单个Header参数
+            接口：GET /api/v1/headers/single
+            特点：单个Header参数
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.HeaderFeatureTestWrap.GetWithMultipleHeadersAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：多个Header参数
+            接口：GET /api/v1/headers/multiple
+            特点：多个Header参数
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.HeaderFeatureTestWrap.GetWithOptionalHeaderAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：可选Header参数
+            接口：GET /api/v1/headers/optional
+            特点：Header参数可选
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.HeaderFeatureTestWrap.GetWithDefaultHeaderAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：默认值Header参数
+            接口：GET /api/v1/headers/default
+            特点：Header参数有默认值
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.HeaderFeatureTestWrap.GetWithDifferentTypeHeadersAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：不同数据类型的Header参数
+            接口：GET /api/v1/headers/types
+            特点：Header参数使用不同数据类型
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.HeaderFeatureTestWrap.GetWithHeaderAndQueryAsync(System.String,System.String,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            测试：Header参数与Query参数结合
+            接口：GET /api/v1/headers/with-query
+            特点：Header参数与Query参数结合使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.HeaderFeatureTestWrap.CreateWithHeadersAsync(System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.HeaderCreateRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：Header参数在POST请求中
+            接口：POST /api/v1/headers
+            特点：Header参数在POST请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.HeaderFeatureTestWrap.UpdateWithHeadersAsync(System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.HeaderUpdateRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：Header参数在PUT请求中
+            接口：PUT /api/v1/headers/{id}
+            特点：Header参数在PUT请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.HeaderFeatureTestWrap.DeleteWithHeadersAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Header参数在DELETE请求中
+            接口：DELETE /api/v1/headers/{id}
+            特点：Header参数在DELETE请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.TokenFeatureTestWrap.GetResourceAsync(System.Threading.CancellationToken)">
+            <summary>
+            测试：基本Token验证
+            接口：GET /api/v1/resource
+            特点：Token参数作为请求头
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.TokenFeatureTestWrap.GetProtectedResourceAsync(System.Threading.CancellationToken)">
+            <summary>
+            测试：Token作为Header参数
+            接口：GET /api/v1/protected/resource
+            特点：Token参数通过[Header]特性指定头名称
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.TokenFeatureTestWrap.GetResourceByIdAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token与其他参数结合
+            接口：GET /api/v1/resource/{id}
+            特点：Token参数与Path参数结合使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.TokenFeatureTestWrap.GetResourcesAsync(System.Int32,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token与Query参数结合
+            接口：GET /api/v1/resources
+            特点：Token参数与Query参数结合使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.TokenFeatureTestWrap.CreateResourceAsync(HttpClientApiTest.TokenHeaderTestApi.ResourceCreateRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token在POST请求中
+            接口：POST /api/v1/resource
+            特点：Token参数在POST请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.TokenFeatureTestWrap.UpdateResourceAsync(System.String,HttpClientApiTest.TokenHeaderTestApi.ResourceUpdateRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token在PUT请求中
+            接口：PUT /api/v1/resource/{id}
+            特点：Token参数在PUT请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.TokenFeatureTestWrap.DeleteResourceAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token在DELETE请求中
+            接口：DELETE /api/v1/resource/{id}
+            特点：Token参数在DELETE请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.TokenHeaderCombinationTestWrap.GetWithTokenAndHeaderAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：基本Token和Header组合
+            接口：GET /api/v1/combination/basic
+            特点：Token和单个Header组合使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.TokenHeaderCombinationTestWrap.GetWithTokenAndMultipleHeadersAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和多个Header组合
+            接口：GET /api/v1/combination/multiple
+            特点：Token和多个Header组合使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.TokenHeaderCombinationTestWrap.GetWithTokenAsHeaderNameAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token作为特定Header名称
+            接口：GET /api/v1/combination/token-header-name
+            特点：Token使用特定的Header名称
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.TokenHeaderCombinationTestWrap.GetWithTokenAndOptionalHeaderAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和可选Header组合
+            接口：GET /api/v1/combination/optional
+            特点：Token和可选Header组合使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.TokenHeaderCombinationTestWrap.GetWithTokenAndDefaultHeaderAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和默认值Header组合
+            接口：GET /api/v1/combination/default
+            特点：Token和有默认值的Header组合使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.TokenHeaderCombinationTestWrap.PostWithTokenAndHeadersAsync(System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.CombinationCreateRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：POST请求中Token和Header组合
+            接口：POST /api/v1/combination
+            特点：在POST请求中使用Token和Header组合
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.TokenHeaderCombinationTestWrap.PutWithTokenAndHeadersAsync(System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.CombinationUpdateRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：PUT请求中Token和Header组合
+            接口：PUT /api/v1/combination/{id}
+            特点：在PUT请求中使用Token和Header组合
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.TokenHeaderCombinationTestWrap.DeleteWithTokenAndHeadersAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：DELETE请求中Token和Header组合
+            接口：DELETE /api/v1/combination/{id}
+            特点：在DELETE请求中使用Token和Header组合
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.TokenHeaderHttpMethodsTestWrap.TestGetWithTokenAndHeaderAsync(System.String,System.String,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和Header在GET请求中
+            接口：GET /api/v1/http/get
+            特点：Token和Header在GET请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.TokenHeaderHttpMethodsTestWrap.TestPostWithTokenAndHeaderAsync(System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.PostRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和Header在POST请求中
+            接口：POST /api/v1/http/post
+            特点：Token和Header在POST请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.TokenHeaderHttpMethodsTestWrap.TestPutWithTokenAndHeaderAsync(System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.PutRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和Header在PUT请求中
+            接口：PUT /api/v1/http/put/{id}
+            特点：Token和Header在PUT请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.TokenHeaderHttpMethodsTestWrap.TestDeleteWithTokenAndHeaderAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和Header在DELETE请求中
+            接口：DELETE /api/v1/http/delete/{id}
+            特点：Token和Header在DELETE请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.TokenHeaderHttpMethodsTestWrap.TestPatchWithTokenAndHeaderAsync(System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.PatchRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和Header在PATCH请求中
+            接口：PATCH /api/v1/http/patch/{id}
+            特点：Token和Header在PATCH请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.TokenHeaderHttpMethodsTestWrap.TestHeadWithTokenAndHeaderAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和Header在HEAD请求中
+            接口：HEAD /api/v1/http/head
+            特点：Token和Header在HEAD请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.TokenHeaderHttpMethodsTestWrap.TestOptionsWithTokenAndHeaderAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和Header在OPTIONS请求中
+            接口：OPTIONS /api/v1/http/options
+            特点：Token和Header在OPTIONS请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.TokenHeaderHttpMethodsTestWrap.TestPostWithPathTokenAndHeaderAsync(System.String,System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.PostRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和Header在POST请求中使用Path参数
+            接口：POST /api/v1/http/post/{resource}
+            特点：Token和Header在POST请求中使用Path参数
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.TokenHeaderTestApi.IHeaderFeatureTestWrap">
+            <summary>
+            Header特性测试接口
+            用于测试[Header]特性在不同场景下的使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.IHeaderFeatureTestWrap.GetWithSingleHeaderAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：单个Header参数
+            接口：GET /api/v1/headers/single
+            特点：单个Header参数
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.IHeaderFeatureTestWrap.GetWithMultipleHeadersAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：多个Header参数
+            接口：GET /api/v1/headers/multiple
+            特点：多个Header参数
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.IHeaderFeatureTestWrap.GetWithOptionalHeaderAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：可选Header参数
+            接口：GET /api/v1/headers/optional
+            特点：Header参数可选
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.IHeaderFeatureTestWrap.GetWithDefaultHeaderAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：默认值Header参数
+            接口：GET /api/v1/headers/default
+            特点：Header参数有默认值
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.IHeaderFeatureTestWrap.GetWithDifferentTypeHeadersAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：不同数据类型的Header参数
+            接口：GET /api/v1/headers/types
+            特点：Header参数使用不同数据类型
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.IHeaderFeatureTestWrap.GetWithHeaderAndQueryAsync(System.String,System.String,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            测试：Header参数与Query参数结合
+            接口：GET /api/v1/headers/with-query
+            特点：Header参数与Query参数结合使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.IHeaderFeatureTestWrap.CreateWithHeadersAsync(System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.HeaderCreateRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：Header参数在POST请求中
+            接口：POST /api/v1/headers
+            特点：Header参数在POST请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.IHeaderFeatureTestWrap.UpdateWithHeadersAsync(System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.HeaderUpdateRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：Header参数在PUT请求中
+            接口：PUT /api/v1/headers/{id}
+            特点：Header参数在PUT请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.IHeaderFeatureTestWrap.DeleteWithHeadersAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Header参数在DELETE请求中
+            接口：DELETE /api/v1/headers/{id}
+            特点：Header参数在DELETE请求中使用
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.TokenHeaderTestApi.ITokenFeatureTestWrap">
+            <summary>
+            Token特性测试接口
+            用于测试[Token]特性在不同场景下的使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenFeatureTestWrap.GetResourceAsync(System.Threading.CancellationToken)">
+            <summary>
+            测试：基本Token验证
+            接口：GET /api/v1/resource
+            特点：Token参数作为请求头
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenFeatureTestWrap.GetProtectedResourceAsync(System.Threading.CancellationToken)">
+            <summary>
+            测试：Token作为Header参数
+            接口：GET /api/v1/protected/resource
+            特点：Token参数通过[Header]特性指定头名称
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenFeatureTestWrap.GetResourceByIdAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token与其他参数结合
+            接口：GET /api/v1/resource/{id}
+            特点：Token参数与Path参数结合使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenFeatureTestWrap.GetResourcesAsync(System.Int32,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token与Query参数结合
+            接口：GET /api/v1/resources
+            特点：Token参数与Query参数结合使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenFeatureTestWrap.CreateResourceAsync(HttpClientApiTest.TokenHeaderTestApi.ResourceCreateRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token在POST请求中
+            接口：POST /api/v1/resource
+            特点：Token参数在POST请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenFeatureTestWrap.UpdateResourceAsync(System.String,HttpClientApiTest.TokenHeaderTestApi.ResourceUpdateRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token在PUT请求中
+            接口：PUT /api/v1/resource/{id}
+            特点：Token参数在PUT请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenFeatureTestWrap.DeleteResourceAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token在DELETE请求中
+            接口：DELETE /api/v1/resource/{id}
+            特点：Token参数在DELETE请求中使用
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderCombinationTestWrap">
+            <summary>
+            Token和Header特性组合测试接口
+            用于测试[Token]和[Header]特性组合使用的各种场景
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderCombinationTestWrap.GetWithTokenAndHeaderAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：基本Token和Header组合
+            接口：GET /api/v1/combination/basic
+            特点：Token和单个Header组合使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderCombinationTestWrap.GetWithTokenAndMultipleHeadersAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和多个Header组合
+            接口：GET /api/v1/combination/multiple
+            特点：Token和多个Header组合使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderCombinationTestWrap.GetWithTokenAsHeaderNameAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token作为特定Header名称
+            接口：GET /api/v1/combination/token-header-name
+            特点：Token使用特定的Header名称
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderCombinationTestWrap.GetWithTokenAndOptionalHeaderAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和可选Header组合
+            接口：GET /api/v1/combination/optional
+            特点：Token和可选Header组合使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderCombinationTestWrap.GetWithTokenAndDefaultHeaderAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和默认值Header组合
+            接口：GET /api/v1/combination/default
+            特点：Token和有默认值的Header组合使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderCombinationTestWrap.PostWithTokenAndHeadersAsync(System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.CombinationCreateRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：POST请求中Token和Header组合
+            接口：POST /api/v1/combination
+            特点：在POST请求中使用Token和Header组合
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderCombinationTestWrap.PutWithTokenAndHeadersAsync(System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.CombinationUpdateRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：PUT请求中Token和Header组合
+            接口：PUT /api/v1/combination/{id}
+            特点：在PUT请求中使用Token和Header组合
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderCombinationTestWrap.DeleteWithTokenAndHeadersAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：DELETE请求中Token和Header组合
+            接口：DELETE /api/v1/combination/{id}
+            特点：在DELETE请求中使用Token和Header组合
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderHttpMethodsTestWrap">
+            <summary>
+            Token和Header特性在不同HTTP方法中的测试接口
+            用于测试[Token]和[Header]特性在各种HTTP方法中的使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderHttpMethodsTestWrap.TestGetWithTokenAndHeaderAsync(System.String,System.String,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和Header在GET请求中
+            接口：GET /api/v1/http/get
+            特点：Token和Header在GET请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderHttpMethodsTestWrap.TestPostWithTokenAndHeaderAsync(System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.PostRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和Header在POST请求中
+            接口：POST /api/v1/http/post
+            特点：Token和Header在POST请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderHttpMethodsTestWrap.TestPutWithTokenAndHeaderAsync(System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.PutRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和Header在PUT请求中
+            接口：PUT /api/v1/http/put/{id}
+            特点：Token和Header在PUT请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderHttpMethodsTestWrap.TestDeleteWithTokenAndHeaderAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和Header在DELETE请求中
+            接口：DELETE /api/v1/http/delete/{id}
+            特点：Token和Header在DELETE请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderHttpMethodsTestWrap.TestPatchWithTokenAndHeaderAsync(System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.PatchRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和Header在PATCH请求中
+            接口：PATCH /api/v1/http/patch/{id}
+            特点：Token和Header在PATCH请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderHttpMethodsTestWrap.TestHeadWithTokenAndHeaderAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和Header在HEAD请求中
+            接口：HEAD /api/v1/http/head
+            特点：Token和Header在HEAD请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderHttpMethodsTestWrap.TestOptionsWithTokenAndHeaderAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和Header在OPTIONS请求中
+            接口：OPTIONS /api/v1/http/options
+            特点：Token和Header在OPTIONS请求中使用
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.TokenHeaderTestApi.ITokenHeaderHttpMethodsTestWrap.TestPostWithPathTokenAndHeaderAsync(System.String,System.String,System.String,HttpClientApiTest.TokenHeaderTestApi.PostRequest,System.Threading.CancellationToken)">
+            <summary>
+            测试：Token和Header在POST请求中使用Path参数
+            接口：POST /api/v1/http/post/{resource}
+            特点：Token和Header在POST请求中使用Path参数
+            </summary>
+        </member>
         <member name="M:HttpClientApiTest.HttpClientApiExtensions.AddWebApiHttpClient(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
             <summary>
             注册所有未分组的API服务
@@ -7470,6 +8781,34 @@
             <param name="services">服务集合</param>
             <returns>服务集合，用于链式调用</returns>
         </member>
+        <member name="M:HttpClientApiTest.HttpClientApiExtensions.AddHeaderFeatureWebApiHttpClient(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>
+            注册所有标记了 [HttpClientApi] 特性且 RegistryGroupName = "HeaderFeature" 的接口及其 HttpClient 实现
+            </summary>
+            <param name="services">服务集合</param>
+            <returns>服务集合，用于链式调用</returns>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiExtensions.AddTokenFeatureWebApiHttpClient(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>
+            注册所有标记了 [HttpClientApi] 特性且 RegistryGroupName = "TokenFeature" 的接口及其 HttpClient 实现
+            </summary>
+            <param name="services">服务集合</param>
+            <returns>服务集合，用于链式调用</returns>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiExtensions.AddTokenHeaderCombinationWebApiHttpClient(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>
+            注册所有标记了 [HttpClientApi] 特性且 RegistryGroupName = "TokenHeaderCombination" 的接口及其 HttpClient 实现
+            </summary>
+            <param name="services">服务集合</param>
+            <returns>服务集合，用于链式调用</returns>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiExtensions.AddTokenHeaderHttpMethodsWebApiHttpClient(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>
+            注册所有标记了 [HttpClientApi] 特性且 RegistryGroupName = "TokenHeaderHttpMethods" 的接口及其 HttpClient 实现
+            </summary>
+            <param name="services">服务集合</param>
+            <returns>服务集合，用于链式调用</returns>
+        </member>
         <member name="M:HttpClientApiTest.HttpClientApiExtensions.AddDingtalkWebApiHttpClientWrap(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
             <summary>
             注册所有 RegistryGroupName = "Dingtalk" 的包装接口及其包装实现类的瞬时服务
@@ -7543,6 +8882,34 @@
         <member name="M:HttpClientApiTest.HttpClientApiExtensions.AddVirtualMethodChildWebApiHttpClientWrap(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
             <summary>
             注册所有 RegistryGroupName = "VirtualMethodChild" 的包装接口及其包装实现类的瞬时服务
+            </summary>
+            <param name="services">服务集合</param>
+            <returns>服务集合，用于链式调用</returns>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiExtensions.AddHeaderFeatureWebApiHttpClientWrap(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>
+            注册所有 RegistryGroupName = "HeaderFeature" 的包装接口及其包装实现类的瞬时服务
+            </summary>
+            <param name="services">服务集合</param>
+            <returns>服务集合，用于链式调用</returns>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiExtensions.AddTokenFeatureWebApiHttpClientWrap(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>
+            注册所有 RegistryGroupName = "TokenFeature" 的包装接口及其包装实现类的瞬时服务
+            </summary>
+            <param name="services">服务集合</param>
+            <returns>服务集合，用于链式调用</returns>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiExtensions.AddTokenHeaderCombinationWebApiHttpClientWrap(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>
+            注册所有 RegistryGroupName = "TokenHeaderCombination" 的包装接口及其包装实现类的瞬时服务
+            </summary>
+            <param name="services">服务集合</param>
+            <returns>服务集合，用于链式调用</returns>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiExtensions.AddTokenHeaderHttpMethodsWebApiHttpClientWrap(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>
+            注册所有 RegistryGroupName = "TokenHeaderHttpMethods" 的包装接口及其包装实现类的瞬时服务
             </summary>
             <param name="services">服务集合</param>
             <returns>服务集合，用于链式调用</returns>

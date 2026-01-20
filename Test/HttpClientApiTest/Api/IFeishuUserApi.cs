@@ -6,7 +6,7 @@ using Mud.Common.CodeGenerator;
 /// 飞书用户API测试接口
 /// 测试飞书用户相关的API功能，包括相对路径和绝对路径的使用
 /// </summary>
-[HttpClientApi(BaseAddress = "https://api.example.com", Timeout = 120)]
+[HttpClientApi(BaseAddress = "https://api.mudtools.cn/", Timeout = 120)]
 public interface IFeishuUserApi
 {
     /// <summary>
@@ -22,13 +22,13 @@ public interface IFeishuUserApi
 
     /// <summary>
     /// 测试：获取用户信息（绝对路径）
-    /// 接口：GET https://api.example.com/users/{userId}
+    /// 接口：GET https://api.mudtools.cn//users/{userId}
     /// 特点：使用绝对URL，覆盖接口级BaseAddress
     /// </summary>
     /// <param name="userId">用户ID</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>用户信息</returns>
-    [Get("https://api.example.com/users/{userId}")]
+    [Get("https://api.mudtools.cn//users/{userId}")]
     Task<UserInfo?> GetUserAbsoluteAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>

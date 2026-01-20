@@ -6,7 +6,7 @@ using Mud.Common.CodeGenerator;
 /// 虚方法继承测试基础接口
 /// 定义可被重写的基础方法
 /// </summary>
-[HttpClientApi("https://api.example.com", Timeout = 60, IsAbstract = true)]
+[HttpClientApi("https://api.mudtools.cn/", Timeout = 60, IsAbstract = true)]
 public interface IVirtualMethodBaseTestApi
 {
     /// <summary>
@@ -38,7 +38,7 @@ public interface IVirtualMethodBaseTestApi
 /// 虚方法继承测试接口
 /// 继承自IVirtualMethodBaseTestApi，重写部分方法
 /// </summary>
-[HttpClientApi("https://api.example.com", Timeout = 90, RegistryGroupName = "VirtualMethod")]
+[HttpClientApi("https://api.mudtools.cn/", Timeout = 90, RegistryGroupName = "VirtualMethod")]
 [HttpClientApiWrap(TokenManage = "ITokenManage")]
 [Header("X-Virtual-Method", "true")]
 public interface IVirtualMethodInheritanceTestApi : IVirtualMethodBaseTestApi
@@ -72,7 +72,7 @@ public interface IVirtualMethodInheritanceTestApi : IVirtualMethodBaseTestApi
 /// 虚方法继承测试子接口
 /// 继承自IVirtualMethodInheritanceTestApi，进一步重写方法
 /// </summary>
-[HttpClientApi("https://api.example.com", Timeout = 120, RegistryGroupName = "VirtualMethodChild")]
+[HttpClientApi("https://api.mudtools.cn/", Timeout = 120, RegistryGroupName = "VirtualMethodChild")]
 [HttpClientApiWrap(TokenManage = "ITenantTokenManager")]
 [Header("X-Virtual-Method", "child")]
 [Header("X-Child-Header", "child-value")]

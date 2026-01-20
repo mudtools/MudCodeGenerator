@@ -12,7 +12,7 @@ using Mud.Common.CodeGenerator;
 /// 2. 命名参数方式
 /// 3. 各种常见的内容类型
 /// </summary>
-[HttpClientApi("https://api.example.com")]
+[HttpClientApi("https://api.mudtools.cn/")]
 public interface IContentTypeUsageTestApi
 {
     /// <summary>

@@ -7,7 +7,7 @@ using CodeBaseTest.Interface;
 /// 密封类继承测试基础接口
 /// 定义可被密封类实现的基础方法
 /// </summary>
-[HttpClientApi("https://api.example.com", Timeout = 60)]
+[HttpClientApi("https://api.mudtools.cn/", Timeout = 60)]
 public interface ISealedClassBaseTestApi
 {
     /// <summary>
@@ -47,7 +47,7 @@ public interface ISealedClassBaseTestApi
 /// 密封类继承测试扩展接口
 /// 扩展自ISealedClassBaseTestApi，添加更多功能
 /// </summary>
-[HttpClientApi("https://api.example.com", Timeout = 90)]
+[HttpClientApi("https://api.mudtools.cn/", Timeout = 90)]
 public interface ISealedClassExtendedTestApi : ISealedClassBaseTestApi
 {
     /// <summary>

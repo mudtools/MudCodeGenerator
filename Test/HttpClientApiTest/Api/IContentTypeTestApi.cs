@@ -10,7 +10,7 @@ using Mud.Common.CodeGenerator;
 /// 2. 构造函数参数 vs 命名参数
 /// 3. 默认值回退
 /// </summary>
-[HttpClientApi("https://api.example.com")]
+[HttpClientApi("https://api.mudtools.cn/")]
 [HttpContentType("application/xml")]
 public interface IContentTypeTestApi
 {

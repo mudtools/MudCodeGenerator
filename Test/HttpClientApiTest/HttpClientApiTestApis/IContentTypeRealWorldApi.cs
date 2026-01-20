@@ -9,7 +9,7 @@ using Mud.Common.CodeGenerator;
 /// HttpContentType 真实场景测试接口
 /// 模拟实际开发中常见的API使用场景
 /// </summary>
-[HttpClientApi("https://api.example.com")]
+[HttpClientApi("https://api.mudtools.cn/")]
 [HttpContentType("application/json")]
 public interface IContentTypeRealWorldApi
 {

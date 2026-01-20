@@ -6,7 +6,7 @@ using Mud.Common.CodeGenerator;
 /// 基础功能接口
 /// 定义基本的API操作功能
 /// </summary>
-[HttpClientApi("https://api.example.com", IsAbstract = true)]
+[HttpClientApi("https://api.mudtools.cn/", IsAbstract = true)]
 public interface IBaseFunctionApi
 {
     /// <summary>
@@ -30,7 +30,7 @@ public interface IBaseFunctionApi
 /// 高级功能接口
 /// 定义高级的API操作功能
 /// </summary>
-[HttpClientApi("https://api.example.com", IsAbstract = true)]
+[HttpClientApi("https://api.mudtools.cn/", IsAbstract = true)]
 public interface IAdvancedFunctionApi
 {
     /// <summary>
@@ -54,7 +54,7 @@ public interface IAdvancedFunctionApi
 /// 综合功能接口
 /// 同时继承自基础功能接口和高级功能接口，展示接口多继承
 /// </summary>
-[HttpClientApi("https://api.example.com", Timeout = 90, RegistryGroupName = "CompositeInheritance")]
+[HttpClientApi("https://api.mudtools.cn/", Timeout = 90, RegistryGroupName = "CompositeInheritance")]
 [HttpClientApiWrap(TokenManage = "ITokenManage")]
 [Header("X-Function-Type", "composite")]
 public interface ICompositeFunctionApi : IBaseFunctionApi, IAdvancedFunctionApi
@@ -80,7 +80,7 @@ public interface ICompositeFunctionApi : IBaseFunctionApi, IAdvancedFunctionApi
 /// 扩展功能接口
 /// 继承自综合功能接口，展示多层接口继承
 /// </summary>
-[HttpClientApi("https://api.example.com", Timeout = 120, RegistryGroupName = "ExtendedInheritance")]
+[HttpClientApi("https://api.mudtools.cn/", Timeout = 120, RegistryGroupName = "ExtendedInheritance")]
 [HttpClientApiWrap(TokenManage = "ITenantTokenManager")]
 [Header("X-Function-Type", "extended")]
 public interface IExtendedFunctionApi : ICompositeFunctionApi

@@ -7,7 +7,7 @@ using CodeBaseTest.Interface;
 /// 类继承测试接口
 /// 用于测试类实现接口的场景
 /// </summary>
-[HttpClientApi("https://api.example.com", Timeout = 60)]
+[HttpClientApi("https://api.mudtools.cn/", Timeout = 60)]
 public interface IClassInheritanceTestApi
 {
     /// <summary>

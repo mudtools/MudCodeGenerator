@@ -9,7 +9,7 @@ using Mud.Common.CodeGenerator;
 /// HttpContentType 默认值测试接口
 /// 测试默认值回退机制
 /// </summary>
-[HttpClientApi("https://api.example.com")]
+[HttpClientApi("https://api.mudtools.cn/")]
 public interface IContentTypeDefaultTestApi
 {
     /// <summary>

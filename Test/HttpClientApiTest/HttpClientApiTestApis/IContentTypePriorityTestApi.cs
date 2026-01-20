@@ -12,7 +12,7 @@ using Mud.Common.CodeGenerator;
 /// 2. Body参数ContentType > 方法级/接口级特性
 /// 3. 默认值回退机制
 /// </summary>
-[HttpClientApi("https://api.example.com")]
+[HttpClientApi("https://api.mudtools.cn/")]
 [HttpContentType("application/xml")]
 public interface IContentTypePriorityTestApi
 {

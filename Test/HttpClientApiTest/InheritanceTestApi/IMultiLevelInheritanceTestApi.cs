@@ -6,7 +6,7 @@ using Mud.Common.CodeGenerator;
 /// 多层继承测试接口
 /// 继承自ISingleInheritanceTestApi，测试多层继承关系
 /// </summary>
-[HttpClientApi("https://api.example.com", Timeout = 120, RegistryGroupName = "MultiLevelInheritance")]
+[HttpClientApi("https://api.mudtools.cn/", Timeout = 120, RegistryGroupName = "MultiLevelInheritance")]
 [HttpClientApiWrap(TokenManage = "ITenantTokenManager")]
 [Header("X-Application-Id", "multi-level-app")]
 public interface IMultiLevelInheritanceTestApi : ISingleInheritanceTestApi
