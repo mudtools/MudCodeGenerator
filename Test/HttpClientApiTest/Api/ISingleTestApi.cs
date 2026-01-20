@@ -194,4 +194,84 @@ public interface ISingleTestApi
     [Get("/api/v1/file/download/cancel")]
     Task DownloadLargeFileWithCancellationAsync([Token][Header("x-token")] string token, [Query("fileId")] string fileId, [FilePath(BufferSize = 40960)] string filePath, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// 测试：获取用户信息（边界测试 - 极小日期）
+    /// 接口：GET /api/v1/user/min-date
+    /// 特点：使用默认Token，极小日期参数
+    /// </summary>
+    [Get("/api/v1/user/min-date")]
+    Task<SysUserInfoOutput?> GetUserWithMinDateAsync([Token][Header("x-token")] string token, [Query("birthday")] DateTime birthday);
+
+    /// <summary>
+    /// 测试：获取用户信息（边界测试 - 极大日期）
+    /// 接口：GET /api/v1/user/max-date
+    /// 特点：使用默认Token，极大日期参数
+    /// </summary>
+    [Get("/api/v1/user/max-date")]
+    Task<SysUserInfoOutput?> GetUserWithMaxDateAsync([Token][Header("x-token")] string token, [Query("birthday")] DateTime birthday);
+
+    /// <summary>
+    /// 测试：获取用户信息（特殊字符测试 - 包含空格和特殊符号）
+    /// 接口：GET /api/v1/user/special
+    /// 特点：使用默认Token，包含空格和特殊符号的参数
+    /// </summary>
+    [Get("/api/v1/user/special")]
+    Task<SysUserInfoOutput?> GetUserWithSpecialCharsAsync([Token][Header("x-token")] string token, [Query] string name);
+
+    /// <summary>
+    /// 测试：获取用户信息（默认值测试 - 所有参数使用默认值）
+    /// 接口：GET /api/v1/user/default
+    /// 特点：所有参数使用默认值
+    /// </summary>
+    [Get("/api/v1/user/default")]
+    Task<SysUserInfoOutput?> GetUserWithAllDefaultsAsync([Token][Header("x-token")] string token = "default-token", [Query] string name = "default-name", [Query] int age = 18, [Query] bool active = true);
+
+    /// <summary>
+    /// 测试：获取用户列表（分页测试 - 不同页码和页大小）
+    /// 接口：GET /api/v1/users/page
+    /// 特点：使用默认Token，不同的页码和页大小参数
+    /// </summary>
+    [Get("/api/v1/users/page")]
+    Task<List<SysUserInfoOutput>> GetUserPageAsync([Token][Header("x-token")] string token, [Query] int pageIndex = 1, [Query] int pageSize = 10);
+
+    /// <summary>
+    /// 测试：获取用户列表（分页测试 - 边界页码）
+    /// 接口：GET /api/v1/users/page/boundary
+    /// 特点：使用默认Token，边界页码参数
+    /// </summary>
+    [Get("/api/v1/users/page/boundary")]
+    Task<List<SysUserInfoOutput>> GetUserPageBoundaryAsync([Token][Header("x-token")] string token, [Query] int pageIndex, [Query] int pageSize);
+
+    /// <summary>
+    /// 测试：获取用户统计信息
+    /// 接口：GET /api/v1/users/stats
+    /// 特点：使用默认Token，获取统计信息
+    /// </summary>
+    [Get("/api/v1/users/stats")]
+    Task<Dictionary<string, int>> GetUserStatsAsync([Token][Header("x-token")] string token, [Query] DateTime? startDate, [Query] DateTime? endDate);
+
+    /// <summary>
+    /// 测试：批量操作（边界测试 - 空列表）
+    /// 接口：POST /api/v1/users/batch
+    /// 特点：使用默认Token，空列表参数
+    /// </summary>
+    [Post("/api/v1/users/batch")]
+    Task<bool> BatchUpdateUsersAsync([Token][Header("x-token")] string token, [Body] List<SysUserInfoOutput> users = null);
+
+    /// <summary>
+    /// 测试：获取用户信息（字符集测试 - 不同语言）
+    /// 接口：GET /api/v1/user/{name}
+    /// 特点：使用默认Token，不同语言的名称参数
+    /// </summary>
+    [Get("/api/v1/user/{name}")]
+    Task<SysUserInfoOutput?> GetUserWithDifferentLanguageAsync([Token][Header("x-token")] string token, [Path] string name);
+
+    /// <summary>
+    /// 测试：获取用户信息（时间格式测试 - 不同时区）
+    /// 接口：GET /api/v1/user/timezone
+    /// 特点：使用默认Token，不同时区的时间参数
+    /// </summary>
+    [Get("/api/v1/user/timezone")]
+    Task<SysUserInfoOutput?> GetUserWithTimezoneAsync([Token][Header("x-token")] string token, [Query] DateTimeOffset createdAt);
+
 }

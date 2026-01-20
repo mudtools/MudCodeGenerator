@@ -76,4 +76,76 @@ public interface IDingTalkDeptApi
     /// </summary>
     [Delete("/api/v2/dept/{id}")]
     Task<bool> DeleteDeptAsync([Token][Query("X-API-Key")] string apiKey, [Path] string id);
+
+    /// <summary>
+    /// 测试：获取部门列表（边界测试 - 空查询参数）
+    /// 接口：GET /api/v2/dept
+    /// 特点：使用默认Token，空查询参数
+    /// </summary>
+    [Get("/api/v2/dept")]
+    Task<List<SysDeptListOutput>> GetDeptPageWithEmptyInputAsync([Token][Header("X-API-Key")] string apiKey, [Query] ProjectQueryInput? input = null);
+
+    /// <summary>
+    /// 测试：获取部门列表（边界测试 - 大页码）
+    /// 接口：GET /api/v2/dept/page
+    /// 特点：使用默认Token，大页码参数
+    /// </summary>
+    [Get("/api/v2/dept/page")]
+    Task<List<SysDeptListOutput>> GetDeptPageWithLargePageAsync([Token][Header("X-API-Key")] string apiKey, [Query] int pageSize = 1000, [Query] int pageIndex = 99999);
+
+    /// <summary>
+    /// 测试：获取部门信息（边界测试 - 极小ID）
+    /// 接口：GET /api/v2/dept/{id}
+    /// 特点：使用默认Token，极小的部门ID
+    /// </summary>
+    [Get("/api/v2/dept/{id}")]
+    Task<SysDeptInfoOutput?> GetDeptWithMinIdAsync([Token][Header("X-API-Key")] string apiKey, [Path] long id = 0);
+
+    /// <summary>
+    /// 测试：获取部门信息（边界测试 - 极大ID）
+    /// 接口：GET /api/v2/dept/{id}
+    /// 特点：使用默认Token，极大的部门ID
+    /// </summary>
+    [Get("/api/v2/dept/{id}")]
+    Task<SysDeptInfoOutput?> GetDeptWithMaxIdAsync([Token][Header("X-API-Key")] string apiKey, [Path] long id = 9223372036854775807);
+
+    /// <summary>
+    /// 测试：创建部门（边界测试 - 空名称）
+    /// 接口：POST /api/v2/dept
+    /// 特点：使用默认Token，空部门名称
+    /// </summary>
+    [Post("/api/v2/dept")]
+    Task<SysDeptInfoOutput> CreateDeptWithEmptyNameAsync([Token][Header("X-API-Key")] string apiKey, [Body] SysDeptCrInput dept);
+
+    /// <summary>
+    /// 测试：创建部门（边界测试 - 超长名称）
+    /// 接口：POST /api/v2/dept
+    /// 特点：使用默认Token，超长部门名称
+    /// </summary>
+    [Post("/api/v2/dept")]
+    Task<SysDeptInfoOutput> CreateDeptWithLongNameAsync([Token][Header("X-API-Key")] string apiKey, [Body] SysDeptCrInput dept);
+
+    /// <summary>
+    /// 测试：获取部门信息（异常测试 - 无效Token）
+    /// 接口：GET /api/v2/dept/{id}
+    /// 特点：使用无效Token
+    /// </summary>
+    [Get("/api/v2/dept/{id}")]
+    Task<SysDeptInfoOutput?> GetDeptWithInvalidTokenAsync([Token][Header("X-API-Key")] string apiKey, [Query] string tid, [Path] int id);
+
+    /// <summary>
+    /// 测试：获取部门信息（特殊字符测试）
+    /// 接口：GET /api/v2/dept/{id}
+    /// 特点：使用默认Token，包含特殊字符的部门ID
+    /// </summary>
+    [Get("/api/v2/dept/{id}")]
+    Task<SysDeptInfoOutput?> GetDeptWithSpecialCharsAsync([Token][Header("X-API-Key")] string apiKey, [Path] string id);
+
+    /// <summary>
+    /// 测试：获取部门树结构
+    /// 接口：GET /api/v2/dept/tree
+    /// 特点：使用默认Token，获取部门树结构
+    /// </summary>
+    [Get("/api/v2/dept/tree")]
+    Task<List<SysDeptListOutput>> GetDeptTreeAsync([Token][Header("X-API-Key")] string apiKey, [Query] long? parentId = null);
 }
