@@ -49,6 +49,7 @@ internal class InterfaceImpCodeGenerator
         public string? InheritedFrom { get; set; }
         public string? TokenManager { get; set; }
         public string? TokenManagerType { get; set; }
+        public string? TokenType { get; set; }
     }
 
     private string httpClientOptionsName = "HttpClientOptions";
@@ -235,7 +236,55 @@ internal class InterfaceImpCodeGenerator
             TokenManager = _tokenManage,
             TokenManagerType = !string.IsNullOrEmpty(_tokenManage)
                 ? TypeSymbolHelper.GetTypeAllDisplayString(_compilation, _tokenManage!)
-                : null
+                : null,
+            TokenType = GetInterfaceTokenType()
+        };
+    }
+
+    /// <summary>
+    /// 从接口的 Token 特性中提取 TokenType 值
+    /// </summary>
+    private string? GetInterfaceTokenType()
+    {
+        var tokenAttribute = AttributeDataHelper.GetAttributeDataFromSymbol(_interfaceSymbol, HttpClientGeneratorConstants.TokenAttributeNames);
+        if (tokenAttribute == null)
+            return null;
+
+        // 检查命名参数 TokenType
+        var namedTokenType = tokenAttribute.NamedArguments
+            .FirstOrDefault(na => na.Key.Equals("TokenType", StringComparison.OrdinalIgnoreCase)).Value.Value;
+
+        if (namedTokenType != null)
+        {
+            return ConvertTokenEnumValueToString(Convert.ToInt32(namedTokenType, System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        // 检查构造函数参数
+        if (tokenAttribute.ConstructorArguments.Length > 0)
+        {
+            var tokenTypeValue = tokenAttribute.ConstructorArguments[0].Value;
+            if (tokenTypeValue != null)
+            {
+                return ConvertTokenEnumValueToString(Convert.ToInt32(tokenTypeValue, System.Globalization.CultureInfo.InvariantCulture));
+            }
+        }
+
+        // 默认为 null（不添加字段）
+        return null;
+    }
+
+    /// <summary>
+    /// 将 Token 类型枚举值转换为字符串
+    /// </summary>
+    private static string ConvertTokenEnumValueToString(int tokenTypeValue)
+    {
+        return tokenTypeValue switch
+        {
+            0 => "TenantAccessToken",
+            1 => "UserAccessToken",
+            2 => "AppAccessToken",
+            3 => "Both",
+            _ => "TenantAccessToken"
         };
     }
 
@@ -303,7 +352,8 @@ internal class InterfaceImpCodeGenerator
         // 如果需要Token管理器，获取access_token
         if (hasTokenManager && (hasAuthorizationHeader || hasAuthorizationQuery))
         {
-            _codeBuilder.AppendLine($"            var access_token = await _tokenManager.GetTokenAsync();");
+            _codeBuilder.AppendLine($"            var tokenManager = _appManager.GetTokenManager(GetTokeType());");
+            _codeBuilder.AppendLine($"            var access_token = await tokenManager.GetTokenAsync();");
             _codeBuilder.AppendLine($"            if (string.IsNullOrEmpty(access_token))");
             _codeBuilder.AppendLine($"            {{");
             _codeBuilder.AppendLine($"                throw new InvalidOperationException(\"无法获取访问令牌\");");

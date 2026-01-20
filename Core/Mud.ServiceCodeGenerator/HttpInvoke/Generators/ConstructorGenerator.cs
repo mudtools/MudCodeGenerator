@@ -40,12 +40,18 @@ internal class ConstructorGenerator
     /// </summary>
     private void GenerateClassFields()
     {
+        // 如果接口上标注了 Token 特性，添加 _tokenType 字段
+        if (!string.IsNullOrEmpty(_context.Config.TokenType) || _context.HasTokenManager)
+        {
+            var tokeType = string.IsNullOrEmpty(_context.Config.TokenType) ? "TenantAccessToken" : _context.Config.TokenType;
+            _codeBuilder.AppendLine("        /// <summary>");
+            _codeBuilder.AppendLine("        /// Token类型，用于标识使用的Token类型。");
+            _codeBuilder.AppendLine("        /// </summary>");
+            _codeBuilder.AppendLine($"        private readonly TokenType _tokenType = TokenType.{tokeType};");
+        }
+
         if (_context.HasInheritedFrom) return;
 
-        _codeBuilder.AppendLine("        /// <summary>");
-        _codeBuilder.AppendLine("        /// 用于HttpClient客户端操作的<see cref = \"IEnhancedHttpClient\"/> 实例。");
-        _codeBuilder.AppendLine("        /// </summary>");
-        _codeBuilder.AppendLine($"        {_context.FieldAccessibility}readonly IEnhancedHttpClient _httpClient;");
         _codeBuilder.AppendLine("        /// <summary>");
         _codeBuilder.AppendLine("        /// 用于JSON内容序列化与反序列化操作的<see cref = \"JsonSerializerOptions\"/> 参数实例。");
         _codeBuilder.AppendLine("        /// </summary>");
@@ -56,8 +62,13 @@ internal class ConstructorGenerator
             _codeBuilder.AppendLine("        /// <summary>");
             _codeBuilder.AppendLine($"        /// 用于HttpClient客户端操作操作使用的的<see cref = \"{_context.Config.TokenManagerType}\"/> 令牌管理实例。");
             _codeBuilder.AppendLine("        /// </summary>");
-            _codeBuilder.AppendLine($"        {_context.FieldAccessibility}readonly {_context.Config.TokenManagerType} _tokenManager;");
+            _codeBuilder.AppendLine($"        {_context.FieldAccessibility}readonly {_context.Config.TokenManagerType} _appManager;");
         }
+
+
+        _codeBuilder.AppendLine("        /// <summary>");
+        _codeBuilder.AppendLine("        /// 用于HttpClient客户端操作的内容类型。");
+        _codeBuilder.AppendLine("        /// </summary>");
         _codeBuilder.AppendLine($"        {_context.FieldAccessibility}readonly string _defaultContentType = \"{_context.Config.DefaultContentType}\";");
         _codeBuilder.AppendLine();
     }
@@ -70,12 +81,11 @@ internal class ConstructorGenerator
         _codeBuilder.AppendLine("        /// <summary>");
         _codeBuilder.AppendLine($"        /// 构建 <see cref = \"{className}\"/> 类的实例。");
         _codeBuilder.AppendLine("        /// </summary>");
-        _codeBuilder.AppendLine("        /// <param name=\"httpClient\">FeishuHttpClient实例</param>");
         _codeBuilder.AppendLine("        /// <param name=\"option\">Json序列化参数</param>");
 
         if (_context.HasTokenManager)
         {
-            _codeBuilder.AppendLine("        /// <param name=\"tokenManager\">Token管理器</param>");
+            _codeBuilder.AppendLine("        /// <param name=\"appManager\">应用令牌管理器</param>");
         }
     }
 
@@ -86,13 +96,12 @@ internal class ConstructorGenerator
     {
         var parameters = new List<string>
         {
-            "IEnhancedHttpClient httpClient",
             "IOptions<JsonSerializerOptions> option"
         };
 
         if (_context.HasTokenManager)
         {
-            parameters.Add($"{_context.Config.TokenManagerType} tokenManager");
+            parameters.Add($"{_context.Config.TokenManagerType} appManager");
         }
 
         var signature = $"        public {className}({string.Join(", ", parameters)})";
@@ -102,12 +111,11 @@ internal class ConstructorGenerator
         {
             var baseParameters = new List<string>
             {
-                "httpClient",
                 "option",
             };
             if (_context.HasTokenManager)
             {
-                baseParameters.Add("tokenManager");
+                baseParameters.Add("appManager");
             }
             _codeBuilder.AppendLine($" : base({string.Join(", ", baseParameters)})");
         }
@@ -126,12 +134,11 @@ internal class ConstructorGenerator
 
         if (!_context.HasInheritedFrom)
         {
-            _codeBuilder.AppendLine("            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));");
             _codeBuilder.AppendLine("            _jsonSerializerOptions = option.Value;");
 
             if (_context.HasTokenManager)
             {
-                _codeBuilder.AppendLine("            _tokenManager = tokenManager ?? throw new ArgumentNullException(nameof(tokenManager));");
+                _codeBuilder.AppendLine("            _appManager = appManager ?? throw new ArgumentNullException(nameof(appManager));");
             }
         }
 
@@ -144,6 +151,8 @@ internal class ConstructorGenerator
     /// </summary>
     private void GenerateHelperMethods()
     {
+        GenerateGetTokeTypeMethod();
+
         if (_context.HasInheritedFrom) return;
 
         GenerateGetMediaTypeMethod();
@@ -173,6 +182,33 @@ internal class ConstructorGenerator
         _codeBuilder.AppendLine("            }");
         _codeBuilder.AppendLine();
         _codeBuilder.AppendLine("            return contentType.Trim();");
+        _codeBuilder.AppendLine("        }");
+        _codeBuilder.AppendLine();
+    }
+
+
+    private void GenerateGetTokeTypeMethod()
+    {
+        if (string.IsNullOrEmpty(_context.Config.TokenManagerType))
+            return;
+
+        string accessibility = _context.Config.IsAbstract ? "abstract" : "override";
+        if (!_context.HasInheritedFrom && !_context.Config.IsAbstract)
+            accessibility = "virtual";
+
+        _codeBuilder.AppendLine("        /// <summary>");
+        _codeBuilder.AppendLine("        /// 获取用于远程API访问的<see cref = \"TokenType\"/>令牌类型。");
+        _codeBuilder.AppendLine("        /// </summary>");
+        _codeBuilder.AppendLine("        /// <returns>返回<see cref = \"TokenType\"/>令牌类型。</returns>");
+        _codeBuilder.AppendLine($"        protected {accessibility} TokenType GetTokeType()");
+        if (_context.Config.IsAbstract)
+        {
+            _codeBuilder.Append(" ;");
+            _codeBuilder.AppendLine();
+            return;
+        }
+        _codeBuilder.AppendLine("        {");
+        _codeBuilder.AppendLine("            return _tokenType;");
         _codeBuilder.AppendLine("        }");
         _codeBuilder.AppendLine();
     }

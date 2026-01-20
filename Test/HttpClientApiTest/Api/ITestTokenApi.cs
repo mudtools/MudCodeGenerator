@@ -6,7 +6,7 @@ using Mud.Common.CodeGenerator;
 /// Token测试基类接口
 /// 抽象基类，定义了通用的Token测试方法
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITokenManager), IsAbstract = true)]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 public interface ITestBaseTokenApi
 {
     /// <summary>
@@ -47,10 +47,11 @@ public interface ITestBaseTokenApi
 /// Null Token测试接口
 /// 测试使用IUserTokenManager的场景
 /// </summary>
-[HttpClientApi(TokenManage = nameof(IUserTokenManager), InheritedFrom = "TestBaseTokenApi")]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), InheritedFrom = "TestBaseTokenApi")]
 [Header("Authorization", AliasAs = "X-Token")]
 [Header("xx1", "xxValue1")]
 [Header("xx2", "xxValue3")]
+[Token(TokenType.AppAccessToken)]
 public interface ITestNullTokenApi : ITestBaseTokenApi
 {
     /// <summary>
@@ -78,6 +79,7 @@ public interface ITestNullTokenApi : ITestBaseTokenApi
 [Header("Authorization", AliasAs = "X-Token")]
 [Header("xx1", "xxValue1")]
 [Header("xx2", "xxValue3")]
+[Token(TokenType = TokenType.TenantAccessToken)]
 public interface ITestTokenApi : ITestBaseTokenApi
 {
     /// <summary>

@@ -23,6 +23,10 @@ public interface IUserTokenManager : ITokenManager
 
 }
 
+public interface IAppTokenManager : ITokenManager
+{
+}
+
 /// <summary>
 /// Token管理器实现（示例）
 /// </summary>

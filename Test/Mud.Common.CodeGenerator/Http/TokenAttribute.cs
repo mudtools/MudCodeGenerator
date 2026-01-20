@@ -3,7 +3,7 @@
 /// <summary>
 /// HTTP 声明式token参数特性
 /// </summary>
-[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Interface, AllowMultiple = false)]
 public sealed class TokenAttribute : Attribute
 {
     /// <summary>
@@ -42,7 +42,11 @@ public enum TokenType
     /// </summary>
     UserAccessToken = 1,
     /// <summary>
+    /// 使用用户Token调用函数。
+    /// </summary>
+    AppAccessToken = 2,
+    /// <summary>
     /// 由用户决定使用何种Token调用函数。
     /// </summary>
-    Both = 2,
+    Both = 3,
 }
