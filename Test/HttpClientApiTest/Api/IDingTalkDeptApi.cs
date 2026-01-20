@@ -1,5 +1,7 @@
-﻿namespace CodeGeneratorTest.WebApi;
+namespace HttpClientApiTest.WebApi;
 
+using Mud.Common.CodeGenerator;
+using CodeBaseTest.Interface;
 
 [HttpClientApi("https://api.dingtalk.com", Timeout = 60, RegistryGroupName = "Dingtalk")]
 [HttpClientApiWrap(TokenManage = "ITokenManage", WrapInterface = nameof(DingTalkDept))]
@@ -31,5 +33,3 @@ public interface IDingTalkDeptApi
     [Delete("/api/v2/dept/{id}")]
     Task<bool> DeleteDeptAsync([Token][Query("X-API-Key")] string apiKey, [Path] string id);
 }
-
-

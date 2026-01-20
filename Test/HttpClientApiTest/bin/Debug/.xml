@@ -75,6 +75,50 @@
             预期结果：使用 application/json（Body 参数优先级最高）
             </summary>
         </member>
+        <member name="T:HttpClientApiTest.WebApi.IDingTalkUserApi">
+            <summary>
+            钉钉用户接口
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.IDingTalkUserApi.GetUsers1Async(System.String,System.String[])">
+            <summary>
+            测试钉钉用户接口
+            </summary>
+            <param name="token"></param>
+            <param name="ids"></param>
+            <returns></returns>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.IFeishuAuthenticationApi">
+            <summary>
+            飞书认证授权相关的API
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.IFeishuAuthenticationApi.GetTenantAccessTokenAsync(HttpClientApiTest.WebApi.AppCredentials,System.Threading.CancellationToken)">
+            <summary>
+            获取自建应用获取 tenant_access_token。
+            </summary>
+            <param name="credentials">应用唯一标识及应用秘钥信息</param>
+            <param name="cancellationToken"><see cref="T:System.Threading.CancellationToken"/>取消操作令牌对象。</param>
+            <remarks>
+            <para>tenant_access_token 的最大有效期是 2 小时。</para>
+            <para>剩余有效期小于 30 分钟时，调用本接口会返回一个新的 tenant_access_token，这会同时存在两个有效的 tenant_access_token。</para>
+            <para>剩余有效期大于等于 30 分钟时，调用本接口会返回原有的 tenant_access_token。</para>
+            </remarks>
+            <returns></returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.IFeishuAuthenticationApi.GetAppAccessTokenAsync(HttpClientApiTest.WebApi.AppCredentials,System.Threading.CancellationToken)">
+            <summary>
+            自建应用获取 app_access_token
+            </summary>
+            <param name="credentials">应用唯一标识及应用秘钥信息</param>
+            <param name="cancellationToken"><see cref="T:System.Threading.CancellationToken"/>取消操作令牌对象。</param>
+            <remarks>
+            <para>app_access_token 的最大有效期是 2 小时。</para>
+            <para>剩余有效期小于 30 分钟时，调用本接口会返回一个新的 app_access_token，这会同时存在两个有效的 app_access_token。</para>
+            <para>剩余有效期大于等于 30 分钟时，调用本接口会返回原有的 app_access_token。</para>
+            </remarks>
+            <returns></returns>
+        </member>
         <member name="T:HttpClientApiTest.WebApi.IFeishuUserApi">
             <summary>
             飞书用户API接口
@@ -114,6 +158,727 @@
         <member name="P:HttpClientApiTest.WebApi.UserInfo.Email">
             <summary>
             邮箱
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.Internal.DingTalkDeptApi">
+            <summary>
+            <inheritdoc cref="T:HttpClientApiTest.WebApi.IDingTalkDeptApi"/>
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.DingTalkDeptApi._httpClient">
+            <summary>
+            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.DingTalkDeptApi._jsonSerializerOptions">
+            <summary>
+            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.DingTalkDeptApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions})">
+            <summary>
+            构建 <see cref = "T:HttpClientApiTest.WebApi.Internal.DingTalkDeptApi"/> 类的实例。
+            </summary>
+            <param name="httpClient">FeishuHttpClient实例</param>
+            <param name="option">Json序列化参数</param>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.DingTalkDeptApi.GetMediaType(System.String)">
+            <summary>
+            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
+            </summary>
+            <param name="contentType">完整的Content-Type字符串</param>
+            <returns>媒体类型部分</returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.DingTalkDeptApi.GetDeptAsync(System.String,System.String,System.Int32)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.DingTalkDeptApi.GetDeptAsync(System.Int64,System.String,System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.DingTalkDeptApi.GetDeptPageAsync(System.String,HttpClientApiTest.WebApi.ProjectQueryInput)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.DingTalkDeptApi.GetDeptPageAsync(System.String,System.String,System.Nullable{System.Int32},HttpClientApiTest.WebApi.ProjectQueryInput)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.DingTalkDeptApi.CreateDeptAsync(System.String,HttpClientApiTest.WebApi.SysDeptCrInput)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.DingTalkDeptApi.UpdateDeptAsync(System.String,System.String,HttpClientApiTest.WebApi.SysDeptUpInput)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.DingTalkDeptApi.DeleteDeptAsync(System.String,System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi">
+            <summary>
+            <inheritdoc cref="T:HttpClientApiTest.WebApi.IContentTypeTestApi"/>
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi._httpClient">
+            <summary>
+            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi._jsonSerializerOptions">
+            <summary>
+            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions})">
+            <summary>
+            构建 <see cref = "T:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi"/> 类的实例。
+            </summary>
+            <param name="httpClient">FeishuHttpClient实例</param>
+            <param name="option">Json序列化参数</param>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi.GetMediaType(System.String)">
+            <summary>
+            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
+            </summary>
+            <param name="contentType">完整的Content-Type字符串</param>
+            <returns>媒体类型部分</returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi.TestMethod1Async(System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi.TestMethod2Async(System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi.TestMethod3Async(System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi.TestMethod4Async(System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi.TestMethod5Async(System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.Internal.ContentTypeWebApiDefaultTestApi">
+            <summary>
+            <inheritdoc cref="T:HttpClientApiTest.WebApi.IContentTypeWebApiDefaultTestApi"/>
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.ContentTypeWebApiDefaultTestApi._httpClient">
+            <summary>
+            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.ContentTypeWebApiDefaultTestApi._jsonSerializerOptions">
+            <summary>
+            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeWebApiDefaultTestApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions})">
+            <summary>
+            构建 <see cref = "T:HttpClientApiTest.WebApi.Internal.ContentTypeWebApiDefaultTestApi"/> 类的实例。
+            </summary>
+            <param name="httpClient">FeishuHttpClient实例</param>
+            <param name="option">Json序列化参数</param>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeWebApiDefaultTestApi.GetMediaType(System.String)">
+            <summary>
+            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
+            </summary>
+            <param name="contentType">完整的Content-Type字符串</param>
+            <returns>媒体类型部分</returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeWebApiDefaultTestApi.TestDefaultAsync(System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.Internal.ContentTypeBodyPriorityTestApi">
+            <summary>
+            <inheritdoc cref="T:HttpClientApiTest.WebApi.IContentTypeBodyPriorityTestApi"/>
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.ContentTypeBodyPriorityTestApi._httpClient">
+            <summary>
+            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.ContentTypeBodyPriorityTestApi._jsonSerializerOptions">
+            <summary>
+            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeBodyPriorityTestApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions})">
+            <summary>
+            构建 <see cref = "T:HttpClientApiTest.WebApi.Internal.ContentTypeBodyPriorityTestApi"/> 类的实例。
+            </summary>
+            <param name="httpClient">FeishuHttpClient实例</param>
+            <param name="option">Json序列化参数</param>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeBodyPriorityTestApi.GetMediaType(System.String)">
+            <summary>
+            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
+            </summary>
+            <param name="contentType">完整的Content-Type字符串</param>
+            <returns>媒体类型部分</returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeBodyPriorityTestApi.TestPriority1Async(System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeBodyPriorityTestApi.TestPriority2Async(System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.Internal.DingTalkUserApi">
+            <summary>
+            <inheritdoc cref="T:HttpClientApiTest.WebApi.IDingTalkUserApi"/>
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.DingTalkUserApi._httpClient">
+            <summary>
+            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.DingTalkUserApi._jsonSerializerOptions">
+            <summary>
+            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.DingTalkUserApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions})">
+            <summary>
+            构建 <see cref = "T:HttpClientApiTest.WebApi.Internal.DingTalkUserApi"/> 类的实例。
+            </summary>
+            <param name="httpClient">FeishuHttpClient实例</param>
+            <param name="option">Json序列化参数</param>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.DingTalkUserApi.GetMediaType(System.String)">
+            <summary>
+            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
+            </summary>
+            <param name="contentType">完整的Content-Type字符串</param>
+            <returns>媒体类型部分</returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.DingTalkUserApi.GetUserAsync(System.String,System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.DingTalkUserApi.GetUsers1Async(System.String,System.String[])">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.DingTalkUserApi.GetUsersAsync(System.String,System.String[])">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.DingTalkUserApi.GetUser1Async(System.String,System.String[])">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.DingTalkUserApi.CreateUserAsync(System.String,HttpClientApiTest.WebApi.SysUserInfoOutput)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.DingTalkUserApi.UpdateUserAsync(System.String,System.String,HttpClientApiTest.WebApi.SysUserInfoOutput)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.DingTalkUserApi.DeleteUserAsync(System.String,System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.DingTalkUserApi.GetProtectedDataAsync(System.String,System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.DingTalkUserApi.GetProtectedDataAsync(System.String,System.String,HttpClientApiTest.WebApi.SysUserInfoOutput)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.DingTalkUserApi.GetProtectedXmlDataAsync(System.String,System.String,HttpClientApiTest.WebApi.SysUserInfoOutput)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.DingTalkUserApi.SearchUsersAsync(System.String,HttpClientApiTest.WebApi.UserSearchCriteria)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.DingTalkUserApi.CreateUserTestAsync(System.String,HttpClientApiTest.WebApi.SysUserInfoOutput,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.Internal.FeishuAuthenticationApi">
+            <summary>
+            <inheritdoc cref="T:HttpClientApiTest.WebApi.IFeishuAuthenticationApi"/>
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.FeishuAuthenticationApi._httpClient">
+            <summary>
+            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.FeishuAuthenticationApi._jsonSerializerOptions">
+            <summary>
+            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.FeishuAuthenticationApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions})">
+            <summary>
+            构建 <see cref = "T:HttpClientApiTest.WebApi.Internal.FeishuAuthenticationApi"/> 类的实例。
+            </summary>
+            <param name="httpClient">FeishuHttpClient实例</param>
+            <param name="option">Json序列化参数</param>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.FeishuAuthenticationApi.GetMediaType(System.String)">
+            <summary>
+            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
+            </summary>
+            <param name="contentType">完整的Content-Type字符串</param>
+            <returns>媒体类型部分</returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.FeishuAuthenticationApi.GetTenantAccessTokenAsync(HttpClientApiTest.WebApi.AppCredentials,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.FeishuAuthenticationApi.GetAppAccessTokenAsync(HttpClientApiTest.WebApi.AppCredentials,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.Internal.FeishuUserApi">
+            <summary>
+            <inheritdoc cref="T:HttpClientApiTest.WebApi.IFeishuUserApi"/>
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.FeishuUserApi._httpClient">
+            <summary>
+            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.FeishuUserApi._jsonSerializerOptions">
+            <summary>
+            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.FeishuUserApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions})">
+            <summary>
+            构建 <see cref = "T:HttpClientApiTest.WebApi.Internal.FeishuUserApi"/> 类的实例。
+            </summary>
+            <param name="httpClient">FeishuHttpClient实例</param>
+            <param name="option">Json序列化参数</param>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.FeishuUserApi.GetMediaType(System.String)">
+            <summary>
+            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
+            </summary>
+            <param name="contentType">完整的Content-Type字符串</param>
+            <returns>媒体类型部分</returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.FeishuUserApi.GetUserAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.FeishuUserApi.GetUserAbsoluteAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.Internal.SingleTestApi">
+            <summary>
+            <inheritdoc cref="T:HttpClientApiTest.WebApi.ISingleTestApi"/>
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.SingleTestApi._httpClient">
+            <summary>
+            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.SingleTestApi._jsonSerializerOptions">
+            <summary>
+            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.SingleTestApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions})">
+            <summary>
+            构建 <see cref = "T:HttpClientApiTest.WebApi.Internal.SingleTestApi"/> 类的实例。
+            </summary>
+            <param name="httpClient">FeishuHttpClient实例</param>
+            <param name="option">Json序列化参数</param>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.SingleTestApi.GetMediaType(System.String)">
+            <summary>
+            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
+            </summary>
+            <param name="contentType">完整的Content-Type字符串</param>
+            <returns>媒体类型部分</returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.SingleTestApi.GetUserAsync(System.String,System.DateTime)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.SingleTestApi.GetUser1Async(System.String,System.DateTime)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.SingleTestApi.GetUser2Async(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.SingleTestApi.GetUser2Async(System.String,System.DateTime)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.SingleTestApi.GetUser3Async(System.String,System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.SingleTestApi.GetUser3Async(System.DateTime,System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.SingleTestApi.GetDeptPageAsync(System.String,System.Nullable{System.Int32},System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.SingleTestApi.GetDeptPageAsync(System.String,System.DateTime,System.Nullable{System.Int32},HttpClientApiTest.WebApi.DataQueryInput,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.SingleTestApi.GetTenantTestAsync(System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.SingleTestApi.GetUserTestAsync(System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.SingleTestApi.GetTenantTestWithCancellationAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.SingleTestApi.GetUserTestWithCancellationAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.SingleTestApi.DownloadFileAsync(System.String,System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.SingleTestApi.DownloadFileWithCancellationAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.SingleTestApi.DownloadLargeFileAsync(System.String,System.String,System.String)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.SingleTestApi.DownloadLargeFileWithCancellationAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.Internal.TestBaseTokenApi">
+            <summary>
+            <inheritdoc cref="T:HttpClientApiTest.WebApi.ITestBaseTokenApi"/>
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.TestBaseTokenApi._httpClient">
+            <summary>
+            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.TestBaseTokenApi._jsonSerializerOptions">
+            <summary>
+            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.TestBaseTokenApi._tokenManager">
+            <summary>
+            用于HttpClient客户端操作操作使用的的<see cref = "T:Mud.Common.CodeGenerator.ITokenManager"/> 令牌管理实例。
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.TestBaseTokenApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions},Mud.Common.CodeGenerator.ITokenManager)">
+            <summary>
+            构建 <see cref = "T:HttpClientApiTest.WebApi.Internal.TestBaseTokenApi"/> 类的实例。
+            </summary>
+            <param name="httpClient">FeishuHttpClient实例</param>
+            <param name="option">Json序列化参数</param>
+            <param name="tokenManager">Token管理器</param>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.TestBaseTokenApi.GetMediaType(System.String)">
+            <summary>
+            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
+            </summary>
+            <param name="contentType">完整的Content-Type字符串</param>
+            <returns>媒体类型部分</returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.TestBaseTokenApi.GetBaeUserAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.TestBaseTokenApi.CreateUserAsync(System.String,HttpClientApiTest.WebApi.SysUserInfoOutput,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.Internal.TestNullTokenApi">
+            <summary>
+            <inheritdoc cref="T:HttpClientApiTest.WebApi.ITestNullTokenApi"/>
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.TestNullTokenApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions},Mud.Common.CodeGenerator.IUserTokenManager)">
+            <summary>
+            构建 <see cref = "T:HttpClientApiTest.WebApi.Internal.TestNullTokenApi"/> 类的实例。
+            </summary>
+            <param name="httpClient">FeishuHttpClient实例</param>
+            <param name="option">Json序列化参数</param>
+            <param name="tokenManager">Token管理器</param>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.Internal.TestTokenApi">
+            <summary>
+            <inheritdoc cref="T:HttpClientApiTest.WebApi.ITestTokenApi"/>
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.TestTokenApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions},Mud.Common.CodeGenerator.ITenantTokenManager)">
+            <summary>
+            构建 <see cref = "T:HttpClientApiTest.WebApi.Internal.TestTokenApi"/> 类的实例。
+            </summary>
+            <param name="httpClient">FeishuHttpClient实例</param>
+            <param name="option">Json序列化参数</param>
+            <param name="tokenManager">Token管理器</param>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.TestTokenApi.GetUserAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.TestTokenApi.GetUsersAsync(System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.Internal.TestTokenQueryApi">
+            <summary>
+            <inheritdoc cref="T:HttpClientApiTest.WebApi.ITestTokenQueryApi"/>
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.TestTokenQueryApi._httpClient">
+            <summary>
+            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.TestTokenQueryApi._jsonSerializerOptions">
+            <summary>
+            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
+            </summary>
+        </member>
+        <member name="F:HttpClientApiTest.WebApi.Internal.TestTokenQueryApi._tokenManager">
+            <summary>
+            用于HttpClient客户端操作操作使用的的<see cref = "T:Mud.Common.CodeGenerator.ITokenManager"/> 令牌管理实例。
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.TestTokenQueryApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions},Mud.Common.CodeGenerator.ITokenManager)">
+            <summary>
+            构建 <see cref = "T:HttpClientApiTest.WebApi.Internal.TestTokenQueryApi"/> 类的实例。
+            </summary>
+            <param name="httpClient">FeishuHttpClient实例</param>
+            <param name="option">Json序列化参数</param>
+            <param name="tokenManager">Token管理器</param>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.TestTokenQueryApi.GetMediaType(System.String)">
+            <summary>
+            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
+            </summary>
+            <param name="contentType">完整的Content-Type字符串</param>
+            <returns>媒体类型部分</returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.Internal.TestTokenQueryApi.GetUserAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.ISingleTestApi">
+            <summary>
+            测试注释。
+            </summary>  
+            <remarks>
+            <para>1222</para>
+            <para>54354</para>
+            </remarks>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.ISingleTestApi.GetUserAsync(System.String,System.DateTime)">
+            <summary>
+            根据用户ID获取用户对象。
+            </summary>
+            <param name="token">令牌</param>
+            <param name="birthday">生日</param>
+            <returns></returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.ISingleTestApi.GetUser1Async(System.String,System.DateTime)">
+            <summary>
+            以下接口生成的url需要将birthday格式化处理：birthday.ToString("yyyy-MM-dd")
+            </summary>
+            <param name="token"></param>
+            <param name="birthday"></param>
+            <returns></returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.ISingleTestApi.GetUser2Async(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            以下接口生成的url为：/api/v1/user?idKey=id值
+            </summary>
+            <param name="token"></param>
+            <param name="id"></param>
+            <param name="cancellationToken"></param>
+            <returns></returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.ISingleTestApi.GetUser2Async(System.String,System.DateTime)">
+            <summary>
+            以下接口生成的url为：/api/v1/user?bth=birthday.ToString("yyyy-MM-dd")值
+            </summary>
+            <param name="token"></param>
+            <param name="birthday"></param>
+            <returns></returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.ISingleTestApi.GetUser3Async(System.String,System.String)">
+            <summary>
+            测试注释1。
+            </summary>
+            <param name="token"></param>
+            <param name="id"></param>
+            <returns></returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.ISingleTestApi.GetUser3Async(System.DateTime,System.String)">
+            <summary>
+            测试注释2。
+            </summary>
+            <param name="birthday">生日</param>
+            <param name="token">令牌</param>
+            <returns></returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.ISingleTestApi.GetTenantTestAsync(System.String)">
+            <summary>
+            测试TenantAccessToken类型
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.ISingleTestApi.GetUserTestAsync(System.String)">
+            <summary>
+            测试UserAccessToken类型
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.ISingleTestApi.GetTenantTestWithCancellationAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试TenantAccessToken类型（带CancellationToken）
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.ISingleTestApi.GetUserTestWithCancellationAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            测试UserAccessToken类型（带CancellationToken）
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.ISingleTestApi.DownloadFileAsync(System.String,System.String)">
+            <summary>
+            下载文件测试
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.ISingleTestApi.DownloadFileWithCancellationAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            下载文件测试（带CancellationToken）
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.ISingleTestApi.DownloadLargeFileAsync(System.String,System.String,System.String)">
+            <summary>
+            下载文件测试
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.ISingleTestApi.DownloadLargeFileWithCancellationAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            下载文件测试（带CancellationToken）
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.ITestBaseTokenApi.GetBaeUserAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            基类接口中获取用户信息
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.ITestNullTokenApi">
+            <summary>
+            测试Token功能的API接口
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.ITestTokenApi">
+            <summary>
+            测试Token功能的API接口
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.ITestTokenApi.GetUserAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            获取用户信息
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.ITestTokenApi.GetUsersAsync(System.Threading.CancellationToken)">
+            <summary>
+            获取用户列表
+            </summary>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.ITestTokenQueryApi">
+            <summary>
+            测试Query Authorization的API接口
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.ITestTokenQueryApi.GetUserAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            获取用户信息（使用Query参数传递Token）
             </summary>
         </member>
         <member name="T:HttpClientApiTest.WebApi.SysDeptInfoOutput">
@@ -353,170 +1118,279 @@
             手机号
             </summary>
         </member>
-        <member name="T:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi">
+        <member name="M:HttpClientApiTest.WebApi.DingTalkUser.GetUsers1Async(System.String[])">
             <summary>
-            <inheritdoc cref="T:HttpClientApiTest.WebApi.IContentTypeTestApi"/>
+            测试钉钉用户接口
+            </summary>
+            <param name="ids"></param>
+            <returns></returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.FeishuAuthentication.GetTenantAccessTokenAsync(HttpClientApiTest.WebApi.AppCredentials,System.Threading.CancellationToken)">
+            <summary>
+            获取自建应用获取 tenant_access_token。
+            </summary>
+            <param name="credentials">应用唯一标识及应用秘钥信息</param>
+            <param name="cancellationToken"><see cref="T:System.Threading.CancellationToken"/>取消操作令牌对象。</param>
+            <remarks>
+            <para>tenant_access_token 的最大有效期是 2 小时。</para>
+            <para>剩余有效期小于 30 分钟时，调用本接口会返回一个新的 tenant_access_token，这会同时存在两个有效的 tenant_access_token。</para>
+            <para>剩余有效期大于等于 30 分钟时，调用本接口会返回原有的 tenant_access_token。</para>
+            </remarks>
+            <returns></returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.FeishuAuthentication.GetAppAccessTokenAsync(HttpClientApiTest.WebApi.AppCredentials,System.Threading.CancellationToken)">
+            <summary>
+            自建应用获取 app_access_token
+            </summary>
+            <param name="credentials">应用唯一标识及应用秘钥信息</param>
+            <param name="cancellationToken"><see cref="T:System.Threading.CancellationToken"/>取消操作令牌对象。</param>
+            <remarks>
+            <para>app_access_token 的最大有效期是 2 小时。</para>
+            <para>剩余有效期小于 30 分钟时，调用本接口会返回一个新的 app_access_token，这会同时存在两个有效的 app_access_token。</para>
+            <para>剩余有效期大于等于 30 分钟时，调用本接口会返回原有的 app_access_token。</para>
+            </remarks>
+            <returns></returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.SingleUserTest.GetUser_Tenant_Async(System.DateTime)">
+            <summary>
+            根据用户ID获取用户对象。
+            </summary>
+            <param name="birthday">生日</param>
+            <returns></returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.SingleUserTest.GetUser_User_Async(System.DateTime)">
+            <summary>
+            根据用户ID获取用户对象。
+            </summary>
+            <param name="birthday">生日</param>
+            <returns></returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.SingleUserTest.GetUser1Async(System.DateTime)">
+            <summary>
+            以下接口生成的url需要将birthday格式化处理：birthday.ToString("yyyy-MM-dd")
+            </summary>
+            <param name="birthday"></param>
+            <returns></returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.SingleUserTest.GetUser2Async(System.String,System.Threading.CancellationToken)">
+            <summary>
+            以下接口生成的url为：/api/v1/user?idKey=id值
+            </summary>
+            <param name="id"></param>
+            <param name="cancellationToken"></param>
+            <returns></returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.SingleUserTest.GetUser2Async(System.DateTime)">
+            <summary>
+            以下接口生成的url为：/api/v1/user?bth=birthday.ToString("yyyy-MM-dd")值
+            </summary>
+            <param name="birthday"></param>
+            <returns></returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.SingleUserTest.GetUser3Async(System.String)">
+            <summary>
+            测试注释1。
+            </summary>
+            <param name="id"></param>
+            <returns></returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.SingleUserTest.GetUser3Async(System.DateTime)">
+            <summary>
+            测试注释2。
+            </summary>
+            <param name="birthday">生日</param>
+            <returns></returns>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.SingleUserTest.GetTenantTestAsync">
+            <summary>
+            测试TenantAccessToken类型
             </summary>
         </member>
-        <member name="F:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi._httpClient">
+        <member name="M:HttpClientApiTest.WebApi.SingleUserTest.GetUserTestAsync">
             <summary>
-            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
+            测试UserAccessToken类型
             </summary>
         </member>
-        <member name="F:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi._jsonSerializerOptions">
+        <member name="M:HttpClientApiTest.WebApi.SingleUserTest.GetTenantTestWithCancellationAsync(System.Threading.CancellationToken)">
             <summary>
-            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
+            测试TenantAccessToken类型（带CancellationToken）
             </summary>
         </member>
-        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions})">
+        <member name="M:HttpClientApiTest.WebApi.SingleUserTest.GetUserTestWithCancellation_Tenant_Async(System.Threading.CancellationToken)">
             <summary>
-            构建 <see cref = "T:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi"/> 类的实例。
-            </summary>
-            <param name="httpClient">FeishuHttpClient实例</param>
-            <param name="option">Json序列化参数</param>
-        </member>
-        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi.GetMediaType(System.String)">
-            <summary>
-            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
-            </summary>
-            <param name="contentType">完整的Content-Type字符串</param>
-            <returns>媒体类型部分</returns>
-        </member>
-        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi.TestMethod1Async(System.String)">
-            <summary>
-            <inheritdoc />
+            测试UserAccessToken类型（带CancellationToken）
             </summary>
         </member>
-        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi.TestMethod2Async(System.String)">
+        <member name="M:HttpClientApiTest.WebApi.SingleUserTest.GetUserTestWithCancellation_User_Async(System.Threading.CancellationToken)">
             <summary>
-            <inheritdoc />
+            测试UserAccessToken类型（带CancellationToken）
             </summary>
         </member>
-        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi.TestMethod3Async(System.String)">
+        <member name="M:HttpClientApiTest.WebApi.SingleUserTest.DownloadFileAsync(System.String)">
             <summary>
-            <inheritdoc />
+            下载文件测试
             </summary>
         </member>
-        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi.TestMethod4Async(System.String)">
+        <member name="M:HttpClientApiTest.WebApi.SingleUserTest.DownloadFileWithCancellationAsync(System.String,System.Threading.CancellationToken)">
             <summary>
-            <inheritdoc />
+            下载文件测试（带CancellationToken）
             </summary>
         </member>
-        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeTestApi.TestMethod5Async(System.String)">
+        <member name="M:HttpClientApiTest.WebApi.SingleUserTest.DownloadLargeFileAsync(System.String,System.String)">
             <summary>
-            <inheritdoc />
+            下载文件测试
             </summary>
         </member>
-        <member name="T:HttpClientApiTest.WebApi.Internal.ContentTypeWebApiDefaultTestApi">
+        <member name="M:HttpClientApiTest.WebApi.SingleUserTest.DownloadLargeFileWithCancellationAsync(System.String,System.String,System.Threading.CancellationToken)">
             <summary>
-            <inheritdoc cref="T:HttpClientApiTest.WebApi.IContentTypeWebApiDefaultTestApi"/>
+            下载文件测试（带CancellationToken）
             </summary>
         </member>
-        <member name="F:HttpClientApiTest.WebApi.Internal.ContentTypeWebApiDefaultTestApi._httpClient">
+        <member name="T:HttpClientApiTest.WebApi.IDingTalkUser">
             <summary>
-            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
+            钉钉用户接口
             </summary>
         </member>
-        <member name="F:HttpClientApiTest.WebApi.Internal.ContentTypeWebApiDefaultTestApi._jsonSerializerOptions">
+        <member name="M:HttpClientApiTest.WebApi.IDingTalkUser.GetUsers1Async(System.String[])">
             <summary>
-            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
+            测试钉钉用户接口
+            </summary>
+            <param name="ids"></param>
+            <returns></returns>
+        </member>
+        <member name="T:HttpClientApiTest.WebApi.IFeishuAuthentication">
+            <summary>
+            飞书认证授权相关的API
             </summary>
         </member>
-        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeWebApiDefaultTestApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions})">
+        <member name="M:HttpClientApiTest.WebApi.IFeishuAuthentication.GetTenantAccessTokenAsync(HttpClientApiTest.WebApi.AppCredentials,System.Threading.CancellationToken)">
             <summary>
-            构建 <see cref = "T:HttpClientApiTest.WebApi.Internal.ContentTypeWebApiDefaultTestApi"/> 类的实例。
+            获取自建应用获取 tenant_access_token。
             </summary>
-            <param name="httpClient">FeishuHttpClient实例</param>
-            <param name="option">Json序列化参数</param>
+            <param name="credentials">应用唯一标识及应用秘钥信息</param>
+            <param name="cancellationToken"><see cref="T:System.Threading.CancellationToken"/>取消操作令牌对象。</param>
+            <remarks>
+            <para>tenant_access_token 的最大有效期是 2 小时。</para>
+            <para>剩余有效期小于 30 分钟时，调用本接口会返回一个新的 tenant_access_token，这会同时存在两个有效的 tenant_access_token。</para>
+            <para>剩余有效期大于等于 30 分钟时，调用本接口会返回原有的 tenant_access_token。</para>
+            </remarks>
+            <returns></returns>
         </member>
-        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeWebApiDefaultTestApi.GetMediaType(System.String)">
+        <member name="M:HttpClientApiTest.WebApi.IFeishuAuthentication.GetAppAccessTokenAsync(HttpClientApiTest.WebApi.AppCredentials,System.Threading.CancellationToken)">
             <summary>
-            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
+            自建应用获取 app_access_token
             </summary>
-            <param name="contentType">完整的Content-Type字符串</param>
-            <returns>媒体类型部分</returns>
+            <param name="credentials">应用唯一标识及应用秘钥信息</param>
+            <param name="cancellationToken"><see cref="T:System.Threading.CancellationToken"/>取消操作令牌对象。</param>
+            <remarks>
+            <para>app_access_token 的最大有效期是 2 小时。</para>
+            <para>剩余有效期小于 30 分钟时，调用本接口会返回一个新的 app_access_token，这会同时存在两个有效的 app_access_token。</para>
+            <para>剩余有效期大于等于 30 分钟时，调用本接口会返回原有的 app_access_token。</para>
+            </remarks>
+            <returns></returns>
         </member>
-        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeWebApiDefaultTestApi.TestDefaultAsync(System.String)">
+        <member name="T:HttpClientApiTest.WebApi.ISingleUserTest">
             <summary>
-            <inheritdoc />
+            测试注释。
+            </summary>  
+            <remarks>
+            <para>1222</para>
+            <para>54354</para>
+            </remarks>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.ISingleUserTest.GetUser_Tenant_Async(System.DateTime)">
+            <summary>
+            根据用户ID获取用户对象。
             </summary>
+            <param name="birthday">生日</param>
+            <returns></returns>
         </member>
-        <member name="T:HttpClientApiTest.WebApi.Internal.ContentTypeBodyPriorityTestApi">
+        <member name="M:HttpClientApiTest.WebApi.ISingleUserTest.GetUser_User_Async(System.DateTime)">
             <summary>
-            <inheritdoc cref="T:HttpClientApiTest.WebApi.IContentTypeBodyPriorityTestApi"/>
+            根据用户ID获取用户对象。
             </summary>
+            <param name="birthday">生日</param>
+            <returns></returns>
         </member>
-        <member name="F:HttpClientApiTest.WebApi.Internal.ContentTypeBodyPriorityTestApi._httpClient">
+        <member name="M:HttpClientApiTest.WebApi.ISingleUserTest.GetUser1Async(System.DateTime)">
             <summary>
-            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
+            以下接口生成的url需要将birthday格式化处理：birthday.ToString("yyyy-MM-dd")
             </summary>
+            <param name="birthday"></param>
+            <returns></returns>
         </member>
-        <member name="F:HttpClientApiTest.WebApi.Internal.ContentTypeBodyPriorityTestApi._jsonSerializerOptions">
+        <member name="M:HttpClientApiTest.WebApi.ISingleUserTest.GetUser2Async(System.String,System.Threading.CancellationToken)">
             <summary>
-            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
+            以下接口生成的url为：/api/v1/user?idKey=id值
             </summary>
+            <param name="id"></param>
+            <param name="cancellationToken"></param>
+            <returns></returns>
         </member>
-        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeBodyPriorityTestApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions})">
+        <member name="M:HttpClientApiTest.WebApi.ISingleUserTest.GetUser2Async(System.DateTime)">
             <summary>
-            构建 <see cref = "T:HttpClientApiTest.WebApi.Internal.ContentTypeBodyPriorityTestApi"/> 类的实例。
+            以下接口生成的url为：/api/v1/user?bth=birthday.ToString("yyyy-MM-dd")值
             </summary>
-            <param name="httpClient">FeishuHttpClient实例</param>
-            <param name="option">Json序列化参数</param>
+            <param name="birthday"></param>
+            <returns></returns>
         </member>
-        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeBodyPriorityTestApi.GetMediaType(System.String)">
+        <member name="M:HttpClientApiTest.WebApi.ISingleUserTest.GetUser3Async(System.String)">
             <summary>
-            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
+            测试注释1。
             </summary>
-            <param name="contentType">完整的Content-Type字符串</param>
-            <returns>媒体类型部分</returns>
+            <param name="id"></param>
+            <returns></returns>
         </member>
-        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeBodyPriorityTestApi.TestPriority1Async(System.String)">
+        <member name="M:HttpClientApiTest.WebApi.ISingleUserTest.GetUser3Async(System.DateTime)">
             <summary>
-            <inheritdoc />
+            测试注释2。
             </summary>
+            <param name="birthday">生日</param>
+            <returns></returns>
         </member>
-        <member name="M:HttpClientApiTest.WebApi.Internal.ContentTypeBodyPriorityTestApi.TestPriority2Async(System.String)">
+        <member name="M:HttpClientApiTest.WebApi.ISingleUserTest.GetTenantTestAsync">
             <summary>
-            <inheritdoc />
-            </summary>
-        </member>
-        <member name="T:HttpClientApiTest.WebApi.Internal.FeishuUserApi">
-            <summary>
-            <inheritdoc cref="T:HttpClientApiTest.WebApi.IFeishuUserApi"/>
-            </summary>
-        </member>
-        <member name="F:HttpClientApiTest.WebApi.Internal.FeishuUserApi._httpClient">
-            <summary>
-            用于HttpClient客户端操作的<see cref = "T:HttpClientApiTest.IEnhancedHttpClient"/> 实例。
-            </summary>
-        </member>
-        <member name="F:HttpClientApiTest.WebApi.Internal.FeishuUserApi._jsonSerializerOptions">
-            <summary>
-            用于JSON内容序列化与反序列化操作的<see cref = "T:System.Text.Json.JsonSerializerOptions"/> 参数实例。
-            </summary>
-        </member>
-        <member name="M:HttpClientApiTest.WebApi.Internal.FeishuUserApi.#ctor(HttpClientApiTest.IEnhancedHttpClient,Microsoft.Extensions.Options.IOptions{System.Text.Json.JsonSerializerOptions})">
-            <summary>
-            构建 <see cref = "T:HttpClientApiTest.WebApi.Internal.FeishuUserApi"/> 类的实例。
-            </summary>
-            <param name="httpClient">FeishuHttpClient实例</param>
-            <param name="option">Json序列化参数</param>
-        </member>
-        <member name="M:HttpClientApiTest.WebApi.Internal.FeishuUserApi.GetMediaType(System.String)">
-            <summary>
-            从Content-Type字符串中提取媒体类型部分，去除字符集信息。
-            </summary>
-            <param name="contentType">完整的Content-Type字符串</param>
-            <returns>媒体类型部分</returns>
-        </member>
-        <member name="M:HttpClientApiTest.WebApi.Internal.FeishuUserApi.GetUserAsync(System.String,System.Threading.CancellationToken)">
-            <summary>
-            <inheritdoc />
+            测试TenantAccessToken类型
             </summary>
         </member>
-        <member name="M:HttpClientApiTest.WebApi.Internal.FeishuUserApi.GetUserAbsoluteAsync(System.String,System.Threading.CancellationToken)">
+        <member name="M:HttpClientApiTest.WebApi.ISingleUserTest.GetUserTestAsync">
             <summary>
-            <inheritdoc />
+            测试UserAccessToken类型
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.ISingleUserTest.GetTenantTestWithCancellationAsync(System.Threading.CancellationToken)">
+            <summary>
+            测试TenantAccessToken类型（带CancellationToken）
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.ISingleUserTest.GetUserTestWithCancellation_Tenant_Async(System.Threading.CancellationToken)">
+            <summary>
+            测试UserAccessToken类型（带CancellationToken）
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.ISingleUserTest.GetUserTestWithCancellation_User_Async(System.Threading.CancellationToken)">
+            <summary>
+            测试UserAccessToken类型（带CancellationToken）
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.ISingleUserTest.DownloadFileAsync(System.String)">
+            <summary>
+            下载文件测试
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.ISingleUserTest.DownloadFileWithCancellationAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            下载文件测试（带CancellationToken）
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.ISingleUserTest.DownloadLargeFileAsync(System.String,System.String)">
+            <summary>
+            下载文件测试
+            </summary>
+        </member>
+        <member name="M:HttpClientApiTest.WebApi.ISingleUserTest.DownloadLargeFileWithCancellationAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            下载文件测试（带CancellationToken）
             </summary>
         </member>
         <member name="T:HttpClientApiTest.HttpClientApiTestApis.IContentTypeDefaultTestApi">
@@ -1114,6 +1988,48 @@
         <member name="M:HttpClientApiTest.HttpClientApiExtensions.AddWebApiHttpClient(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
             <summary>
             注册所有未分组的API服务
+            </summary>
+            <param name="services">服务集合</param>
+            <returns>服务集合，用于链式调用</returns>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiExtensions.AddDingtalkWebApiHttpClient(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>
+            注册所有标记了 [HttpClientApi] 特性且 RegistryGroupName = "Dingtalk" 的接口及其 HttpClient 实现
+            </summary>
+            <param name="services">服务集合</param>
+            <returns>服务集合，用于链式调用</returns>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiExtensions.AddFeishuWebApiHttpClient(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>
+            注册所有标记了 [HttpClientApi] 特性且 RegistryGroupName = "Feishu" 的接口及其 HttpClient 实现
+            </summary>
+            <param name="services">服务集合</param>
+            <returns>服务集合，用于链式调用</returns>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiExtensions.AddTestWebApiHttpClient(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>
+            注册所有标记了 [HttpClientApi] 特性且 RegistryGroupName = "Test" 的接口及其 HttpClient 实现
+            </summary>
+            <param name="services">服务集合</param>
+            <returns>服务集合，用于链式调用</returns>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiExtensions.AddDingtalkWebApiHttpClientWrap(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>
+            注册所有 RegistryGroupName = "Dingtalk" 的包装接口及其包装实现类的瞬时服务
+            </summary>
+            <param name="services">服务集合</param>
+            <returns>服务集合，用于链式调用</returns>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiExtensions.AddFeishuWebApiHttpClientWrap(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>
+            注册所有 RegistryGroupName = "Feishu" 的包装接口及其包装实现类的瞬时服务
+            </summary>
+            <param name="services">服务集合</param>
+            <returns>服务集合，用于链式调用</returns>
+        </member>
+        <member name="M:HttpClientApiTest.HttpClientApiExtensions.AddTestWebApiHttpClientWrap(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>
+            注册所有 RegistryGroupName = "Test" 的包装接口及其包装实现类的瞬时服务
             </summary>
             <param name="services">服务集合</param>
             <returns>服务集合，用于链式调用</returns>

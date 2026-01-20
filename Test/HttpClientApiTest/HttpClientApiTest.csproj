@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Mud.Common.CodeGenerator\Mud.Common.CodeGenerator.csproj" />
+    <ProjectReference Include="..\CodeBaseTest\CodeBaseTest.csproj" />
     <ProjectReference Include="..\..\Core\Mud.ServiceCodeGenerator\Mud.ServiceCodeGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 

@@ -1,5 +1,7 @@
-﻿
-namespace CodeGeneratorTest.WebApi;
+namespace HttpClientApiTest.WebApi;
+
+using Mud.Common.CodeGenerator;
+using CodeBaseTest.Interface;
 
 /// <summary>
 /// 钉钉用户接口
@@ -49,17 +51,4 @@ public interface IDingTalkUserApi
 
     [Post("/api/v1/user")]
     Task<SysUserInfoOutput> CreateUserTestAsync([Token][Header("x-token")] string token, [Body] SysUserInfoOutput user, CancellationToken cancellationToken = default);
-}
-
-
-public class ProtectedData
-{
-    public string Data { get; set; }
-}
-
-public class UserSearchCriteria
-{
-    public string Name { get; set; }
-    public int? Age { get; set; }
-    public string Department { get; set; }
 }

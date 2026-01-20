@@ -15,7 +15,7 @@ public sealed class BodyAttribute : Attribute
     }
 
     /// <summary>
-    ///     <inheritdoc cref="BodyAttribute" />
+    /// <inheritdoc cref="BodyAttribute" />
     /// </summary>
     /// <param name="contentType">内容类型</param>
     public BodyAttribute(string contentType) => ContentType = contentType;
@@ -30,12 +30,12 @@ public sealed class BodyAttribute : Attribute
         ContentEncoding = contentEncoding;
 
     /// <summary>
-    ///     内容类型
+    /// 内容类型
     /// </summary>
     public string? ContentType { get; set; }
 
     /// <summary>
-    ///     内容编码
+    /// 内容编码
     /// </summary>
     public string? ContentEncoding { get; set; }
 

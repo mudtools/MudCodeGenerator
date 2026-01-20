@@ -1,4 +1,6 @@
-namespace CodeGeneratorTest.WebApi;
+namespace HttpClientApiTest.WebApi;
+
+using Mud.Common.CodeGenerator;
 
 [HttpClientApi(TokenManage = nameof(ITokenManager), IsAbstract = true)]
 public interface ITestBaseTokenApi

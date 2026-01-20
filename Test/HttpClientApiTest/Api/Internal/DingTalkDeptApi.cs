@@ -1,4 +1,6 @@
-﻿namespace CodeGeneratorTest.WebApi.Internal;
+namespace HttpClientApiTest.WebApi.Internal;
+
+using Mud.Common.CodeGenerator;
 
 partial class DingTalkDeptApi : IDingTalkDeptApi
 {

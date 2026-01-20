@@ -1,4 +1,7 @@
-﻿namespace CodeGeneratorTest.WebApi;
+namespace HttpClientApiTest.WebApi;
+
+using Mud.Common.CodeGenerator;
+using CodeBaseTest.Interface;
 
 /// <summary>
 /// 测试注释。
@@ -123,6 +126,3 @@ public interface ISingleTestApi
     Task DownloadLargeFileWithCancellationAsync([Token][Header("x-token")] string token, [Query("fileId")] string fileId, [FilePath(BufferSize = 40960)] string filePath, CancellationToken cancellationToken = default);
 
 }
-
-
-
