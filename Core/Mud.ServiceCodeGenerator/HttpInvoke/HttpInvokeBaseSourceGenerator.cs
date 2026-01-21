@@ -35,7 +35,6 @@ public abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
             "System.Linq",
             "Microsoft.Extensions.Logging",
             "Microsoft.Extensions.Options",
-            "Mud.Common.CodeGenerator"
         ];
     }
 

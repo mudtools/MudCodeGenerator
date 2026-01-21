@@ -24,17 +24,6 @@ public interface ITenantTokenService
 }
 
 /// <summary>
-/// Token特性测试接口 - 使用 Both
-/// </summary>
-[HttpClientApi("https://api.example.com")]
-[Token(TokenType.Both)]
-public interface IBothTokenService
-{
-    [Get("/api/data")]
-    Task<string> GetDataAsync();
-}
-
-/// <summary>
 /// 无 Token 特性的接口
 /// </summary>
 [HttpClientApi("https://api.example.com")]

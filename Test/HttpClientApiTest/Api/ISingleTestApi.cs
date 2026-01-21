@@ -19,7 +19,7 @@ public interface ISingleTestApi
     /// <param name="birthday">生日，格式化为yyyy-MM-dd</param>
     /// <returns></returns>
     [Get("https://api.eishu.com/api/v1/user/{birthday}")]
-    Task<SysUserInfoOutput?> GetUserAsync([Token(TokenType = TokenType.Both)][Header("x-token")] string token, [Path("yyyy-MM-dd")] DateTime birthday);
+    Task<SysUserInfoOutput?> GetUserAsync([Token(TokenType = TokenType.TenantAccessToken)][Header("x-token")] string token, [Path("yyyy-MM-dd")] DateTime birthday);
 
     /// <summary>
     /// 测试：获取用户信息（格式化字符串路径参数）
@@ -145,7 +145,7 @@ public interface ISingleTestApi
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns></returns>
     [Get("/api/v1/user/test/cancel")]
-    Task<SysUserInfoOutput> GetUserTestWithCancellationAsync([Token(TokenType.Both)][Header("x-token")] string token, CancellationToken cancellationToken = default);
+    Task<SysUserInfoOutput> GetUserTestWithCancellationAsync([Token(TokenType.UserAccessToken)][Header("x-token")] string token, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 测试：下载文件（字节数组返回）
