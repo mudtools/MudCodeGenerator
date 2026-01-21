@@ -7,15 +7,13 @@
 
 using System.Collections.Immutable;
 using System.Text;
+using Mud.CodeGenerator;
 
 namespace Mud.ServiceCodeGenerator.ComWrap;
 
 public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 {
     #region Constants and Fields
-    private static readonly string[] KnownPrefixes = ["IWord", "IExcel", "IOffice", "IPowerPoint", "IVbe"];
-
-    private static readonly string[] KnownImpPrefixes = ["Word", "Excel", "Office", "PowerPoint", "Vbe"];
     #endregion
 
     #region Generator Initialization and Execution
@@ -38,12 +36,67 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
     /// <inheritdoc/>
     public override void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var interfaceDeclarations = GetClassDeclarationProvider<InterfaceDeclarationSyntax>(context, ComWrapAttributeNames());
+        // 获取此生成器的特性名称
+        var attributeNames = ComWrapAttributeNames();
 
-        var compilationAndInterfaces = context.CompilationProvider.Combine(interfaceDeclarations);
+        // 使用增量语法提供器，只处理带有相关特性的接口声明
+        var interfaceDeclarations = context.SyntaxProvider
+            .CreateSyntaxProvider(
+                predicate: (node, _) => node is InterfaceDeclarationSyntax interfaceDecl &&
+                    HasComWrapAttributes(interfaceDecl, attributeNames),
+                transform: (ctx, _) => GetSemanticTargetForGeneration(ctx))
+            .Where(m => m != null);
 
+        // 将编译和接口声明组合
+        var compilationAndInterfaces = context.CompilationProvider.Combine(interfaceDeclarations.Collect());
+
+        // 注册源代码生成
         context.RegisterSourceOutput(compilationAndInterfaces,
-             (spc, source) => ExecuteGenerator(source.Left, source.Right!, spc));
+            (spc, source) => ExecuteGenerator(source.Left, source.Right!, spc));
+    }
+
+    /// <summary>
+    /// 检查接口声明是否有 COM 包装特性
+    /// </summary>
+    private static bool HasComWrapAttributes(InterfaceDeclarationSyntax syntax, string[] attributeNames)
+    {
+        return syntax.AttributeLists.SelectMany(al => al.Attributes)
+            .Any(attr =>
+            {
+                var attrName = attr.Name.ToString();
+                return attributeNames.Contains(attrName);
+            });
+    }
+
+    /// <summary>
+    /// 检查接口声明是否有 COM 包装特性
+    /// </summary>
+    protected virtual bool HasComWrapAttributes(InterfaceDeclarationSyntax syntax)
+    {
+        return syntax.AttributeLists.SelectMany(al => al.Attributes)
+            .Any(attr =>
+            {
+                var attrName = attr.Name.ToString();
+                return ComWrapAttributeNames().Contains(attrName);
+            });
+    }
+
+    /// <summary>
+    /// 获取语义目标用于代码生成
+    /// </summary>
+    private static InterfaceDeclarationSyntax? GetSemanticTargetForGeneration(GeneratorSyntaxContext context)
+    {
+        // 获取接口声明的语义符号，确保其有效
+        var interfaceDecl = (InterfaceDeclarationSyntax)context.Node;
+        var semanticModel = context.SemanticModel;
+        var interfaceSymbol = semanticModel.GetDeclaredSymbol(interfaceDecl);
+
+        // 接口都是抽象的，但我们需要处理所有带有特性的接口
+        // 只检查符号是否有效
+        if (interfaceSymbol == null)
+            return null;
+
+        return interfaceDecl;
     }
 
     /// <summary>
@@ -61,7 +114,7 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
             return;
 
         var generatedHintNames = new HashSet<string>();
-        var processedSymbols = new HashSet<int>();
+        var processedSymbols = new HashSet<string>();
 
         foreach (var interfaceDeclaration in interfaces)
         {
@@ -76,9 +129,9 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
                 if (interfaceSymbol is null)
                     continue;
 
-                // 使用符号的唯一标识符防止为同一个 partial 接口重复生成
-                var symbolHashCode = interfaceSymbol.GetHashCode();
-                if (!processedSymbols.Add(symbolHashCode))
+                // 使用符号的完整限定名称防止为同一个 partial 接口重复生成
+                var symbolKey = interfaceSymbol.GetFullyQualifiedName();
+                if (!processedSymbols.Add(symbolKey))
                 {
                     continue;
                 }
@@ -87,15 +140,26 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
 
                 if (!string.IsNullOrEmpty(source))
                 {
-                    // 生成文件名: WordFieldImpl.g.cs
+                    // 生成文件名: NamespaceA_NamespaceB_WordImpl.g.cs
+                    var namespaceName = SyntaxHelper.GetNamespaceName(interfaceDeclaration);
                     var interfaceName = interfaceSymbol.Name;
-                    var safeName = interfaceName.TrimStart('I');
-                    var hintName = $"{safeName}Impl.g.cs";
+                    var hintName = GenerateHintName(namespaceName, interfaceName);
 
                     // 防止重复生成
                     if (!generatedHintNames.Add(hintName))
                     {
                         continue;
+                    }
+
+                    // 写入临时文件以便调试
+                    try
+                    {
+                        var tempFile = Path.Combine(Path.GetTempPath(), hintName);
+                        File.WriteAllText(tempFile, source);
+                    }
+                    catch
+                    {
+                        // 忽略写入错误
                     }
 
                     context.AddSource(hintName, source);
@@ -104,13 +168,32 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
             catch (Exception ex)
             {
                 // 报告代码生成失败
+                var errorMessage = $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}";
                 context.ReportDiagnostic(Diagnostic.Create(
                     Diagnostics.ComWrapGenerationError,
                     interfaceDeclaration.GetLocation(),
                     interfaceDeclaration.Identifier.Text,
-                    ex.Message));
+                    errorMessage));
             }
         }
+    }
+
+    /// <summary>
+    /// 生成包含命名空间的安全文件名
+    /// </summary>
+    /// <param name="namespaceName">命名空间名称</param>
+    /// <param name="interfaceName">接口名称</param>
+    /// <returns>生成的文件名</returns>
+    private static string GenerateHintName(string namespaceName, string interfaceName)
+    {
+        var safeNamespace = namespaceName
+            .Replace(".", "_")
+            .Replace("+", "_")
+            .Replace("<", "_")
+            .Replace(">", "_");
+
+        var safeInterfaceName = interfaceName.TrimStart('I');
+        return $"{safeNamespace}_{safeInterfaceName}Impl.g.cs";
     }
 
     /// <summary>
@@ -119,7 +202,70 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
     /// <param name="interfaceDeclaration">接口声明语法</param>
     /// <param name="interfaceSymbol">接口符号</param>
     /// <returns>生成的源代码</returns>
-    protected abstract string GenerateImplementationClass(InterfaceDeclarationSyntax interfaceDeclaration, INamedTypeSymbol interfaceSymbol);
+    protected string GenerateImplementationClass(InterfaceDeclarationSyntax interfaceDeclaration, INamedTypeSymbol interfaceSymbol)
+    {
+        if (interfaceDeclaration == null) throw new ArgumentNullException(nameof(interfaceDeclaration));
+        if (interfaceSymbol == null) throw new ArgumentNullException(nameof(interfaceSymbol));
+
+        var namespaceName = SyntaxHelper.GetNamespaceName(interfaceDeclaration);
+        var interfaceName = interfaceSymbol.Name;
+        var className = TypeSymbolHelper.GetImplementationClassName(interfaceName);
+
+        // 添加Imps命名空间
+        var impNamespace = $"{namespaceName}.Imps";
+
+        var sb = new StringBuilder();
+        GenerateFileHeader(sb);
+
+        sb.AppendLine();
+        sb.AppendLine($"namespace {impNamespace}");
+        sb.AppendLine("{");
+        sb.AppendLine($"    /// <summary>");
+        sb.AppendLine($"    /// COM封装接口 <see cref=\"{interfaceName}\"/> 的内容实现类。");
+        sb.AppendLine($"    /// </summary>");
+        sb.AppendLine($"    {CompilerGeneratedAttribute}");
+        sb.AppendLine($"    {GeneratedCodeAttribute}");
+        sb.AppendLine($"    internal sealed partial class {className} : {interfaceName}");
+        sb.AppendLine("    {");
+
+        // 生成字段
+        GenerateFields(sb, interfaceDeclaration, interfaceSymbol);
+        GeneratePrivateField(sb, interfaceSymbol, interfaceDeclaration);
+
+        // 生成构造函数
+        GenerateConstructor(sb, className, interfaceSymbol, interfaceDeclaration);
+
+        // 生成公共接口方法。
+        GenerateCommonInterfaceMethod(sb, className, interfaceSymbol, interfaceDeclaration);
+
+        // 生成属性
+        GenerateProperties(sb, interfaceSymbol, interfaceDeclaration);
+
+        // 生成方法
+        GenerateMethods(sb, interfaceSymbol, interfaceDeclaration);
+
+        // 模板方法：生成额外的实现内容（子类可重写）
+        GenerateExtraImplementations(sb, interfaceSymbol, interfaceDeclaration);
+
+        // 生成IDisposable实现
+        GenerateIDisposableImplementation(sb, interfaceDeclaration, interfaceSymbol);
+
+        sb.AppendLine("    }");
+        sb.AppendLine("}");
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// 生成额外的实现内容（钩子方法，子类可重写）
+    /// </summary>
+    /// <param name="sb">字符串构建器</param>
+    /// <param name="interfaceSymbol">接口符号</param>
+    /// <param name="interfaceDeclaration">接口声明语法</param>
+    protected virtual void GenerateExtraImplementations(StringBuilder sb, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
+    {
+        // 默认不生成额外内容
+    }
 
     #endregion
 
@@ -132,6 +278,10 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
     /// <param name="interfaceSymbol">接口符号</param>
     protected void GenerateFields(StringBuilder sb, InterfaceDeclarationSyntax interfaceDeclaration, INamedTypeSymbol interfaceSymbol)
     {
+        ArgumentNullExceptionExtensions.ThrowIfNull(sb, nameof(sb));
+        ArgumentNullExceptionExtensions.ThrowIfNull(interfaceDeclaration, nameof(interfaceDeclaration));
+        ArgumentNullExceptionExtensions.ThrowIfNull(interfaceSymbol, nameof(interfaceSymbol));
+
         var comNamespace = GetComNamespace(interfaceSymbol, interfaceDeclaration);
         var comClassName = GetComClassName(interfaceSymbol, interfaceDeclaration);
         var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
@@ -159,8 +309,10 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
     /// <param name="interfaceDeclaration">接口声明语法</param>
     protected void GenerateConstructor(StringBuilder sb, string className, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
     {
-        if (interfaceDeclaration == null || interfaceSymbol == null || sb == null)
-            return;
+        ArgumentNullExceptionExtensions.ThrowIfNull(sb, nameof(sb));
+        ArgumentNullExceptionExtensions.ThrowIfNull(className, nameof(className));
+        ArgumentNullExceptionExtensions.ThrowIfNull(interfaceSymbol, nameof(interfaceSymbol));
+        ArgumentNullExceptionExtensions.ThrowIfNull(interfaceDeclaration, nameof(interfaceDeclaration));
 
         if (NoneConstructor(interfaceSymbol))
             return;
@@ -194,8 +346,10 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
 
     protected void GenerateCommonInterfaceMethod(StringBuilder sb, string className, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
     {
-        if (interfaceDeclaration == null || interfaceSymbol == null || sb == null)
-            return;
+        ArgumentNullExceptionExtensions.ThrowIfNull(sb, nameof(sb));
+        ArgumentNullExceptionExtensions.ThrowIfNull(className, nameof(className));
+        ArgumentNullExceptionExtensions.ThrowIfNull(interfaceSymbol, nameof(interfaceSymbol));
+        ArgumentNullExceptionExtensions.ThrowIfNull(interfaceDeclaration, nameof(interfaceDeclaration));
 
         var comNamespace = GetComNamespace(interfaceSymbol, interfaceDeclaration);
         var comClassName = GetComClassName(interfaceSymbol, interfaceDeclaration);
@@ -216,9 +370,9 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
 
     protected void GeneratePrivateField(StringBuilder sb, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
     {
-        if (interfaceSymbol == null || interfaceDeclaration == null || sb == null)
-            return;
-
+        ArgumentNullExceptionExtensions.ThrowIfNull(sb, nameof(sb));
+        ArgumentNullExceptionExtensions.ThrowIfNull(interfaceSymbol, nameof(interfaceSymbol));
+        ArgumentNullExceptionExtensions.ThrowIfNull(interfaceDeclaration, nameof(interfaceDeclaration));
 
         foreach (var member in TypeSymbolHelper.GetAllProperties(interfaceSymbol))
         {
@@ -246,26 +400,31 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
     /// <summary>
     /// 生成out参数变量声明
     /// </summary>
-    private void GenerateOutParameterVariable(StringBuilder sb, IParameterSymbol param, bool isEnumType,
-        bool isObjectType, bool convertToInteger, string pType, string comNamespace,
-        string enumValueName, string constructType)
+    private void GenerateOutParameterVariable(StringBuilder sb, ParameterProcessingContext context)
     {
-        var comClassName = GetComClassNameByImpClass(constructType);
-        if (isEnumType)
+        ArgumentNullExceptionExtensions.ThrowIfNull(sb, nameof(sb));
+        ArgumentNullExceptionExtensions.ThrowIfNull(context, nameof(context));
+
+        if (context.IsEnumType)
         {
-            if (convertToInteger)
-                sb.AppendLine($"            int {param.Name}Obj;");
+            if (context.ConvertToInteger)
+                sb.AppendLine($"            int {context.Parameter.Name}Obj;");
             else
-                sb.AppendLine($"            {comNamespace}.{comClassName} {param.Name}Obj = {comNamespace}.{enumValueName};");
+            {
+                // 对于枚举类型，EnumValueName 包含完整的枚举值路径（如 "ComObjectWrapTest.WdSaveOptions.wdPromptToSaveChanges"）
+                // 我们需要将其转换为 COM 命名空间的路径
+                var enumDefault = ConvertEnumToComNamespace(context.EnumValueName, context.ComNamespace);
+                sb.AppendLine($"            {context.ParameterType} {context.Parameter.Name}Obj = {enumDefault};");
+            }
         }
-        else if (isObjectType)
+        else if (context.IsObjectType)
         {
-            sb.AppendLine($"            {comNamespace}.{comClassName} {param.Name}Obj = null;");
+            sb.AppendLine($"            {context.ComNamespace}.{context.Parameter.Type.Name} {context.Parameter.Name}Obj = null;");
         }
         else
         {
             // 普通out参数，根据类型声明变量
-            GenerateBasicOutParameterVariable(sb, param, pType);
+            GenerateBasicOutParameterVariable(sb, context.Parameter, context.ParameterType);
         }
     }
 
@@ -291,126 +450,136 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
     /// <summary>
     /// 生成参数对象处理逻辑
     /// </summary>
-    private void GenerateParameterObject(StringBuilder sb, IParameterSymbol param, string pType,
-        bool isEnumType, bool isObjectType, bool hasConvertTriState, bool convertToInteger,
-        string comNamespace, string enumValueName, string constructType)
+    private void GenerateParameterObject(StringBuilder sb, ParameterProcessingContext context)
     {
-        if (pType.EndsWith("?", StringComparison.Ordinal))
+        ArgumentNullExceptionExtensions.ThrowIfNull(sb, nameof(sb));
+        ArgumentNullExceptionExtensions.ThrowIfNull(context, nameof(context));
+
+        if (context.ParameterType.EndsWith("?", StringComparison.Ordinal))
         {
-            GenerateNullableParameterObject(sb, param, pType, isEnumType, isObjectType,
-                convertToInteger, comNamespace, enumValueName, constructType);
+            GenerateNullableParameterObject(sb, context);
         }
-        else if (hasConvertTriState && pType == "bool")
+        else if (context.HasConvertTriState && context.ParameterType == "bool")
         {
             // 带有ConvertTriState特性的bool参数
-            sb.AppendLine($"            var {param.Name}Obj = {param.Name}.ConvertTriState();");
+            sb.AppendLine($"            var {context.Parameter.Name}Obj = {context.Parameter.Name}.ConvertTriState();");
         }
         else
         {
-            GenerateNonNullableParameterObject(sb, param, pType, isEnumType, isObjectType,
-                convertToInteger, comNamespace, enumValueName, constructType);
+            GenerateNonNullableParameterObject(sb, context);
         }
     }
 
     /// <summary>
     /// 生成可空参数对象处理逻辑
     /// </summary>
-    private void GenerateNullableParameterObject(StringBuilder sb, IParameterSymbol param, string pType,
-        bool isEnumType, bool isObjectType, bool convertToInteger, string comNamespace,
-        string enumValueName, string constructType)
+    private void GenerateNullableParameterObject(StringBuilder sb, ParameterProcessingContext context)
     {
-        if (isEnumType)
+        ArgumentNullExceptionExtensions.ThrowIfNull(sb, nameof(sb));
+        ArgumentNullExceptionExtensions.ThrowIfNull(context, nameof(context));
+
+        if (context.IsEnumType)
         {
-            if (convertToInteger)
-                sb.AppendLine($"            var {param.Name}Obj = (int){param.Name} ?? 0;");
+            if (context.ConvertToInteger)
+                sb.AppendLine($"            var {context.Parameter.Name}Obj = (int){context.Parameter.Name} ?? 0;");
             else
-                sb.AppendLine($"            var {param.Name}Obj = {param.Name}?.EnumConvert({comNamespace}.{enumValueName}) ?? global::System.Type.Missing;");
+            {
+                // 对于枚举类型，EnumValueName 包含完整的枚举值路径（如 "ComObjectWrapTest.WdSaveOptions.wdPromptToSaveChanges"）
+                // 我们需要将其转换为 COM 命名空间的路径
+                var enumDefault = ConvertEnumToComNamespace(context.EnumValueName, context.ComNamespace);
+                sb.AppendLine($"            var {context.Parameter.Name}Obj = {context.Parameter.Name}?.EnumConvert({enumDefault}) ?? global::System.Type.Missing;");
+            }
         }
-        else if (isObjectType)
+        else if (context.IsObjectType)
         {
-            sb.AppendLine($"            var {param.Name}Obj = {param.Name} != null ? (({constructType}){param.Name}).InternalComObject : global::System.Type.Missing;");
+            sb.AppendLine($"            var {context.Parameter.Name}Obj = {context.Parameter.Name} != null ? (({context.ConstructType}){context.Parameter.Name}).InternalComObject : global::System.Type.Missing;");
         }
         else
         {
             // 普通可空参数
-            if (convertToInteger)
-                sb.AppendLine($"            var {param.Name}Obj = {param.Name} != null ? {param.Name}.ConvertToInt() : 0;");
+            if (context.ConvertToInteger)
+                sb.AppendLine($"            var {context.Parameter.Name}Obj = {context.Parameter.Name} != null ? {context.Parameter.Name}.ConvertToInt() : 0;");
             else
-                sb.AppendLine($"            var {param.Name}Obj = {param.Name} != null ? (object){param.Name} : global::System.Type.Missing;");
+                sb.AppendLine($"            var {context.Parameter.Name}Obj = {context.Parameter.Name} != null ? (object){context.Parameter.Name} : global::System.Type.Missing;");
         }
     }
 
     /// <summary>
     /// 生成非可空参数对象处理逻辑
     /// </summary>
-    private void GenerateNonNullableParameterObject(StringBuilder sb, IParameterSymbol param, string pType,
-        bool isEnumType, bool isObjectType, bool convertToInteger, string comNamespace,
-        string enumValueName, string constructType)
+    private void GenerateNonNullableParameterObject(StringBuilder sb, ParameterProcessingContext context)
     {
-        if (isEnumType)
+        ArgumentNullExceptionExtensions.ThrowIfNull(sb, nameof(sb));
+        ArgumentNullExceptionExtensions.ThrowIfNull(context, nameof(context));
+
+        if (context.IsEnumType)
         {
             // 枚举参数
-            if (convertToInteger)
-                sb.AppendLine($"            var {param.Name}Obj = (int){param.Name};");
+            if (context.ConvertToInteger)
+                sb.AppendLine($"            var {context.Parameter.Name}Obj = (int){context.Parameter.Name};");
             else
-                sb.AppendLine($"            var {param.Name}Obj = {param.Name}.EnumConvert({comNamespace}.{enumValueName});");
+            {
+                // 对于枚举类型，EnumValueName 包含完整的枚举值路径（如 "ComObjectWrapTest.WdSaveOptions.wdPromptToSaveChanges"）
+                // 我们需要将其转换为 COM 命名空间的路径
+                var enumDefault = ConvertEnumToComNamespace(context.EnumValueName, context.ComNamespace);
+                
+                // 临时调试：写入文件以查看值
+                try
+                {
+                    var debugFile = Path.Combine(Path.GetTempPath(), $"enum_debug_{context.Parameter.Name}.txt");
+                    File.WriteAllText(debugFile, $"EnumValueName: {context.EnumValueName}\nComNamespace: {context.ComNamespace}\nConverted: {enumDefault}");
+                }
+                catch { }
+                
+                sb.AppendLine($"            var {context.Parameter.Name}Obj = {context.Parameter.Name}.EnumConvert({enumDefault});");
+            }
         }
-        else if (isObjectType)
+        else if (context.IsObjectType)
         {
             // COM对象参数
-            sb.AppendLine($"            var {param.Name}Obj = (({constructType}){param.Name}).InternalComObject;");
+            sb.AppendLine($"            var {context.Parameter.Name}Obj = (({context.ConstructType}){context.Parameter.Name}).InternalComObject;");
         }
-        else if (pType == "object")
+        else if (context.ParameterType == "object")
         {
             // object类型参数
-            if (convertToInteger)
-                sb.AppendLine($"            var {param.Name}Obj = {param.Name}.ConvertToInt();");
+            if (context.ConvertToInteger)
+                sb.AppendLine($"            var {context.Parameter.Name}Obj = {context.Parameter.Name}.ConvertToInt();");
             else
-                sb.AppendLine($"            var {param.Name}Obj = {param.Name} ?? global::System.Type.Missing;");
+                sb.AppendLine($"            var {context.Parameter.Name}Obj = {context.Parameter.Name} ?? global::System.Type.Missing;");
         }
     }
 
     /// <summary>
-    /// 从实现类的类型名字符串中提取有意义的类名
+    /// 将枚举值路径转换为 COM 命名空间的路径
     /// </summary>
-    /// <param name="typeName">类型名字符串，可以包含命名空间</param>
-    /// <returns>提取出的类名</returns>
-    private static string GetComClassNameByImpClass(string typeName)
+    /// <param name="enumValuePath">枚举值路径，如 "ComObjectWrapTest.WdSaveOptions.wdPromptToSaveChanges"</param>
+    /// <param name="comNamespace">COM 命名空间，如 "MsWord"</param>
+    /// <returns>COM 命名空间的枚举路径，如 "MsWord.WdSaveOptions.wdPromptToSaveChanges"</returns>
+    private static string ConvertEnumToComNamespace(string enumValuePath, string comNamespace)
     {
-        if (string.IsNullOrWhiteSpace(typeName))
-            return typeName;
+        if (string.IsNullOrEmpty(enumValuePath))
+            return string.Empty;
 
-        // 1. 获取最后一个点后面的部分（去掉命名空间）
-        string className = typeName;
-        int lastDotIndex = typeName.LastIndexOf('.');
-        if (lastDotIndex >= 0 && lastDotIndex < typeName.Length - 1)
-        {
-            className = typeName.Substring(lastDotIndex + 1);
-        }
+        // 如果没有提供 COM 命名空间，返回原始值
+        if (string.IsNullOrEmpty(comNamespace))
+            return enumValuePath;
 
-        // 2. 遍历预定义前缀，检查并移除
-        foreach (string prefix in KnownImpPrefixes.OrderByDescending(p => p.Length))
-        {
-            if (className.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-            {
-                // 检查移除前缀后的部分是否以大写字母开头或为空
-                string remaining = className.Substring(prefix.Length);
-                if (remaining.Length > 0 && char.IsUpper(remaining[0]))
-                {
-                    return remaining;
-                }
-                else if (remaining.Length == 0)
-                {
-                    // 如果整个类名就是前缀本身，直接返回
-                    return className;
-                }
-                // 如果移除前缀后不以大写字母开头，可能不是正确的前缀，继续尝试其他前缀
-            }
-        }
+        // 枚举值路径格式：NamespaceA.NamespaceB.EnumName.MemberName
+        // 我们需要将前面的命名空间替换为 comNamespace，保留 EnumName.MemberName
+        var lastDotIndex = enumValuePath.LastIndexOf('.');
+        if (lastDotIndex <= 0)
+            return enumValuePath;
 
-        // 3. 如果没有找到预定义前缀，返回原始类名
-        return className;
+        var secondLastDotIndex = enumValuePath.LastIndexOf('.', lastDotIndex - 1);
+        if (secondLastDotIndex <= 0)
+            return enumValuePath;
+
+        // 提取 EnumName.MemberName
+        var enumNameAndMember = enumValuePath.Substring(secondLastDotIndex + 1);
+        
+        return $"{comNamespace}.{enumNameAndMember}";
     }
+
     #endregion
 
     #region Method Generation
@@ -421,8 +590,9 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
     /// <param name="interfaceSymbol">接口符号</param>
     protected void GenerateMethods(StringBuilder sb, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
     {
-        if (interfaceDeclaration == null || sb == null || interfaceSymbol == null)
-            return;
+        ArgumentNullExceptionExtensions.ThrowIfNull(sb, nameof(sb));
+        ArgumentNullExceptionExtensions.ThrowIfNull(interfaceDeclaration, nameof(interfaceDeclaration));
+        ArgumentNullExceptionExtensions.ThrowIfNull(interfaceSymbol, nameof(interfaceSymbol));
 
         sb.AppendLine("        #region 方法实现");
         sb.AppendLine();
@@ -551,33 +721,18 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
     {
         foreach (var param in methodSymbol.Parameters)
         {
-            var pType = TypeSymbolHelper.GetTypeFullName(param.Type);
-            bool isEnumType = TypeSymbolHelper.IsEnumType(param.Type);
-            bool isObjectType = TypeSymbolHelper.IsComplexObjectType(param.Type);
-            bool hasConvertTriState = HasConvertTriStateAttribute(param);
-            bool convertToInteger = AttributeDataHelper.HasAttribute(param, ComWrapConstants.ConvertIntAttributeNames);
-            bool isOut = param.RefKind == RefKind.Out;
-
-            var defaultValue = GetDefaultValue(interfaceDeclaration, param, param.Type);
-            var comNamespace = GetComNamespace(interfaceSymbol, interfaceDeclaration);
-
-            var paramcomNamespace = AttributeDataHelper.GetStringValueFromSymbol(param, ComWrapConstants.ComNamespaceAttributes, "Name", "");
-            if (!string.IsNullOrEmpty(paramcomNamespace))
-                comNamespace = paramcomNamespace;
-
-            var enumValueName = GetEnumValueWithoutNamespace(defaultValue);
-            // 对于枚举类型，直接使用类型名，不需要转换为实现类型
-            var constructType = isEnumType ? TypeSymbolHelper.GetTypeFullName(param.Type) : GetImplementationType(TypeSymbolHelper.GetTypeFullName(param.Type));
+            var context = ParameterProcessingContext.CreateForMethodParameter(
+                param, interfaceSymbol, interfaceDeclaration);
 
             // 处理out参数
-            if (isOut)
+            if (context.IsOut)
             {
-                GenerateOutParameterVariable(sb, param, isEnumType, isObjectType, convertToInteger, pType, comNamespace, enumValueName, constructType);
+                GenerateOutParameterVariable(sb, context);
                 continue;
             }
 
             // 生成参数对象处理逻辑
-            GenerateParameterObject(sb, param, pType, isEnumType, isObjectType, hasConvertTriState, convertToInteger, comNamespace, enumValueName, constructType);
+            GenerateParameterObject(sb, context);
         }
         sb.AppendLine();
     }
@@ -609,7 +764,7 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
         sb.AppendLine("            {");
 
         // 生成方法调用参数
-        var callParameters = GenerateCallParameters(methodSymbol);
+        var callParameters = GenerateCallParameters(methodSymbol, interfaceDeclaration, interfaceSymbol);
 
         if (returnType == "void")
         {
@@ -686,30 +841,29 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
     /// <summary>
     /// 生成方法调用参数
     /// </summary>
-    private string GenerateCallParameters(IMethodSymbol methodSymbol)
+    private string GenerateCallParameters(IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDeclaration, INamedTypeSymbol interfaceSymbol)
     {
         var parameters = new List<string>();
 
         foreach (var param in methodSymbol.Parameters)
         {
-            var pType = TypeSymbolHelper.GetTypeFullName(param.Type);
-            bool isEnumType = TypeSymbolHelper.IsEnumType(param.Type);
-            bool isObjectType = TypeSymbolHelper.IsComplexObjectType(param.Type);
-            bool hasConvertTriState = HasConvertTriStateAttribute(param);
-            bool isOut = param.RefKind == RefKind.Out;
+            var context = ParameterProcessingContext.CreateForMethodParameter(
+                param, interfaceSymbol, interfaceDeclaration);
 
-            if (isOut)
+            if (context.IsOut)
             {
                 // out参数需要添加out关键字
-                parameters.Add($"out {param.Name}Obj");
+                parameters.Add($"out {context.Parameter.Name}Obj");
             }
-            else if (pType.EndsWith("?", StringComparison.Ordinal) || isEnumType || isObjectType || hasConvertTriState || pType == "object")
+            else if (context.ParameterType.EndsWith("?", StringComparison.Ordinal) ||
+                     context.IsEnumType || context.IsObjectType ||
+                     context.HasConvertTriState || context.ParameterType == "object")
             {
-                parameters.Add($"{param.Name}Obj");
+                parameters.Add($"{context.Parameter.Name}Obj");
             }
             else
             {
-                parameters.Add(param.Name);
+                parameters.Add(context.Parameter.Name);
             }
         }
 
@@ -721,43 +875,42 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
     /// </summary>
     private void GenerateOutParameterAssignment(StringBuilder sb, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDeclaration, INamedTypeSymbol interfaceSymbol)
     {
-        var comNamespace = GetComNamespace(interfaceSymbol, interfaceDeclaration);
+        ArgumentNullExceptionExtensions.ThrowIfNull(sb, nameof(sb));
+        ArgumentNullExceptionExtensions.ThrowIfNull(methodSymbol, nameof(methodSymbol));
+        ArgumentNullExceptionExtensions.ThrowIfNull(interfaceDeclaration, nameof(interfaceDeclaration));
+        ArgumentNullExceptionExtensions.ThrowIfNull(interfaceSymbol, nameof(interfaceSymbol));
 
         foreach (var param in methodSymbol.Parameters)
         {
             if (param.RefKind != RefKind.Out)
                 continue;
 
-            var pType = TypeSymbolHelper.GetTypeFullName(param.Type);
-            bool isEnumType = TypeSymbolHelper.IsEnumType(param.Type);
-            bool isObjectType = TypeSymbolHelper.IsComplexObjectType(param.Type);
-            bool convertToInteger = AttributeDataHelper.HasAttribute(param, ComWrapConstants.ConvertIntAttributeNames);
+            var context = ParameterProcessingContext.CreateForMethodParameter(
+                param, interfaceSymbol, interfaceDeclaration);
 
-            if (isEnumType)
+            if (context.IsEnumType)
             {
-                if (convertToInteger)
+                if (context.ConvertToInteger)
                 {
                     // 枚举转整数的out参数
-                    sb.AppendLine($"                {param.Name} = ({pType}){param.Name}Obj;");
+                    sb.AppendLine($"                {context.Parameter.Name} = ({context.ParameterType}){context.Parameter.Name}Obj;");
                 }
                 else
                 {
                     // 普通枚举out参数
-                    var defaultValue = GetDefaultValue(interfaceDeclaration, param, param.Type);
-                    var enumValueName = GetEnumValueWithoutNamespace(defaultValue);
-                    sb.AppendLine($"                {param.Name} = {param.Name}Obj.EnumConvert({defaultValue});");
+                    var enumDefault = ConvertEnumToComNamespace(context.EnumValueName, context.ComNamespace);
+                    sb.AppendLine($"                {context.Parameter.Name} = {context.Parameter.Name}Obj.EnumConvert({enumDefault});");
                 }
             }
-            else if (isObjectType)
+            else if (context.IsObjectType)
             {
                 // COM对象out参数
-                var constructType = GetImplementationType(param.Type.Name);
-                sb.AppendLine($"                {param.Name} = new {constructType}({param.Name}Obj);");
+                sb.AppendLine($"                {context.Parameter.Name} = new {context.ConstructType}({context.Parameter.Name}Obj);");
             }
             else
             {
                 // 普通out参数
-                sb.AppendLine($"                {param.Name} = {param.Name}Obj;");
+                sb.AppendLine($"                {context.Parameter.Name} = {context.Parameter.Name}Obj;");
             }
         }
     }
@@ -818,20 +971,6 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
     }
 
 
-    protected string GetOrdinalComType(string ordinalComType)
-    {
-        if (string.IsNullOrEmpty(ordinalComType))
-            return ordinalComType;
-        foreach (var preFix in KnownPrefixes)
-        {
-            if (ordinalComType.StartsWith(preFix, StringComparison.Ordinal))
-            {
-                ordinalComType = ordinalComType.Substring(preFix.Length).TrimEnd('?');
-                break;
-            }
-        }
-        return ordinalComType;
-    }
 
 
     /// <summary>
@@ -839,7 +978,7 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
     /// </summary>
     private void GenerateExceptionHandling(StringBuilder sb, string methodName)
     {
-        var operationDescription = GetOperationDescription(methodName);
+        var operationDescription = GeneratorMessages.GetOperationDescription(methodName);
 
         sb.AppendLine("            catch (COMException cx)");
         sb.AppendLine("            {");
@@ -852,23 +991,11 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
     }
 
     /// <summary>
-    /// 获取操作描述
+    /// 获取COM类名的Ordinal类型（移除接口前缀）
     /// </summary>
-    private string GetOperationDescription(string methodName)
+    protected string GetOrdinalComType(string ordinalComType)
     {
-        // 根据方法名生成更友好的操作描述
-        return methodName switch
-        {
-            "Add" => "添加对象操作",
-            "Remove" => "移除对象操作",
-            "Delete" => "删除对象操作",
-            "Update" => "更新对象操作",
-            "Insert" => "插入对象操作",
-            "Copy" => "复制对象操作",
-            "Paste" => "粘贴对象操作",
-            "Select" => "选择对象",
-            _ => $"执行{methodName}操作"
-        };
+        return NamingHelper.GetOrdinalComType(ordinalComType);
     }
 
     /// <summary>

@@ -11,6 +11,12 @@ namespace Mud.ServiceCodeGenerator.ComWrap;
 
 partial class ComObjectWrapBaseGenerator
 {
+    #region Constants and Fields
+    private static readonly string[] KnownPrefixes = ["IWord", "IExcel", "IOffice", "IPowerPoint", "IVbe"];
+
+    private static readonly string[] KnownImpPrefixes = ["Word", "Excel", "Office", "PowerPoint", "Vbe"];
+    #endregion
+
     #region Indexer Implementation
     /// <summary>
     /// 生成索引器实现
@@ -484,6 +490,9 @@ partial class ComObjectWrapBaseGenerator
         var comNamespace = GetComNamespace(interfaceSymbol, interfaceDeclaration);
         var isEnumType = TypeSymbolHelper.IsEnumType(indexerSymbol.Type);
         var defaultValue = GetDefaultValue(interfaceDeclaration, indexerSymbol, indexerSymbol.Type);
+        // 对于枚举类型，EnumConvert 的默认值参数类型应该与返回类型（封装枚举）相同
+        // 不需要转换为 COM 命名空间，defaultValue 已经是封装枚举的完整路径
+        var enumDefaultValue = defaultValue;
         var needConvert = IsNeedConvert(indexerSymbol);
         sb.AppendLine("                try");
         sb.AppendLine("                {");
@@ -499,7 +508,7 @@ partial class ComObjectWrapBaseGenerator
         if (TypeSymbolHelper.IsBasicType(elementImplType) || isEnumType)
         {
             if (isEnumType)
-                sb.AppendLine($"                    return comElement.EnumConvert({defaultValue});");
+                sb.AppendLine($"                    return comElement.EnumConvert({enumDefaultValue});");
             else
                 sb.AppendLine($"                    return comElement;");
         }
@@ -841,6 +850,10 @@ partial class ComObjectWrapBaseGenerator
         if (!string.IsNullOrEmpty(propertyComNamespace))
             comNamespace = propertyComNamespace;
 
+        // 对于枚举类型，需要将默认值转换为 COM 命名空间的路径
+        // 注意：不使用第二个默认值参数，因为类型推断可能出错
+        var comEnumType = $"{comNamespace}.{propertySymbol.Type.Name}";
+
         sb.AppendLine($"        ///  <inheritdoc/>");
         sb.AppendLine($"        {GeneratedCodeAttribute}");
         sb.AppendLine($"        public {propertyType} {orgPropertyName}");
@@ -850,7 +863,7 @@ partial class ComObjectWrapBaseGenerator
             sb.AppendLine("            get");
             sb.AppendLine("            {");
             GenerateDisposedCheck(sb, privateFieldName);
-            sb.AppendLine($"                return {GetPropertyGetString(privateFieldName, propertyName, isMethod)}.EnumConvert({defaultValue});");
+            sb.AppendLine($"                return {GetPropertyGetString(privateFieldName, propertyName, isMethod)}.EnumConvert<{comEnumType}, {propertyType}>();");
             sb.AppendLine("             }");
         }
 
@@ -864,7 +877,7 @@ partial class ComObjectWrapBaseGenerator
             if (isConvertIntIndex)
                 sb.AppendLine($"                {GetPropertySetString(privateFieldName, propertyName, isMethod, "value.ConvertToInt()")};");
             else
-                sb.AppendLine($"                {GetPropertySetString(privateFieldName, propertyName, isMethod, $"value.EnumConvert({comNamespace}.{enumValueName})")};");
+                sb.AppendLine($"                {GetPropertySetString(privateFieldName, propertyName, isMethod, $"value.EnumConvert<{propertyType}, {comEnumType}>()")};");
             sb.AppendLine("            }");
         }
         sb.AppendLine("        }");
@@ -1387,7 +1400,7 @@ partial class ComObjectWrapBaseGenerator
         if (!NoneDisposed(interfaceSymbol))
         {
             sb.AppendLine($"        {GeneratedCodeAttribute}");
-            sb.AppendLine("        protected virtual void Dispose(bool disposing)");
+            sb.AppendLine("        private void Dispose(bool disposing)");
             sb.AppendLine("        {");
             sb.AppendLine("            if (_disposedValue) return;");
             sb.AppendLine();

@@ -811,3 +811,22 @@ internal static class TypeSymbolHelper
     }
     #endregion
 }
+
+/// <summary>
+/// ISymbol 扩展方法
+/// </summary>
+internal static class SymbolExtensions
+{
+    /// <summary>
+    /// 获取符号的完整限定名称（包含命名空间）
+    /// </summary>
+    /// <param name="symbol">符号</param>
+    /// <returns>完整限定名称</returns>
+    public static string GetFullyQualifiedName(this ISymbol symbol)
+    {
+        if (symbol == null)
+            return string.Empty;
+
+        return symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+    }
+}

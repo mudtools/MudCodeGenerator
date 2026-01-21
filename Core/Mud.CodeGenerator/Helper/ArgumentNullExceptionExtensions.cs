@@ -5,24 +5,26 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-namespace Mud.ServiceCodeGenerator.ComWrap;
+namespace Mud.CodeGenerator;
 
 /// <summary>
-/// COM对象包装源代码生成器
+/// 参数验证扩展方法（兼容 .NET Standard 2.0）
 /// </summary>
-/// <remarks>
-/// 为标记了ComObjectWrap特性的接口生成COM对象包装类，提供类型安全的COM对象访问
-/// </remarks>
-[Generator]
-public class ComObjectWrapGenerator : ComObjectWrapBaseGenerator
+internal static class ArgumentNullExceptionExtensions
 {
-    #region Generator Configuration
-
     /// <summary>
-    /// 获取COM对象包装特性名称数组
+    /// 如果参数为 null 则抛出 ArgumentNullException（.NET Standard 2.0 兼容版本）
     /// </summary>
-    /// <returns>特性名称数组</returns>
-    protected override string[] ComWrapAttributeNames() => ComWrapConstants.ComObjectWrapAttributeNames;
-
-    #endregion
+    /// <typeparam name="T">参数类型（必须是引用类型）</typeparam>
+    /// <param name="argument">参数值</param>
+    /// <param name="paramName">参数名称</param>
+    public static void ThrowIfNull<T>(T argument, string? paramName = null) where T : class
+    {
+        if (argument is null)
+        {
+            throw paramName != null
+                ? new ArgumentNullException(paramName)
+                : new ArgumentNullException();
+        }
+    }
 }

@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------
 
 using System.Text;
+using Mud.CodeGenerator;
 
 namespace Mud.ServiceCodeGenerator.ComWrap;
 
@@ -70,75 +71,15 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
     protected override string[] ComWrapAttributeNames() => ComWrapConstants.ComCollectionWrapAttributeNames;
 
     /// <summary>
-    /// 重写 GenerateAdditionalImplementations，生成 IEnumerable 实现
+    /// 重写 GenerateExtraImplementations，生成 IEnumerable 实现
     /// </summary>
-    private void GenerateAdditionalImplementations(
-        StringBuilder sb,
-        INamedTypeSymbol interfaceSymbol,
-        InterfaceDeclarationSyntax interfaceDeclaration)
+    protected override void GenerateExtraImplementations(StringBuilder sb, INamedTypeSymbol interfaceSymbol, InterfaceDeclarationSyntax interfaceDeclaration)
     {
-        if (sb == null) throw new ArgumentNullException(nameof(sb));
-        if (interfaceSymbol == null) throw new ArgumentNullException(nameof(interfaceSymbol));
-        if (interfaceDeclaration == null) throw new ArgumentNullException(nameof(interfaceDeclaration));
+        ArgumentNullExceptionExtensions.ThrowIfNull(sb, nameof(sb));
+        ArgumentNullExceptionExtensions.ThrowIfNull(interfaceSymbol, nameof(interfaceSymbol));
+        ArgumentNullExceptionExtensions.ThrowIfNull(interfaceDeclaration, nameof(interfaceDeclaration));
 
         GenerateEnumerableImplementation(sb, interfaceSymbol, interfaceDeclaration);
-    }
-
-    /// <summary>
-    /// 重写 GenerateImplementationClass，使用模板方法模式
-    /// </summary>
-    protected override string GenerateImplementationClass(InterfaceDeclarationSyntax interfaceDeclaration, INamedTypeSymbol interfaceSymbol)
-    {
-        if (interfaceDeclaration == null) throw new ArgumentNullException(nameof(interfaceDeclaration));
-        if (interfaceSymbol == null) throw new ArgumentNullException(nameof(interfaceSymbol));
-
-        var namespaceName = SyntaxHelper.GetNamespaceName(interfaceDeclaration);
-        var interfaceName = interfaceSymbol.Name;
-        var className = TypeSymbolHelper.GetImplementationClassName(interfaceName);
-
-        // 添加Imps命名空间
-        var impNamespace = $"{namespaceName}.Imps";
-
-        var sb = new StringBuilder();
-        GenerateFileHeader(sb);
-
-        sb.AppendLine();
-        sb.AppendLine($"namespace {impNamespace}");
-        sb.AppendLine("{");
-        sb.AppendLine($"    /// <summary>");
-        sb.AppendLine($"    /// COM封装接口 <see cref=\"{interfaceName}\"/> 的内容实现类。");
-        sb.AppendLine($"    /// </summary>");
-        sb.AppendLine($"    {CompilerGeneratedAttribute}");
-        sb.AppendLine($"    {GeneratedCodeAttribute}");
-        sb.AppendLine($"    internal partial class {className} : {interfaceName}");
-        sb.AppendLine("    {");
-
-        // 生成字段
-        GenerateFields(sb, interfaceDeclaration, interfaceSymbol);
-        GeneratePrivateField(sb, interfaceSymbol, interfaceDeclaration);
-
-        // 生成构造函数
-        GenerateConstructor(sb, className, interfaceSymbol, interfaceDeclaration);
-
-        // 生成公共接口方法。
-        GenerateCommonInterfaceMethod(sb, className, interfaceSymbol, interfaceDeclaration);
-
-        // 生成属性
-        GenerateProperties(sb, interfaceSymbol, interfaceDeclaration);
-
-        // 生成方法
-        GenerateMethods(sb, interfaceSymbol, interfaceDeclaration);
-
-        // 模板方法：生成额外的实现内容（IEnumerable）
-        GenerateAdditionalImplementations(sb, interfaceSymbol, interfaceDeclaration);
-
-        // 生成IDisposable实现
-        GenerateIDisposableImplementation(sb, interfaceDeclaration, interfaceSymbol);
-
-        sb.AppendLine("    }");
-        sb.AppendLine("}");
-
-        return sb.ToString();
     }
     #endregion
 
@@ -249,7 +190,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
 
         if (!hasCountProperty)
         {
-            GenerateEnumerableWarning(sb, "集合接口缺少Count属性，无法生成基于索引的枚举器");
+            GenerateEnumerableWarning(sb, GeneratorMessages.MissingCountProperty);
             return;
         }
 
@@ -379,7 +320,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
     /// </summary>
     private void GenerateEnumerableWarning(StringBuilder sb)
     {
-        sb.AppendLine("            // 警告: 无法确定集合元素类型，请确保接口实现 IEnumerable<T>");
+        sb.AppendLine($"            // {GeneratorMessages.CannotDetermineCollectionElementType}");
         sb.AppendLine("            yield break;");
     }
 

@@ -27,5 +27,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Model\ClassHierarchyInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)TransitiveCodeGenerator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helper\TypeSymbolHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helper\NamingHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helper\ArgumentNullExceptionExtensions.cs" />
   </ItemGroup>
 </Project>
