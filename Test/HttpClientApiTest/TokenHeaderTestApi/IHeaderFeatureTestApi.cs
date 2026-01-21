@@ -6,8 +6,7 @@ using Mud.Common.CodeGenerator;
 /// Header特性测试接口
 /// 用于测试[Header]特性在不同场景下的使用
 /// </summary>
-[HttpClientApi("https://api.mudtools.cn/", Timeout = 90, RegistryGroupName = "HeaderFeature")]
-[HttpClientApiWrap(TokenManage = "ITokenManage")]
+[HttpClientApi("https://api.mudtools.cn/", Timeout = 90, TokenManage = "IFeishuAppManager", RegistryGroupName = "HeaderFeature")]
 public interface IHeaderFeatureTestApi
 {
     /// <summary>

@@ -6,8 +6,7 @@ using Mud.Common.CodeGenerator;
 /// Token和Header特性在不同HTTP方法中的测试接口
 /// 用于测试[Token]和[Header]特性在各种HTTP方法中的使用
 /// </summary>
-[HttpClientApi("https://api.mudtools.cn/", Timeout = 90, RegistryGroupName = "TokenHeaderHttpMethods")]
-[HttpClientApiWrap(TokenManage = "ITokenManage")]
+[HttpClientApi("https://api.mudtools.cn/", Timeout = 90, TokenManage = "IFeishuAppManager", RegistryGroupName = "TokenHeaderHttpMethods")]
 public interface ITokenHeaderHttpMethodsTestApi
 {
     /// <summary>

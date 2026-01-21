@@ -2,14 +2,12 @@ namespace HttpClientApiTest.Api;
 
 using Mud.Common.CodeGenerator;
 using System.Text.Json.Serialization;
-using CodeBaseTest.Interface;
 
 /// <summary>
 /// 飞书认证授权API测试接口
 /// 测试飞书认证相关的API功能，包括获取tenant_access_token和app_access_token
 /// </summary>
-[HttpClientApi("https://api.dingtalk.com", Timeout = 60, RegistryGroupName = "Feishu")]
-[HttpClientApiWrap(TokenManage = "ITokenManage", WrapInterface = nameof(IFeishuAuthentication))]
+[HttpClientApi("https://api.dingtalk.com", TokenManage = "IFeishuAppManager", Timeout = 60, RegistryGroupName = "Feishu")]
 public interface IFeishuAuthenticationApi
 {
     /// <summary>

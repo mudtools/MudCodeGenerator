@@ -211,7 +211,7 @@ internal class RequestBuilder
         var deserializeType = methodInfo.IsAsyncMethod ? methodInfo.AsyncInnerReturnType : methodInfo.ReturnType;
         codeBuilder.AppendLine();
 
-        codeBuilder.AppendLine($"            var httpClient = _appManager.GetHttpClient();");
+        codeBuilder.AppendLine($"            var httpClient = _appContext.HttpClient;");
         if (filePathParam != null)
         {
             codeBuilder.AppendLine($"            await httpClient.DownloadLargeAsync(request, {filePathParam.Name}{cancellationTokenArg});");

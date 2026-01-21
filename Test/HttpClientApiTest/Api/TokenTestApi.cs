@@ -1,4 +1,5 @@
-using Mud.Common.CodeGenerator;
+
+namespace HttpClientApiTest.Api;
 
 /// <summary>
 /// Token特性测试接口 - 使用 AppAccessToken

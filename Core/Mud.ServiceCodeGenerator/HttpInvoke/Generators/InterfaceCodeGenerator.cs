@@ -21,6 +21,7 @@ internal class InterfaceImpCodeGenerator
         public Configuration Config { get; }
         public bool HasInheritedFrom => !string.IsNullOrEmpty(Config.InheritedFrom);
         public bool HasTokenManager => !string.IsNullOrEmpty(Config.TokenManager);
+        public bool HasTokenType => !string.IsNullOrEmpty(Config.TokenType);
         public string FieldAccessibility { get; }
         public string LoggerType { get; }
         public string ConstructorLoggerType { get; }
@@ -352,7 +353,7 @@ internal class InterfaceImpCodeGenerator
         // 如果需要Token管理器，获取access_token
         if (hasTokenManager && (hasAuthorizationHeader || hasAuthorizationQuery))
         {
-            _codeBuilder.AppendLine($"            var tokenManager = _appManager.GetTokenManager(GetTokeType());");
+            _codeBuilder.AppendLine($"            var tokenManager = _appContext.GetTokenManager(GetTokeType());");
             _codeBuilder.AppendLine($"            var access_token = await tokenManager.GetTokenAsync();");
             _codeBuilder.AppendLine($"            if (string.IsNullOrEmpty(access_token))");
             _codeBuilder.AppendLine($"            {{");

@@ -54,8 +54,7 @@ public interface IAdvancedFunctionApi
 /// 综合功能接口
 /// 同时继承自基础功能接口和高级功能接口，展示接口多继承
 /// </summary>
-[HttpClientApi("https://api.mudtools.cn/", Timeout = 90, RegistryGroupName = "CompositeInheritance")]
-[HttpClientApiWrap(TokenManage = "ITokenManage")]
+[HttpClientApi("https://api.mudtools.cn/", Timeout = 90, TokenManage = "IFeishuAppManager", RegistryGroupName = "CompositeInheritance")]
 [Header("X-Function-Type", "composite")]
 public interface ICompositeFunctionApi : IBaseFunctionApi, IAdvancedFunctionApi
 {
@@ -80,8 +79,7 @@ public interface ICompositeFunctionApi : IBaseFunctionApi, IAdvancedFunctionApi
 /// 扩展功能接口
 /// 继承自综合功能接口，展示多层接口继承
 /// </summary>
-[HttpClientApi("https://api.mudtools.cn/", Timeout = 120, RegistryGroupName = "ExtendedInheritance")]
-[HttpClientApiWrap(TokenManage = "ITenantTokenManager")]
+[HttpClientApi("https://api.mudtools.cn/", Timeout = 120, TokenManage = "IFeishuAppManager", RegistryGroupName = "ExtendedInheritance")]
 [Header("X-Function-Type", "extended")]
 public interface IExtendedFunctionApi : ICompositeFunctionApi
 {

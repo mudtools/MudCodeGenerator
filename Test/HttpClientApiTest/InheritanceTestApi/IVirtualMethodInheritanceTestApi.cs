@@ -38,8 +38,7 @@ public interface IVirtualMethodBaseTestApi
 /// 虚方法继承测试接口
 /// 继承自IVirtualMethodBaseTestApi，重写部分方法
 /// </summary>
-[HttpClientApi("https://api.mudtools.cn/", Timeout = 90, RegistryGroupName = "VirtualMethod")]
-[HttpClientApiWrap(TokenManage = "ITokenManage")]
+[HttpClientApi("https://api.mudtools.cn/", Timeout = 90, TokenManage = "IFeishuAppManager", RegistryGroupName = "VirtualMethod")]
 [Header("X-Virtual-Method", "true")]
 public interface IVirtualMethodInheritanceTestApi : IVirtualMethodBaseTestApi
 {
@@ -72,8 +71,7 @@ public interface IVirtualMethodInheritanceTestApi : IVirtualMethodBaseTestApi
 /// 虚方法继承测试子接口
 /// 继承自IVirtualMethodInheritanceTestApi，进一步重写方法
 /// </summary>
-[HttpClientApi("https://api.mudtools.cn/", Timeout = 120, RegistryGroupName = "VirtualMethodChild")]
-[HttpClientApiWrap(TokenManage = "ITenantTokenManager")]
+[HttpClientApi("https://api.mudtools.cn/", Timeout = 120, TokenManage = "IFeishuAppManager", RegistryGroupName = "VirtualMethodChild")]
 [Header("X-Virtual-Method", "child")]
 [Header("X-Child-Header", "child-value")]
 public interface IVirtualMethodChildInheritanceTestApi : IVirtualMethodInheritanceTestApi

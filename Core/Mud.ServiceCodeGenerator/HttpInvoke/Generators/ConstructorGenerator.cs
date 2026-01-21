@@ -55,6 +55,12 @@ internal class ConstructorGenerator
         _codeBuilder.AppendLine("        /// <summary>");
         _codeBuilder.AppendLine("        /// 用于JSON内容序列化与反序列化操作的<see cref = \"JsonSerializerOptions\"/> 参数实例。");
         _codeBuilder.AppendLine("        /// </summary>");
+        _codeBuilder.AppendLine($"        {_context.FieldAccessibility}IMudAppContext _appContext;");
+
+
+        _codeBuilder.AppendLine("        /// <summary>");
+        _codeBuilder.AppendLine("        /// 用于JSON内容序列化与反序列化操作的<see cref = \"JsonSerializerOptions\"/> 参数实例。");
+        _codeBuilder.AppendLine("        /// </summary>");
         _codeBuilder.AppendLine($"        {_context.FieldAccessibility}readonly JsonSerializerOptions _jsonSerializerOptions;");
 
         if (_context.HasTokenManager)
@@ -139,6 +145,7 @@ internal class ConstructorGenerator
             if (_context.HasTokenManager)
             {
                 _codeBuilder.AppendLine("            _appManager = appManager ?? throw new ArgumentNullException(nameof(appManager));");
+                _codeBuilder.AppendLine("            _appContext = appManager.GetDefaultApp();");
             }
         }
 
@@ -156,6 +163,7 @@ internal class ConstructorGenerator
         if (_context.HasInheritedFrom) return;
 
         GenerateGetMediaTypeMethod();
+        GenerateChangeCurrentContextMethod();
     }
 
     /// <summary>
@@ -189,7 +197,7 @@ internal class ConstructorGenerator
 
     private void GenerateGetTokeTypeMethod()
     {
-        if (string.IsNullOrEmpty(_context.Config.TokenManagerType))
+        if (string.IsNullOrEmpty(_context.Config.TokenType) && string.IsNullOrEmpty(_context.Config.TokenManager))
             return;
 
         string accessibility = _context.Config.IsAbstract ? "abstract" : "override";
@@ -209,6 +217,25 @@ internal class ConstructorGenerator
         }
         _codeBuilder.AppendLine("        {");
         _codeBuilder.AppendLine("            return _tokenType;");
+        _codeBuilder.AppendLine("        }");
+        _codeBuilder.AppendLine();
+    }
+
+    private void GenerateChangeCurrentContextMethod()
+    {
+        if (!_context.HasTokenManager)
+            return;
+
+        _codeBuilder.AppendLine("        /// <summary>");
+        _codeBuilder.AppendLine("        /// 获取用于远程API访问的<see cref = \"TokenType\"/>令牌类型。");
+        _codeBuilder.AppendLine("        /// </summary>");
+        _codeBuilder.AppendLine("        /// <returns>返回<see cref = \"TokenType\"/>令牌类型。</returns>");
+        _codeBuilder.AppendLine($"        public IMudAppContext ChangeCurrentContext(string appKey)");
+        _codeBuilder.AppendLine("        {");
+        _codeBuilder.AppendLine("            _appContext = _appManager.GetApp(appKey);");
+        _codeBuilder.AppendLine("            if(_appContext == null)");
+        _codeBuilder.AppendLine("                throw new InvalidOperationException($\"无法找到指定的应用上下文，AppKey: {appKey}\");");
+        _codeBuilder.AppendLine("            return _appContext;");
         _codeBuilder.AppendLine("        }");
         _codeBuilder.AppendLine();
     }

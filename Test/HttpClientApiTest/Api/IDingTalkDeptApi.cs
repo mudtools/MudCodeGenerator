@@ -7,8 +7,7 @@ using Mud.Common.CodeGenerator;
 /// 钉钉部门API测试接口
 /// 测试各种部门相关的API功能，包括不同Token类型、参数位置等场景
 /// </summary>
-[HttpClientApi("https://api.dingtalk.com", Timeout = 60, RegistryGroupName = "Dingtalk")]
-[HttpClientApiWrap(TokenManage = "ITokenManage", WrapInterface = nameof(DingTalkDept))]
+[HttpClientApi("https://api.dingtalk.com", Timeout = 60, TokenManage = "IFeishuAppManager", RegistryGroupName = "Dingtalk")]
 [Header("Authorization")]
 public interface IDingTalkDeptApi
 {

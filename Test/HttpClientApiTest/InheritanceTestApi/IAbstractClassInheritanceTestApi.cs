@@ -46,8 +46,7 @@ public interface IAbstractClassBaseTestApi
 /// 具体产品服务接口
 /// 继承自抽象基接口，实现所有抽象方法
 /// </summary>
-[HttpClientApi("https://api.mudtools.cn/", Timeout = 90, RegistryGroupName = "ConcreteProductService")]
-[HttpClientApiWrap(TokenManage = "ITokenManage")]
+[HttpClientApi("https://api.mudtools.cn/", Timeout = 90, TokenManage = "IFeishuAppManager", RegistryGroupName = "ConcreteProductService")]
 [Header("X-Service-Type", "concrete-product")]
 public interface IConcreteProductServiceTestApi : IAbstractClassBaseTestApi
 {
@@ -80,8 +79,7 @@ public interface IConcreteProductServiceTestApi : IAbstractClassBaseTestApi
 /// 高级产品服务接口
 /// 继承自具体产品服务接口，进一步扩展功能
 /// </summary>
-[HttpClientApi("https://api.mudtools.cn/", Timeout = 120, RegistryGroupName = "AdvancedProductService")]
-[HttpClientApiWrap(TokenManage = "ITenantTokenManager")]
+[HttpClientApi("https://api.mudtools.cn/", Timeout = 120, TokenManage = "IFeishuAppManager", RegistryGroupName = "AdvancedProductService")]
 [Header("X-Service-Type", "advanced-product")]
 [Header("X-Advanced-Features", "enabled")]
 public interface IAdvancedProductServiceTestApi : IConcreteProductServiceTestApi
