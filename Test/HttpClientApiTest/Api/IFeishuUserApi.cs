@@ -6,7 +6,8 @@ using Mud.Common.CodeGenerator;
 /// 飞书用户API测试接口
 /// 测试飞书用户相关的API功能，包括相对路径和绝对路径的使用
 /// </summary>
-[HttpClientApi(BaseAddress = "https://api.mudtools.cn/", Timeout = 120)]
+[HttpClientApi(BaseAddress = "https://api.mudtools.cn/", TokenManage = "IFeishuAppManager", Timeout = 120)]
+[Token(TokenType.AppAccessToken)]
 public interface IFeishuUserApi
 {
     /// <summary>

@@ -211,19 +211,20 @@ internal class RequestBuilder
         var deserializeType = methodInfo.IsAsyncMethod ? methodInfo.AsyncInnerReturnType : methodInfo.ReturnType;
         codeBuilder.AppendLine();
 
+        codeBuilder.AppendLine($"            var httpClient = _appManager.GetHttpClient();");
         if (filePathParam != null)
         {
-            codeBuilder.AppendLine($"            await _httpClient.DownloadLargeAsync(request, {filePathParam.Name}{cancellationTokenArg});");
+            codeBuilder.AppendLine($"            await httpClient.DownloadLargeAsync(request, {filePathParam.Name}{cancellationTokenArg});");
         }
         else
         {
             if (TypeDetectionHelper.IsByteArrayType(deserializeType))
             {
-                codeBuilder.AppendLine($"            return await _httpClient.DownloadAsync(request{cancellationTokenArg});");
+                codeBuilder.AppendLine($"            return await httpClient.DownloadAsync(request{cancellationTokenArg});");
             }
             else
             {
-                codeBuilder.AppendLine($"            return await _httpClient.SendAsync<{deserializeType}>(request{cancellationTokenArg});");
+                codeBuilder.AppendLine($"            return await httpClient.SendAsync<{deserializeType}>(request{cancellationTokenArg});");
             }
         }
     }
