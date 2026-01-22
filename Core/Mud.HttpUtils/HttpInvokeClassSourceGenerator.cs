@@ -5,13 +5,10 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using Microsoft.CodeAnalysis.Diagnostics;
-using Microsoft.CodeAnalysis;
+using Mud.HttpUtils.Generators;
 using System.Collections.Immutable;
-using Mud.HttpUtils.HttpInvoke.Generators;
-using Mud.HttpUtils.HttpInvoke.Helpers;
 
-namespace Mud.HttpUtils.HttpInvoke;
+namespace Mud.HttpUtils;
 
 /// <summary>
 /// HttpClient API 源生成器
@@ -19,7 +16,7 @@ namespace Mud.HttpUtils.HttpInvoke;
 /// <para>支持 HTTP 方法：Get, Post, Put, Delete, Patch, Head, Options。</para>
 /// </summary>
 [Generator(LanguageNames.CSharp)]
-public partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenerator
+internal partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGenerator
 {
     /// <inheritdoc/>
     protected override void ExecuteGenerator(Compilation compilation,

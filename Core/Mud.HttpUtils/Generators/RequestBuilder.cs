@@ -5,9 +5,9 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using System.Text;
+using Mud.HttpUtils.Models;
 
-namespace Mud.HttpUtils.HttpInvoke.Generators;
+namespace Mud.HttpUtils.Generators;
 
 /// <summary>
 /// HTTP 请求构建器，负责生成 HTTP 请求的构建逻辑
@@ -211,7 +211,7 @@ internal class RequestBuilder
         var deserializeType = methodInfo.IsAsyncMethod ? methodInfo.AsyncInnerReturnType : methodInfo.ReturnType;
         codeBuilder.AppendLine();
 
-        codeBuilder.AppendLine($"            var httpClient = /*_appContext.HttpClient;*/ /* TODO: Replace with actual HttpClient access */");
+        codeBuilder.AppendLine($"            var httpClient = _appContext.HttpClient;");
         if (filePathParam != null)
         {
             codeBuilder.AppendLine($"            await httpClient.DownloadLargeAsync(request, {filePathParam.Name}{cancellationTokenArg});");

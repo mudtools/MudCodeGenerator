@@ -5,9 +5,10 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
+using Mud.HttpUtils.Models;
 using System.Globalization;
 
-namespace Mud.HttpUtils.HttpInvoke.Helpers;
+namespace Mud.HttpUtils.Helpers;
 
 /// <summary>
 /// 函数帮助类
@@ -66,7 +67,7 @@ internal sealed class MethodHelper
         // 分析接口特性
         var interfaceSymbol = compilation.GetSemanticModel(interfaceDecl.SyntaxTree).GetDeclaredSymbol(interfaceDecl) as INamedTypeSymbol;
         var interfaceAttributes = new HashSet<string>();
-        var interfaceHeaderAttributes = new List<InterfaceHeaderAttribute>();
+        var interfaceHeaderAttributes = new List<InterfaceHeaderAttributeInfo>();
         string? interfaceContentType = null;
 
         if (interfaceSymbol != null)
@@ -84,7 +85,7 @@ internal sealed class MethodHelper
                 var headerName = GetHeaderName(headerAttr);
 
                 // 创建接口Header特性信息
-                var interfaceHeaderAttr = new InterfaceHeaderAttribute
+                var interfaceHeaderAttr = new InterfaceHeaderAttributeInfo
                 {
                     Name = headerName,
                     Value = GetHeaderValue(headerAttr),

@@ -5,28 +5,8 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-namespace Mud.HttpUtils.HttpInvoke;
+namespace Mud.HttpUtils.Models;
 
-/// <summary>
-/// 接口Header特性信息
-/// </summary>
-public class InterfaceHeaderAttribute
-{
-    /// <summary>
-    /// Header名称
-    /// </summary>
-    public string Name { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Header值
-    /// </summary>
-    public object? Value { get; set; }
-
-    /// <summary>
-    /// 是否替换已存在的Header
-    /// </summary>
-    public bool Replace { get; set; }
-}
 
 /// <summary>
 /// 方法分析结果
@@ -34,7 +14,7 @@ public class InterfaceHeaderAttribute
 /// <remarks>
 /// 用于存储接口方法的分析信息，包括 HTTP 方法、URL 模板、参数等。
 /// </remarks>
-public class MethodAnalysisResult
+internal class MethodAnalysisResult
 {
     /// <summary>
     /// 方法实际所属的接口名称（用于引用注释）
@@ -113,7 +93,7 @@ public class MethodAnalysisResult
     /// <summary>
     /// 接口Header特性列表（用于存储所有Header特性的名称和值）
     /// </summary>
-    public List<InterfaceHeaderAttribute> InterfaceHeaderAttributes { get; set; } = [];
+    public List<InterfaceHeaderAttributeInfo> InterfaceHeaderAttributes { get; set; } = [];
 
     /// <summary>
     /// 接口级别的内容类型（从接口的[HttpContentType]特性获取）

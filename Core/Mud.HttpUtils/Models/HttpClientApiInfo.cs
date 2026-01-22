@@ -5,7 +5,7 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-namespace Mud.HttpUtils.HttpInvoke;
+namespace Mud.HttpUtils.Models;
 
 /// <summary>
 /// 表示 HttpClient API 的元数据信息
@@ -13,7 +13,7 @@ namespace Mud.HttpUtils.HttpInvoke;
 /// <remarks>
 /// 继承自 HttpClientApiInfoBase，包含 HttpClient API 接口特定的信息
 /// </remarks>
-public sealed class HttpClientApiInfo : HttpClientApiInfoBase
+internal sealed class HttpClientApiInfo : HttpClientApiInfoBase
 {
     /// <summary>
     /// 初始化 HttpClient API 信息

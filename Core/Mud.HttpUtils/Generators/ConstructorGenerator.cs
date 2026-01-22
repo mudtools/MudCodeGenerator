@@ -5,9 +5,7 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using System.Text;
-
-namespace Mud.HttpUtils.HttpInvoke.Generators;
+namespace Mud.HttpUtils.Generators;
 
 /// <summary>
 /// 构造函数生成器，负责生成类的字段和构造函数
@@ -52,10 +50,10 @@ internal class ConstructorGenerator
 
         if (_context.HasInheritedFrom) return;
 
-        // _codeBuilder.AppendLine("        /// <summary>");
-        // _codeBuilder.AppendLine("        /// 用于JSON内容序列化与反序列化操作的<see cref = \"JsonSerializerOptions\"/> 参数实例。");
-        // _codeBuilder.AppendLine("        /// </summary>");
-        // _codeBuilder.AppendLine($"        {_context.FieldAccessibility}IMudAppContext _appContext;");
+        _codeBuilder.AppendLine("        /// <summary>");
+        _codeBuilder.AppendLine("        /// 用于JSON内容序列化与反序列化操作的<see cref = \"JsonSerializerOptions\"/> 参数实例。");
+        _codeBuilder.AppendLine("        /// </summary>");
+        _codeBuilder.AppendLine($"        {_context.FieldAccessibility}IMudAppContext _appContext;");
 
         _codeBuilder.AppendLine("        /// <summary>");
         _codeBuilder.AppendLine("        /// 用于JSON内容序列化与反序列化操作的<see cref = \"JsonSerializerOptions\"/> 参数实例。");
@@ -144,7 +142,7 @@ internal class ConstructorGenerator
             if (_context.HasTokenManager)
             {
                 _codeBuilder.AppendLine("            _appManager = appManager ?? throw new ArgumentNullException(nameof(appManager));");
-                // _codeBuilder.AppendLine("            _appContext = appManager.GetDefaultApp();");
+                _codeBuilder.AppendLine("            _appContext = appManager.GetDefaultApp();");
             }
         }
 
@@ -225,18 +223,18 @@ internal class ConstructorGenerator
         if (!_context.HasTokenManager)
             return;
 
-        // _codeBuilder.AppendLine("        /// <summary>");
-        // _codeBuilder.AppendLine("        /// 切换到指定的飞书应用上下文。");
-        // _codeBuilder.AppendLine("        /// </summary>");
-        // _codeBuilder.AppendLine("        /// <returns>返回切换后的应用上下文。</returns>");
-        // _codeBuilder.AppendLine($"        public IMudAppContext UseApp(string appKey)");
-        // _codeBuilder.AppendLine("        {");
-        // _codeBuilder.AppendLine("            _appContext = _appManager.GetApp(appKey);");
-        // _codeBuilder.AppendLine("            if(_appContext == null)");
-        // _codeBuilder.AppendLine("                throw new InvalidOperationException($\"无法找到指定的应用上下文，AppKey: {appKey}\");");
-        // _codeBuilder.AppendLine("            return _appContext;");
-        // _codeBuilder.AppendLine("        }");
-        // _codeBuilder.AppendLine();
+        _codeBuilder.AppendLine("        /// <summary>");
+        _codeBuilder.AppendLine("        /// 切换到指定的飞书应用上下文。");
+        _codeBuilder.AppendLine("        /// </summary>");
+        _codeBuilder.AppendLine("        /// <returns>返回切换后的应用上下文。</returns>");
+        _codeBuilder.AppendLine($"        public IMudAppContext UseApp(string appKey)");
+        _codeBuilder.AppendLine("        {");
+        _codeBuilder.AppendLine("            _appContext = _appManager.GetApp(appKey);");
+        _codeBuilder.AppendLine("            if(_appContext == null)");
+        _codeBuilder.AppendLine("                throw new InvalidOperationException($\"无法找到指定的应用上下文，AppKey: {appKey}\");");
+        _codeBuilder.AppendLine("            return _appContext;");
+        _codeBuilder.AppendLine("        }");
+        _codeBuilder.AppendLine();
 
         // _codeBuilder.AppendLine("        /// <summary>");
         // _codeBuilder.AppendLine("        /// 切换到默认的飞书应用上下文。");
