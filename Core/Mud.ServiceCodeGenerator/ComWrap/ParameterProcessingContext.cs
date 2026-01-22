@@ -5,6 +5,7 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
+using System.Text;
 using Mud.CodeGenerator;
 
 namespace Mud.ServiceCodeGenerator.ComWrap;
@@ -134,15 +135,32 @@ internal sealed class ParameterProcessingContext
                         parameterType.EndsWith("?", StringComparison.Ordinal);
 
         var defaultValue = getDefaultValueFunc(interfaceDeclaration, parameter, parameter.Type);
-        
+
         // 对于枚举类型，保留完整的枚举类型名称（包括类型名），不提取成员名
         // 这样在生成代码时可以使用完整路径：MsWord.WdSaveOptions.wdPromptToSaveChanges
         var enumValueName = string.Empty;
         var comNamespace = string.Empty;
-        
+
         if (isEnumType)
         {
-            enumValueName = defaultValue;  // 保留完整的枚举值名称，如 "ComObjectWrapTest.WdSaveOptions.wdPromptToSaveChanges"
+            // For enum types, we need to get a proper enum default value
+            // If the parameter has an explicit default, use it; otherwise infer the first enum member
+            if (defaultValue == "null" || defaultValue == "default" || string.IsNullOrEmpty(defaultValue))
+            {
+                // For nullable enums without explicit defaults, infer the first enum member
+                var underlyingEnumType = parameter.Type;
+                if (parameter.Type is INamedTypeSymbol namedType &&
+                    namedType.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T &&
+                    namedType.TypeArguments.Length > 0)
+                {
+                    underlyingEnumType = namedType.TypeArguments[0];
+                }
+                enumValueName = InferEnumDefaultValue(underlyingEnumType);
+            }
+            else
+            {
+                enumValueName = defaultValue;  // 保留完整的枚举值名称，如 "ComObjectWrapTest.WdSaveOptions.wdPromptToSaveChanges"
+            }
             comNamespace = GetComNamespace(parameter, interfaceSymbol, interfaceDeclaration);  // 仍然需要获取 COM 命名空间
         }
         else
@@ -479,11 +497,46 @@ internal sealed class ParameterProcessingContext
     }
 
     /// <summary>
-    /// 获取实现类类型名称（移除接口前缀）
+    /// 获取实现类类型名称（移除接口前缀并添加Imps命名空间）
     /// </summary>
     private static string GetImplementationType(string interfaceTypeName)
     {
-        return NamingHelper.RemoveInterfacePrefix(interfaceTypeName);
+        if (TypeSymbolHelper.IsBasicType(interfaceTypeName))
+            return interfaceTypeName;
+
+        // 移除可空标记
+        var elementImplType = interfaceTypeName.TrimEnd('?');
+
+        // 分割命名空间
+        var types = elementImplType.Split(['.'], StringSplitOptions.RemoveEmptyEntries);
+
+        if (types.Length == 0)
+            return interfaceTypeName;
+
+        // 处理最后一个类型名（接口名）
+        string lastName = types[types.Length - 1];
+
+        // 移除接口前缀 "I"，但确保不是全大写的情况（如"ID"）
+        if (lastName.Length > 1 && lastName.StartsWith("I", StringComparison.Ordinal) && char.IsUpper(lastName[1]))
+        {
+            lastName = lastName.Substring(1);
+        }
+
+        // 重建类型名
+        var result = new StringBuilder();
+
+        // 添加命名空间部分（除了最后一个）
+        for (int i = 0; i < types.Length - 1; i++)
+        {
+            result.Append(types[i]);
+            result.Append('.');
+        }
+
+        // 添加 "Imps." 和实现类名
+        result.Append("Imps.");
+        result.Append(lastName);
+
+        return result.ToString();
     }
 
     /// <summary>

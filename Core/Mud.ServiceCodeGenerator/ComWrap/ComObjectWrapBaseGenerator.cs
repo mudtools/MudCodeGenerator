@@ -7,7 +7,6 @@
 
 using System.Collections.Immutable;
 using System.Text;
-using Mud.CodeGenerator;
 
 namespace Mud.ServiceCodeGenerator.ComWrap;
 
@@ -140,28 +139,14 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
 
                 if (!string.IsNullOrEmpty(source))
                 {
-                    // 生成文件名: NamespaceA_NamespaceB_WordImpl.g.cs
-                    var namespaceName = SyntaxHelper.GetNamespaceName(interfaceDeclaration);
                     var interfaceName = interfaceSymbol.Name;
-                    var hintName = GenerateHintName(namespaceName, interfaceName);
+                    var hintName = GenerateHintName(interfaceName);
 
                     // 防止重复生成
                     if (!generatedHintNames.Add(hintName))
                     {
                         continue;
                     }
-
-                    // 写入临时文件以便调试
-                    try
-                    {
-                        var tempFile = Path.Combine(Path.GetTempPath(), hintName);
-                        File.WriteAllText(tempFile, source);
-                    }
-                    catch
-                    {
-                        // 忽略写入错误
-                    }
-
                     context.AddSource(hintName, source);
                 }
             }
@@ -181,19 +166,12 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
     /// <summary>
     /// 生成包含命名空间的安全文件名
     /// </summary>
-    /// <param name="namespaceName">命名空间名称</param>
     /// <param name="interfaceName">接口名称</param>
     /// <returns>生成的文件名</returns>
-    private static string GenerateHintName(string namespaceName, string interfaceName)
+    private static string GenerateHintName(string interfaceName)
     {
-        var safeNamespace = namespaceName
-            .Replace(".", "_")
-            .Replace("+", "_")
-            .Replace("<", "_")
-            .Replace(">", "_");
-
         var safeInterfaceName = interfaceName.TrimStart('I');
-        return $"{safeNamespace}_{safeInterfaceName}Impl.g.cs";
+        return $"{safeInterfaceName}Impl.g.cs";
     }
 
     /// <summary>
@@ -522,7 +500,7 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
                 // 对于枚举类型，EnumValueName 包含完整的枚举值路径（如 "ComObjectWrapTest.WdSaveOptions.wdPromptToSaveChanges"）
                 // 我们需要将其转换为 COM 命名空间的路径
                 var enumDefault = ConvertEnumToComNamespace(context.EnumValueName, context.ComNamespace);
-                
+
                 // 临时调试：写入文件以查看值
                 try
                 {
@@ -530,7 +508,7 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
                     File.WriteAllText(debugFile, $"EnumValueName: {context.EnumValueName}\nComNamespace: {context.ComNamespace}\nConverted: {enumDefault}");
                 }
                 catch { }
-                
+
                 sb.AppendLine($"            var {context.Parameter.Name}Obj = {context.Parameter.Name}.EnumConvert({enumDefault});");
             }
         }
@@ -576,7 +554,7 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
 
         // 提取 EnumName.MemberName
         var enumNameAndMember = enumValuePath.Substring(secondLastDotIndex + 1);
-        
+
         return $"{comNamespace}.{enumNameAndMember}";
     }
 
