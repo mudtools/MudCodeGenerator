@@ -7,7 +7,7 @@
 
 using System.Globalization;
 
-namespace Mud.ServiceCodeGenerator.HttpInvoke;
+namespace Mud.HttpUtils.HttpInvoke.Helpers;
 
 /// <summary>
 /// 函数帮助类

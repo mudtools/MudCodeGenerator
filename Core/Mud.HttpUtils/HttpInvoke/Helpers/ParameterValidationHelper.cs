@@ -7,7 +7,7 @@
 
 using System.Text;
 
-namespace Mud.ServiceCodeGenerator.HttpInvoke.Helpers;
+namespace Mud.HttpUtils.HttpInvoke.Helpers;
 
 /// <summary>
 /// 参数验证辅助类，负责生成参数验证代码

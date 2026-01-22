@@ -25,7 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Mud.Common.CodeGenerator\Mud.Common.CodeGenerator.csproj" />
     <ProjectReference Include="..\CodeBaseTest\CodeBaseTest.csproj" />
-    <ProjectReference Include="..\..\Core\Mud.ServiceCodeGenerator\Mud.ServiceCodeGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\Core\Mud.HttpUtils\Mud.HttpUtils.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

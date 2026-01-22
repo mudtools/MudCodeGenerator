@@ -7,7 +7,7 @@
 
 using System.Text;
 
-namespace Mud.ServiceCodeGenerator.HttpInvoke.Generators;
+namespace Mud.HttpUtils.HttpInvoke.Generators;
 
 /// <summary>
 /// HTTP 请求构建器，负责生成 HTTP 请求的构建逻辑
@@ -211,7 +211,7 @@ internal class RequestBuilder
         var deserializeType = methodInfo.IsAsyncMethod ? methodInfo.AsyncInnerReturnType : methodInfo.ReturnType;
         codeBuilder.AppendLine();
 
-        codeBuilder.AppendLine($"            var httpClient = _appContext.HttpClient;");
+        codeBuilder.AppendLine($"            var httpClient = /*_appContext.HttpClient;*/ /* TODO: Replace with actual HttpClient access */");
         if (filePathParam != null)
         {
             codeBuilder.AppendLine($"            await httpClient.DownloadLargeAsync(request, {filePathParam.Name}{cancellationTokenArg});");

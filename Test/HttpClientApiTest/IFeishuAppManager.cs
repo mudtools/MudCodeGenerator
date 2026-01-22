@@ -15,7 +15,7 @@ public interface IMudHttpClientService
     /// 应用键是在配置中定义的唯一标识，如 "default", "hr-app" 等。
     /// </remarks>
     [IgnoreGenerator]
-    IMudAppContext ChangeCurrentContext(string appKey);
+    IMudAppContext UseApp(string appKey);
 }
 
 public interface IFeishuAppManager

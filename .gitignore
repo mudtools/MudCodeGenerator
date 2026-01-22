@@ -10,6 +10,8 @@
 /bin/Debug/netstandard2.0
 /Core/Mud.EntityCodeGenerator/obj
 /Core/Mud.ServiceCodeGenerator/obj
+/Core/Mud.HttpUtils/obj
+/Core/Mud.HttpUtils/Debug
 /bin/Debug
 /Test/Mud.Common.CodeGenerator/bin/Debug
 /Test/Mud.Common.CodeGenerator/obj
@@ -18,6 +20,7 @@
 /.vs/Mud.CodeGenerator/CopilotIndices/17.14.1147.5054
 /.vs
 /.docs
+/.comate
 /Test/CodeBaseTest/bin/Debug
 /Test/CodeBaseTest/obj
 /Test/DebugTest/bin/Debug/net8.0
