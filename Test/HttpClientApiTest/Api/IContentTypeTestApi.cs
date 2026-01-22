@@ -1,8 +1,4 @@
 namespace HttpClientApiTest.Api;
-
-using Mud.Common.CodeGenerator;
-
-
 /// <summary>
 /// 用于测试 HttpContentType 特性的优先级功能
 /// 测试场景：

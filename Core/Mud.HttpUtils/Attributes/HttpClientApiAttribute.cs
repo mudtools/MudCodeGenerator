@@ -1,4 +1,11 @@
-﻿namespace Mud.Common.CodeGenerator;
+﻿// -----------------------------------------------------------------------
+//  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
+//  Mud.CodeGenerator 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
+//  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
+//  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
+// -----------------------------------------------------------------------
+
+namespace Mud.HttpUtils.Attributes;
 
 /// <summary>
 /// HTTP客户端API特性，用于标记需要生成HTTP客户端包装类的接口
@@ -8,7 +15,7 @@
 /// 支持配置内容类型、超时时间和服务注册分组等选项。
 /// </remarks>
 [AttributeUsage(AttributeTargets.Interface, AllowMultiple = false)]
-public class HttpClientApiAttribute : Attribute
+public sealed class HttpClientApiAttribute : Attribute
 {
     /// <summary>
     /// 初始化 <see cref="HttpClientApiAttribute"/> 类的新实例
@@ -48,7 +55,8 @@ public class HttpClientApiAttribute : Attribute
     /// <remarks>
     /// 此属性已被弃用，请使用其他方式配置API端点
     /// </remarks>
-    public string BaseAddress { get; set; }
+    [Obsolete("此属性已被弃用，请使用其他方式配置API端点")]
+    public string BaseAddress { get; private set; }
 
     /// <summary>
     /// 获取或设置HTTP连接超时时间（秒）

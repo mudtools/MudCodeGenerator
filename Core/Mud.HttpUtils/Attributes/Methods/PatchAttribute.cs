@@ -1,4 +1,4 @@
-namespace Mud.Common.CodeGenerator;
+namespace Mud.HttpUtils.Attributes;
 
 /// <summary>
 ///     HTTP 声明式 PATCH 请求方式特性

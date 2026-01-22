@@ -1,4 +1,4 @@
-namespace Mud.Common.CodeGenerator;
+namespace Mud.HttpUtils.Attributes;
 
 /// <summary>
 /// Token管理器接口

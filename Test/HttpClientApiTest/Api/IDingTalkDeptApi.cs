@@ -1,7 +1,6 @@
 namespace HttpClientApiTest.Api;
 
 using HttpClientApiTest.WebApi;
-using Mud.Common.CodeGenerator;
 
 /// <summary>
 /// 钉钉部门API测试接口
