@@ -386,13 +386,21 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
         if (context.IsEnumType)
         {
             if (context.ConvertToInteger)
-                sb.AppendLine($"            int {context.Parameter.Name}Obj;");
+                sb.AppendLine($"            int {context.Parameter.Name}Obj = 0;");
             else
             {
-                // 对于枚举类型，EnumValueName 包含完整的枚举值路径（如 "ComObjectWrapTest.WdSaveOptions.wdPromptToSaveChanges"）
-                // 我们需要将其转换为 COM 命名空间的路径
+                // 对于枚举类型的out参数，使用COM命名空间的类型声明并赋默认值
+                var comEnumType = ConvertEnumTypeToComNamespace(context.ParameterType, context.ComNamespace);
                 var enumDefault = ConvertEnumToComNamespace(context.EnumValueName, context.ComNamespace);
-                sb.AppendLine($"            {context.ParameterType} {context.Parameter.Name}Obj = {enumDefault};");
+                if (string.IsNullOrEmpty(enumDefault))
+                {
+                    // 如果没有默认值，使用类型的第一个枚举值
+                    sb.AppendLine($"            {comEnumType} {context.Parameter.Name}Obj = default({comEnumType});");
+                }
+                else
+                {
+                    sb.AppendLine($"            {comEnumType} {context.Parameter.Name}Obj = {enumDefault};");
+                }
             }
         }
         else if (context.IsObjectType)
@@ -401,7 +409,7 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
         }
         else
         {
-            // 普通out参数，根据类型声明变量
+            // 普通out参数，根据类型声明变量并赋初始值
             GenerateBasicOutParameterVariable(sb, context.Parameter, context.ParameterType);
         }
     }
@@ -411,6 +419,7 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
     /// </summary>
     private void GenerateBasicOutParameterVariable(StringBuilder sb, IParameterSymbol param, string pType)
     {
+        // out参数需要赋初始值以避免编译器警告
         switch (pType)
         {
             case "string":
@@ -419,8 +428,23 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
             case "int":
                 sb.AppendLine($"            int {param.Name}Obj = 0;");
                 break;
+            case "bool":
+                sb.AppendLine($"            bool {param.Name}Obj = false;");
+                break;
+            case "double":
+                sb.AppendLine($"            double {param.Name}Obj = 0.0;");
+                break;
+            case "float":
+                sb.AppendLine($"            float {param.Name}Obj = 0.0f;");
+                break;
+            case "long":
+                sb.AppendLine($"            long {param.Name}Obj = 0L;");
+                break;
+            case "object":
+                sb.AppendLine($"            object {param.Name}Obj = null;");
+                break;
             default:
-                sb.AppendLine($"            {pType} {param.Name}Obj = null;");
+                sb.AppendLine($"            {pType} {param.Name}Obj = default({pType});");
                 break;
         }
     }
@@ -556,6 +580,33 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
         var enumNameAndMember = enumValuePath.Substring(secondLastDotIndex + 1);
 
         return $"{comNamespace}.{enumNameAndMember}";
+    }
+
+    /// <summary>
+    /// 将枚举类型路径转换为 COM 命名空间的类型路径
+    /// </summary>
+    /// <param name="enumTypePath">枚举类型路径，如 "MudTools.OfficeInterop.Vbe.vbext_ProcKind"</param>
+    /// <param name="comNamespace">COM 命名空间，如 "MsVb"</param>
+    /// <returns>COM 命名空间的枚举类型路径，如 "MsVb.vbext_ProcKind"</returns>
+    private static string ConvertEnumTypeToComNamespace(string enumTypePath, string comNamespace)
+    {
+        if (string.IsNullOrEmpty(enumTypePath))
+            return string.Empty;
+
+        // 如果没有提供 COM 命名空间，返回原始值
+        if (string.IsNullOrEmpty(comNamespace))
+            return enumTypePath;
+
+        // 枚举类型路径格式：NamespaceA.NamespaceB.EnumName
+        // 我们需要将前面的命名空间替换为 comNamespace，保留 EnumName
+        var lastDotIndex = enumTypePath.LastIndexOf('.');
+        if (lastDotIndex <= 0)
+            return enumTypePath;
+
+        // 提取 EnumName
+        var enumName = enumTypePath.Substring(lastDotIndex + 1);
+
+        return $"{comNamespace}.{enumName}";
     }
 
     #endregion
@@ -875,9 +926,9 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
                 }
                 else
                 {
-                    // 普通枚举out参数
-                    var enumDefault = ConvertEnumToComNamespace(context.EnumValueName, context.ComNamespace);
-                    sb.AppendLine($"                {context.Parameter.Name} = {context.Parameter.Name}Obj.EnumConvert({enumDefault});");
+                    // 普通枚举out参数 - 使用泛型EnumConvert方法
+                    var comEnumType = ConvertEnumTypeToComNamespace(context.ParameterType, context.ComNamespace);
+                    sb.AppendLine($"                {context.Parameter.Name} = {context.Parameter.Name}Obj.EnumConvert<{comEnumType},{context.ParameterType}>();");
                 }
             }
             else if (context.IsObjectType)
