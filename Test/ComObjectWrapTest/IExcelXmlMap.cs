@@ -12,18 +12,36 @@ namespace ComObjectWrapTest
         /// <param name="data">The exported XML data</param>
         XlXmlExportResult ExportXml(out string data);
 
+        /// <summary>
+        /// Test method with out parameter of interface type - using a method that exists
+        /// </summary>
+        /// <param name="importMap">The imported XML map</param>
+        void TestOutParameter(out IExcelXmlMap importMap);
     }
 }
 
 public enum XlXmlExportResult
 {
     /// <summary>
-    /// XMLµ¼³ö³É¹¦
+    /// XMLï¿½ï¿½ï¿½ï¿½ï¿½É¹ï¿½
     /// </summary>
     xlXmlExportSuccess,
 
     /// <summary>
-    /// XMLµ¼³öÑéÖ¤Ê§°Ü
+    /// XMLï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¤Ê§ï¿½ï¿½
     /// </summary>
     xlXmlExportValidationFailed
+}
+
+public enum XlXmlImportResult
+{
+    /// <summary>
+    /// XMLå¯¼å…¥æˆåŠŸ
+    /// </summary>
+    xlXmlImportSuccess,
+
+    /// <summary>
+    /// XMLå¯¼å…¥éªŒè¯å¤±è´¥
+    /// </summary>
+    xlXmlImportValidationFailed
 }

@@ -203,7 +203,7 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
         sb.AppendLine($"    /// </summary>");
         sb.AppendLine($"    {CompilerGeneratedAttribute}");
         sb.AppendLine($"    {GeneratedCodeAttribute}");
-        sb.AppendLine($"    internal sealed partial class {className} : {interfaceName}");
+        sb.AppendLine($"    internal partial class {className} : {interfaceName}");
         sb.AppendLine("    {");
 
         // 生成字段
@@ -405,7 +405,9 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
         }
         else if (context.IsObjectType)
         {
-            sb.AppendLine($"            {context.ComNamespace}.{context.Parameter.Type.Name} {context.Parameter.Name}Obj = null;");
+            // 对于COM对象类型的out参数，需要获取正确的COM类型名
+            var comTypeName = GetComTypeNameForOutParameter(context.Parameter.Type.Name);
+            sb.AppendLine($"            {context.ComNamespace}.{comTypeName} {context.Parameter.Name}Obj = null;");
         }
         else
         {
@@ -549,6 +551,33 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
             else
                 sb.AppendLine($"            var {context.Parameter.Name}Obj = {context.Parameter.Name} ?? global::System.Type.Missing;");
         }
+    }
+
+    /// <summary>
+    /// 获取out参数的COM类型名称
+    /// </summary>
+    /// <param name="interfaceTypeName">接口类型名称</param>
+    /// <returns>对应的COM类型名称</returns>
+    private string GetComTypeNameForOutParameter(string interfaceTypeName)
+    {
+        if (string.IsNullOrEmpty(interfaceTypeName))
+            return interfaceTypeName;
+
+        // 尝试匹配已知前缀
+        foreach (var prefix in KnownPrefixes)
+        {
+            if (interfaceTypeName.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                return interfaceTypeName.Substring(prefix.Length);
+            }
+        }
+
+        // 默认情况：去掉前导 "I"（如果符合命名规范）
+        return interfaceTypeName.StartsWith("I", StringComparison.Ordinal)
+               && interfaceTypeName.Length > 1
+               && char.IsUpper(interfaceTypeName[1])
+            ? interfaceTypeName.Substring(1)
+            : interfaceTypeName;
     }
 
     /// <summary>

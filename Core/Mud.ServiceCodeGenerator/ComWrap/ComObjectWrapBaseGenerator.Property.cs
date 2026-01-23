@@ -852,7 +852,26 @@ partial class ComObjectWrapBaseGenerator
 
         // 对于枚举类型，需要将默认值转换为 COM 命名空间的路径
         // 注意：不使用第二个默认值参数，因为类型推断可能出错
-        var comEnumType = $"{comNamespace}.{propertySymbol.Type.Name}";
+
+        // 正确处理可空枚举类型
+        string baseEnumTypeName;
+        if (propertySymbol.Type is INamedTypeSymbol namedType &&
+            namedType.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T &&
+            namedType.TypeArguments.Length > 0)
+        {
+            // 这是一个可空值类型，获取底层类型的名称
+            baseEnumTypeName = namedType.TypeArguments[0].Name;
+        }
+        else
+        {
+            // 非可空类型，直接使用类型名称
+            baseEnumTypeName = propertySymbol.Type.Name;
+        }
+
+        var comEnumType = $"{comNamespace}.{baseEnumTypeName}";
+
+        // 对于 ObjectConvertEnum，使用非可空的枚举类型
+        var nonNullablePropertyType = propertyType.TrimEnd('?');
 
         sb.AppendLine($"        ///  <inheritdoc/>");
         sb.AppendLine($"        {GeneratedCodeAttribute}");
@@ -860,10 +879,22 @@ partial class ComObjectWrapBaseGenerator
         sb.AppendLine("        {");
         if (propertySymbol.GetMethod != null)
         {
+            var needConvert = IsNeedConvert(propertySymbol);
             sb.AppendLine("            get");
             sb.AppendLine("            {");
             GenerateDisposedCheck(sb, privateFieldName);
-            sb.AppendLine($"                return {GetPropertyGetString(privateFieldName, propertyName, isMethod)}.EnumConvert<{comEnumType}, {propertyType}>();");
+
+            if (needConvert)
+            {
+                // 当 NeedConvert = true 时，使用 ObjectConvertEnum 方法
+                // 对于可空枚举类型，ObjectConvertEnum 使用非可空的枚举类型作为泛型参数
+                sb.AppendLine($"                return {GetPropertyGetString(privateFieldName, propertyName, isMethod)}.ObjectConvertEnum<{nonNullablePropertyType}>();");
+            }
+            else
+            {
+                // 默认情况使用双参数 EnumConvert
+                sb.AppendLine($"                return {GetPropertyGetString(privateFieldName, propertyName, isMethod)}.EnumConvert<{comEnumType}, {propertyType}>();");
+            }
             sb.AppendLine("             }");
         }
 
@@ -877,7 +908,7 @@ partial class ComObjectWrapBaseGenerator
             if (isConvertIntIndex)
                 sb.AppendLine($"                {GetPropertySetString(privateFieldName, propertyName, isMethod, "value.ConvertToInt()")};");
             else
-                sb.AppendLine($"                {GetPropertySetString(privateFieldName, propertyName, isMethod, $"value.EnumConvert<{propertyType}, {comEnumType}>()")};");
+                sb.AppendLine($"                {GetPropertySetString(privateFieldName, propertyName, isMethod, $"value.EnumConvert<{nonNullablePropertyType}, {comEnumType}>()")};");
             sb.AppendLine("            }");
         }
         sb.AppendLine("        }");
@@ -1400,7 +1431,7 @@ partial class ComObjectWrapBaseGenerator
         if (!NoneDisposed(interfaceSymbol))
         {
             sb.AppendLine($"        {GeneratedCodeAttribute}");
-            sb.AppendLine("        private void Dispose(bool disposing)");
+            sb.AppendLine("        protected virtual void Dispose(bool disposing)");
             sb.AppendLine("        {");
             sb.AppendLine("            if (_disposedValue) return;");
             sb.AppendLine();
