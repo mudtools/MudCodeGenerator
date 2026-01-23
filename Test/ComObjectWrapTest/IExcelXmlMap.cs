@@ -11,19 +11,31 @@ namespace ComObjectWrapTest
         /// </summary>
         /// <param name="data">The exported XML data</param>
         XlXmlExportResult ExportXml(out string data);
-
     }
 }
 
 public enum XlXmlExportResult
 {
     /// <summary>
-    /// XMLµ¼³ö³É¹¦
+    /// XMLï¿½ï¿½ï¿½ï¿½ï¿½É¹ï¿½
     /// </summary>
     xlXmlExportSuccess,
 
     /// <summary>
-    /// XMLµ¼³öÑéÖ¤Ê§°Ü
+    /// XMLï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¤Ê§ï¿½ï¿½
     /// </summary>
     xlXmlExportValidationFailed
+}
+
+public enum XlXmlImportResult
+{
+    /// <summary>
+    /// XMLå¯¼å…¥æˆåŠŸ
+    /// </summary>
+    xlXmlImportSuccess,
+
+    /// <summary>
+    /// XMLå¯¼å…¥éªŒè¯å¤±è´¥
+    /// </summary>
+    xlXmlImportValidationFailed
 }
