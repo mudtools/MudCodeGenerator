@@ -405,9 +405,9 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
         }
         else if (context.IsObjectType)
         {
-            // 对于COM对象类型的out参数，需要获取正确的COM类型名
+            // 对于COM对象类型的out参数，需要获取正确的COM类型名并添加可空标记
             var comTypeName = GetComTypeNameForOutParameter(context.Parameter.Type.Name);
-            sb.AppendLine($"            {context.ComNamespace}.{comTypeName} {context.Parameter.Name}Obj = null;");
+            sb.AppendLine($"            {context.ComNamespace}.{comTypeName}? {context.Parameter.Name}Obj = null;");
         }
         else
         {
@@ -962,8 +962,15 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
             }
             else if (context.IsObjectType)
             {
-                // COM对象out参数
-                sb.AppendLine($"                {context.Parameter.Name} = new {context.ConstructType}({context.Parameter.Name}Obj);");
+                // COM对象out参数 - 添加null检查
+                sb.AppendLine($"                if({context.Parameter.Name}Obj != null)");
+                sb.AppendLine("                {");
+                sb.AppendLine($"                    {context.Parameter.Name} = new {context.ConstructType}({context.Parameter.Name}Obj);");
+                sb.AppendLine("                }");
+                sb.AppendLine("                else");
+                sb.AppendLine("                {");
+                sb.AppendLine($"                    {context.Parameter.Name} = null;");
+                sb.AppendLine("                }");
             }
             else
             {

@@ -11,12 +11,6 @@ namespace ComObjectWrapTest
         /// </summary>
         /// <param name="data">The exported XML data</param>
         XlXmlExportResult ExportXml(out string data);
-
-        /// <summary>
-        /// Test method with out parameter of interface type - using a method that exists
-        /// </summary>
-        /// <param name="importMap">The imported XML map</param>
-        void TestOutParameter(out IExcelXmlMap importMap);
     }
 }
 
