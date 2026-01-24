@@ -12,7 +12,7 @@ namespace Mud.CodeGenerator;
 /// <summary>
 /// 错误处理器，统一管理代码生成器的错误处理
 /// </summary>
-public static class ErrorHandler
+internal static class ErrorHandler
 {
     /// <summary>
     /// 报告错误诊断信息

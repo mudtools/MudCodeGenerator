@@ -10,7 +10,7 @@ namespace Mud.CodeGenerator;
 /// <summary>
 /// 类层次结构信息
 /// </summary>
-public class ClassHierarchyInfo
+internal class ClassHierarchyInfo
 {
     public string ClassName { get; set; }
     public string FullName { get; set; }

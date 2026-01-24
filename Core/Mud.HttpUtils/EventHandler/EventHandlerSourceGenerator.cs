@@ -5,18 +5,15 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Immutable;
-using System.Collections.ObjectModel;
-using System.Text;
 
-namespace Mud.ServiceCodeGenerator;
+namespace Mud.HttpUtils;
 
 /// <summary>
 /// 事件处理器源代码生成器，用于为带有EventHandler特性的类生成对应的事件处理器抽象类。
 /// </summary>
 [Generator(LanguageNames.CSharp)]
-public class EventHandlerSourceGenerator : TransitiveCodeGenerator
+internal class EventHandlerSourceGenerator : TransitiveCodeGenerator
 {
     private const string EventHandlerAttributeName = "GenerateEventHandlerAttribute";
 

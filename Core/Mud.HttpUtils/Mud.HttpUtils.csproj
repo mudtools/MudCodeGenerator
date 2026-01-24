@@ -1,6 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFramework>netstandard2.0</TargetFramework>
 		<PackageId>Mud.HttpUtils</PackageId>
 		<Description>Mud HttpUtils Code Generator</Description>
 		<Product>Mud Http Utils Code Generator</Product>

@@ -7,7 +7,7 @@
 
 namespace Mud.CodeGenerator;
 
-public static class ClassHierarchyAnalyzer
+internal static class ClassHierarchyAnalyzer
 {
     /// <summary>
     /// 分析类的完整继承层次结构

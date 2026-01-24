@@ -10,7 +10,7 @@ namespace Mud.CodeGenerator;
 /// <summary>
 /// Attribute 参数提取选项
 /// </summary>
-public sealed class AttributeExtractionOptions
+internal sealed class AttributeExtractionOptions
 {
     /// <summary>
     /// 是否使用语义模型获取精确值（推荐为true）
@@ -41,7 +41,7 @@ public sealed class AttributeExtractionOptions
 /// <summary>
 /// 扩展性强的 Attribute 参数提取器
 /// </summary>
-public static class AttributeSyntaxHelper
+internal static class AttributeSyntaxHelper
 {
     /// <summary>
     /// 获取属性声明上的特性参数值。

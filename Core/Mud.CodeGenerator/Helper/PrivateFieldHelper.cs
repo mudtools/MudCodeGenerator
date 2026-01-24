@@ -13,7 +13,7 @@ namespace Mud.CodeGenerator;
 /// <summary>
 /// 字段命名风格枚举
 /// </summary>
-public enum FieldNamingStyle
+internal enum FieldNamingStyle
 {
     /// <summary>
     /// m_前缀 + Pascal风格 (例如: m_UserService)

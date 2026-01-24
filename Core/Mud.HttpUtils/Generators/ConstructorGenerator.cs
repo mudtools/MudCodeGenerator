@@ -224,7 +224,7 @@ internal class ConstructorGenerator
             return;
 
         _codeBuilder.AppendLine("        /// <summary>");
-        _codeBuilder.AppendLine("        /// 切换到指定的飞书应用上下文。");
+        _codeBuilder.AppendLine("        /// 切换到指定的应用上下文。");
         _codeBuilder.AppendLine("        /// </summary>");
         _codeBuilder.AppendLine("        /// <returns>返回切换后的应用上下文。</returns>");
         _codeBuilder.AppendLine($"        public IMudAppContext UseApp(string appKey)");
@@ -236,17 +236,17 @@ internal class ConstructorGenerator
         _codeBuilder.AppendLine("        }");
         _codeBuilder.AppendLine();
 
-        // _codeBuilder.AppendLine("        /// <summary>");
-        // _codeBuilder.AppendLine("        /// 切换到默认的飞书应用上下文。");
-        // _codeBuilder.AppendLine("        /// </summary>");
-        // _codeBuilder.AppendLine("        /// <returns>返回默认的应用上下文。</returns>");
-        // _codeBuilder.AppendLine($"        public IMudAppContext UseDefaultApp()");
-        // _codeBuilder.AppendLine("        {");
-        // _codeBuilder.AppendLine("            _appContext = _appManager.GetDefaultApp();");
-        // _codeBuilder.AppendLine("            if(_appContext == null)");
-        // _codeBuilder.AppendLine("                throw new InvalidOperationException($\"无法找到默认的应用上下文。\");");
-        // _codeBuilder.AppendLine("            return _appContext;");
-        // _codeBuilder.AppendLine("        }");
-        // _codeBuilder.AppendLine();
+        _codeBuilder.AppendLine("        /// <summary>");
+        _codeBuilder.AppendLine("        /// 切换到默认的应用上下文。");
+        _codeBuilder.AppendLine("        /// </summary>");
+        _codeBuilder.AppendLine("        /// <returns>返回默认的应用上下文。</returns>");
+        _codeBuilder.AppendLine($"        public IMudAppContext UseDefaultApp()");
+        _codeBuilder.AppendLine("        {");
+        _codeBuilder.AppendLine("            _appContext = _appManager.GetDefaultApp();");
+        _codeBuilder.AppendLine("            if(_appContext == null)");
+        _codeBuilder.AppendLine("                throw new InvalidOperationException($\"无法找到默认的应用上下文。\");");
+        _codeBuilder.AppendLine("            return _appContext;");
+        _codeBuilder.AppendLine("        }");
+        _codeBuilder.AppendLine();
     }
 }
