@@ -24,7 +24,26 @@ internal static class ArgumentNullExceptionExtensions
         {
             throw paramName != null
                 ? new ArgumentNullException(paramName)
-                : new ArgumentNullException();
+                : new ArgumentNullException("", "参数不能为空");
         }
+    }
+
+    /// <summary>
+    /// 如果参数为 null 或 空字符串 则抛出 ArgumentNullException（.NET Standard 2.0 兼容版本）
+    /// </summary>
+    /// <param name="argument">参数值</param>
+    /// <param name="paramName">参数名称</param>
+    /// <exception cref="ArgumentNullException"></exception>
+    public static void ThrowIfNullOrEmpty(this string? argument, string? paramName = null)
+    {
+        if (argument == null)
+            throw paramName != null
+               ? new ArgumentNullException(paramName)
+               : new ArgumentNullException("", "参数不能为空");
+
+        if (string.IsNullOrEmpty(argument))
+            throw paramName != null
+               ? new ArgumentNullException(paramName)
+               : new ArgumentNullException("", "参数不能为空");
     }
 }
