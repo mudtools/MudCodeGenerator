@@ -350,12 +350,7 @@ internal class InterfaceImpCodeGenerator
         // 如果需要Token管理器，获取access_token
         if (hasTokenManager && (hasAuthorizationHeader || hasAuthorizationQuery))
         {
-            _codeBuilder.AppendLine($"            var tokenManager = _appContext.GetTokenManager(GetTokeType());");
-            _codeBuilder.AppendLine($"            var access_token = await tokenManager.GetTokenAsync();");
-            _codeBuilder.AppendLine($"            if (string.IsNullOrEmpty(access_token))");
-            _codeBuilder.AppendLine($"            {{");
-            _codeBuilder.AppendLine($"                throw new InvalidOperationException(\"无法获取访问令牌\");");
-            _codeBuilder.AppendLine($"            }}");
+            _codeBuilder.AppendLine($"            var access_token = await GetTokenAsync();");
             _codeBuilder.AppendLine();
         }
 

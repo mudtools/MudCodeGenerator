@@ -176,7 +176,7 @@ internal class ConstructorGenerator
         _codeBuilder.AppendLine($"        {_context.FieldAccessibility}string GetMediaType(string contentType)");
         _codeBuilder.AppendLine("        {");
         _codeBuilder.AppendLine("            if (string.IsNullOrEmpty(contentType))");
-        _codeBuilder.AppendLine("                return \"application/json\";");
+        _codeBuilder.AppendLine("                return _defaultContentType;");
         _codeBuilder.AppendLine();
         _codeBuilder.AppendLine("            // Content-Type可能包含字符集信息，如 \"application/json; charset=utf-8\"");
         _codeBuilder.AppendLine("            // 需要分号前的媒体类型部分");
@@ -197,7 +197,7 @@ internal class ConstructorGenerator
         if (string.IsNullOrEmpty(_context.Config.TokenType) && string.IsNullOrEmpty(_context.Config.TokenManager))
             return;
 
-        string accessibility = _context.Config.IsAbstract ? "abstract" : "override";
+        string accessibility = _context.Config.IsAbstract ? "virtual" : "override";
         if (!_context.HasInheritedFrom && !_context.Config.IsAbstract)
             accessibility = "virtual";
 
@@ -205,16 +205,7 @@ internal class ConstructorGenerator
         _codeBuilder.AppendLine("        /// 获取用于远程API访问的<see cref = \"TokenType\"/>令牌类型。");
         _codeBuilder.AppendLine("        /// </summary>");
         _codeBuilder.AppendLine("        /// <returns>返回<see cref = \"TokenType\"/>令牌类型。</returns>");
-        _codeBuilder.AppendLine($"        protected {accessibility} TokenType GetTokeType()");
-        if (_context.Config.IsAbstract)
-        {
-            _codeBuilder.Append(" ;");
-            _codeBuilder.AppendLine();
-            return;
-        }
-        _codeBuilder.AppendLine("        {");
-        _codeBuilder.AppendLine("            return _tokenType;");
-        _codeBuilder.AppendLine("        }");
+        _codeBuilder.AppendLine($"        protected {accessibility} TokenType GetTokeType() => _tokenType;");
         _codeBuilder.AppendLine();
     }
 
@@ -246,6 +237,25 @@ internal class ConstructorGenerator
         _codeBuilder.AppendLine("            if(_appContext == null)");
         _codeBuilder.AppendLine("                throw new InvalidOperationException($\"无法找到默认的应用上下文。\");");
         _codeBuilder.AppendLine("            return _appContext;");
+        _codeBuilder.AppendLine("        }");
+        _codeBuilder.AppendLine();
+
+        _codeBuilder.AppendLine("        /// <summary>");
+        _codeBuilder.AppendLine("        /// 获取当前应用的访问令牌。");
+        _codeBuilder.AppendLine("        /// </summary>");
+        _codeBuilder.AppendLine("        /// <returns>返回当前应用的访问令牌。</returns>");
+        _codeBuilder.AppendLine($"        protected virtual async Task<string> GetTokenAsync()");
+        _codeBuilder.AppendLine("        {");
+        _codeBuilder.AppendLine("            if(_appContext == null)");
+        _codeBuilder.AppendLine("                throw new InvalidOperationException($\"无法找到当前服务的应用上下文。\");");
+        _codeBuilder.AppendLine("            var tokenType = GetTokeType();");
+        _codeBuilder.AppendLine("            var tokenManager = _appContext.GetTokenManager(tokenType);");
+        _codeBuilder.AppendLine("            if(tokenManager == null)");
+        _codeBuilder.AppendLine("                throw new InvalidOperationException($\"无法找到当前服务的令牌管理器，TokenType: {tokenType}\");");
+        _codeBuilder.AppendLine("            var token = await tokenManager.GetTokenAsync();");
+        _codeBuilder.AppendLine("            if(string.IsNullOrEmpty(token))");
+        _codeBuilder.AppendLine("                throw new InvalidOperationException($\"无法获取到有效的访问令牌，TokenType: {tokenType}\");");
+        _codeBuilder.AppendLine("            return token;");
         _codeBuilder.AppendLine("        }");
         _codeBuilder.AppendLine();
     }

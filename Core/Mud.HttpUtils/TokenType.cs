@@ -5,32 +5,24 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-namespace Mud.HttpUtils.Attributes;
+namespace Mud.HttpUtils;
+
 
 /// <summary>
-/// HTTP 声明式token参数特性
+/// 飞书Token类型。
 /// </summary>
-[AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Interface, AllowMultiple = false)]
-public sealed class TokenAttribute : Attribute
+public enum TokenType
 {
     /// <summary>
-    /// <inheritdoc cref="TokenAttribute" />
+    /// 使用应用Token调用函数。
     /// </summary>
-    public TokenAttribute() : this(TokenType.TenantAccessToken)
-    {
-    }
-
+    TenantAccessToken = 0,
     /// <summary>
-    /// <inheritdoc cref="TokenAttribute" />
+    /// 使用用户Token调用函数。
     /// </summary>
-    /// <param name="tokenType">飞书Token类型。</param>
-    public TokenAttribute(TokenType tokenType)
-    {
-        TokenType = tokenType;
-    }
-
+    UserAccessToken = 1,
     /// <summary>
-    /// 飞书Token类型。
+    /// 使用用户Token调用函数。
     /// </summary>
-    public TokenType TokenType { get; set; } = TokenType.TenantAccessToken;
+    AppAccessToken = 2,
 }

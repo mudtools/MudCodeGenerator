@@ -40,7 +40,7 @@ internal class ClassStructureGenerator
         // 根据接口的可访问性确定类的可访问性
         var classAccessibility = _interfaceSymbol.DeclaredAccessibility switch
         {
-            Accessibility.Public => "public",
+            Accessibility.Public => "internal",
             Accessibility.Internal => "internal",
             Accessibility.Protected => "protected",
             Accessibility.ProtectedOrInternal => "protected internal",
