@@ -52,3 +52,5 @@
 /Test/HttpClientApiTest/bin/Debug/net10.0
 /Test/HttpClientApiTest/obj
 /Test/HttpClientApiTest/bin/Debug
+/Test/HttpClientApiTest/bin/Release/net10.0
+/Test/HttpClientApiTest/bin/Release
