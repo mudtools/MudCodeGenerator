@@ -101,45 +101,25 @@ public partial class CodeInjectGenerator
         // 首先获取所有属性
         var allAttributes = classDeclaration.AttributeLists.SelectMany(al => al.Attributes).ToList();
 
-        // 手动匹配CustomInject属性，包括泛型版本
+        // 使用统一方法匹配 CustomInject 属性，包括泛型版本
         var customInjectAttributes = allAttributes.Where(attr =>
-        {
-            var attrName = attr.Name.ToString();
+            CodeInjectGeneratorConstants.MatchesAttribute(
+                attr.Name.ToString(),
+                CodeInjectGeneratorConstants.CustomInject,
+                CodeInjectGeneratorConstants.CustomInjectAttribute,
+                CodeInjectGeneratorConstants.CustomInjectGenericPattern
+            )
+        ).ToList();
 
-            // 匹配 CustomInjectAttribute
-            if (attrName == CodeInjectGeneratorConstants.CustomInjectAttribute)
-                return true;
-
-            // 匹配 CustomInject（短名称）
-            if (attrName == CodeInjectGeneratorConstants.CustomInject)
-                return true;
-
-            // 匹配泛型版本 CustomInject<IMenuRepository>
-            if (attrName.StartsWith(CodeInjectGeneratorConstants.CustomInjectGenericPattern, StringComparison.OrdinalIgnoreCase) && attrName.EndsWith(CodeInjectGeneratorConstants.GenericSuffix, StringComparison.OrdinalIgnoreCase))
-                return true;
-
-            return false;
-        }).ToList();
-
-        // 手动匹配OptionsInject属性，包括泛型版本
+        // 使用统一方法匹配 OptionsInject 属性，包括泛型版本
         var optionsInjectAttributes = allAttributes.Where(attr =>
-        {
-            var attrName = attr.Name.ToString();
-
-            // 匹配 OptionsInjectAttribute
-            if (attrName == CodeInjectGeneratorConstants.OptionsInjectAttribute)
-                return true;
-
-            // 匹配 OptionsInject（短名称）
-            if (attrName == CodeInjectGeneratorConstants.OptionsInject)
-                return true;
-
-            // 匹配泛型版本 OptionsInject<TenantOptions>
-            if (attrName.StartsWith(CodeInjectGeneratorConstants.OptionsInjectGenericPattern, StringComparison.OrdinalIgnoreCase) && attrName.EndsWith(CodeInjectGeneratorConstants.GenericSuffix, StringComparison.OrdinalIgnoreCase))
-                return true;
-
-            return false;
-        }).ToList();
+            CodeInjectGeneratorConstants.MatchesAttribute(
+                attr.Name.ToString(),
+                CodeInjectGeneratorConstants.OptionsInject,
+                CodeInjectGeneratorConstants.OptionsInjectAttribute,
+                CodeInjectGeneratorConstants.OptionsInjectGenericPattern
+            )
+        ).ToList();
 
         return new InjectionRequirements
         {

@@ -24,17 +24,7 @@ internal class MethodAnalysisResult
     /// <summary>
     /// 当前正在处理的接口名称（用于接口级别的partial方法）
     /// </summary>
-    public string CurrentInterfaceName { get; set; } = string.Empty;
-
-    /// <summary>
-    /// 接口名称（已过时，请使用 MethodOwnerInterfaceName）
-    /// </summary>
-    [Obsolete("Use MethodOwnerInterfaceName instead")]
-    public string InterfaceName
-    {
-        get => MethodOwnerInterfaceName;
-        set => MethodOwnerInterfaceName = value;
-    }
+    public string CurrentInterfaceName { get; set; } = string.Empty;   
 
     /// <summary>
     /// 方法是否有效

@@ -108,4 +108,14 @@ internal static class ComWrapConstants
     /// 默认COM类名
     /// </summary>
     public const string DefaultComClassName = "UNKNOWN_CLASS";
+
+    /// <summary>
+    /// 已知的COM接口前缀列表（用于自动识别COM类名）
+    /// </summary>
+    public static readonly string[] KnownPrefixes = ["IWord", "IExcel", "IOffice", "IPowerPoint", "IVbe"];
+
+    /// <summary>
+    /// 已知的实现类前缀列表（用于自动识别）
+    /// </summary>
+    public static readonly string[] KnownImpPrefixes = ["Word", "Excel", "Office", "PowerPoint", "Vbe"];
 }

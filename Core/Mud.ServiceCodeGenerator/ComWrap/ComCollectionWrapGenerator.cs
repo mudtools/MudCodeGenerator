@@ -218,14 +218,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         sb.AppendLine("                            else");
         sb.AppendLine("                                return default;");
         sb.AppendLine("                        }");
-        sb.AppendLine("                        catch (COMException ce)");
-        sb.AppendLine("                        {");
-        sb.AppendLine($"                            throw new ExcelOperationException(\"枚举集合元素失败: \" + ce.Message, ce);");
-        sb.AppendLine("                        }");
-        sb.AppendLine("                        catch (Exception ex)");
-        sb.AppendLine("                        {");
-        sb.AppendLine($"                            throw new ExcelOperationException(\"枚举集合元素失败\", ex);");
-        sb.AppendLine("                        }");
+                        GenerateComExceptionHandling(sb, "枚举集合元素失败", "                        ");
         sb.AppendLine("                    }");
         sb.AppendLine();
         sb.AppendLine("                    yield return GetItemAt(i);");
@@ -259,14 +252,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         }
 
         sb.AppendLine("                }");
-        sb.AppendLine("                catch (COMException ce)");
-        sb.AppendLine("                {");
-        sb.AppendLine($"                    throw new ExcelOperationException(\"转换集合元素失败: \" + ce.Message, ce);");
-        sb.AppendLine("                }");
-        sb.AppendLine("                catch (Exception ex)");
-        sb.AppendLine("                {");
-        sb.AppendLine($"                    throw new ExcelOperationException(\"转换集合元素失败\", ex);");
-        sb.AppendLine("                }");
+        GenerateComExceptionHandling(sb, "转换集合元素失败", "                ");
 
         // yield return 必须在 try-catch 块外面
         sb.AppendLine("                if (returnValue != null)");

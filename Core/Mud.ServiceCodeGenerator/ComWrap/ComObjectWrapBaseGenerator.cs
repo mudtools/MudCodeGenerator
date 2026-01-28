@@ -57,7 +57,7 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
     /// <summary>
     /// 检查接口声明是否有 COM 包装特性
     /// </summary>
-    private static bool HasComWrapAttributes(InterfaceDeclarationSyntax syntax, string[] attributeNames)
+    protected virtual bool HasComWrapAttributes(InterfaceDeclarationSyntax syntax, string[] attributeNames)
     {
         return syntax.AttributeLists.SelectMany(al => al.Attributes)
             .Any(attr =>
@@ -68,7 +68,7 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
     }
 
     /// <summary>
-    /// 检查接口声明是否有 COM 包装特性
+    /// 检查接口声明是否有 COM 包装特性（使用生成器的特性名称）
     /// </summary>
     protected virtual bool HasComWrapAttributes(InterfaceDeclarationSyntax syntax)
     {
@@ -527,14 +527,6 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
                 // 我们需要将其转换为 COM 命名空间的路径
                 var enumDefault = ConvertEnumToComNamespace(context.EnumValueName, context.ComNamespace);
 
-                // 临时调试：写入文件以查看值
-                try
-                {
-                    var debugFile = Path.Combine(Path.GetTempPath(), $"enum_debug_{context.Parameter.Name}.txt");
-                    File.WriteAllText(debugFile, $"EnumValueName: {context.EnumValueName}\nComNamespace: {context.ComNamespace}\nConverted: {enumDefault}");
-                }
-                catch { }
-
                 sb.AppendLine($"            var {context.Parameter.Name}Obj = {context.Parameter.Name}.EnumConvert({enumDefault});");
             }
         }
@@ -564,7 +556,7 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
             return interfaceTypeName;
 
         // 尝试匹配已知前缀
-        foreach (var prefix in KnownPrefixes)
+        foreach (var prefix in ComWrapConstants.KnownPrefixes)
         {
             if (interfaceTypeName.StartsWith(prefix, StringComparison.Ordinal))
             {
@@ -1053,6 +1045,24 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
         sb.AppendLine("            {");
         sb.AppendLine($"                throw new ExcelOperationException(\"{operationDescription}失败\", ex);");
         sb.AppendLine("            }");
+    }
+
+    /// <summary>
+    /// 生成统一的 COM 异常处理代码块
+    /// </summary>
+    /// <param name="sb">字符串构建器</param>
+    /// <param name="errorDescription">错误描述</param>
+    /// <param name="indent">缩进级别（默认4个空格）</param>
+    protected void GenerateComExceptionHandling(StringBuilder sb, string errorDescription, string indent = "            ")
+    {
+        sb.AppendLine($"{indent}catch (COMException ce)");
+        sb.AppendLine($"{indent}{{");
+        sb.AppendLine($"{indent}    throw new ExcelOperationException(\"{errorDescription}: \" + ce.Message, ce);");
+        sb.AppendLine($"{indent}}}");
+        sb.AppendLine($"{indent}catch (Exception ex)");
+        sb.AppendLine($"{indent}{{");
+        sb.AppendLine($"{indent}    throw new ExcelOperationException(\"{errorDescription}\", ex);");
+        sb.AppendLine($"{indent}}}");
     }
 
     /// <summary>

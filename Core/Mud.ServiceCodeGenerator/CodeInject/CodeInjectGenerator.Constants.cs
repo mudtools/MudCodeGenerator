@@ -62,4 +62,33 @@ internal static class CodeInjectGeneratorConstants
     public const string OptionsInjectGenericPattern = "OptionsInject<";
     public const string GenericSuffix = ">";
     #endregion
+
+    #region 辅助方法
+    /// <summary>
+    /// 检查属性名称是否匹配指定的属性（包括泛型版本）
+    /// </summary>
+    /// <param name="attributeName">属性名称</param>
+    /// <param name="shortName">属性短名称（如 "CustomInject"）</param>
+    /// <param name="fullName">属性完整名称（如 "CustomInjectAttribute"）</param>
+    /// <param name="genericPattern">泛型模式（如 "CustomInject<"）</param>
+    /// <returns>如果匹配则返回 true</returns>
+    public static bool MatchesAttribute(string attributeName, string shortName, string fullName, string genericPattern)
+    {
+        // 匹配完整名称
+        if (attributeName == fullName)
+            return true;
+
+        // 匹配短名称
+        if (attributeName == shortName)
+            return true;
+
+        // 匹配泛型版本（如 CustomInject<IMenuRepository>）
+        if (!string.IsNullOrEmpty(genericPattern) &&
+            attributeName.StartsWith(genericPattern, StringComparison.OrdinalIgnoreCase) &&
+            attributeName.EndsWith(GenericSuffix, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return false;
+    }
+    #endregion
 }

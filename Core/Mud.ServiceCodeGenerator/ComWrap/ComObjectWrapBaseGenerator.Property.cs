@@ -12,9 +12,7 @@ namespace Mud.ServiceCodeGenerator.ComWrap;
 partial class ComObjectWrapBaseGenerator
 {
     #region Constants and Fields
-    private static readonly string[] KnownPrefixes = ["IWord", "IExcel", "IOffice", "IPowerPoint", "IVbe"];
-
-    private static readonly string[] KnownImpPrefixes = ["Word", "Excel", "Office", "PowerPoint", "Vbe"];
+    // 前缀常量已移至 ComWrapConstants.KnownPrefixes 和 KnownImpPrefixes
     #endregion
 
     #region Indexer Implementation
@@ -396,14 +394,7 @@ partial class ComObjectWrapBaseGenerator
             sb.AppendLine($"                    {privateFieldName}[{parametersStr}] = {setValue};");
         }
         sb.AppendLine("                }");
-        sb.AppendLine("                catch (COMException ce)");
-        sb.AppendLine("                {");
-        sb.AppendLine($"                    throw new ExcelOperationException(\"根据双索引设置 {elementImplType} 对象失败: \" + ce.Message, ce);");
-        sb.AppendLine("                }");
-        sb.AppendLine("                catch (Exception ex)");
-        sb.AppendLine("                {");
-        sb.AppendLine($"                    throw new ExcelOperationException(\"根据双索引设置 {elementImplType} 对象失败\", ex);");
-        sb.AppendLine("                }");
+        GenerateComExceptionHandling(sb, $"根据双索引设置 {elementImplType} 对象失败", "                ");
     }
 
     /// <summary>
@@ -464,14 +455,7 @@ partial class ComObjectWrapBaseGenerator
         }
 
         sb.AppendLine("                }");
-        sb.AppendLine("                catch (COMException ce)");
-        sb.AppendLine("                {");
-        sb.AppendLine($"                    throw new ExcelOperationException(\"根据双索引获取 {elementImplType} 对象失败: \" + ce.Message, ce);");
-        sb.AppendLine("                }");
-        sb.AppendLine("                catch (Exception ex)");
-        sb.AppendLine("                {");
-        sb.AppendLine($"                    throw new ExcelOperationException(\"根据双索引获取 {elementImplType} 对象失败\", ex);");
-        sb.AppendLine("                }");
+        GenerateComExceptionHandling(sb, $"根据双索引获取 {elementImplType} 对象失败", "                ");
     }
     #endregion
 
@@ -534,10 +518,7 @@ partial class ComObjectWrapBaseGenerator
             sb.AppendLine("                    return result;");
         }
         sb.AppendLine("                }");
-        sb.AppendLine("                catch (COMException ce)");
-        sb.AppendLine("                {");
-        sb.AppendLine($"                    throw new ExcelOperationException(\"{operationType}检索 {elementImplType} 对象失败: \" + ce.Message, ce);");
-        sb.AppendLine("                }");
+        GenerateComExceptionHandling(sb, $"{operationType}检索 {elementImplType} 对象失败", "                ");
     }
 
 
@@ -548,14 +529,7 @@ partial class ComObjectWrapBaseGenerator
     private void AddSetExceptionHandling(StringBuilder sb, string elementImplType, string operationType)
     {
         sb.AppendLine("                }");
-        sb.AppendLine("                catch (COMException ce)");
-        sb.AppendLine("                {");
-        sb.AppendLine($"                    throw new ExcelOperationException(\"{operationType}设置 {elementImplType} 对象失败: \" + ce.Message, ce);");
-        sb.AppendLine("                }");
-        sb.AppendLine("                catch (Exception ex)");
-        sb.AppendLine("                {");
-        sb.AppendLine($"                    throw new ExcelOperationException(\"{operationType}设置 {elementImplType} 对象失败\", ex);");
-        sb.AppendLine("                }");
+        GenerateComExceptionHandling(sb, $"{operationType}设置 {elementImplType} 对象失败", "                ");
     }
     #endregion
 
@@ -1394,7 +1368,7 @@ partial class ComObjectWrapBaseGenerator
         var interfaceName = interfaceDeclaration.Identifier.Text;
 
         // 尝试匹配已知前缀
-        foreach (var prefix in KnownPrefixes)
+        foreach (var prefix in ComWrapConstants.KnownPrefixes)
         {
             if (interfaceName.StartsWith(prefix, StringComparison.Ordinal))
             {
