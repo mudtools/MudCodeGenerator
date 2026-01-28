@@ -26,7 +26,6 @@ public class EntityMappingGenerator : TransitiveDtoGenerator
     /// <inheritdoc/>
     protected override void GenerateCode(SourceProductionContext context, Compilation compilation, ClassDeclarationSyntax orgClassDeclaration)
     {
-        //Debugger.Launch();
         var className = orgClassDeclaration != null ? SyntaxHelper.GetClassName(orgClassDeclaration) : "Unknown";
 
         ErrorHandler.SafeExecute(context, className, () =>
@@ -146,12 +145,10 @@ public class EntityMappingGenerator : TransitiveDtoGenerator
         string orgClassName)
     {
         var crInputClassName = GetGeneratorClassName(orgClassDeclaration, ConfigurationManager.Instance.GetClassSuffix("crinput"));
-        Debug.WriteLine($"CRINPUT_CLASS_NAME: {crInputClassName}");
 
         // 添加命名空间前缀
         var fullCrInputClassName = $"{crInputClassName}";
 
-        //Debugger.Launch();
         // 使用MappingGenerator生成映射方法
         HashSet<string> properties = [];
         var mappingLines = GenerateMappingLines<PropertyDeclarationSyntax>(
@@ -184,7 +181,6 @@ public class EntityMappingGenerator : TransitiveDtoGenerator
         string orgClassName)
     {
         var upInputClassName = GetGeneratorClassName(orgClassDeclaration, ConfigurationManager.Instance.GetClassSuffix("upinput"));
-        System.Diagnostics.Debug.WriteLine($"UPINPUT_CLASS_NAME: {upInputClassName}");
 
         // 添加命名空间前缀
         var fullUpInputClassName = $"{upInputClassName}";
@@ -220,7 +216,6 @@ public class EntityMappingGenerator : TransitiveDtoGenerator
         string orgClassName)
     {
         var queryInputClassName = GetGeneratorClassName(orgClassDeclaration, ConfigurationManager.Instance.GetClassSuffix("queryinput"));
-        System.Diagnostics.Debug.WriteLine($"QUERYINPUT_CLASS_NAME: {queryInputClassName}");
 
         // 添加命名空间前缀
         var fullQueryInputClassName = $"{queryInputClassName}";
@@ -255,7 +250,6 @@ public class EntityMappingGenerator : TransitiveDtoGenerator
         string orgClassName)
     {
         var crInputClassName = GetGeneratorClassName(orgClassDeclaration, ConfigurationManager.Instance.GetClassSuffix("crinput"));
-        Debug.WriteLine($"CRINPUT_CLASS_NAME: {crInputClassName}");
 
         // 添加命名空间前缀
         var fullCrInputClassName = $"{crInputClassName}";
@@ -291,7 +285,6 @@ public class EntityMappingGenerator : TransitiveDtoGenerator
          string orgClassName)
     {
         var upInputClassName = GetGeneratorClassName(orgClassDeclaration, ConfigurationManager.Instance.GetClassSuffix("upinput"));
-        System.Diagnostics.Debug.WriteLine($"UPINPUT_CLASS_NAME: {upInputClassName}");
 
         // 添加命名空间前缀
         var fullUpInputClassName = $"{upInputClassName}";
@@ -328,7 +321,6 @@ public class EntityMappingGenerator : TransitiveDtoGenerator
         string orgClassName)
     {
         var voClassName = GetGeneratorClassName(orgClassDeclaration, ConfigurationManager.Instance.GetClassSuffix("vo"));
-        System.Diagnostics.Debug.WriteLine($"VO_CLASS_NAME: {voClassName}");
 
         // 添加命名空间前缀
         var fullVoClassName = $"{voClassName}";
@@ -361,7 +353,6 @@ public class EntityMappingGenerator : TransitiveDtoGenerator
          string orgClassName)
     {
         var voClassName = GetGeneratorClassName(orgClassDeclaration, ConfigurationManager.Instance.GetClassSuffix("infooutput"));
-        System.Diagnostics.Debug.WriteLine($"VO_CLASS_NAME: {voClassName}");
 
         // 添加命名空间前缀
         var fullVoClassName = $"{voClassName}";
@@ -393,7 +384,6 @@ public class EntityMappingGenerator : TransitiveDtoGenerator
         string orgClassName)
     {
         var voClassName = GetGeneratorClassName(orgClassDeclaration, ConfigurationManager.Instance.GetClassSuffix("vo"));
-        System.Diagnostics.Debug.WriteLine($"VO_CLASS_NAME: {voClassName}");
 
         // 添加命名空间前缀
         var fullVoClassName = $"{voClassName}";

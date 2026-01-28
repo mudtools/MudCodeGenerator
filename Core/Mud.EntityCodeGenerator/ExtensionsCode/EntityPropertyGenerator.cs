@@ -19,7 +19,7 @@ namespace Mud.EntityCodeGenerator
     {
         private string _dtoNameSpace = "";
 
-        private string[] FieldAttributes = ["TableField", "Column", "SugarColumn", "Key"];
+        private static readonly string[] FieldAttributes = ["TableField", "Column", "SugarColumn", "Key"];
 
         /// <summary>
         /// EntityPropertyGenerator构造函数
@@ -42,7 +42,6 @@ namespace Mud.EntityCodeGenerator
         {
             try
             {
-                //Debugger.Launch();
                 var genMapMethod = SyntaxHelper.GetClassAttributeValues(orgClassDeclaration, DtoGeneratorAttributeName, DtoGeneratorAttributeGenMapMethod, true);
                 if (!genMapMethod)
                     return;
@@ -93,7 +92,6 @@ namespace Mud.EntityCodeGenerator
         /// <returns></returns>
         private (ClassDeclarationSyntax? classDeclaration, bool success) BuildProperty(ClassDeclarationSyntax localClass, ClassDeclarationSyntax orgClassDeclaration)
         {
-            //Debugger.Launch();
             // 提高容错性，处理空对象情况
             if (localClass == null || orgClassDeclaration == null)
                 return (localClass, false);
@@ -147,9 +145,9 @@ namespace Mud.EntityCodeGenerator
                     localClass = localClass.AddMembers(propertyDeclaration);
                     success = true;
                 }
-                catch (Exception ex)
+                catch
                 {
-                    System.Diagnostics.Debug.WriteLine($"生成实体属性时发生错误: {ex.Message}");
+                    // 静默处理异常，避免中断生成过程
                 }
             }
             return (localClass, success);

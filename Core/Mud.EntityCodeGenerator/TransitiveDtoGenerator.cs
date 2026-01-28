@@ -120,7 +120,6 @@ public abstract class TransitiveDtoGenerator : TransitiveCodeGenerator, IIncreme
                 var (compiler, analyzer) = provider.Right;
 
                 InitEntityPrefixValue(analyzer.GlobalOptions);
-                //Debugger.Launch();
 
                 // 读取并初始化所有配置项
                 ReadConfigurationOptions(analyzer.GlobalOptions);
