@@ -148,6 +148,17 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         var privateFieldName = PrivateFieldNamingHelper.GeneratePrivateFieldName(comClassName);
         var isNoneEnumerable = AttributeDataHelper.HasAttribute(interfaceSymbol, ComWrapConstants.NoneEnumerableAttributes);
 
+        // Find the indexer property that returns this element type
+        var indexerProperty = TypeSymbolHelper.GetAllProperties(interfaceSymbol)
+            .FirstOrDefault(p => p.IsIndexer && TypeSymbolHelper.GetTypeFullName(p.Type) == elementInfo.ElementTypeName);
+
+        // Check if the indexer has a ComPropertyWrap attribute with ComNamespace specified
+        var elementComNamespace = GetPropertyComNamespace(indexerProperty);
+        if (string.IsNullOrEmpty(elementComNamespace))
+        {
+            elementComNamespace = comNamespace;
+        }
+
         sb.AppendLine("        #region IEnumerable 实现");
         sb.AppendLine($"        ///  <inheritdoc/>");
         sb.AppendLine($"        {GeneratedCodeAttribute}");
@@ -162,7 +173,7 @@ public class ComCollectionWrapGenerator : ComObjectWrapBaseGenerator
         }
         else
         {
-            GenerateCollectionBasedEnumerator(sb, elementInfo, comNamespace, privateFieldName);
+            GenerateCollectionBasedEnumerator(sb, elementInfo, elementComNamespace, privateFieldName);
         }
 
         sb.AppendLine("        }");
