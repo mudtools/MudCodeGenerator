@@ -6,7 +6,7 @@
 // -----------------------------------------------------------------------
 
 using Mud.HttpUtils.Models;
-using System.Globalization;
+using Mud.CodeGenerator;
 
 namespace Mud.HttpUtils.Helpers;
 
@@ -328,30 +328,7 @@ internal sealed class MethodHelper
         var tokenAttribute = parameter.GetAttributes()
             .FirstOrDefault(attr => HttpClientGeneratorConstants.TokenAttributeNames.Contains(attr.AttributeClass?.Name));
 
-        if (tokenAttribute == null)
-            return "TenantAccessToken";
-
-        // 首先检查命名参数 TokenType
-        var namedTokenType = tokenAttribute.NamedArguments
-            .FirstOrDefault(na => na.Key.Equals("TokenType", StringComparison.OrdinalIgnoreCase)).Value.Value;
-
-        if (namedTokenType != null)
-        {
-            return ConvertTokenEnumValueToString(Convert.ToInt32(namedTokenType, CultureInfo.InvariantCulture));
-        }
-
-        // 然后检查构造函数参数
-        if (tokenAttribute.ConstructorArguments.Length > 0)
-        {
-            var tokenTypeValue = tokenAttribute.ConstructorArguments[0].Value;
-            if (tokenTypeValue != null)
-            {
-                return ConvertTokenEnumValueToString(Convert.ToInt32(tokenTypeValue, CultureInfo.InvariantCulture));
-            }
-        }
-
-        // 默认返回 TenantAccessToken
-        return "TenantAccessToken";
+        return TokenHelper.GetTokenTypeFromAttribute(tokenAttribute) ?? TokenHelper.GetDefaultTokenType();
     }
 
     /// <summary>
@@ -372,11 +349,11 @@ internal sealed class MethodHelper
         switch (parameterType.SpecialType)
         {
             case SpecialType.System_String:
-                return $"\"{EscapeString(defaultValue.ToString()!)}\"";
+                return $"\"{StringEscapeHelper.EscapeString(defaultValue.ToString()!)}\"";
             case SpecialType.System_Boolean:
                 return defaultValue.ToString()!.ToLowerInvariant();
             case SpecialType.System_Char:
-                return $"'{EscapeChar((char)defaultValue)}'";
+                return $"'{StringEscapeHelper.EscapeChar((char)defaultValue)}'";
             case SpecialType.System_Int16:
             case SpecialType.System_Int32:
             case SpecialType.System_Int64:
@@ -394,7 +371,7 @@ internal sealed class MethodHelper
         }
 
         // 默认处理为字符串
-        return $"\"{EscapeString(defaultValue.ToString()!)}\"";
+        return $"\"{StringEscapeHelper.EscapeString(defaultValue.ToString()!)}\"";
     }
 
     /// <summary>
@@ -403,60 +380,6 @@ internal sealed class MethodHelper
     private static string GetEnumLiteral(INamedTypeSymbol enumType, object defaultValue)
     {
         return TypeSymbolHelper.GetEnumValueLiteral(enumType, defaultValue);
-    }
-
-    /// <summary>
-    /// 将Token类型枚举值转换为字符串
-    /// </summary>
-    /// <param name="enumValue">枚举值</param>
-    /// <returns>Token类型字符串</returns>
-    private static string ConvertTokenEnumValueToString(int enumValue)
-    {
-        return enumValue switch
-        {
-            0 => "TenantAccessToken",
-            1 => "UserAccessToken",
-            2 => "Both",
-            _ => "TenantAccessToken"
-        };
-    }
-
-    /// <summary>
-    /// 转义字符串中的特殊字符
-    /// </summary>
-    private static string EscapeString(string value)
-    {
-        return value.Replace("\\", "\\\\")
-                    .Replace("\"", "\\\"")
-                    .Replace("\0", "\\0")
-                    .Replace("\a", "\\a")
-                    .Replace("\b", "\\b")
-                    .Replace("\f", "\\f")
-                    .Replace("\n", "\\n")
-                    .Replace("\r", "\\r")
-                    .Replace("\t", "\\t")
-                    .Replace("\v", "\\v");
-    }
-
-    /// <summary>
-    /// 转义字符中的特殊字符
-    /// </summary>
-    private static string EscapeChar(char value)
-    {
-        return value switch
-        {
-            '\\' => "\\\\",
-            '\'' => "\\'",
-            '\0' => "\\0",
-            '\a' => "\\a",
-            '\b' => "\\b",
-            '\f' => "\\f",
-            '\n' => "\\n",
-            '\r' => "\\r",
-            '\t' => "\\t",
-            '\v' => "\\v",
-            _ => value.ToString()
-        };
     }
 
     #endregion

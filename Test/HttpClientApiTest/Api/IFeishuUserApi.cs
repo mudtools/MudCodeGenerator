@@ -20,13 +20,13 @@ public interface IFeishuUserApi
 
     /// <summary>
     /// 测试：获取用户信息（绝对路径）
-    /// 接口：GET https://api.mudtools.cn//users/{userId}
+    /// 接口：GET https://api.mudtools.cn/users/{userId}
     /// 特点：使用绝对URL，覆盖接口级BaseAddress
     /// </summary>
     /// <param name="userId">用户ID</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>用户信息</returns>
-    [Get("https://api.mudtools.cn//users/{userId}")]
+    [Get("https://api.mudtools.cn/users/{userId}")]
     Task<UserInfo?> GetUserAbsoluteAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>

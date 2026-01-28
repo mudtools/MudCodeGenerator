@@ -302,37 +302,7 @@ internal class EventHandlerSourceGenerator : TransitiveCodeGenerator
     /// <returns>规范化后的字符串字面量</returns>
     private string NormalizeEventType(string eventType)
     {
-        eventType = eventType?.Trim() ?? string.Empty;
-
-        // 空字符串返回空字符串字面量
-        if (string.IsNullOrEmpty(eventType))
-            return "\"\"";
-
-        // 检测是否已经是合法字符串字面量
-        if (eventType.Length >= 2)
-        {
-            char quote = eventType[0];
-            if ((quote == '"' || quote == '\'') && eventType[0] == eventType[eventType.Length - 1])
-            {
-                // 验证内部是否包含相同的未转义引号
-                var innerContent = eventType.Substring(1, eventType.Length - 2);
-                if (!innerContent.Contains(quote))
-                    return eventType; // 合法字面量
-                else
-                    // 包含未转义的引号，需要转义
-                    eventType = innerContent.Replace(quote.ToString(), $"\\{quote}");
-            }
-        }
-
-        // 转义特殊字符并包装成字符串字面量
-        eventType = eventType
-            .Replace("\\", "\\\\")
-            .Replace("\"", "\\\"")
-            .Replace("\n", "\\n")
-            .Replace("\r", "\\r")
-            .Replace("\t", "\\t");
-
-        return $"\"{eventType}\"";
+        return StringEscapeHelper.NormalizeEventType(eventType);
     }
 
     /// <summary>

@@ -7,6 +7,7 @@
 
 using Mud.HttpUtils.Helpers;
 using Mud.HttpUtils.Models;
+using Mud.CodeGenerator;
 
 namespace Mud.HttpUtils.Generators;
 
@@ -125,45 +126,12 @@ internal class InterfaceImpCodeGenerator
         _inheritedFrom = AttributeDataHelper.GetStringValueFromAttribute(_httpClientApiAttribute, HttpClientGeneratorConstants.InheritedFromProperty);
         _tokenManage = AttributeDataHelper.GetStringValueFromAttribute(_httpClientApiAttribute, HttpClientGeneratorConstants.TokenManageProperty);
 
-        // 验证基类（问题26）
-        // if (!string.IsNullOrEmpty(_inheritedFrom))
-        // {
-        //     var validationResult = BaseClassValidator.ValidateBaseClass(
-        //         _compilation,
-        //         _inheritedFrom,
-        //         !string.IsNullOrEmpty(_tokenManage),
-        //         _interfaceSymbol.ContainingNamespace);
-
-        //     if (!validationResult.IsValid)
-        //     {
-        //         _context.ReportDiagnostic(Diagnostic.Create(
-        //             Diagnostics.HttpClientApiParameterError,
-        //             _interfaceDecl.GetLocation(),
-        //             _interfaceSymbol.Name,
-        //             validationResult.ErrorMessage));
-        //         return;
-        //     }
-        // }
-
         // 初始化各个生成器
         InitializeGenerators();
 
-        // 检查同名类是否已存在（问题25）
         var className = TypeSymbolHelper.GetImplementationClassName(_interfaceSymbol.Name);
         var namespaceName = SyntaxHelper.GetNamespaceName(_interfaceDecl, "Internal");
         var fullClassName = $"{namespaceName}.{className}";
-
-        // var existingSymbol = _compilation.GetTypeByMetadataName(fullClassName);
-        // if (existingSymbol != null && existingSymbol.Locations.Length > 0)
-        // {
-        //     var location = existingSymbol.Locations[0];
-        //     _context.ReportDiagnostic(Diagnostic.Create(
-        //         Diagnostics.HttpClientApiParameterError,
-        //         _interfaceDecl.GetLocation(),
-        //         _interfaceSymbol.Name,
-        //         $"生成的类 '{className}' 已存在于 {location.SourceTree?.FilePath ?? location.GetLineSpan().StartLinePosition.ToString()}"));
-        //     return;
-        // }
 
         GenerateImplementationClass();
     }
@@ -213,10 +181,10 @@ internal class InterfaceImpCodeGenerator
     private string GetHttpClientApiContentTypeFromAttribute(AttributeData? attribute)
     {
         if (attribute == null)
-            return "application/json";
+            return HttpClientGeneratorConstants.DefaultContentType;
         var contentTypeArg = attribute.NamedArguments.FirstOrDefault(a => a.Key == "ContentType");
         var contentType = contentTypeArg.Value.Value?.ToString();
-        return string.IsNullOrEmpty(contentType) ? "application/json" : contentType;
+        return string.IsNullOrEmpty(contentType) ? HttpClientGeneratorConstants.DefaultContentType : contentType;
     }
 
 
@@ -245,45 +213,7 @@ internal class InterfaceImpCodeGenerator
     private string? GetInterfaceTokenType()
     {
         var tokenAttribute = AttributeDataHelper.GetAttributeDataFromSymbol(_interfaceSymbol, HttpClientGeneratorConstants.TokenAttributeNames);
-        if (tokenAttribute == null)
-            return null;
-
-        // 检查命名参数 TokenType
-        var namedTokenType = tokenAttribute.NamedArguments
-            .FirstOrDefault(na => na.Key.Equals("TokenType", StringComparison.OrdinalIgnoreCase)).Value.Value;
-
-        if (namedTokenType != null)
-        {
-            return ConvertTokenEnumValueToString(Convert.ToInt32(namedTokenType, System.Globalization.CultureInfo.InvariantCulture));
-        }
-
-        // 检查构造函数参数
-        if (tokenAttribute.ConstructorArguments.Length > 0)
-        {
-            var tokenTypeValue = tokenAttribute.ConstructorArguments[0].Value;
-            if (tokenTypeValue != null)
-            {
-                return ConvertTokenEnumValueToString(Convert.ToInt32(tokenTypeValue, System.Globalization.CultureInfo.InvariantCulture));
-            }
-        }
-
-        // 默认为 null（不添加字段）
-        return null;
-    }
-
-    /// <summary>
-    /// 将 Token 类型枚举值转换为字符串
-    /// </summary>
-    private static string ConvertTokenEnumValueToString(int tokenTypeValue)
-    {
-        return tokenTypeValue switch
-        {
-            0 => "TenantAccessToken",
-            1 => "UserAccessToken",
-            2 => "AppAccessToken",
-            3 => "Both",
-            _ => "TenantAccessToken"
-        };
+        return TokenHelper.GetTokenTypeFromAttribute(tokenAttribute);
     }
 
 

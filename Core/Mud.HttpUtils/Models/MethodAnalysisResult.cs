@@ -27,8 +27,9 @@ internal class MethodAnalysisResult
     public string CurrentInterfaceName { get; set; } = string.Empty;
 
     /// <summary>
-    /// 接口名称（保持向后兼容，等同于MethodOwnerInterfaceName）
+    /// 接口名称（已过时，请使用 MethodOwnerInterfaceName）
     /// </summary>
+    [Obsolete("Use MethodOwnerInterfaceName instead")]
     public string InterfaceName
     {
         get => MethodOwnerInterfaceName;

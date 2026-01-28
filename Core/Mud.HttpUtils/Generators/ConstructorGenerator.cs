@@ -41,7 +41,9 @@ internal class ConstructorGenerator
         // 如果接口上标注了 Token 特性，添加 _tokenType 字段
         if (!string.IsNullOrEmpty(_context.Config.TokenType) || _context.HasTokenManager)
         {
-            var tokeType = string.IsNullOrEmpty(_context.Config.TokenType) ? "TenantAccessToken" : _context.Config.TokenType;
+            var tokeType = string.IsNullOrEmpty(_context.Config.TokenType)
+                ? TokenHelper.GetDefaultTokenType()
+                : _context.Config.TokenType;
             _codeBuilder.AppendLine("        /// <summary>");
             _codeBuilder.AppendLine("        /// Token类型，用于标识使用的Token类型。");
             _codeBuilder.AppendLine("        /// </summary>");

@@ -46,7 +46,7 @@ public sealed class HttpClientApiAttribute : Attribute
     /// <remarks>
     /// 用于设置HTTP请求头的 Content-Type，指定请求体的数据格式
     /// </remarks>
-    public string ContentType { get; set; } = "application/json";
+    public string ContentType { get; set; } = HttpClientGeneratorConstants.DefaultContentType;
 
     /// <summary>
     /// 获取或设置HTTP客户端的基地址

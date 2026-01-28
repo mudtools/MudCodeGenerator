@@ -56,4 +56,10 @@ internal static class HttpClientGeneratorConstants
     // 默认值
     public const string DefaultTokenManageInterface = "ITokenManage";
     public const string DefaultWrapSuffix = "Wrap";
+    public const string DefaultContentType = "application/json";
+
+    // HTTP方法常量(分离特性名和方法名)
+    public static readonly string[] HttpMethodAttributeNames =
+        ["GetAttribute", "PostAttribute", "PutAttribute", "DeleteAttribute", "PatchAttribute", "HeadAttribute", "OptionsAttribute"];
+    public static readonly string[] HttpMethodNames = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"];
 }
