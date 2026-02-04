@@ -74,6 +74,8 @@ internal class InterfaceImpCodeGenerator
         HttpInvokeClassSourceGenerator httpInvokeClassSourceGenerator,
         Compilation compilation,
         InterfaceDeclarationSyntax interfaceDecl,
+        INamedTypeSymbol interfaceSymbol,
+        SemanticModel semanticModel,
         SourceProductionContext context,
         string optionsName)
     {
@@ -81,9 +83,9 @@ internal class InterfaceImpCodeGenerator
         httpClientOptionsName = optionsName;
         _compilation = compilation;
         _interfaceDecl = interfaceDecl;
+        _interfaceSymbol = interfaceSymbol;
+        _semanticModel = semanticModel;
         _context = context;
-        // 初始化语义模型，使用缓存
-        _semanticModel = HttpInvokeBaseSourceGenerator.GetOrCreateSemanticModel(compilation, interfaceDecl.SyntaxTree);
         // 预估容量：根据接口方法数量估算，平均每个方法约500-800字符
         var estimatedCapacity = EstimateCodeCapacity();
         _codeBuilder = new StringBuilder(estimatedCapacity);
@@ -94,11 +96,7 @@ internal class InterfaceImpCodeGenerator
     /// </summary>
     private int EstimateCodeCapacity()
     {
-        // 使用已初始化的语义模型
-        if (_semanticModel.GetDeclaredSymbol(_interfaceDecl) is not INamedTypeSymbol interfaceSymbol)
-            return 5000; // 默认容量
-
-        var methods = TypeSymbolHelper.GetAllMethods(interfaceSymbol, true);
+        var methods = TypeSymbolHelper.GetAllMethods(_interfaceSymbol, true);
         int methodCount = 0;
         foreach (var method in methods)
         {
@@ -118,10 +116,6 @@ internal class InterfaceImpCodeGenerator
     /// </summary>
     public void GeneratorCode()
     {
-        if (_semanticModel.GetDeclaredSymbol(_interfaceDecl) is not INamedTypeSymbol interfaceSymbolObj)
-            return;
-        _interfaceSymbol = interfaceSymbolObj;
-
         // 获取HttpClientApi特性中的属性值
         _httpClientApiAttribute = AttributeDataHelper.GetAttributeDataFromSymbol(_interfaceSymbol, HttpClientGeneratorConstants.HttpClientApiAttributeNames);
         _isAbstract = AttributeDataHelper.GetBoolValueFromAttribute(_httpClientApiAttribute, HttpClientGeneratorConstants.IsAbstractProperty);
@@ -130,10 +124,6 @@ internal class InterfaceImpCodeGenerator
 
         // 初始化各个生成器
         InitializeGenerators();
-
-        var className = TypeSymbolHelper.GetImplementationClassName(_interfaceSymbol.Name);
-        var namespaceName = SyntaxHelper.GetNamespaceName(_interfaceDecl, "Internal");
-        var fullClassName = $"{namespaceName}.{className}";
 
         GenerateImplementationClass();
     }

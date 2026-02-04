@@ -50,11 +50,11 @@ internal partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGene
                 continue;
             }
 
-            ProcessInterface(compilation, interfaceDecl, context, httpClientOptionsName);
+            ProcessInterface(compilation, interfaceDecl, interfaceSymbol, semanticModel, context, httpClientOptionsName);
         }
     }
 
-    private void ProcessInterface(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl, SourceProductionContext context, string httpClientOptionsName)
+    private void ProcessInterface(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl, INamedTypeSymbol interfaceSymbol, SemanticModel semanticModel, SourceProductionContext context, string httpClientOptionsName)
     {
         try
         {
@@ -62,6 +62,8 @@ internal partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGene
                 this,
                 compilation,
                 interfaceDecl,
+                interfaceSymbol,
+                semanticModel,
                 context,
                 httpClientOptionsName);
 
