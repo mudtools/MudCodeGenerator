@@ -7,7 +7,6 @@
 
 using Mud.HttpUtils.Models;
 using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
 
 namespace Mud.HttpUtils;
 

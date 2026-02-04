@@ -1,7 +1,4 @@
 namespace HttpClientApiTest.Api;
-
-using Mud.Common.CodeGenerator;
-
 /// <summary>
 /// Token测试基类接口
 /// 抽象基类，定义了通用的Token测试方法

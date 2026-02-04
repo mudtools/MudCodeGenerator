@@ -7,10 +7,8 @@
 
 using Mud.HttpUtils.Helpers;
 using Mud.HttpUtils.Models;
-using Mud.CodeGenerator;
 
 namespace Mud.HttpUtils.Generators;
-
 
 internal class InterfaceImpCodeGenerator
 {
