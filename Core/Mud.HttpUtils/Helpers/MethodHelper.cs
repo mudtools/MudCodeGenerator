@@ -7,6 +7,7 @@
 
 using Mud.HttpUtils.Models;
 using Mud.CodeGenerator;
+using Microsoft.CodeAnalysis;
 
 namespace Mud.HttpUtils.Helpers;
 
@@ -22,8 +23,9 @@ internal sealed class MethodHelper
     /// <param name="compilation"></param>
     /// <param name="methodSymbol"></param>
     /// <param name="interfaceDecl"></param>
+    /// <param name="semanticModel">可选的语义模型，如果提供则使用</param>
     /// <returns></returns>
-    public static MethodAnalysisResult AnalyzeMethod(Compilation compilation, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl)
+    public static MethodAnalysisResult AnalyzeMethod(Compilation compilation, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl, SemanticModel? semanticModel = null)
     {
         var methodSyntax = FindMethodSyntax(compilation, methodSymbol, interfaceDecl);
         if (interfaceDecl == null || methodSyntax == null || methodSymbol == null)
@@ -65,7 +67,9 @@ internal sealed class MethodHelper
         }).ToList();
 
         // 分析接口特性
-        var interfaceSymbol = compilation.GetSemanticModel(interfaceDecl.SyntaxTree).GetDeclaredSymbol(interfaceDecl) as INamedTypeSymbol;
+        // 使用提供的语义模型，如果没有则获取新的
+        var model = semanticModel ?? compilation.GetSemanticModel(interfaceDecl.SyntaxTree);
+        var interfaceSymbol = model.GetDeclaredSymbol(interfaceDecl) as INamedTypeSymbol;
         var interfaceAttributes = new HashSet<string>();
         var interfaceHeaderAttributes = new List<InterfaceHeaderAttributeInfo>();
         string? interfaceContentType = null;
@@ -259,8 +263,8 @@ internal sealed class MethodHelper
                 .OfType<MethodDeclarationSyntax>()
                 .FirstOrDefault(m =>
                 {
-                    var model = compilation.GetSemanticModel(m.SyntaxTree);
-                    var methodSymbolFromSyntax = model.GetDeclaredSymbol(m);
+                    // 简化实现：使用 Compilation 获取已缓存的语义模型
+                    var methodSymbolFromSyntax = compilation.GetSemanticModel(m.SyntaxTree).GetDeclaredSymbol(m);
                     return methodSymbolFromSyntax?.Equals(methodSymbol, SymbolEqualityComparer.Default) == true;
                 });
 
@@ -274,12 +278,12 @@ internal sealed class MethodHelper
     /// <summary>
     /// 获取接口及其所有基接口的语法节点
     /// </summary>
-    public static IEnumerable<InterfaceDeclarationSyntax> GetAllBaseInterfaceSyntaxNodes(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl)
+    public static IEnumerable<InterfaceDeclarationSyntax> GetAllBaseInterfaceSyntaxNodes(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl, SemanticModel? semanticModel = null)
     {
         yield return interfaceDecl;
 
-        var semanticModel = compilation.GetSemanticModel(interfaceDecl.SyntaxTree);
-        var interfaceSymbol = semanticModel.GetDeclaredSymbol(interfaceDecl);
+        var model = semanticModel ?? compilation.GetSemanticModel(interfaceDecl.SyntaxTree);
+        var interfaceSymbol = model.GetDeclaredSymbol(interfaceDecl);
 
         if (interfaceSymbol == null)
             yield break;

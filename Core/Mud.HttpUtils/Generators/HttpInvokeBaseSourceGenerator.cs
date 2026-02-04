@@ -7,6 +7,7 @@
 
 using Mud.HttpUtils.Models;
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 
 namespace Mud.HttpUtils;
 
@@ -18,6 +19,11 @@ namespace Mud.HttpUtils;
 /// </remarks>
 internal abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
 {
+    /// <summary>
+    /// 缓存语义模型，使用弱引用避免内存泄漏
+    /// </summary>
+    private static readonly ConditionalWeakTable<SyntaxTree, SemanticModel> _semanticModelCache = new();
+
     #region Configuration
 
     /// <inheritdoc/>
@@ -75,9 +81,10 @@ internal abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     /// <param name="compilation">编译信息</param>
     /// <param name="interfaces">接口声明数组</param>
     /// <param name="context">源代码生成上下文</param>
+    /// <param name="configOptionsProvider">配置选项提供者</param>
     protected abstract void ExecuteGenerator(
         Compilation compilation,
-        ImmutableArray<InterfaceDeclarationSyntax> interfaces,
+        ImmutableArray<InterfaceDeclarationSyntax?> interfaces,
         SourceProductionContext context,
         AnalyzerConfigOptionsProvider configOptionsProvider);
 
@@ -214,6 +221,22 @@ internal abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
         }
 
         return callParameters;
+    }
+    #endregion
+
+    #region Semantic Model Cache
+    /// <summary>
+    /// 获取或创建语义模型，使用缓存提高性能
+    /// 使用ConditionalWeakTable避免内存泄漏
+    /// </summary>
+    internal static SemanticModel GetOrCreateSemanticModel(Compilation compilation, SyntaxTree syntaxTree)
+    {
+        if (_semanticModelCache.TryGetValue(syntaxTree, out var model))
+            return model;
+
+        var newModel = compilation.GetSemanticModel(syntaxTree);
+        _semanticModelCache.Add(syntaxTree, newModel);
+        return newModel;
     }
     #endregion
 }

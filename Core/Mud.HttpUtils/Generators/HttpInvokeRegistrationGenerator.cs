@@ -20,14 +20,9 @@ namespace Mud.HttpUtils;
 [Generator(LanguageNames.CSharp)]
 internal class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
 {
-    /// <summary>
-    /// 语义模型缓存，使用弱引用避免内存泄漏
-    /// </summary>
-    private static readonly ConditionalWeakTable<SyntaxTree, SemanticModel> _semanticModelCache = new();
-
     /// <inheritdoc/>
     protected override void ExecuteGenerator(Compilation compilation,
-        ImmutableArray<InterfaceDeclarationSyntax> interfaces,
+        ImmutableArray<InterfaceDeclarationSyntax?> interfaces,
         SourceProductionContext context,
         AnalyzerConfigOptionsProvider configOptionsProvider)
     {
@@ -43,27 +38,13 @@ internal class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
         context.AddSource("HttpClientApiExtensions.g.cs", SourceText.From(sourceCode, Encoding.UTF8));
     }
 
-    /// <summary>
-    /// 获取或创建语义模型，使用缓存提高性能
-    /// 使用ConditionalWeakTable避免内存泄漏
-    /// </summary>
-    private static SemanticModel GetOrCreateSemanticModel(Compilation compilation, SyntaxTree syntaxTree)
-    {
-        if (_semanticModelCache.TryGetValue(syntaxTree, out var model))
-            return model;
-
-        var newModel = compilation.GetSemanticModel(syntaxTree);
-        _semanticModelCache.Add(syntaxTree, newModel);
-        return newModel;
-    }
-
     /// <inheritdoc/>
     protected override System.Collections.ObjectModel.Collection<string> GetFileUsingNameSpaces()
     {
         return ["System", "Microsoft.Extensions.DependencyInjection", "System.Runtime.CompilerServices", "System.Net.Http", "Microsoft.Extensions.Logging"];
     }
 
-    private List<HttpClientApiInfo> CollectHttpClientApis(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax> interfaces, SourceProductionContext context)
+    private List<HttpClientApiInfo> CollectHttpClientApis(Compilation compilation, ImmutableArray<InterfaceDeclarationSyntax?> interfaces, SourceProductionContext context)
     {
         return CollectApiInfos<HttpClientApiInfo>(compilation, interfaces, context, (compilation, interfaceSyntax) => ProcessInterface(compilation, interfaceSyntax, context));
     }
@@ -72,7 +53,7 @@ internal class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
     /// 通用的 API 信息收集方法，消除重复代码
     /// </summary>
     private List<T> CollectApiInfos<T>(Compilation compilation,
-        ImmutableArray<InterfaceDeclarationSyntax> interfaces,
+        ImmutableArray<InterfaceDeclarationSyntax?> interfaces,
         SourceProductionContext context,
         Func<Compilation, InterfaceDeclarationSyntax, T?> processor)
     {

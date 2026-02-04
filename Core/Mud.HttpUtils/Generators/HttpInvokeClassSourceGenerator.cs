@@ -20,7 +20,7 @@ internal partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGene
 {
     /// <inheritdoc/>
     protected override void ExecuteGenerator(Compilation compilation,
-        ImmutableArray<InterfaceDeclarationSyntax> interfaces,
+        ImmutableArray<InterfaceDeclarationSyntax?> interfaces,
         SourceProductionContext context,
         AnalyzerConfigOptionsProvider configOptionsProvider)
     {
@@ -36,10 +36,15 @@ internal partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGene
 
         foreach (var interfaceDecl in interfaces)
         {
-            var model = compilation.GetSemanticModel(interfaceDecl.SyntaxTree);
-            if (model.GetDeclaredSymbol(interfaceDecl) is not INamedTypeSymbol interfaceSymbol)
+            if (interfaceDecl == null)
                 continue;
 
+            // 使用缓存的语义模型获取符号，提高性能并确保一致性
+            var semanticModel = GetOrCreateSemanticModel(compilation, interfaceDecl.SyntaxTree);
+            if (semanticModel.GetDeclaredSymbol(interfaceDecl) is not INamedTypeSymbol interfaceSymbol)
+                continue;
+
+            // 避免为同一个符号重复生成代码
             if (!processedSymbols.Add(interfaceSymbol))
             {
                 continue;

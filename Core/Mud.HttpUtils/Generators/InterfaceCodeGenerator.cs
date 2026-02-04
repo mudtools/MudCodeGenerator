@@ -82,6 +82,8 @@ internal class InterfaceImpCodeGenerator
         _compilation = compilation;
         _interfaceDecl = interfaceDecl;
         _context = context;
+        // 初始化语义模型，使用缓存
+        _semanticModel = HttpInvokeBaseSourceGenerator.GetOrCreateSemanticModel(compilation, interfaceDecl.SyntaxTree);
         // 预估容量：根据接口方法数量估算，平均每个方法约500-800字符
         var estimatedCapacity = EstimateCodeCapacity();
         _codeBuilder = new StringBuilder(estimatedCapacity);
@@ -92,7 +94,7 @@ internal class InterfaceImpCodeGenerator
     /// </summary>
     private int EstimateCodeCapacity()
     {
-        _semanticModel = _compilation.GetSemanticModel(_interfaceDecl.SyntaxTree);
+        // 使用已初始化的语义模型
         if (_semanticModel.GetDeclaredSymbol(_interfaceDecl) is not INamedTypeSymbol interfaceSymbol)
             return 5000; // 默认容量
 
@@ -247,7 +249,7 @@ internal class InterfaceImpCodeGenerator
     /// <param name="methodSymbol"></param>
     private void GenerateMethodImplementation(IMethodSymbol methodSymbol)
     {
-        var methodInfo = MethodHelper.AnalyzeMethod(_compilation, methodSymbol, _interfaceDecl);
+        var methodInfo = MethodHelper.AnalyzeMethod(_compilation, methodSymbol, _interfaceDecl, _semanticModel);
         if (!methodInfo.IsValid) return;
 
         // 验证URL模板格式
