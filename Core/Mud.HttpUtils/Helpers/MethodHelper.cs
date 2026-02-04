@@ -8,6 +8,7 @@
 using Mud.HttpUtils.Models;
 using Mud.CodeGenerator;
 using Microsoft.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace Mud.HttpUtils.Helpers;
 
@@ -16,6 +17,10 @@ namespace Mud.HttpUtils.Helpers;
 /// </summary>
 internal sealed class MethodHelper
 {
+    /// <summary>
+    /// 语义模型缓存，使用弱引用避免内存泄漏
+    /// </summary>
+    private static readonly ConditionalWeakTable<SyntaxTree, SemanticModel> _semanticModelCache = new();
     #region AnalyzeMethod
     /// <summary>
     /// 分析函数符号，并返回<see cref="MethodAnalysisResult"/>分析结果。。
@@ -27,7 +32,7 @@ internal sealed class MethodHelper
     /// <returns></returns>
     public static MethodAnalysisResult AnalyzeMethod(Compilation compilation, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl, SemanticModel? semanticModel = null)
     {
-        var methodSyntax = FindMethodSyntax(compilation, methodSymbol, interfaceDecl);
+        var methodSyntax = FindMethodSyntax(compilation, methodSymbol, interfaceDecl, semanticModel);
         if (interfaceDecl == null || methodSyntax == null || methodSymbol == null)
             return MethodAnalysisResult.Invalid;
 
@@ -248,14 +253,15 @@ internal sealed class MethodHelper
     /// <param name="compilation"></param>
     /// <param name="methodSymbol"></param>
     /// <param name="interfaceDecl"></param>
+    /// <param name="semanticModel">可选的语义模型，如果提供则使用</param>
     /// <returns></returns>
-    public static MethodDeclarationSyntax? FindMethodSyntax(Compilation compilation, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl)
+    public static MethodDeclarationSyntax? FindMethodSyntax(Compilation compilation, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl, SemanticModel? semanticModel = null)
     {
         if (interfaceDecl == null || methodSymbol == null || compilation == null)
             return null;
 
         // 获取当前接口及其所有基接口的语法节点
-        var allInterfaces = GetAllBaseInterfaceSyntaxNodes(compilation, interfaceDecl);
+        var allInterfaces = GetAllBaseInterfaceSyntaxNodes(compilation, interfaceDecl, semanticModel);
 
         foreach (var interfaceSyntax in allInterfaces)
         {
@@ -263,8 +269,9 @@ internal sealed class MethodHelper
                 .OfType<MethodDeclarationSyntax>()
                 .FirstOrDefault(m =>
                 {
-                    // 简化实现：使用 Compilation 获取已缓存的语义模型
-                    var methodSymbolFromSyntax = compilation.GetSemanticModel(m.SyntaxTree).GetDeclaredSymbol(m);
+                    // 使用缓存的语义模型，针对每个语法树获取对应的缓存版本
+                    var model = GetOrCreateSemanticModel(compilation, m.SyntaxTree);
+                    var methodSymbolFromSyntax = model.GetDeclaredSymbol(m);
                     return methodSymbolFromSyntax?.Equals(methodSymbol, SymbolEqualityComparer.Default) == true;
                 });
 
@@ -282,7 +289,7 @@ internal sealed class MethodHelper
     {
         yield return interfaceDecl;
 
-        var model = semanticModel ?? compilation.GetSemanticModel(interfaceDecl.SyntaxTree);
+        var model = semanticModel ?? GetOrCreateSemanticModel(compilation, interfaceDecl.SyntaxTree);
         var interfaceSymbol = model.GetDeclaredSymbol(interfaceDecl);
 
         if (interfaceSymbol == null)
@@ -295,8 +302,8 @@ internal sealed class MethodHelper
             {
                 yield return baseInterfaceSyntax;
 
-                // 递归获取更深层的基接口
-                foreach (var deeperBase in GetAllBaseInterfaceSyntaxNodes(compilation, baseInterfaceSyntax))
+                // 递归获取更深层的基接口，使用缓存
+                foreach (var deeperBase in GetAllBaseInterfaceSyntaxNodes(compilation, baseInterfaceSyntax, null))
                 {
                     yield return deeperBase;
                 }
@@ -386,5 +393,21 @@ internal sealed class MethodHelper
         return TypeSymbolHelper.GetEnumValueLiteral(enumType, defaultValue);
     }
 
+    #endregion
+
+    #region Semantic Model Cache
+    /// <summary>
+    /// 获取或创建语义模型，使用缓存提高性能
+    /// 使用ConditionalWeakTable避免内存泄漏
+    /// </summary>
+    private static SemanticModel GetOrCreateSemanticModel(Compilation compilation, SyntaxTree syntaxTree)
+    {
+        if (_semanticModelCache.TryGetValue(syntaxTree, out var model))
+            return model;
+
+        var newModel = compilation.GetSemanticModel(syntaxTree);
+        _semanticModelCache.Add(syntaxTree, newModel);
+        return newModel;
+    }
     #endregion
 }
