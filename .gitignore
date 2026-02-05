@@ -56,3 +56,4 @@
 /Test/HttpClientApiTest/bin/Release
 /Core/Mud.ServiceCodeGenerator/bin/Debug/netstandard2.0
 /Core/Mud.EntityCodeGenerator/bin/Debug/netstandard2.0
+/Core/Mud.HttpUtils/Mud.HttpUtils.xml
