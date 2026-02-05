@@ -1,13 +1,12 @@
 namespace HttpClientApiTest.TokenHeaderTestApi;
-
-using Mud.Common.CodeGenerator;
-
 /// <summary>
 /// Header特性测试接口
 /// 用于测试[Header]特性在不同场景下的使用
 /// </summary>
-[HttpClientApi("https://api.mudtools.cn/", Timeout = 90, TokenManage = "IFeishuAppManager", RegistryGroupName = "HeaderFeature")]
-public interface IHeaderFeatureTestApi
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "HeaderFeature")]
+[Header("Authorization")]
+[Token(TokenType.TenantAccessToken)]
+public interface IHeaderFeatureTestApi : IMudHttpClientService
 {
     /// <summary>
     /// 测试：单个Header参数
@@ -62,7 +61,7 @@ public interface IHeaderFeatureTestApi
     /// 接口：GET /api/v1/headers/with-query
     /// 特点：Header参数与Query参数结合使用
     /// </summary>
-    [Get("/api/v1/headers/with-query")]
+    [Patch("/api/v1/headers/with-query")]
     Task<List<HeaderTestResult>> GetWithHeaderAndQueryAsync(
         [Header("X-Application-Id")] string appId,
         [Query] string keyword,

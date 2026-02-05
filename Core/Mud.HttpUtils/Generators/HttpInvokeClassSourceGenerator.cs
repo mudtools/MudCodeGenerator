@@ -32,8 +32,6 @@ internal partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGene
         ProjectConfigHelper.ReadProjectOptions(configOptionsProvider.GlobalOptions, "build_property.HttpClientOptionsName",
            val => httpClientOptionsName = val, "HttpClientOptions");
 
-        var processedSymbols = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
-
         foreach (var interfaceDecl in interfaces)
         {
             if (interfaceDecl == null)
@@ -43,12 +41,6 @@ internal partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGene
             var semanticModel = GetOrCreateSemanticModel(compilation, interfaceDecl.SyntaxTree);
             if (semanticModel.GetDeclaredSymbol(interfaceDecl) is not INamedTypeSymbol interfaceSymbol)
                 continue;
-
-            // 避免为同一个符号重复生成代码
-            if (!processedSymbols.Add(interfaceSymbol))
-            {
-                continue;
-            }
 
             ProcessInterface(compilation, interfaceDecl, interfaceSymbol, semanticModel, context, httpClientOptionsName);
         }

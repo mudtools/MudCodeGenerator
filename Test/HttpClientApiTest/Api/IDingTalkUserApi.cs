@@ -1,13 +1,10 @@
 namespace HttpClientApiTest.Api;
-
-using Mud.Common.CodeGenerator;
-
 /// <summary>
 /// 钉钉用户API测试接口
 /// 测试各种用户相关的API功能，包括不同Token类型、参数位置、数组查询等场景
 /// </summary>
 [HttpClientApi("https://api.dingtalk.com", Timeout = 60, TokenManage = "IFeishuAppManager", RegistryGroupName = "Dingtalk")]
-public interface IDingTalkUserApi
+public interface IDingTalkUserApi : IMudHttpClientService
 {
     /// <summary>
     /// 测试：根据用户ID获取用户信息（默认值路径参数）

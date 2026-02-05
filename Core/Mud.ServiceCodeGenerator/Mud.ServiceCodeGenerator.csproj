@@ -5,7 +5,7 @@
 		<Product>Mud Service Code Generator</Product>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<GenerateDocumentationFile>False</GenerateDocumentationFile>
+		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<AssemblyName>Mud.ServiceCodeGenerator</AssemblyName>
 		<Description>Mud 服务代码生成器是一个基于 Roslyn 的源代码生成器，自动为类生成构造函数注入代码、服务注册代码等，包括日志、缓存、用户管理等常用服务相关代码。</Description>
 	</PropertyGroup>

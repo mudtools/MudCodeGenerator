@@ -30,16 +30,52 @@ internal sealed class MethodHelper
     /// <returns></returns>
     public static MethodAnalysisResult AnalyzeMethod(Compilation compilation, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl, SemanticModel? semanticModel = null)
     {
+        if (interfaceDecl == null || methodSymbol == null)
+            return MethodAnalysisResult.Invalid;
+
         var methodSyntax = FindMethodSyntax(compilation, methodSymbol, interfaceDecl, semanticModel);
-        if (interfaceDecl == null || methodSyntax == null || methodSymbol == null)
-            return MethodAnalysisResult.Invalid;
 
-        var httpMethodAttr = FindHttpMethodAttribute(methodSyntax);
-        if (httpMethodAttr == null)
-            return MethodAnalysisResult.Invalid;
+        // 尝试从语法节点获取HTTP方法特性
+        AttributeData? httpMethodAttributeData = null;
 
-        var httpMethod = httpMethodAttr.Name.ToString();
-        var urlTemplate = GetAttributeArgumentValue(httpMethodAttr, 0)?.ToString().Trim('"') ?? "";
+        if (methodSyntax != null)
+        {
+            var httpMethodAttr = FindHttpMethodAttribute(methodSyntax);
+            if (httpMethodAttr != null)
+            {
+                // 从语法节点获取URL模板
+                var urlTemplateFromSyntax = GetAttributeArgumentValue(httpMethodAttr, 0)?.ToString().Trim('"') ?? "";
+                if (!string.IsNullOrEmpty(urlTemplateFromSyntax))
+                {
+                    // 从符号获取AttributeData(包含更多信息)
+                    var httpMethodName = httpMethodAttr.Name.ToString();
+                    httpMethodAttributeData = FindHttpMethodAttributeFromSymbol(methodSymbol);
+                    if (httpMethodAttributeData != null)
+                    {
+                        // 继续使用符号获取的AttributeData
+                    }
+                    else
+                    {
+                        return MethodAnalysisResult.Invalid;
+                    }
+                }
+            }
+        }
+
+        // 如果无法从语法节点获取,尝试从符号获取(适用于来自引用程序集的基接口)
+        if (httpMethodAttributeData == null)
+        {
+            httpMethodAttributeData = FindHttpMethodAttributeFromSymbol(methodSymbol);
+            if (httpMethodAttributeData == null)
+                return MethodAnalysisResult.Invalid;
+        }
+
+        var httpMethodAttributeName = httpMethodAttributeData.AttributeClass?.Name ?? "";
+        // 从特性名称中提取HTTP方法名称(如从"GetAttribute"提取"Get")
+        var httpMethod = ExtractHttpMethodName(httpMethodAttributeName);
+        var urlTemplate = GetAttributeArgumentValueFromAttributeData(httpMethodAttributeData, 0)?.ToString().Trim('"') ?? "";
+        if (string.IsNullOrEmpty(httpMethod) || string.IsNullOrEmpty(urlTemplate))
+            return MethodAnalysisResult.Invalid;
 
         // 获取方法级别的HttpContentType特性
         var methodContentType = GetHttpContentTypeFromSymbol(methodSymbol);
@@ -70,8 +106,8 @@ internal sealed class MethodHelper
         }).ToList();
 
         // 分析接口特性
-        // 使用提供的语义模型，如果没有则获取新的
-        var model = semanticModel ?? compilation.GetSemanticModel(interfaceDecl.SyntaxTree);
+        // 使用提供的语义模型，如果没有则使用缓存的语义模型
+        var model = semanticModel ?? GetOrCreateSemanticModel(compilation, interfaceDecl.SyntaxTree);
         var interfaceSymbol = model.GetDeclaredSymbol(interfaceDecl) as INamedTypeSymbol;
         var interfaceAttributes = new HashSet<string>();
         var interfaceHeaderAttributes = new List<InterfaceHeaderAttributeInfo>();
@@ -159,6 +195,48 @@ internal sealed class MethodHelper
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// 从方法符号查找HTTP方法特性
+    /// </summary>
+    private static AttributeData? FindHttpMethodAttributeFromSymbol(IMethodSymbol methodSymbol)
+    {
+        if (methodSymbol == null)
+            return null;
+
+        return methodSymbol.GetAttributes()
+            .FirstOrDefault(attr => HttpClientGeneratorConstants.SupportedHttpMethods.Contains(attr.AttributeClass?.Name));
+    }
+
+    /// <summary>
+    /// 从AttributeData获取构造函数参数值
+    /// </summary>
+    private static object? GetAttributeArgumentValueFromAttributeData(AttributeData attribute, int index)
+    {
+        if (attribute == null || attribute.ConstructorArguments.Length <= index)
+            return null;
+
+        return attribute.ConstructorArguments[index].Value;
+    }
+
+    /// <summary>
+    /// 从特性名称中提取HTTP方法名称
+    /// 例如: "GetAttribute" -> "Get", "PostAttribute" -> "Post"
+    /// </summary>
+    private static string ExtractHttpMethodName(string attributeName)
+    {
+        if (string.IsNullOrEmpty(attributeName))
+            return "";
+
+        // 如果特性名称以"Attribute"结尾,移除后缀
+        if (attributeName.EndsWith("Attribute", StringComparison.Ordinal))
+        {
+            return attributeName.Substring(0, attributeName.Length - "Attribute".Length);
+        }
+
+        // 否则直接返回特性名称
+        return attributeName;
     }
     /// <summary>
     /// 获取Header特性的Replace设置
@@ -270,7 +348,10 @@ internal sealed class MethodHelper
                     // 使用缓存的语义模型，针对每个语法树获取对应的缓存版本
                     var model = GetOrCreateSemanticModel(compilation, m.SyntaxTree);
                     var methodSymbolFromSyntax = model.GetDeclaredSymbol(m);
-                    return methodSymbolFromSyntax?.Equals(methodSymbol, SymbolEqualityComparer.Default) == true;
+                    // 对于接口方法,使用OriginalDefinition进行比较,避免因重写导致的不匹配
+                    var targetSymbol = methodSymbolFromSyntax?.OriginalDefinition ?? methodSymbolFromSyntax;
+                    var sourceSymbol = methodSymbol.OriginalDefinition ?? methodSymbol;
+                    return targetSymbol?.Equals(sourceSymbol, SymbolEqualityComparer.Default) == true;
                 });
 
             if (method != null)
@@ -300,8 +381,9 @@ internal sealed class MethodHelper
             {
                 yield return baseInterfaceSyntax;
 
-                // 递归获取更深层的基接口，使用缓存
-                foreach (var deeperBase in GetAllBaseInterfaceSyntaxNodes(compilation, baseInterfaceSyntax, null))
+                // 递归获取更深层的基接口，使用缓存的语义模型
+                var baseInterfaceModel = GetOrCreateSemanticModel(compilation, baseInterfaceSyntax.SyntaxTree);
+                foreach (var deeperBase in GetAllBaseInterfaceSyntaxNodes(compilation, baseInterfaceSyntax, baseInterfaceModel))
                 {
                     yield return deeperBase;
                 }
@@ -311,6 +393,7 @@ internal sealed class MethodHelper
 
     private static InterfaceDeclarationSyntax? GetInterfaceDeclarationSyntax(Compilation compilation, INamedTypeSymbol interfaceSymbol)
     {
+        // 首先尝试从DeclaringSyntaxReferences获取
         foreach (var syntaxReference in interfaceSymbol.DeclaringSyntaxReferences)
         {
             var syntax = syntaxReference.GetSyntax();
@@ -319,6 +402,28 @@ internal sealed class MethodHelper
                 return interfaceDecl;
             }
         }
+
+        // 如果DeclaringSyntaxReferences为空(例如基接口来自引用的程序集),尝试在所有语法树中查找
+        var interfaceName = interfaceSymbol.Name;
+        foreach (var syntaxTree in compilation.SyntaxTrees)
+        {
+            var root = syntaxTree.GetRoot();
+            var interfaceDeclarations = root.DescendantNodes().OfType<InterfaceDeclarationSyntax>();
+            foreach (var interfaceDecl in interfaceDeclarations)
+            {
+                if (interfaceDecl.Identifier.Text == interfaceName)
+                {
+                    // 使用语义模型验证是否是同一个接口
+                    var model = GetOrCreateSemanticModel(compilation, syntaxTree);
+                    var symbol = model.GetDeclaredSymbol(interfaceDecl);
+                    if (symbol?.Equals(interfaceSymbol, SymbolEqualityComparer.Default) == true)
+                    {
+                        return interfaceDecl;
+                    }
+                }
+            }
+        }
+
         return null;
     }
 
