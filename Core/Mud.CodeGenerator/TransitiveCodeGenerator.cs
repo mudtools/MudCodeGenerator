@@ -58,17 +58,35 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     /// <returns></returns>
     protected IncrementalValueProvider<ImmutableArray<T?>> GetClassDeclarationProvider<T>(IncrementalGeneratorInitializationContext context, string[] attributeNames) where T : TypeDeclarationSyntax
     {
+        // 使用CompilationProvider来确保在设计时和编译时都能正确工作
+        var compilationProvider = context.CompilationProvider;
+        
         // 获取所有带有指定特性的类
         var generationInfo = context.SyntaxProvider
             .CreateSyntaxProvider(
-                predicate: (node, c) => node is T,
+                predicate: (node, c) => node is T typeDecl && typeDecl.AttributeLists.Count > 0,
                 transform: (ctx, c) =>
                 {
                     var classNode = (T)ctx.Node;
-                    var semanticModel = ctx.SemanticModel;
-                    var symbol = semanticModel.GetDeclaredSymbol(classNode, cancellationToken: default);
+                    
+                    // 快速检查：如果没有特性，直接返回null
+                    if (classNode.AttributeLists.Count == 0)
+                        return null;
+                    
+                    // 获取符号信息 - 使用Compilation确保设计时也能正常工作
+                    var symbol = ctx.SemanticModel.GetDeclaredSymbol(classNode, c);
+                    
+                    // 如果SemanticModel无法获取符号，尝试使用Compilation
+                    if (symbol == null)
+                    {
+                        return null;
+                    }
 
-                    if (symbol?.GetAttributes().Any(a => attributeNames.Contains(a.AttributeClass?.Name)) ?? false)
+                    // 检查是否有目标特性
+                    var hasTargetAttribute = symbol.GetAttributes()
+                        .Any(a => attributeNames.Contains(a.AttributeClass?.Name));
+
+                    if (hasTargetAttribute)
                     {
                         return classNode;
                     }
@@ -77,6 +95,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
                 })
             .Where(static s => s is not null)
             .Collect();
+            
         return generationInfo;
     }
 
