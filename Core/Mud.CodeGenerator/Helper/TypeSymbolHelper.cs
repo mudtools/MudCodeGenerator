@@ -313,42 +313,56 @@ internal static class TypeSymbolHelper
         if (excludedInterfaces == null || excludedInterfaces.Count == 0)
             return false;
 
-        // 检查各种可能的名称格式
-        var namesToCheck = new List<string>
-    {
-        interfaceSymbol.Name,                              // 简单名称：IDisposable
-        interfaceSymbol.ToDisplayString(),                 // 完整名称：System.IDisposable
-        interfaceSymbol.MetadataName,                      // 元数据名称：IDisposable
-        interfaceSymbol.ToString()                         // 字符串表示
-    };
-
-        // 添加命名空间和名称的组合
-        if (!string.IsNullOrEmpty(interfaceSymbol.ContainingNamespace?.Name))
+        try
         {
-            namesToCheck.Add($"{interfaceSymbol.ContainingNamespace}.{interfaceSymbol.Name}");
-        }
+            // 检查各种可能的名称格式
+            var namesToCheck = new List<string>();
 
-        // 检查泛型接口
-        if (interfaceSymbol.IsGenericType)
-        {
-            // 添加泛型定义
-            var originalDefinition = interfaceSymbol.OriginalDefinition;
-            namesToCheck.Add(originalDefinition.ToDisplayString());
-            namesToCheck.Add(originalDefinition.MetadataName);
+            // 安全添加名称，避免在设计时抛出异常
+            try { namesToCheck.Add(interfaceSymbol.Name); } catch { }
+            try { namesToCheck.Add(interfaceSymbol.ToDisplayString()); } catch { }
+            try { namesToCheck.Add(interfaceSymbol.MetadataName); } catch { }
+            try { namesToCheck.Add(interfaceSymbol.ToString()); } catch { }
 
-            // 添加无参数版本的泛型名称
-            var genericNameWithoutArity = interfaceSymbol.Name;
-            if (genericNameWithoutArity.Contains('`'))
+            // 添加命名空间和名称的组合
+            try
             {
-                namesToCheck.Add(genericNameWithoutArity.Substring(0, genericNameWithoutArity.IndexOf('`')));
+                if (!string.IsNullOrEmpty(interfaceSymbol.ContainingNamespace?.Name))
+                {
+                    namesToCheck.Add($"{interfaceSymbol.ContainingNamespace}.{interfaceSymbol.Name}");
+                }
+            } catch { }
+
+            // 检查泛型接口
+            try
+            {
+                if (interfaceSymbol.IsGenericType)
+                {
+                    // 添加泛型定义
+                    var originalDefinition = interfaceSymbol.OriginalDefinition;
+                    try { namesToCheck.Add(originalDefinition.ToDisplayString()); } catch { }
+                    try { namesToCheck.Add(originalDefinition.MetadataName); } catch { }
+
+                    // 添加无参数版本的泛型名称
+                    var genericNameWithoutArity = interfaceSymbol.Name;
+                    if (genericNameWithoutArity.Contains('`'))
+                    {
+                        namesToCheck.Add(genericNameWithoutArity.Substring(0, genericNameWithoutArity.IndexOf('`')));
+                    }
+                }
+            } catch { }
+
+            // 检查是否有匹配的排除项
+            foreach (var name in namesToCheck)
+            {
+                if (excludedInterfaces.Contains(name))
+                    return true;
             }
         }
-
-        // 检查是否有匹配的排除项
-        foreach (var name in namesToCheck)
+        catch
         {
-            if (excludedInterfaces.Contains(name))
-                return true;
+            // 如果在设计时无法解析接口符号，返回false以继续处理
+            // 编译时会重新检查
         }
 
         return false;

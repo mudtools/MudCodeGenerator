@@ -342,13 +342,27 @@ internal sealed class MethodHelper
                 .OfType<MethodDeclarationSyntax>()
                 .FirstOrDefault(m =>
                 {
-                    // 使用缓存的语义模型，针对每个语法树获取对应的缓存版本
-                    var model = GetOrCreateSemanticModel(compilation, m.SyntaxTree);
-                    var methodSymbolFromSyntax = model.GetDeclaredSymbol(m);
-                    // 对于接口方法,使用OriginalDefinition进行比较,避免因重写导致的不匹配
-                    var targetSymbol = methodSymbolFromSyntax?.OriginalDefinition ?? methodSymbolFromSyntax;
-                    var sourceSymbol = methodSymbol.OriginalDefinition ?? methodSymbol;
-                    return targetSymbol?.Equals(sourceSymbol, SymbolEqualityComparer.Default) == true;
+                    try
+                    {
+                        // 使用缓存的语义模型，针对每个语法树获取对应的缓存版本
+                        var model = GetOrCreateSemanticModel(compilation, m.SyntaxTree);
+                        var methodSymbolFromSyntax = model.GetDeclaredSymbol(m);
+                        // 对于接口方法,使用OriginalDefinition进行比较,避免因重写导致的不匹配
+                        var targetSymbol = methodSymbolFromSyntax?.OriginalDefinition ?? methodSymbolFromSyntax;
+                        var sourceSymbol = methodSymbol.OriginalDefinition ?? methodSymbol;
+                        if (targetSymbol?.Equals(sourceSymbol, SymbolEqualityComparer.Default) == true)
+                        {
+                            return true;
+                        }
+                    }
+                    catch
+                    {
+                        // 设计时可能无法解析符号，回退到比较方法名
+                    }
+                    
+                    // 回退：比较方法名和参数数量
+                    return m.Identifier.Text == methodSymbol.Name && 
+                           m.ParameterList.Parameters.Count == methodSymbol.Parameters.Length;
                 });
 
             if (method != null)
