@@ -79,7 +79,7 @@ internal static class TypeSymbolHelper
             return [];
 
         var visitedInterfaces = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
-        var excludedSet = excludedInterfaces.ToHashSet();
+        var excludedSet = excludedInterfaces?.ToHashSet() ?? new HashSet<string>();
         return GetAllRecursive(interfaceSymbol, visitedInterfaces, includeParentInterfaces, excludedSet);
     }
 
@@ -250,7 +250,7 @@ internal static class TypeSymbolHelper
             return [];
 
         var visitedInterfaces = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
-        var excludedSet = excludedInterfaces.ToHashSet();
+        var excludedSet = excludedInterfaces?.ToHashSet() ?? new HashSet<string>();
         return GetAllPropertiesRecursive(interfaceSymbol, visitedInterfaces, includeParentInterfaces, excludedSet);
     }
 
