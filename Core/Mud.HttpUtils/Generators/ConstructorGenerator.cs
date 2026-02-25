@@ -41,13 +41,13 @@ internal class ConstructorGenerator
         // 如果接口上标注了 Token 特性，添加 _tokenType 字段
         if (!string.IsNullOrEmpty(_context.Config.TokenType) || _context.HasTokenManager)
         {
-            var tokeType = string.IsNullOrEmpty(_context.Config.TokenType)
+            var tokenType = string.IsNullOrEmpty(_context.Config.TokenType)
                 ? TokenHelper.GetDefaultTokenType()
                 : _context.Config.TokenType;
             _codeBuilder.AppendLine("        /// <summary>");
             _codeBuilder.AppendLine("        /// Token类型，用于标识使用的Token类型。");
             _codeBuilder.AppendLine("        /// </summary>");
-            _codeBuilder.AppendLine($"        private readonly TokenType _tokenType = TokenType.{tokeType};");
+            _codeBuilder.AppendLine($"        private readonly TokenType _tokenType = TokenType.{tokenType};");
         }
 
         if (_context.HasInheritedFrom) return;
@@ -157,7 +157,7 @@ internal class ConstructorGenerator
     /// </summary>
     private void GenerateHelperMethods()
     {
-        GenerateGetTokeTypeMethod();
+        GenerateGetTokenTypeMethod();
 
         if (_context.HasInheritedFrom) return;
 
@@ -194,7 +194,7 @@ internal class ConstructorGenerator
     }
 
 
-    private void GenerateGetTokeTypeMethod()
+    private void GenerateGetTokenTypeMethod()
     {
         if (string.IsNullOrEmpty(_context.Config.TokenType) && string.IsNullOrEmpty(_context.Config.TokenManager))
             return;

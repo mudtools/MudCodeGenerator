@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
 //  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
 //  Mud.CodeGenerator 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
 //  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
@@ -116,7 +116,12 @@ internal static class TypeSymbolHelper
             yield break;
 
         // 然后递归处理所有父接口
-        foreach (var baseInterface in interfaceSymbol.Interfaces)
+        // 使用 AllInterfaces 替代 Interfaces，确保获取所有基接口（包括跨程序集的）
+        var baseInterfaces = SafeGetAllInterfaces(interfaceSymbol);
+        if (baseInterfaces == null)
+            yield break;
+
+        foreach (var baseInterface in baseInterfaces)
         {
             foreach (var baseMethod in GetAllRecursive(
                 baseInterface,
@@ -126,6 +131,23 @@ internal static class TypeSymbolHelper
             {
                 yield return baseMethod;
             }
+        }
+    }
+
+    /// <summary>
+    /// 安全地获取接口的所有基接口（处理设计时可能抛出的异常）
+    /// </summary>
+    private static IEnumerable<INamedTypeSymbol> SafeGetAllInterfaces(INamedTypeSymbol interfaceSymbol)
+    {
+        try
+        {
+            return interfaceSymbol.AllInterfaces;
+        }
+        catch
+        {
+            // 如果无法访问AllInterfaces属性（例如符号未完全解析），返回null
+            // 在设计时这是安全的，因为编译时会重新检查
+            return null;
         }
     }
 
@@ -264,7 +286,11 @@ internal static class TypeSymbolHelper
             yield break;
 
         // 然后递归处理所有父接口
-        foreach (var baseInterface in interfaceSymbol.Interfaces)
+        var baseInterfaces = SafeGetAllInterfaces(interfaceSymbol);
+        if (baseInterfaces == null)
+            yield break;
+
+        foreach (var baseInterface in baseInterfaces)
         {
             foreach (var baseProperty in GetAllPropertiesRecursive(
                 baseInterface,

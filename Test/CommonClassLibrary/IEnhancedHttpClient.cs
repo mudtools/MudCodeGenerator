@@ -1,4 +1,4 @@
-namespace HttpClientApiTest;
+namespace CommonClassLibrary;
 
 
 /// <summary>

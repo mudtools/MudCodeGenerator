@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
 //  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
 //  Mud.CodeGenerator 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
 //  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
@@ -15,10 +15,6 @@ namespace Mud.HttpUtils.Helpers;
 /// </summary>
 internal sealed class MethodHelper
 {
-    /// <summary>
-    /// 语义模型缓存，使用弱引用避免内存泄漏
-    /// </summary>
-    private static readonly ConditionalWeakTable<SyntaxTree, SemanticModel> _semanticModelCache = new();
     #region AnalyzeMethod
     /// <summary>
     /// 分析函数符号，并返回<see cref="MethodAnalysisResult"/>分析结果。。
@@ -30,8 +26,9 @@ internal sealed class MethodHelper
     /// <returns></returns>
     public static MethodAnalysisResult AnalyzeMethod(Compilation compilation, IMethodSymbol methodSymbol, InterfaceDeclarationSyntax interfaceDecl, SemanticModel? semanticModel = null)
     {
-        if (interfaceDecl == null || methodSymbol == null)
-            return MethodAnalysisResult.Invalid;
+        ArgumentNullExceptionExtensions.ThrowIfNull(compilation);
+        ArgumentNullExceptionExtensions.ThrowIfNull(methodSymbol);
+        ArgumentNullExceptionExtensions.ThrowIfNull(interfaceDecl);
 
         var methodSyntax = FindMethodSyntax(compilation, methodSymbol, interfaceDecl, semanticModel);
 
@@ -500,17 +497,11 @@ internal sealed class MethodHelper
 
     #region Semantic Model Cache
     /// <summary>
-    /// 获取或创建语义模型，使用缓存提高性能
-    /// 使用ConditionalWeakTable避免内存泄漏
+    /// 获取或创建语义模型，使用共享缓存提高性能
     /// </summary>
     private static SemanticModel GetOrCreateSemanticModel(Compilation compilation, SyntaxTree syntaxTree)
     {
-        if (_semanticModelCache.TryGetValue(syntaxTree, out var model))
-            return model;
-
-        var newModel = compilation.GetSemanticModel(syntaxTree);
-        _semanticModelCache.Add(syntaxTree, newModel);
-        return newModel;
+        return SemanticModelCache.GetOrCreate(compilation, syntaxTree);
     }
     #endregion
 }

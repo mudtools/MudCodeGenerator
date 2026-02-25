@@ -50,19 +50,17 @@ internal class InterfaceImpCodeGenerator
         public string? TokenType { get; set; }
     }
 
-    private string httpClientOptionsName = "HttpClientOptions";
-    private Compilation _compilation;
-    private InterfaceDeclarationSyntax _interfaceDecl;
-    private SourceProductionContext _context;
-    private HttpInvokeClassSourceGenerator _httpInvokeClassSourceGenerator;
+    private readonly Compilation _compilation;
+    private readonly InterfaceDeclarationSyntax _interfaceDecl;
+    private readonly SourceProductionContext _context;
+    private readonly HttpInvokeClassSourceGenerator _httpInvokeClassSourceGenerator;
 
-    private AttributeData? _httpClientApiAttribute;
-    private bool _isAbstract;
-    private string? _inheritedFrom;
-    private string? _tokenManage;
-    private INamedTypeSymbol _interfaceSymbol;
-    private SemanticModel _semanticModel;
-    private StringBuilder _codeBuilder;
+    private readonly INamedTypeSymbol _interfaceSymbol;
+    private readonly SemanticModel _semanticModel;
+    private readonly StringBuilder _codeBuilder;
+
+    private Configuration? _config;
+    private GenerationContext? _generationContext;
 
     private ClassStructureGenerator? _classStructureGenerator;
     private ConstructorGenerator? _constructorGenerator;
@@ -78,7 +76,6 @@ internal class InterfaceImpCodeGenerator
         string optionsName)
     {
         _httpInvokeClassSourceGenerator = httpInvokeClassSourceGenerator;
-        httpClientOptionsName = optionsName;
         _compilation = compilation;
         _interfaceDecl = interfaceDecl;
         _interfaceSymbol = interfaceSymbol;
@@ -87,6 +84,7 @@ internal class InterfaceImpCodeGenerator
         // 预估容量：根据接口方法数量估算，平均每个方法约500-800字符
         var estimatedCapacity = EstimateCodeCapacity();
         _codeBuilder = new StringBuilder(estimatedCapacity);
+        _config = new Configuration { HttpClientOptionsName = optionsName };
     }
 
     /// <summary>
@@ -94,11 +92,20 @@ internal class InterfaceImpCodeGenerator
     /// </summary>
     private int EstimateCodeCapacity()
     {
-        var methods = TypeSymbolHelper.GetAllMethods(_interfaceSymbol, true);
         int methodCount = 0;
-        foreach (var method in methods)
+        try
         {
-            methodCount++;
+            var methods = TypeSymbolHelper.GetAllMethods(_interfaceSymbol, true);
+            foreach (var method in methods)
+            {
+                methodCount++;
+            }
+        }
+        catch
+        {
+            // 如果无法解析基接口方法（例如在设计时基接口来自其他程序集），
+            // 使用默认值估计容量
+            methodCount = 10;
         }
 
         // 基础容量（类结构、字段、构造函数等）约 2000 字符
@@ -114,11 +121,9 @@ internal class InterfaceImpCodeGenerator
     /// </summary>
     public void GeneratorCode()
     {
-        // 获取HttpClientApi特性中的属性值
-        _httpClientApiAttribute = AttributeDataHelper.GetAttributeDataFromSymbol(_interfaceSymbol, HttpClientGeneratorConstants.HttpClientApiAttributeNames);
-        _isAbstract = AttributeDataHelper.GetBoolValueFromAttribute(_httpClientApiAttribute, HttpClientGeneratorConstants.IsAbstractProperty);
-        _inheritedFrom = AttributeDataHelper.GetStringValueFromAttribute(_httpClientApiAttribute, HttpClientGeneratorConstants.InheritedFromProperty);
-        _tokenManage = AttributeDataHelper.GetStringValueFromAttribute(_httpClientApiAttribute, HttpClientGeneratorConstants.TokenManageProperty);
+        // 从特性中提取配置
+        _config = ExtractConfigurationFromAttributes();
+        _generationContext = new GenerationContext(TypeSymbolHelper.GetImplementationClassName(_interfaceSymbol.Name), _config);
 
         // 初始化各个生成器
         InitializeGenerators();
@@ -131,17 +136,14 @@ internal class InterfaceImpCodeGenerator
     /// </summary>
     private void InitializeGenerators()
     {
-        var config = ExtractConfigurationFromAttributes();
-        var context = new GenerationContext(TypeSymbolHelper.GetImplementationClassName(_interfaceSymbol.Name), config);
-
         _classStructureGenerator = new ClassStructureGenerator(
             _httpInvokeClassSourceGenerator,
             _interfaceSymbol,
             _codeBuilder,
-            _isAbstract,
-            _inheritedFrom);
+            _config!.IsAbstract,
+            _config.InheritedFrom);
 
-        _constructorGenerator = new ConstructorGenerator(_codeBuilder, context);
+        _constructorGenerator = new ConstructorGenerator(_codeBuilder, _generationContext!);
         _requestBuilder = new RequestBuilder();
     }
 
@@ -163,10 +165,11 @@ internal class InterfaceImpCodeGenerator
     }
 
 
+
     /// <summary>
     /// 从特性获取内容类型（专用方法，重载基础方法）
     /// </summary>
-    /// <param name="httpClientApiAttribute">HttpClientApi特性</param>
+    /// <param name="attribute">HttpClientApi特性</param>
     /// <returns>内容类型</returns>
     private string GetHttpClientApiContentTypeFromAttribute(AttributeData? attribute)
     {
@@ -181,17 +184,22 @@ internal class InterfaceImpCodeGenerator
 
     private Configuration ExtractConfigurationFromAttributes()
     {
+        var httpClientApiAttribute = AttributeDataHelper.GetAttributeDataFromSymbol(_interfaceSymbol, HttpClientGeneratorConstants.HttpClientApiAttributeNames);
+        var isAbstract = AttributeDataHelper.GetBoolValueFromAttribute(httpClientApiAttribute, HttpClientGeneratorConstants.IsAbstractProperty);
+        var inheritedFrom = AttributeDataHelper.GetStringValueFromAttribute(httpClientApiAttribute, HttpClientGeneratorConstants.InheritedFromProperty);
+        var tokenManage = AttributeDataHelper.GetStringValueFromAttribute(httpClientApiAttribute, HttpClientGeneratorConstants.TokenManageProperty);
+
         return new Configuration
         {
-            HttpClientOptionsName = httpClientOptionsName,
-            DefaultContentType = GetHttpClientApiContentTypeFromAttribute(_httpClientApiAttribute),
-            TimeoutFromAttribute = AttributeDataHelper.GetIntValueFromAttribute(_httpClientApiAttribute, HttpClientGeneratorConstants.TimeoutProperty, 100),
-            BaseAddressFromAttribute = AttributeDataHelper.GetStringValueFromAttributeConstructor(_httpClientApiAttribute, HttpClientGeneratorConstants.BaseAddressProperty),
-            IsAbstract = _isAbstract,
-            InheritedFrom = _inheritedFrom,
-            TokenManager = _tokenManage,
-            TokenManagerType = !string.IsNullOrEmpty(_tokenManage)
-                ? TypeSymbolHelper.GetTypeAllDisplayString(_compilation, _tokenManage!)
+            HttpClientOptionsName = _config?.HttpClientOptionsName ?? "HttpClientOptions",
+            DefaultContentType = GetHttpClientApiContentTypeFromAttribute(httpClientApiAttribute),
+            TimeoutFromAttribute = AttributeDataHelper.GetIntValueFromAttribute(httpClientApiAttribute, HttpClientGeneratorConstants.TimeoutProperty, 100),
+            BaseAddressFromAttribute = AttributeDataHelper.GetStringValueFromAttributeConstructor(httpClientApiAttribute, HttpClientGeneratorConstants.BaseAddressProperty),
+            IsAbstract = isAbstract,
+            InheritedFrom = inheritedFrom,
+            TokenManager = tokenManage,
+            TokenManagerType = !string.IsNullOrEmpty(tokenManage)
+                ? TypeSymbolHelper.GetTypeAllDisplayString(_compilation, tokenManage!)
                 : null,
             TokenType = GetInterfaceTokenType()
         };
@@ -213,7 +221,33 @@ internal class InterfaceImpCodeGenerator
         // 根据IsAbstract和InheritedFrom决定是否包含父接口方法
         var includeParentInterfaces = GetIncludeParentInterfaces();
 
-        var methodsToGenerate = TypeSymbolHelper.GetAllMethods(_interfaceSymbol, includeParentInterfaces);
+        IEnumerable<IMethodSymbol> methodsToGenerate;
+        try
+        {
+            methodsToGenerate = TypeSymbolHelper.GetAllMethods(_interfaceSymbol, includeParentInterfaces);
+        }
+        catch
+        {
+            // 如果无法解析基接口（例如在设计时基接口来自其他程序集），
+            // 降级为只处理当前接口的方法
+            if (includeParentInterfaces)
+            {
+                try
+                {
+                    methodsToGenerate = TypeSymbolHelper.GetAllMethods(_interfaceSymbol, false);
+                }
+                catch
+                {
+                    // 如果仍然失败，使用当前接口的成员
+                    methodsToGenerate = _interfaceSymbol.GetMembers().OfType<IMethodSymbol>();
+                }
+            }
+            else
+            {
+                // 本来就不包含父接口，直接使用当前接口的成员
+                methodsToGenerate = _interfaceSymbol.GetMembers().OfType<IMethodSymbol>();
+            }
+        }
 
         foreach (var methodSymbol in methodsToGenerate)
         {
@@ -223,9 +257,9 @@ internal class InterfaceImpCodeGenerator
 
     private bool GetIncludeParentInterfaces()
     {
-        if (_isAbstract)
+        if (_config!.IsAbstract)
             return false;
-        if (!string.IsNullOrEmpty(_inheritedFrom))
+        if (!string.IsNullOrEmpty(_config.InheritedFrom))
             return false;
         return true;
     }
@@ -252,8 +286,8 @@ internal class InterfaceImpCodeGenerator
         // 检查是否忽略生成实现
         if (methodInfo.IgnoreImplement) return;
 
-        var hasTokenManager = !string.IsNullOrEmpty(_tokenManage);
-        var tokenManagerType = hasTokenManager ? TypeSymbolHelper.GetTypeAllDisplayString(_compilation, _tokenManage!) : null;
+        var hasTokenManager = !string.IsNullOrEmpty(_config!.TokenManager);
+        var tokenManagerType = hasTokenManager ? TypeSymbolHelper.GetTypeAllDisplayString(_compilation, _config.TokenManager!) : null;
         var hasAuthorizationHeader = TypeSymbolHelper.HasPropertyAttribute(_interfaceSymbol!, "Header", "Authorization");
         var hasAuthorizationQuery = TypeSymbolHelper.HasPropertyAttribute(_interfaceSymbol!, "Query", "Authorization");
 
@@ -338,7 +372,7 @@ internal class InterfaceImpCodeGenerator
     /// </summary>
     private void GenerateInterfaceHeaders(MethodAnalysisResult methodInfo)
     {
-        var hasTokenManager = !string.IsNullOrEmpty(_tokenManage);
+        var hasTokenManager = !string.IsNullOrEmpty(_config!.TokenManager);
         var hasAuthorizationHeader = TypeSymbolHelper.HasPropertyAttribute(_interfaceSymbol!, "Header", "Authorization");
 
         foreach (var interfaceHeader in methodInfo.InterfaceHeaderAttributes)

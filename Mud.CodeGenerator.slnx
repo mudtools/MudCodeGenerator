@@ -2,12 +2,13 @@
   <Folder Name="/Src/">
     <Project Path="Core/Mud.CodeGenerator/Mud.CodeGenerator.shproj" />
     <Project Path="Core/Mud.EntityCodeGenerator/Mud.EntityCodeGenerator.csproj" />
-    <Project Path="Core/Mud.ServiceCodeGenerator/Mud.ServiceCodeGenerator.csproj" />
     <Project Path="Core/Mud.HttpUtils/Mud.HttpUtils.csproj" />
+    <Project Path="Core/Mud.ServiceCodeGenerator/Mud.ServiceCodeGenerator.csproj" />
   </Folder>
   <Folder Name="/Test/">
     <Project Path="Test/CodeBaseTest/CodeBaseTest.csproj" />
     <Project Path="Test/CodeGeneratorTest/CodeGeneratorTest.csproj" />
+    <Project Path="Test/CommonClassLibrary/CommonClassLibrary.csproj" Id="4e4c7e53-326d-4119-b8c9-5bf9361361ba" />
     <Project Path="Test/ComObjectWrapTest/ComObjectWrapTest.csproj" Id="3ca54799-3a37-4102-b7c9-a409550fcfd0" />
     <Project Path="Test/HttpClientApiTest/HttpClientApiTest.csproj" />
     <Project Path="Test/Mud.Common.CodeGenerator/Mud.Common.CodeGenerator.csproj" />

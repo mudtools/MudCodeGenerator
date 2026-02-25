@@ -5,6 +5,7 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
+using Mud.CodeGenerator;
 using Mud.HttpUtils.Models;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
@@ -19,10 +20,6 @@ namespace Mud.HttpUtils;
 /// </remarks>
 internal abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
 {
-    /// <summary>
-    /// 缓存语义模型，使用弱引用避免内存泄漏
-    /// </summary>
-    private static readonly ConditionalWeakTable<SyntaxTree, SemanticModel> _semanticModelCache = new();
 
     #region Configuration
 
@@ -56,8 +53,8 @@ internal abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     /// <param name="context">初始化上下文</param>
     public override void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        // 查找标记了[HttpClientApi]的接口声明
-        var httpClientApiInterfaces = GetClassDeclarationProvider<InterfaceDeclarationSyntax>(context, ApiWrapAttributeNames());
+        // 查找标记了[HttpClientApi]的接口声明（包括继承的接口）
+        var httpClientApiInterfaces = GetInterfaceDeclarationProvider(context, ApiWrapAttributeNames());
 
         // 获取编译信息和分析器配置选项
         var compilationWithOptions = context.CompilationProvider
@@ -73,6 +70,234 @@ internal abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
                 interfaces: provider.Right,
                 context: ctx,
                 configOptionsProvider: provider.Left.Right));
+    }
+
+    /// <summary>
+    /// 获取所有需要生成代码的接口声明，包括直接标记了特性的接口和继承了这些接口的接口
+    /// </summary>
+    /// <param name="context">初始化上下文</param>
+    /// <param name="attributeNames">需要查找的特性名称数组</param>
+    /// <returns>接口声明数组</returns>
+    protected IncrementalValueProvider<ImmutableArray<InterfaceDeclarationSyntax?>> GetInterfaceDeclarationProvider(
+        IncrementalGeneratorInitializationContext context, 
+        string[] attributeNames)
+    {
+        // 组合使用 SyntaxProvider 和 CompilationProvider
+        // SyntaxProvider: 用于编辑模式下检测当前项目中的接口
+        // CompilationProvider: 用于编译时和跨程序集场景
+        
+        var syntaxInterfaces = context.SyntaxProvider
+            .CreateSyntaxProvider(
+                predicate: (node, c) =>
+                {
+                    // 基础检查：是否为带特性的接口
+                    if (node is not InterfaceDeclarationSyntax interfaceDecl)
+                        return false;
+                    
+                    return interfaceDecl.AttributeLists.Count > 0;
+                },
+                transform: (ctx, c) =>
+                {
+                    var interfaceNode = (InterfaceDeclarationSyntax)ctx.Node;
+                    
+                    // 语法级别检查（编辑模式下最可靠）
+                    if (HasTargetAttributeSyntax(interfaceNode, attributeNames))
+                    {
+                        return interfaceNode;
+                    }
+
+                    return null;
+                })
+            .Where(static s => s is not null);
+
+        // 使用 CompilationProvider 捕获所有需要生成代码的接口（包括跨程序集继承）
+        var compilationInterfaces = context.CompilationProvider
+            .Select((compilation, ct) =>
+            {
+                var result = new List<InterfaceDeclarationSyntax>();
+
+                try
+                {
+                    // 遍历所有语法树（包括引用的程序集）
+                    foreach (var syntaxTree in compilation.SyntaxTrees)
+                    {
+                        if (ct.IsCancellationRequested)
+                            break;
+
+                        var root = syntaxTree.GetRoot(ct);
+                        var semanticModel = compilation.GetSemanticModel(syntaxTree);
+
+                        // 查找所有接口声明
+                        var interfaceDecls = root.DescendantNodes()
+                            .OfType<InterfaceDeclarationSyntax>();
+
+                        foreach (var interfaceDecl in interfaceDecls)
+                        {
+                            if (ct.IsCancellationRequested)
+                                break;
+
+                            // 首先进行语法检查
+                            if (!HasTargetAttributeSyntax(interfaceDecl, attributeNames))
+                                continue;
+
+                            // 获取符号进行验证
+                            var symbol = semanticModel.GetDeclaredSymbol(interfaceDecl, ct);
+                            if (symbol == null)
+                            {
+                                // 符号解析失败，但语法检查通过，仍然包含
+                                result.Add(interfaceDecl);
+                                continue;
+                            }
+
+                            // 验证是否应该生成代码
+                            if (ShouldGenerateForInterface(symbol, attributeNames))
+                            {
+                                result.Add(interfaceDecl);
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // 忽略错误，返回已收集的接口
+                }
+
+                return result.ToImmutableArray();
+            });
+
+        // 合并两个来源的接口，去重
+        return syntaxInterfaces.Collect().Combine(compilationInterfaces)
+            .Select((pair, ct) =>
+            {
+                var syntaxList = pair.Left;
+                var compilationList = pair.Right;
+                
+                // 使用字典去重（基于语法树和位置）
+                var uniqueInterfaces = new Dictionary<string, InterfaceDeclarationSyntax>();
+                
+                foreach (var iface in syntaxList)
+                {
+                    if (iface == null) continue;
+                    var key = $"{iface.SyntaxTree.FilePath}:{iface.SpanStart}";
+                    uniqueInterfaces[key] = iface;
+                }
+                
+                foreach (var iface in compilationList)
+                {
+                    if (iface == null) continue;
+                    var key = $"{iface.SyntaxTree.FilePath}:{iface.SpanStart}";
+                    uniqueInterfaces[key] = iface;
+                }
+                
+                return uniqueInterfaces.Values.ToImmutableArray();
+            });
+    }
+
+    /// <summary>
+    /// 在语法级别检查接口是否有目标特性（不依赖语义模型，编辑模式下更可靠）
+    /// </summary>
+    private bool HasTargetAttributeSyntax(InterfaceDeclarationSyntax interfaceNode, string[] attributeNames)
+    {
+        foreach (var attributeList in interfaceNode.AttributeLists)
+        {
+            foreach (var attribute in attributeList.Attributes)
+            {
+                // 获取特性名称，处理限定名（如 Mud.Common.CodeGenerator.HttpClientApi）
+                var attributeName = attribute.Name.ToString();
+                var originalName = attributeName;
+                
+                // 处理命名空间前缀（取最后一部分）
+                var lastDotIndex = attributeName.LastIndexOf('.');
+                if (lastDotIndex >= 0)
+                {
+                    attributeName = attributeName.Substring(lastDotIndex + 1);
+                }
+                
+                // 移除Attribute后缀进行比较
+                if (attributeName.EndsWith("Attribute"))
+                {
+                    attributeName = attributeName.Substring(0, attributeName.Length - 9);
+                }
+                
+                foreach (var targetName in attributeNames)
+                {
+                    var cleanTargetName = targetName;
+                    if (cleanTargetName.EndsWith("Attribute"))
+                    {
+                        cleanTargetName = cleanTargetName.Substring(0, cleanTargetName.Length - 9);
+                    }
+                    
+                    if (attributeName.Equals(cleanTargetName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// 检查接口是否继承了带有目标特性的接口（仅检查继承关系）
+    /// </summary>
+    private bool InheritsTargetInterface(INamedTypeSymbol interfaceSymbol, string[] attributeNames)
+    {
+        if (interfaceSymbol == null || interfaceSymbol.TypeKind != TypeKind.Interface)
+            return false;
+
+        // 遍历所有基接口
+        foreach (var baseInterface in interfaceSymbol.AllInterfaces)
+        {
+            var baseHasAttribute = baseInterface.GetAttributes()
+                .Any(a => attributeNames.Contains(a.AttributeClass?.Name));
+
+            if (baseHasAttribute)
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 判断是否应该为接口生成代码
+    /// 条件：1. 接口直接标记了目标特性；2. 接口继承了标记了目标特性的接口
+    /// </summary>
+    /// <param name="interfaceSymbol">接口符号</param>
+    /// <param name="attributeNames">目标特性名称数组</param>
+    /// <returns>是否应该生成代码</returns>
+    protected bool ShouldGenerateForInterface(INamedTypeSymbol interfaceSymbol, string[] attributeNames)
+    {
+        if (interfaceSymbol == null || interfaceSymbol.TypeKind != TypeKind.Interface)
+            return false;
+
+        // 检查接口是否直接标记了目标特性
+        var hasDirectAttribute = interfaceSymbol.GetAttributes()
+            .Any(a => attributeNames.Contains(a.AttributeClass?.Name));
+
+        if (hasDirectAttribute)
+            return true;
+
+        // 检查接口是否继承了带有目标特性的接口
+        // 遍历所有基接口
+        foreach (var baseInterface in interfaceSymbol.AllInterfaces)
+        {
+            try
+            {
+                var baseHasAttribute = baseInterface.GetAttributes()
+                    .Any(a => attributeNames.Contains(a.AttributeClass?.Name));
+
+                if (baseHasAttribute)
+                    return true;
+            }
+            catch
+            {
+                // 忽略无法解析的基接口（例如来自其他程序集，在设计时可能无法访问）
+                // 继续检查其他基接口
+                continue;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -226,17 +451,11 @@ internal abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
 
     #region Semantic Model Cache
     /// <summary>
-    /// 获取或创建语义模型，使用缓存提高性能
-    /// 使用ConditionalWeakTable避免内存泄漏
+    /// 获取或创建语义模型，使用共享缓存提高性能
     /// </summary>
     internal static SemanticModel GetOrCreateSemanticModel(Compilation compilation, SyntaxTree syntaxTree)
     {
-        if (_semanticModelCache.TryGetValue(syntaxTree, out var model))
-            return model;
-
-        var newModel = compilation.GetSemanticModel(syntaxTree);
-        _semanticModelCache.Add(syntaxTree, newModel);
-        return newModel;
+        return SemanticModelCache.GetOrCreate(compilation, syntaxTree);
     }
     #endregion
 }
