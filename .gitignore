@@ -57,3 +57,5 @@
 /Core/Mud.ServiceCodeGenerator/bin/Debug/netstandard2.0
 /Core/Mud.EntityCodeGenerator/bin/Debug/netstandard2.0
 /Core/Mud.HttpUtils/Mud.HttpUtils.xml
+/Test/CommonClassLibrary/bin/Debug
+/Test/CommonClassLibrary/obj
