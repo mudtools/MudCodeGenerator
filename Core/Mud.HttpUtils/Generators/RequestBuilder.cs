@@ -166,6 +166,16 @@ internal class RequestBuilder
         var bodyParam = methodInfo.Parameters
             .FirstOrDefault(p => p.Attributes.Any(attr => attr.Name == HttpClientGeneratorConstants.BodyAttribute));
 
+        var formContentParam = methodInfo.Parameters
+            .FirstOrDefault(p => p.Attributes.Any(attr => attr.Name == HttpClientGeneratorConstants.FormContentAttribute));
+
+        // 优先处理 FormContent 参数
+        if (formContentParam != null)
+        {
+            GenerateFormContentParameter(codeBuilder, formContentParam, methodInfo);
+            return;
+        }
+
         if (bodyParam == null)
             return;
 
@@ -199,6 +209,19 @@ internal class RequestBuilder
             codeBuilder.AppendLine($"            var jsonContent = JsonSerializer.Serialize({bodyParam.Name}, _jsonSerializerOptions);");
             codeBuilder.AppendLine($"            request.Content = new StringContent(jsonContent, Encoding.UTF8, {contentTypeExpression});");
         }
+    }
+
+    /// <summary>
+    /// 生成 FormContent 参数（用于 multipart/form-data）
+    /// </summary>
+    private void GenerateFormContentParameter(StringBuilder codeBuilder, ParameterInfo formContentParam, MethodAnalysisResult methodInfo)
+    {
+        // 获取 CancellationToken 参数
+        var cancellationTokenParam = methodInfo.Parameters.FirstOrDefault(p => p.Type.Contains("CancellationToken"));
+        var cancellationTokenArg = cancellationTokenParam?.Name ?? "default";
+
+        codeBuilder.AppendLine($"            using var formData = await HttpClientExtensions.GetFormDataContentAsync({formContentParam.Name}, {cancellationTokenArg});");
+        codeBuilder.AppendLine($"            request.Content = formData;");
     }
 
     /// <summary>

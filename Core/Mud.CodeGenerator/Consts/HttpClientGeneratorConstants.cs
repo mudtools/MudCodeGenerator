@@ -42,6 +42,7 @@ internal static class HttpClientGeneratorConstants
     public const string ArrayQueryAttribute = "ArrayQueryAttribute";
     public const string HeaderAttribute = "HeaderAttribute";
     public const string BodyAttribute = "BodyAttribute";
+    public const string FormContentAttribute = "FormContentAttribute";
     public const string FilePathAttribute = "FilePathAttribute";
     public static readonly string[] HttpContentTypeAttributeNames = ["HttpContentTypeAttribute", "HttpContentType"];
 
