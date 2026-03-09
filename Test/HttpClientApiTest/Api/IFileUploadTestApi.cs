@@ -7,7 +7,6 @@
 
 namespace HttpClientApiTest.Api;
 
-using Mud.Common.CodeGenerator;
 using System.Text.Json.Serialization;
 
 /// <summary>
@@ -30,6 +29,16 @@ public interface IFileUploadTestApi
     Task<FeishuApiResult<ImageUpdateResult>?> UploadImageAsync(
         [FormContent] UploadImageRequest uploadImageRequest,
         CancellationToken cancellationToken = default);
+
+    [Post("/open-apis/im/v1/images")]
+    Task<FeishuApiResult<ImageUpdateResult>?> UploadImage1Async(
+        [FormContent] UploadImageRequest uploadImageRequest);
+
+    [Post("/open-apis/im/v1/images/{imageId}")]
+    Task<FeishuApiResult<ImageUpdateResult>?> UploadImageByIdAsync(
+      [FormContent] UploadImageRequest uploadImageRequest,
+      [Path] string imageId,
+      CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 飞书API通用结果包装类
