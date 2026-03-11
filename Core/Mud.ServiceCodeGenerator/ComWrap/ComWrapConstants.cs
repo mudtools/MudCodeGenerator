@@ -122,7 +122,7 @@ internal static class ComWrapConstants
     /// <summary>
     /// 默认的异常类型名称
     /// </summary>
-    public const string DefaultExceptionTypeName = "ExcelOperationException";
+    public const string DefaultExceptionTypeName = "OfficeOperationException";
 
     /// <summary>
     /// 异常消息模板
