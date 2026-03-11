@@ -50,8 +50,7 @@ internal partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGene
     {
         try
         {
-            var interfaceCodeGenerator = new InterfaceImpCodeGenerator(
-                this,
+            var interfaceCodeGenerator = new InterfaceImplementationGenerator(
                 compilation,
                 interfaceDecl,
                 interfaceSymbol,
@@ -59,7 +58,7 @@ internal partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGene
                 context,
                 httpClientOptionsName);
 
-            interfaceCodeGenerator.GeneratorCode();
+            interfaceCodeGenerator.GenerateCode();
         }
         catch (Exception ex)
         {

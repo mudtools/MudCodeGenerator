@@ -5,25 +5,7 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-namespace Mud.HttpUtils.Helpers;
-
-/// <summary>
-/// 验证结果
-/// </summary>
-internal class ValidationResult
-{
-    public bool IsValid { get; }
-    public string ErrorMessage { get; }
-
-    private ValidationResult(bool isValid, string errorMessage)
-    {
-        IsValid = isValid;
-        ErrorMessage = errorMessage;
-    }
-
-    public static ValidationResult Success() => new(true, string.Empty);
-    public static ValidationResult Error(string message) => new(false, message);
-}
+namespace Mud.HttpUtils.Validators;
 
 /// <summary>
 /// 基类验证器，用于验证 InheritedFrom 指定的基类是否存在且兼容

@@ -5,18 +5,19 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-global using Microsoft.CodeAnalysis;
-global using Microsoft.CodeAnalysis.CSharp;
-global using Microsoft.CodeAnalysis.CSharp.Syntax;
-global using Microsoft.CodeAnalysis.Diagnostics;
-global using Microsoft.CodeAnalysis.Text;
-global using Mud.CodeGenerator;
-global using Mud.HttpUtils.Generators.Implementation;
-global using Mud.HttpUtils.Models.Analysis;
-global using Mud.HttpUtils.Models.Metadata;
-global using Mud.HttpUtils.Validators;
-global using System;
-global using System.Collections.Generic;
-global using System.Collections.ObjectModel;
-global using System.Linq;
-global using System.Text;
+using Mud.HttpUtils.Generators.Context;
+
+namespace Mud.HttpUtils.Generators.Base;
+
+/// <summary>
+/// 代码片段生成器接口
+/// </summary>
+internal interface ICodeFragmentGenerator
+{
+    /// <summary>
+    /// 生成代码片段并追加到指定的 StringBuilder 中
+    /// </summary>
+    /// <param name="codeBuilder">用于构建代码的 StringBuilder</param>
+    /// <param name="context">生成上下文，包含生成所需的信息</param>
+    void Generate(StringBuilder codeBuilder, GeneratorContext context);
+}

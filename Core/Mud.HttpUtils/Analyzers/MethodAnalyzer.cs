@@ -1,0 +1,394 @@
+// -----------------------------------------------------------------------
+//  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
+//  Mud.CodeGenerator 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
+//  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
+//  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
+// -----------------------------------------------------------------------
+
+using Mud.HttpUtils.Models;
+
+namespace Mud.HttpUtils.Analyzers;
+
+/// <summary>
+/// 方法分析器，负责分析接口方法的特性和元数据
+/// </summary>
+internal static class MethodAnalyzer
+{
+    /// <summary>
+    /// 分析函数符号，并返回 MethodAnalysisResult 分析结果
+    /// </summary>
+    public static MethodAnalysisResult AnalyzeMethod(
+        Compilation compilation, 
+        IMethodSymbol methodSymbol, 
+        InterfaceDeclarationSyntax interfaceDecl, 
+        SemanticModel? semanticModel = null)
+    {
+        ArgumentNullExceptionExtensions.ThrowIfNull(compilation);
+        ArgumentNullExceptionExtensions.ThrowIfNull(methodSymbol);
+        ArgumentNullExceptionExtensions.ThrowIfNull(interfaceDecl);
+
+        var methodSyntax = FindMethodSyntax(compilation, methodSymbol, interfaceDecl, semanticModel);
+        AttributeData? httpMethodAttributeData = null;
+
+        if (methodSyntax != null)
+        {
+            var httpMethodAttr = FindHttpMethodAttribute(methodSyntax);
+            if (httpMethodAttr != null)
+            {
+                var urlTemplateFromSyntax = GetAttributeArgumentValue(httpMethodAttr, 0)?.ToString().Trim('"') ?? "";
+                if (!string.IsNullOrEmpty(urlTemplateFromSyntax))
+                {
+                    httpMethodAttributeData = FindHttpMethodAttributeFromSymbol(methodSymbol);
+                    if (httpMethodAttributeData == null)
+                        return MethodAnalysisResult.Invalid;
+                }
+            }
+        }
+
+        if (httpMethodAttributeData == null)
+        {
+            httpMethodAttributeData = FindHttpMethodAttributeFromSymbol(methodSymbol);
+            if (httpMethodAttributeData == null)
+                return MethodAnalysisResult.Invalid;
+        }
+
+        var httpMethodAttributeName = httpMethodAttributeData.AttributeClass?.Name ?? "";
+        var httpMethod = ExtractHttpMethodName(httpMethodAttributeName);
+        var urlTemplate = GetAttributeArgumentValueFromAttributeData(httpMethodAttributeData, 0)?.ToString().Trim('"') ?? "";
+        
+        if (string.IsNullOrEmpty(httpMethod) || string.IsNullOrEmpty(urlTemplate))
+            return MethodAnalysisResult.Invalid;
+
+        var methodContentType = GetHttpContentTypeFromSymbol(methodSymbol);
+        var parameters = ParameterAnalyzer.AnalyzeParameters(methodSymbol);
+        var (interfaceAttributes, interfaceHeaderAttributes, interfaceContentType) = AnalyzeInterfaceAttributes(
+            compilation, 
+            interfaceDecl, 
+            semanticModel);
+
+        return new MethodAnalysisResult
+        {
+            MethodOwnerInterfaceName = methodSymbol.ContainingType?.Name ?? interfaceDecl.Identifier.Text,
+            CurrentInterfaceName = interfaceDecl.Identifier.Text,
+            IsValid = true,
+            MethodName = methodSymbol.Name,
+            HttpMethod = httpMethod,
+            UrlTemplate = urlTemplate,
+            ReturnType = TypeSymbolHelper.GetTypeFullName(methodSymbol.ReturnType),
+            AsyncInnerReturnType = TypeSymbolHelper.ExtractAsyncInnerType(methodSymbol.ReturnType),
+            IsAsyncMethod = TypeSymbolHelper.IsAsyncType(methodSymbol.ReturnType),
+            Parameters = parameters,
+            IgnoreImplement = HasMethodAttribute(methodSymbol, HttpClientGeneratorConstants.IgnoreImplementAttributeNames),
+            IgnoreWrapInterface = HasMethodAttribute(methodSymbol, HttpClientGeneratorConstants.IgnoreWrapInterfaceAttributeNames),
+            InterfaceAttributes = interfaceAttributes,
+            InterfaceHeaderAttributes = interfaceHeaderAttributes,
+            InterfaceContentType = interfaceContentType,
+            MethodContentType = methodContentType
+        };
+    }
+
+    /// <summary>
+    /// 从方法语法节点查找HTTP方法特性
+    /// </summary>
+    public static AttributeSyntax? FindHttpMethodAttribute(MethodDeclarationSyntax methodSyntax)
+    {
+        if (methodSyntax == null)
+            return null;
+
+        foreach (var methodName in HttpClientGeneratorConstants.SupportedHttpMethods)
+        {
+            var attributes = AttributeSyntaxHelper.GetAttributeSyntaxes(methodSyntax, methodName);
+            if (attributes.Any())
+                return attributes[0];
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// 从方法符号查找HTTP方法特性
+    /// </summary>
+    public static AttributeData? FindHttpMethodAttributeFromSymbol(IMethodSymbol methodSymbol)
+    {
+        if (methodSymbol == null)
+            return null;
+
+        return methodSymbol.GetAttributes()
+            .FirstOrDefault(attr => HttpClientGeneratorConstants.SupportedHttpMethods.Contains(attr.AttributeClass?.Name));
+    }
+
+    /// <summary>
+    /// 从特性名称中提取HTTP方法名称
+    /// </summary>
+    public static string ExtractHttpMethodName(string attributeName)
+    {
+        if (string.IsNullOrEmpty(attributeName))
+            return "";
+
+        if (attributeName.EndsWith("Attribute", StringComparison.Ordinal))
+        {
+            return attributeName.Substring(0, attributeName.Length - "Attribute".Length);
+        }
+
+        return attributeName;
+    }
+
+    /// <summary>
+    /// 从AttributeData获取构造函数参数值
+    /// </summary>
+    public static object? GetAttributeArgumentValueFromAttributeData(AttributeData attribute, int index)
+    {
+        if (attribute == null || attribute.ConstructorArguments.Length <= index)
+            return null;
+
+        return attribute.ConstructorArguments[index].Value;
+    }
+
+    /// <summary>
+    /// 获取特性构造函数参数值
+    /// </summary>
+    public static object? GetAttributeArgumentValue(AttributeSyntax attribute, int index)
+    {
+        return attribute.GetConstructorArgument(null, index);
+    }
+
+    /// <summary>
+    /// 检查方法是否具有指定的特性
+    /// </summary>
+    public static bool HasMethodAttribute(IMethodSymbol methodSymbol, params string[] attributeNames)
+    {
+        if (methodSymbol == null)
+            return false;
+
+        return methodSymbol.GetAttributes()
+            .Any(attr => attributeNames.Contains(attr.AttributeClass?.Name));
+    }
+
+    /// <summary>
+    /// 从符号获取HttpContentType特性的ContentType值
+    /// </summary>
+    public static string? GetHttpContentTypeFromSymbol(ISymbol symbol)
+    {
+        if (symbol == null)
+            return null;
+
+        var httpContentTypeAttr = AttributeDataHelper.GetAttributeDataFromSymbol(
+            symbol,
+            HttpClientGeneratorConstants.HttpContentTypeAttributeNames);
+
+        if (httpContentTypeAttr == null)
+            return null;
+
+        if (httpContentTypeAttr.ConstructorArguments.Length > 0)
+        {
+            var constructorArg = httpContentTypeAttr.ConstructorArguments[0].Value?.ToString();
+            if (!string.IsNullOrEmpty(constructorArg))
+                return constructorArg;
+        }
+
+        return AttributeDataHelper.GetStringValueFromAttribute(httpContentTypeAttr, ["ContentType"]);
+    }
+
+    /// <summary>
+    /// 查询方法的语法对象
+    /// </summary>
+    public static MethodDeclarationSyntax? FindMethodSyntax(
+        Compilation compilation, 
+        IMethodSymbol methodSymbol, 
+        InterfaceDeclarationSyntax interfaceDecl, 
+        SemanticModel? semanticModel = null)
+    {
+        if (interfaceDecl == null || methodSymbol == null || compilation == null)
+            return null;
+
+        var allInterfaces = GetAllBaseInterfaceSyntaxNodes(compilation, interfaceDecl, semanticModel);
+
+        foreach (var interfaceSyntax in allInterfaces)
+        {
+            var method = interfaceSyntax.Members
+                .OfType<MethodDeclarationSyntax>()
+                .FirstOrDefault(m =>
+                {
+                    try
+                    {
+                        var model = SemanticModelCache.GetOrCreate(compilation, m.SyntaxTree);
+                        var methodSymbolFromSyntax = model.GetDeclaredSymbol(m);
+                        var targetSymbol = methodSymbolFromSyntax?.OriginalDefinition ?? methodSymbolFromSyntax;
+                        var sourceSymbol = methodSymbol.OriginalDefinition ?? methodSymbol;
+                        if (targetSymbol?.Equals(sourceSymbol, SymbolEqualityComparer.Default) == true)
+                        {
+                            return true;
+                        }
+                    }
+                    catch
+                    {
+                    }
+                    
+                    return m.Identifier.Text == methodSymbol.Name && 
+                           m.ParameterList.Parameters.Count == methodSymbol.Parameters.Length;
+                });
+
+            if (method != null)
+                return method;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// 获取接口及其所有基接口的语法节点
+    /// </summary>
+    public static IEnumerable<InterfaceDeclarationSyntax> GetAllBaseInterfaceSyntaxNodes(
+        Compilation compilation, 
+        InterfaceDeclarationSyntax interfaceDecl, 
+        SemanticModel? semanticModel = null)
+    {
+        yield return interfaceDecl;
+
+        var model = semanticModel ?? SemanticModelCache.GetOrCreate(compilation, interfaceDecl.SyntaxTree);
+        var interfaceSymbol = model.GetDeclaredSymbol(interfaceDecl);
+
+        if (interfaceSymbol == null)
+            yield break;
+
+        foreach (var baseInterface in interfaceSymbol.Interfaces)
+        {
+            var baseInterfaceSyntax = GetInterfaceDeclarationSyntax(compilation, baseInterface);
+            if (baseInterfaceSyntax != null)
+            {
+                yield return baseInterfaceSyntax;
+
+                var baseInterfaceModel = SemanticModelCache.GetOrCreate(compilation, baseInterfaceSyntax.SyntaxTree);
+                foreach (var deeperBase in GetAllBaseInterfaceSyntaxNodes(compilation, baseInterfaceSyntax, baseInterfaceModel))
+                {
+                    yield return deeperBase;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// 获取接口声明语法节点
+    /// </summary>
+    private static InterfaceDeclarationSyntax? GetInterfaceDeclarationSyntax(
+        Compilation compilation, 
+        INamedTypeSymbol interfaceSymbol)
+    {
+        foreach (var syntaxReference in interfaceSymbol.DeclaringSyntaxReferences)
+        {
+            var syntax = syntaxReference.GetSyntax();
+            if (syntax is InterfaceDeclarationSyntax interfaceDecl)
+            {
+                return interfaceDecl;
+            }
+        }
+
+        var interfaceName = interfaceSymbol.Name;
+        foreach (var syntaxTree in compilation.SyntaxTrees)
+        {
+            var root = syntaxTree.GetRoot();
+            var interfaceDeclarations = root.DescendantNodes().OfType<InterfaceDeclarationSyntax>();
+            foreach (var interfaceDecl in interfaceDeclarations)
+            {
+                if (interfaceDecl.Identifier.Text == interfaceName)
+                {
+                    var model = SemanticModelCache.GetOrCreate(compilation, syntaxTree);
+                    var symbol = model.GetDeclaredSymbol(interfaceDecl);
+                    if (symbol?.Equals(interfaceSymbol, SymbolEqualityComparer.Default) == true)
+                    {
+                        return interfaceDecl;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// 分析接口特性
+    /// </summary>
+    private static (HashSet<string> interfaceAttributes, List<InterfaceHeaderAttributeInfo> interfaceHeaderAttributes, string? interfaceContentType) 
+        AnalyzeInterfaceAttributes(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl, SemanticModel? semanticModel)
+    {
+        var model = semanticModel ?? SemanticModelCache.GetOrCreate(compilation, interfaceDecl.SyntaxTree);
+        var interfaceSymbol = model.GetDeclaredSymbol(interfaceDecl) as INamedTypeSymbol;
+        var interfaceAttributes = new HashSet<string>();
+        var interfaceHeaderAttributes = new List<InterfaceHeaderAttributeInfo>();
+        string? interfaceContentType = null;
+
+        if (interfaceSymbol != null)
+        {
+            interfaceContentType = GetHttpContentTypeFromSymbol(interfaceSymbol);
+
+            var headerAttributes = interfaceSymbol.GetAttributes()
+                .Where(attr => attr.AttributeClass?.Name == "HeaderAttribute" || attr.AttributeClass?.Name == "Header");
+
+            foreach (var headerAttr in headerAttributes)
+            {
+                var headerName = GetHeaderName(headerAttr);
+                var interfaceHeaderAttr = new InterfaceHeaderAttributeInfo
+                {
+                    Name = headerName,
+                    Value = GetHeaderValue(headerAttr),
+                    Replace = GetHeaderReplace(headerAttr)
+                };
+
+                interfaceHeaderAttributes.Add(interfaceHeaderAttr);
+
+                var isAuthorizationHeader = AttributeDataHelper.GetStringValueFromAttribute(headerAttr, ["Name"], 0) == "Authorization";
+                if (isAuthorizationHeader)
+                {
+                    interfaceAttributes.Add($"Header:{headerName}");
+                }
+            }
+
+            var queryAttributes = interfaceSymbol.GetAttributes()
+                .Where(attr => (attr.AttributeClass?.Name == "QueryAttribute" || attr.AttributeClass?.Name == "Query") &&
+                               attr.ConstructorArguments.Length > 0 &&
+                               attr.ConstructorArguments[0].Value?.ToString() == "Authorization");
+
+            foreach (var queryAttr in queryAttributes)
+            {
+                var aliasAs = queryAttr.NamedArguments.FirstOrDefault(arg => arg.Key == "AliasAs").Value.Value?.ToString();
+                var queryName = string.IsNullOrEmpty(aliasAs) ? "Authorization" : aliasAs;
+                interfaceAttributes.Add($"Query:{queryName}");
+            }
+        }
+
+        return (interfaceAttributes, interfaceHeaderAttributes, interfaceContentType);
+    }
+
+    /// <summary>
+    /// 获取Header特性的名称
+    /// </summary>
+    private static string GetHeaderName(AttributeData headerAttr)
+    {
+        return AttributeDataHelper.GetStringValueFromAttribute(headerAttr, ["AliasAs", "Name"], 0, "Unknown") ?? "Unknown";
+    }
+
+    /// <summary>
+    /// 获取Header特性的值
+    /// </summary>
+    private static object? GetHeaderValue(AttributeData headerAttr)
+    {
+        var valueProperty = headerAttr.NamedArguments.FirstOrDefault(arg => arg.Key == "Value").Value.Value;
+        if (valueProperty != null)
+            return valueProperty;
+
+        if (headerAttr.ConstructorArguments.Length > 1)
+        {
+            return headerAttr.ConstructorArguments[1].Value;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// 获取Header特性的Replace设置
+    /// </summary>
+    private static bool GetHeaderReplace(AttributeData headerAttr)
+    {
+        return AttributeDataHelper.GetBoolValueFromAttribute(headerAttr, "Replace", false);
+    }
+}

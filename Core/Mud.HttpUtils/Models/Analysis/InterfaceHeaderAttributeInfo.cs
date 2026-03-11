@@ -5,49 +5,25 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-namespace Mud.HttpUtils.Models;
-
+namespace Mud.HttpUtils.Models.Analysis;
 
 /// <summary>
-/// 参数信息
+/// 接口Header特性信息
 /// </summary>
-/// <remarks>
-/// 存储方法参数的详细信息，包括参数名、类型、特性和默认值。
-/// </remarks>
-internal class ParameterInfo
+internal class InterfaceHeaderAttributeInfo
 {
     /// <summary>
-    /// 参数名称
+    /// Header名称
     /// </summary>
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// 参数类型显示字符串
+    /// Header值
     /// </summary>
-    public string Type { get; set; } = string.Empty;
+    public object? Value { get; set; }
 
     /// <summary>
-    /// 参数特性列表
+    /// 是否替换已存在的Header
     /// </summary>
-    public IReadOnlyList<ParameterAttributeInfo> Attributes { get; set; } = [];
-
-    /// <summary>
-    /// Token 类型（如果是 Token 参数）
-    /// </summary>
-    public string TokenType { get; set; } = string.Empty;
-
-    /// <summary>
-    /// 是否具有默认值
-    /// </summary>
-    public bool HasDefaultValue { get; set; }
-
-    /// <summary>
-    /// 默认值
-    /// </summary>
-    public object? DefaultValue { get; set; }
-
-    /// <summary>
-    /// 默认值的字面量表示
-    /// </summary>
-    public string? DefaultValueLiteral { get; set; }
+    public bool Replace { get; set; }
 }

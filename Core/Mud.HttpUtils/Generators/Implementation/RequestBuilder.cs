@@ -7,7 +7,7 @@
 
 using Mud.HttpUtils.Models;
 
-namespace Mud.HttpUtils.Generators;
+namespace Mud.HttpUtils.Generators.Implementation;
 
 /// <summary>
 /// HTTP 请求构建器，负责生成 HTTP 请求的构建逻辑
