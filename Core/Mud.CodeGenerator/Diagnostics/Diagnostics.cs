@@ -313,11 +313,27 @@ internal static class Diagnostics
         isEnabledByDefault: true);
     #endregion
 
-    #region FormContent生成器诊断信息 (FORM001)
+    #region FormContent生成器诊断信息 (FORM001-003)
     public static readonly DiagnosticDescriptor FormContentGenerationError = new(
         id: "FORM001",
         title: "FormContent代码生成错误",
         messageFormat: "为类 {0} 生成FormContent代码时发生错误: {1}",
+        category: "代码生成",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor FormContentNoFilePathAttribute = new(
+        id: "FORM002",
+        title: "FormContent缺少FilePath属性",
+        messageFormat: "类 {0} 标记了 [FormContent] 特性，但没有找到任何标记了 [FilePath] 特性的属性。必须且只能有一个属性标记 [FilePath] 特性。",
+        category: "代码生成",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor FormContentMultipleFilePathAttributes = new(
+        id: "FORM003",
+        title: "FormContent存在多个FilePath属性",
+        messageFormat: "类 {0} 标记了 [FormContent] 特性，但发现了多个标记了 [FilePath] 特性的属性: {1}。必须且只能有一个属性标记 [FilePath] 特性。",
         category: "代码生成",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);

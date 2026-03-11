@@ -1,6 +1,3 @@
-using System.Text.Json.Serialization;
-using Mud.HttpUtils.Attributes;
-
 namespace HttpClientApiTest.Models;
 
 /// <summary>
@@ -15,7 +12,6 @@ public static class FormContentGeneratorTest
     {
         Console.WriteLine("=== FormContent 生成器测试 ===\n");
 
-        await TestSimpleFormRequestAsync();
         await TestUploadFileRequestAsync();
         await TestNullableFieldsAsync();
 
@@ -23,32 +19,11 @@ public static class FormContentGeneratorTest
     }
 
     /// <summary>
-    /// 测试简单表单请求
-    /// </summary>
-    private static async Task TestSimpleFormRequestAsync()
-    {
-        Console.WriteLine("测试 1: SimpleFormRequest");
-
-        var request = new SimpleFormRequest
-        {
-            Username = "testuser",
-            Email = "test@example.com",
-            Age = 25
-        };
-
-        var formData = await request.GetFormDataContentAsync();
-
-        Console.WriteLine($"  ✓ 成功生成 FormData");
-        Console.WriteLine($"  ✓ FormData 内容数量: {formData.Count()}");
-        Console.WriteLine();
-    }
-
-    /// <summary>
     /// 测试上传文件请求
     /// </summary>
     private static async Task TestUploadFileRequestAsync()
     {
-        Console.WriteLine("测试 2: UploadAllFileRequest with file");
+        Console.WriteLine("测试 1: UploadAllFileRequest with file");
 
         var tempFilePath = Path.Combine(Path.GetTempPath(), "test_upload.txt");
         await File.WriteAllTextAsync(tempFilePath, "Test content");
@@ -86,7 +61,7 @@ public static class FormContentGeneratorTest
     /// </summary>
     private static async Task TestNullableFieldsAsync()
     {
-        Console.WriteLine("测试 3: UploadAllFileRequest with nullable fields");
+        Console.WriteLine("测试 2: UploadAllFileRequest with nullable fields");
 
         var request = new UploadAllFileRequest
         {

@@ -1,5 +1,4 @@
 using System.Text.Json.Serialization;
-using Mud.HttpUtils.Attributes;
 
 namespace HttpClientApiTest.Models;
 
@@ -48,9 +47,9 @@ public partial class UploadAllFileRequest
 }
 
 /// <summary>
-/// 简单表单内容请求
+/// 简单表单内容请求（注意：此类不使用 FormContentGenerator，因为没有文件上传需求）
 /// </summary>
-[FormContent]
+/// [FormContent]
 public partial class SimpleFormRequest
 {
     /// <summary>

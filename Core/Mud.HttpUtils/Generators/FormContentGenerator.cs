@@ -80,8 +80,18 @@ internal class FormContentGenerator : TransitiveCodeGenerator
                 if (classSymbol == null)
                     continue;
 
+                // 获取所有标记了 [JsonPropertyName] 的属性
+                var properties = GetJsonPropertyProperties(classSymbol);
+
+                // 验证 [FilePath] 属性数量
+                if (!ValidateFilePathAttribute(classSymbol, properties, context))
+                {
+                    // 验证失败，跳过代码生成
+                    continue;
+                }
+
                 // 生成代码
-                var generatedCode = GenerateFormContentCode(classDecl, classSymbol, compilation);
+                var generatedCode = GenerateFormContentCode(classDecl, classSymbol, properties);
 
                 if (!string.IsNullOrEmpty(generatedCode))
                 {
@@ -102,22 +112,58 @@ internal class FormContentGenerator : TransitiveCodeGenerator
     }
 
     /// <summary>
+    /// 验证 [FilePath] 属性数量
+    /// </summary>
+    /// <param name="classSymbol">类符号</param>
+    /// <param name="properties">属性信息列表</param>
+    /// <param name="context">源代码生成上下文</param>
+    /// <returns>验证是否通过</returns>
+    private bool ValidateFilePathAttribute(
+        INamedTypeSymbol classSymbol,
+        List<PropertyInfo> properties,
+        SourceProductionContext context)
+    {
+        var filePathCount = properties.Count(p => p.HasFilePath);
+
+        if (filePathCount == 0)
+        {
+            // 没有找到 [FilePath] 属性
+            context.ReportDiagnostic(Diagnostic.Create(
+                Diagnostics.FormContentNoFilePathAttribute,
+                Location.None,
+                classSymbol.Name));
+            return false;
+        }
+
+        if (filePathCount > 1)
+        {
+            // 找到多个 [FilePath] 属性
+            var filePathProperties = properties.Where(p => p.HasFilePath).Select(p => p.Name);
+            context.ReportDiagnostic(Diagnostic.Create(
+                Diagnostics.FormContentMultipleFilePathAttributes,
+                Location.None,
+                classSymbol.Name,
+                string.Join(", ", filePathProperties)));
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// 生成 FormContent 代码
     /// </summary>
     /// <param name="classDecl">类声明语法</param>
     /// <param name="classSymbol">类符号</param>
-    /// <param name="compilation">编译信息</param>
+    /// <param name="properties">属性信息列表</param>
     /// <returns>生成的代码</returns>
     private string GenerateFormContentCode(
         ClassDeclarationSyntax classDecl,
         INamedTypeSymbol classSymbol,
-        Compilation compilation)
+        List<PropertyInfo> properties)
     {
         var namespaceName = GetNamespace(classDecl);
         var className = classSymbol.Name;
-
-        // 获取所有标记了 [JsonPropertyName] 的属性
-        var properties = GetJsonPropertyProperties(classSymbol);
 
         var sb = new StringBuilder();
 
