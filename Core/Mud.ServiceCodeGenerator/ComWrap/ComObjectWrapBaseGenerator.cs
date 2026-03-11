@@ -12,9 +12,6 @@ namespace Mud.ServiceCodeGenerator.ComWrap;
 
 public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerator
 {
-    #region Constants and Fields
-    #endregion
-
     #region Generator Initialization and Execution
     /// <inheritdoc/>
     protected override System.Collections.ObjectModel.Collection<string> GetFileUsingNameSpaces()

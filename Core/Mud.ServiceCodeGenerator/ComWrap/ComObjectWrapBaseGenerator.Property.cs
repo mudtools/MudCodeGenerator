@@ -11,9 +11,6 @@ namespace Mud.ServiceCodeGenerator.ComWrap;
 
 partial class ComObjectWrapBaseGenerator
 {
-    #region Constants and Fields
-    // 前缀常量已移至 ComWrapConstants.KnownPrefixes 和 KnownImpPrefixes
-    #endregion
 
     #region Indexer Implementation
     /// <summary>
