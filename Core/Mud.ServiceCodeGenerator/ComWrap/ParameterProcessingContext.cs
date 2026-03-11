@@ -348,8 +348,6 @@ internal sealed class ParameterProcessingContext
     /// </summary>
     private static string InferEnumDefaultValue(ITypeSymbol enumType)
     {
-        var typeName = TypeSymbolHelper.GetTypeFullName(enumType);
-
         // 尝试获取第一个枚举成员
         var firstMember = enumType.GetMembers()
             .OfType<IFieldSymbol>()
@@ -357,11 +355,11 @@ internal sealed class ParameterProcessingContext
 
         if (firstMember != null)
         {
-            return $"{typeName}.{firstMember.Name}";
+            return TypeSymbolHelper.GetEnumValueLiteral(enumType, firstMember.ConstantValue);
         }
 
         // 降级：返回类型名本身
-        return typeName;
+        return TypeSymbolHelper.GetTypeFullName(enumType);
     }
 
     /// <summary>
@@ -494,6 +492,14 @@ internal sealed class ParameterProcessingContext
                     .Replace("\r", "\\r")
                     .Replace("\t", "\\t")
                     .Replace("\v", "\\v");
+    }
+
+    /// <summary>
+    /// 获取参数的默认值
+    /// </summary>
+    public static string GetParameterDefaultValue(IParameterSymbol parameter)
+    {
+        return GetParameterDefaultValueLiteral(parameter) ?? string.Empty;
     }
 
     /// <summary>

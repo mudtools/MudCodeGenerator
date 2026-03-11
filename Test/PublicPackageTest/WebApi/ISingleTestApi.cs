@@ -1,4 +1,6 @@
-﻿namespace PublicPackageTest.WebApi;
+﻿using Mud.HttpUtils.Attributes;
+
+namespace PublicPackageTest.WebApi;
 
 public interface ISingleTest
 {
@@ -16,7 +18,6 @@ public interface ISingleTest
 /// 测试注释。
 /// </summary>
 [HttpClientApi("https://api.dingtalk.com", Timeout = 60)]
-[HttpClientApiWrap(TokenManage = "ITokenManage", WrapInterface = "ISingleNullUserTest")]
 public interface ISingleNullTestApi : ISingleTest
 {
 
@@ -26,7 +27,6 @@ public interface ISingleNullTestApi : ISingleTest
 /// 测试注释。
 /// </summary>
 [HttpClientApi("https://api.dingtalk.com", Timeout = 60)]
-[HttpClientApiWrap(TokenManage = "ITokenManage", WrapInterface = "ISingleUserTest")]
 public interface ISingleTestApi : ISingleTest
 {
     /// <summary>

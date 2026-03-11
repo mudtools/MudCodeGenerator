@@ -1,5 +1,7 @@
 ﻿
 
+using Mud.HttpUtils.Attributes;
+
 namespace PublicPackageTest.WebApi;
 
 
@@ -7,7 +9,6 @@ namespace PublicPackageTest.WebApi;
 /// 钉钉用户接口
 /// </summary>
 [HttpClientApi("https://api.dingtalk.com", Timeout = 60)]
-[HttpClientApiWrap(TokenManage = "ITokenManage", WrapInterface = "IDingTalkUser")]
 public interface IDingTalkUserApi
 {
     [Get("/api/v1/user/{id}")]

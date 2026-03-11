@@ -1,4 +1,4 @@
-﻿namespace ComObjectWrapTest;
+namespace ComObjectWrapTest;
 
 
 [ComObjectWrap(ComNamespace = "MsWord", ComClassName = "MailMergeField")]

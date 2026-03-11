@@ -1,17 +1,5 @@
-﻿using CommonClassLibrary;
+﻿namespace HttpClientApiTest;
 
-namespace HttpClientApiTest;
-
-public interface IFeishuAppManager
-{
-    FeishuAppContext GetDefaultApp();
-
-    ITokenManage GetTokenManager(TokenType tokenType);
-
-    IEnhancedHttpClient GetHttpClient();
-
-    FeishuAppContext GetApp(string appKey);
-}
 
 
 public class FeishuAppContext : IMudAppContext

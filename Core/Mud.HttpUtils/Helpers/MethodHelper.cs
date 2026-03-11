@@ -5,9 +5,6 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using Mud.HttpUtils.Models;
-using System.Runtime.CompilerServices;
-
 namespace Mud.HttpUtils.Helpers;
 
 /// <summary>
@@ -359,9 +356,9 @@ internal sealed class MethodHelper
                     {
                         // 设计时可能无法解析符号，回退到比较方法名
                     }
-                    
+
                     // 回退：比较方法名和参数数量
-                    return m.Identifier.Text == methodSymbol.Name && 
+                    return m.Identifier.Text == methodSymbol.Name &&
                            m.ParameterList.Parameters.Count == methodSymbol.Parameters.Length;
                 });
 

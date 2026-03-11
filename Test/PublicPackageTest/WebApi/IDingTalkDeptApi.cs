@@ -1,8 +1,9 @@
-﻿namespace PublicPackageTest.WebApi;
+﻿using Mud.HttpUtils.Attributes;
+
+namespace PublicPackageTest.WebApi;
 
 
 [HttpClientApi("https://api.dingtalk.com", Timeout = 60)]
-[HttpClientApiWrap(TokenManage = "ITokenManage")]
 public interface IDingTalkDeptApi
 {
     [Get("/api/v2/dept/{id}")]

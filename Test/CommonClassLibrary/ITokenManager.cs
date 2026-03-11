@@ -12,6 +12,8 @@ public interface ITokenManager
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>访问令牌字符串</returns>
     Task<string> GetTokenAsync(CancellationToken cancellationToken = default);
+
+
 }
 
 public interface ITenantTokenManager : ITokenManager

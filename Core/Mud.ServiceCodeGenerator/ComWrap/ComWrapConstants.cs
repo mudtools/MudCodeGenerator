@@ -118,4 +118,14 @@ internal static class ComWrapConstants
     /// 已知的实现类前缀列表（用于自动识别）
     /// </summary>
     public static readonly string[] KnownImpPrefixes = ["Word", "Excel", "Office", "PowerPoint", "Vbe"];
+
+    /// <summary>
+    /// 默认的异常类型名称
+    /// </summary>
+    public const string DefaultExceptionTypeName = "ExcelOperationException";
+
+    /// <summary>
+    /// 异常消息模板
+    /// </summary>
+    public const string ExceptionMessageTemplate = "{0}失败: {1}";
 }

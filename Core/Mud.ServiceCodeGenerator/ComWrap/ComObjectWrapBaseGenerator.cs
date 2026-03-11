@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
 //  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
 //  Mud.CodeGenerator 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
 //  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
@@ -647,7 +647,7 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
         sb.AppendLine("        #region 方法实现");
         sb.AppendLine();
 
-        foreach (var member in TypeSymbolHelper.GetAllMethods(interfaceSymbol, excludedInterfaces: ["IOfficeObject", "IDisposable", "System.IDisposable", "System.Collections.Generic.IEnumerable"]))
+        foreach (var member in TypeSymbolHelper.GetAllMethods(interfaceSymbol, excludedInterfaces: ["IOfficeObject", "IDisposable", "System.IDisposable", "System.Collections.Generic.IEnumerable", "System.Collections.IEnumerable"]))
         {
             if (member.MethodKind == MethodKind.Ordinary && !AttributeDataHelper.IgnoreGenerator(member))
             {
@@ -884,7 +884,7 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
         sb.AppendLine("            }");
 
         // 异常处理
-        GenerateExceptionHandling(sb, methodName);
+        GenerateExceptionHandling(sb, methodName, interfaceSymbol);
     }
 
 
@@ -988,43 +988,7 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
     /// </summary>
     private string GetParameterDefaultValue(IParameterSymbol parameter)
     {
-        if (!parameter.HasExplicitDefaultValue)
-            return string.Empty;
-
-        var value = parameter.ExplicitDefaultValue;
-        if (value == null)
-            return "null";
-
-        var type = TypeSymbolHelper.GetTypeFullName(parameter.Type);
-        var typeSymbol = parameter.Type;
-
-        // 处理枚举类型
-        if (typeSymbol.TypeKind == TypeKind.Enum)
-        {
-            return GetEnumDefaultValue(typeSymbol, value);
-        }
-
-        // 处理可空枚举类型
-        if (type.EndsWith("?", StringComparison.Ordinal) && TypeSymbolHelper.IsEnumType(parameter.Type))
-        {
-            // 获取非可空枚举类型符号
-            if (parameter.Type is INamedTypeSymbol namedType &&
-                namedType.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T &&
-                namedType.TypeArguments.Length > 0)
-            {
-                var enumType = namedType.TypeArguments[0];
-                return GetEnumDefaultValue(enumType, value);
-            }
-        }
-
-        return type switch
-        {
-            "bool" => value.ToString().ToLower(),
-            "int" or "float" or "double" or "decimal" => value.ToString(),
-            "string" => $"\"{value}\"",
-            _ when type.EndsWith("?", StringComparison.Ordinal) => HandleNullableDefaultValue(type, value),
-            _ => value.ToString()
-        };
+        return ParameterProcessingContext.GetParameterDefaultValue(parameter);
     }
 
 
@@ -1033,17 +997,26 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
     /// <summary>
     /// 生成异常处理逻辑
     /// </summary>
-    private void GenerateExceptionHandling(StringBuilder sb, string methodName)
+    private void GenerateExceptionHandling(StringBuilder sb, string methodName, INamedTypeSymbol interfaceSymbol)
     {
+        var config = ExceptionHandlingConfigProvider.GetConfig(interfaceSymbol);
         var operationDescription = GeneratorMessages.GetOperationDescription(methodName);
+        var exceptionTypeName = config.ExceptionTypeName;
 
         sb.AppendLine("            catch (COMException cx)");
         sb.AppendLine("            {");
-        sb.AppendLine($"                throw new ExcelOperationException(\"{operationDescription}失败: \" + cx.Message, cx);");
+        if (config.IncludeOriginalMessage)
+        {
+            sb.AppendLine($"                throw new {exceptionTypeName}(\"{operationDescription}失败: \" + cx.Message, cx);");
+        }
+        else
+        {
+            sb.AppendLine($"                throw new {exceptionTypeName}(\"{operationDescription}失败\", cx);");
+        }
         sb.AppendLine("            }");
         sb.AppendLine("            catch (Exception ex)");
         sb.AppendLine("            {");
-        sb.AppendLine($"                throw new ExcelOperationException(\"{operationDescription}失败\", ex);");
+        sb.AppendLine($"                throw new {exceptionTypeName}(\"{operationDescription}失败\", ex);");
         sb.AppendLine("            }");
     }
 
@@ -1053,15 +1026,18 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
     /// <param name="sb">字符串构建器</param>
     /// <param name="errorDescription">错误描述</param>
     /// <param name="indent">缩进级别（默认4个空格）</param>
-    protected void GenerateComExceptionHandling(StringBuilder sb, string errorDescription, string indent = "            ")
+    /// <param name="exceptionTypeName">异常类型名称（默认使用默认异常类型）</param>
+    protected void GenerateComExceptionHandling(StringBuilder sb, string errorDescription, string indent = "            ", string exceptionTypeName = null)
     {
+        var typeName = exceptionTypeName ?? ComWrapConstants.DefaultExceptionTypeName;
+
         sb.AppendLine($"{indent}catch (COMException ce)");
         sb.AppendLine($"{indent}{{");
-        sb.AppendLine($"{indent}    throw new ExcelOperationException(\"{errorDescription}: \" + ce.Message, ce);");
+        sb.AppendLine($"{indent}    throw new {typeName}(\"{errorDescription}: \" + ce.Message, ce);");
         sb.AppendLine($"{indent}}}");
         sb.AppendLine($"{indent}catch (Exception ex)");
         sb.AppendLine($"{indent}{{");
-        sb.AppendLine($"{indent}    throw new ExcelOperationException(\"{errorDescription}\", ex);");
+        sb.AppendLine($"{indent}    throw new {typeName}(\"{errorDescription}\", ex);");
         sb.AppendLine($"{indent}}}");
     }
 
@@ -1074,29 +1050,6 @@ public abstract partial class ComObjectWrapBaseGenerator : TransitiveCodeGenerat
     }
 
     /// <summary>
-    /// 处理可空类型的默认值
-    /// </summary>
-    private static string HandleNullableDefaultValue(string type, object value)
-    {
-        if (value == null)
-            return "null";
 
-        var nonNullType = type.TrimEnd('?');
-        return nonNullType switch
-        {
-            "bool" => value.ToString().ToLower(),
-            "int" or "float" or "double" or "decimal" => value.ToString(),
-            "string" => $"\"{value}\"",
-            _ => value.ToString()
-        };
-    }
-
-    /// <summary>
-    /// 获取枚举类型的默认值表示
-    /// </summary>
-    private string GetEnumDefaultValue(ITypeSymbol enumType, object value)
-    {
-        return TypeSymbolHelper.GetEnumValueLiteral(enumType, value);
-    }
     #endregion
 }

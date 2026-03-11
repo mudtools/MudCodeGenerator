@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
 //  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
 //  Mud.CodeGenerator 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
 //  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
@@ -197,15 +197,15 @@ partial class ComObjectWrapBaseGenerator
     {
         var processedParameters = new string[parameters.Length];
 
+        // 统一进行一次释放状态检查
+        GenerateDisposedCheckWithIndent(sb, privateFieldName, "                ");
+
         for (int i = 0; i < parameters.Length; i++)
         {
             var param = parameters[i];
             var paramName = parameterNames[i];
             var paramType = param.Type.ToString();
             var paramEnumType = TypeSymbolHelper.IsEnumType(param.Type);
-
-            // 添加通用对象检查
-            GenerateDisposedCheckWithIndent(sb, privateFieldName, "                ");
 
             // 参数类型特定验证
             GenerateParameterTypeValidation(sb, paramType, paramName, paramEnumType, i + 1, param.Type.NullableAnnotation == NullableAnnotation.Annotated);
@@ -768,14 +768,24 @@ partial class ComObjectWrapBaseGenerator
             sb.AppendLine($"                   return {fieldName};");
 
             if (!needConvert)
+            {
                 sb.AppendLine($"                {fieldName} = new {constructType}(comObj);");
+            }
             else
             {
                 var ordinalComType = GetImplementationOrdinalType(propertyType);
                 var comType = GetOrdinalComType(ordinalComType);
                 sb.AppendLine($"                if(comObj is {comNamespace}.{comType} rComObj)");
+                sb.AppendLine($"                {{");
                 sb.AppendLine($"                    {fieldName} = new {constructType}(rComObj);");
+                sb.AppendLine($"                }}");
             }
+
+            if (IsNeeDispose(propertySymbol))
+            {
+                sb.AppendLine($"            _disposableList.Add({fieldName});");
+            }
+
             sb.AppendLine($"                return {fieldName};");
             sb.AppendLine("             }");
         }
@@ -1124,71 +1134,23 @@ partial class ComObjectWrapBaseGenerator
     #region GetConvertCode
     protected string GetConvertCode(IPropertySymbol typeSymbol, string fieldName)
     {
-        // 检查是否为可空类型
-        if (typeSymbol.Type is INamedTypeSymbol namedType &&
-            namedType.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
-        {
-            // 获取可空类型的基础类型
-            var underlyingType = namedType.TypeArguments[0];
-
-            // 为可空类型生成带有空值检查的转换代码
-            return GetConvertCodeForType(underlyingType, fieldName);
-        }
-
-        // 对于非可空类型，直接获取转换代码
-        return GetConvertCodeForType(typeSymbol.Type, fieldName);
+        return TypeConversionGenerator.GenerateConversionCode(
+            typeSymbol.Type,
+            fieldName,
+            IsNeedConvert(typeSymbol));
     }
 
-    protected string GetConvertCodeForType(ITypeSymbol typeSymbol, string fieldName)
+    protected string GetConvertCodeForType(ITypeSymbol typeSymbol, string fieldName, bool needConvert = true)
     {
-        if (typeSymbol == null) return string.Empty;
-
-        // 获取实际类型（如果是可空类型，则获取其内部类型）
-        var actualType = typeSymbol;
-        bool isNullable = false;
-
-        // 检查是否为可空值类型 (Nullable<T>)
-        if (typeSymbol is INamedTypeSymbol namedType &&
-            namedType.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
-        {
-            actualType = namedType.TypeArguments[0];
-            isNullable = true;
-        }
-
-        // 检查是否为可空引用类型（C# 8.0+的可空引用类型）
-        if (typeSymbol.NullableAnnotation == NullableAnnotation.Annotated &&
-            typeSymbol.IsReferenceType)
-        {
-            isNullable = true;
-        }
-
-        // 对于可空类型，我们需要进行null检查
-        if (isNullable)
-        {
-            return GenerateNullableConvertCode(actualType, fieldName);
-        }
-
-        // 对于非空类型，使用原有的转换逻辑
-        return TypeSymbolHelper.GetBasicTypeConvertCode(typeSymbol, fieldName);
+        return TypeConversionGenerator.GenerateConversionCode(
+            typeSymbol,
+            fieldName,
+            needConvert);
     }
 
     private string GenerateNullableConvertCode(ITypeSymbol actualType, string fieldName)
     {
-        // 对于可空类型，我们生成带null检查的转换代码
-        var conversionCode = TypeSymbolHelper.GetBasicTypeConvertCode(actualType, $"{fieldName}!");
-
-        // 生成带null检查的转换代码
-        // 使用条件运算符：如果fieldName不为null，则进行转换，否则返回null/default
-        if (actualType.IsValueType)
-        {
-            // 对于值类型，返回可空类型
-            return $"{fieldName} != null ? {conversionCode} : null";
-        }
-        else
-        {
-            // 对于引用类型，直接返回null
-            return $"{fieldName} != null ? {conversionCode} : null";
-        }
+        return TypeConversionGenerator.GenerateNullableConversionCode(actualType, fieldName);
     }
 
     private bool IsSystemDrawingColor(ITypeSymbol typeSymbol)

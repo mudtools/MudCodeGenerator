@@ -1,6 +1,8 @@
+using Mud.HttpUtils.Attributes;
+
 namespace PublicPackageTest.WebApi;
 
-[HttpClientApi(TokenManage = nameof(ITokenManager), IsAbstract = true)]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
 public interface ITestBaseTokenApi
 {
     /// <summary>
@@ -13,7 +15,7 @@ public interface ITestBaseTokenApi
 /// <summary>
 /// 测试Token功能的API接口
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITokenManager), InheritedFrom = "TestBaseTokenApi")]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), InheritedFrom = "TestBaseTokenApi")]
 [Header("Authorization", AliasAs = "X-Token")]
 [Header("xx1", "xxValue1")]
 [Header("xx2", "xxValue3")]
@@ -25,7 +27,7 @@ public interface ITestNullTokenApi : ITestBaseTokenApi
 /// <summary>
 /// 测试Token功能的API接口
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITokenManager), InheritedFrom = "TestBaseTokenApi")]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), InheritedFrom = "TestBaseTokenApi")]
 [Header("Authorization", AliasAs = "X-Token")]
 [Header("xx1", "xxValue1")]
 [Header("xx2", "xxValue3")]
@@ -47,7 +49,7 @@ public interface ITestTokenApi : ITestBaseTokenApi
 /// <summary>
 /// 测试Query Authorization的API接口
 /// </summary>
-[HttpClientApi(TokenManage = nameof(ITokenManager))]
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager))]
 [Query("Authorization", AliasAs = "X-Token")]
 public interface ITestTokenQueryApi
 {
