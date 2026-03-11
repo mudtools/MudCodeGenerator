@@ -5,8 +5,6 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using System;
-using System.Text;
 using Mud.HttpUtils.Generators.Base;
 using Mud.HttpUtils.Generators.Context;
 
@@ -53,8 +51,6 @@ internal class ClassStructureGenerator : ICodeFragmentGenerator
         codeBuilder.AppendLine("using Microsoft.Extensions.Logging;");
         codeBuilder.AppendLine("using Microsoft.Extensions.Options;");
         codeBuilder.AppendLine("using Mud.HttpUtils;");
-        codeBuilder.AppendLine("using Mud.HttpUtils.Models;");
-        codeBuilder.AppendLine("using CommonClassLibrary;");
         codeBuilder.AppendLine();
     }
 
@@ -66,7 +62,7 @@ internal class ClassStructureGenerator : ICodeFragmentGenerator
 
     private void GenerateClassDeclaration(StringBuilder codeBuilder, GeneratorContext context)
     {
-        string classKeyword = context.Configuration.IsAbstract ? "abstract class" : "partial class";
+        string classKeyword = context.Configuration.IsAbstract ? "abstract partial class" : "partial class";
 
         string inheritance = string.Empty;
         if (context.HasInheritedFrom)
