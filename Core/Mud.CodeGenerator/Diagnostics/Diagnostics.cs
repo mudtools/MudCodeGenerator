@@ -312,4 +312,14 @@ internal static class Diagnostics
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
     #endregion
+
+    #region FormContent生成器诊断信息 (FORM001)
+    public static readonly DiagnosticDescriptor FormContentGenerationError = new(
+        id: "FORM001",
+        title: "FormContent代码生成错误",
+        messageFormat: "为类 {0} 生成FormContent代码时发生错误: {1}",
+        category: "代码生成",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+    #endregion
 }

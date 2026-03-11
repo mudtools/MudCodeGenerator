@@ -12,6 +12,33 @@ internal static class HttpClientExtensions
 {
 
     /// <summary>
+    /// 根据文件路径异步获取 ByteArrayContent 对象
+    /// </summary>
+    /// <param name="filePath">文件路径</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>包含文件内容的 ByteArrayContent 对象</returns>
+    public static async Task<ByteArrayContent> GetByteArrayContentAsync(string filePath, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrEmpty(filePath))
+            throw new ArgumentNullException(nameof(filePath));
+
+        if (!File.Exists(filePath))
+            throw new FileNotFoundException($"文件未找到: {filePath}");
+
+#if NETSTANDARD2_0
+        var fileBytes = File.ReadAllBytes(filePath);
+#else
+        var fileBytes = await File.ReadAllBytesAsync(filePath, cancellationToken);
+#endif
+
+        var fileContent = new ByteArrayContent(fileBytes);
+        var contentType = GetContentType(filePath);
+        fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
+
+        return fileContent;
+    }
+
+    /// <summary>
     /// 根据请求对象异步构建MultipartFormDataContent，支持文件路径属性自动添加文件内容
     /// </summary>
     public static async Task<MultipartFormDataContent> GetFormDataContentAsync(object requestBoey, CancellationToken cancellationToken = default)

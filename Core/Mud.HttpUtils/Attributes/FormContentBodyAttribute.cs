@@ -10,7 +10,7 @@ namespace Mud.HttpUtils.Attributes;
 /// <summary>
 /// HTTP 声明式请求内容特性
 /// </summary>
-[AttributeUsage(AttributeTargets.Parameter)]
+[AttributeUsage(AttributeTargets.Parameter|AttributeTargets.Class)]
 public sealed class FormContentAttribute : Attribute
 {
 
