@@ -49,7 +49,7 @@ public partial class UploadAllFileRequest
 /// <summary>
 /// 简单表单内容请求（注意：此类不使用 FormContentGenerator，因为没有文件上传需求）
 /// </summary>
-/// [FormContent]
+[FormContent]
 public partial class SimpleFormRequest
 {
     /// <summary>
@@ -69,4 +69,16 @@ public partial class SimpleFormRequest
     /// </summary>
     [JsonPropertyName("age")]
     public int Age { get; set; }
+
+    /// <summary>
+    /// 文件路径
+    /// </summary>
+    [FilePath]
+    [JsonPropertyName("file")]
+    public string? FilePath { get; set; }
+
+    /// <summary>
+    /// 文件二进制内容（当 FilePath 不提供时使用此属性上传文件内容）
+    /// </summary>
+    public byte[] FileContent { get; set; } = Array.Empty<byte>();
 }

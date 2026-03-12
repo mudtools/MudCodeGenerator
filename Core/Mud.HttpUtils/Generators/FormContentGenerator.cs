@@ -165,6 +165,9 @@ internal class FormContentGenerator : TransitiveCodeGenerator
         var namespaceName = GetNamespace(classDecl);
         var className = classSymbol.Name;
 
+        // 查找 byte[] 类型的属性名
+        var byteArrayPropertyName = GetByteArrayPropertyName(classSymbol);
+
         var sb = new StringBuilder();
 
         // 生成文件头
@@ -177,7 +180,7 @@ internal class FormContentGenerator : TransitiveCodeGenerator
         sb.AppendLine("{");
 
         // 生成 GetFormDataContentAsync 方法
-        GenerateGetFormDataContentAsyncMethod(sb, properties);
+        GenerateGetFormDataContentAsyncMethod(sb, properties, byteArrayPropertyName);
 
         sb.AppendLine("}");
 
@@ -249,6 +252,29 @@ internal class FormContentGenerator : TransitiveCodeGenerator
     }
 
     /// <summary>
+    /// 查找类中 byte[] 类型的属性名
+    /// </summary>
+    /// <param name="classSymbol">类符号</param>
+    /// <returns>byte[] 属性名，如果没有则返回 null</returns>
+    private string? GetByteArrayPropertyName(INamedTypeSymbol classSymbol)
+    {
+        foreach (var member in classSymbol.GetMembers())
+        {
+            if (member is not IPropertySymbol propertySymbol)
+                continue;
+
+            // 判断是否为 byte[] 类型
+            if (propertySymbol.Type is IArrayTypeSymbol arrayType &&
+                arrayType.ElementType.SpecialType == SpecialType.System_Byte)
+            {
+                return propertySymbol.Name;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// 从 JsonPropertyName 特性中获取属性名
     /// </summary>
     /// <param name="attribute">特性数据</param>
@@ -273,7 +299,8 @@ internal class FormContentGenerator : TransitiveCodeGenerator
     /// </summary>
     /// <param name="sb">字符串构建器</param>
     /// <param name="properties">属性信息列表</param>
-    private void GenerateGetFormDataContentAsyncMethod(StringBuilder sb, List<PropertyInfo> properties)
+    /// <param name="byteArrayPropertyName">byte[] 类型属性的名称，如果没有则为 null</param>
+    private void GenerateGetFormDataContentAsyncMethod(StringBuilder sb, List<PropertyInfo> properties, string? byteArrayPropertyName)
     {
         sb.AppendLine("    /// <summary>");
         sb.AppendLine("    /// 构建表单数据内容");
@@ -294,11 +321,21 @@ internal class FormContentGenerator : TransitiveCodeGenerator
         // 生成文件属性处理代码
         foreach (var prop in properties.Where(p => p.HasFilePath))
         {
-            GenerateFilePropertyAddCode(sb, prop);
+            GenerateFilePropertyAddCode(sb, prop, byteArrayPropertyName);
         }
 
         sb.AppendLine();
-        sb.AppendLine("        return formData;");
+
+        // 如果有 byte[] 属性，使用 Task.FromResult 返回
+        if (!string.IsNullOrEmpty(byteArrayPropertyName))
+        {
+            sb.AppendLine("        return await Task.FromResult(formData);");
+        }
+        else
+        {
+            sb.AppendLine("        return formData;");
+        }
+
         sb.AppendLine("    }");
     }
 
@@ -346,14 +383,26 @@ internal class FormContentGenerator : TransitiveCodeGenerator
     /// </summary>
     /// <param name="sb">字符串构建器</param>
     /// <param name="prop">属性信息</param>
-    private void GenerateFilePropertyAddCode(StringBuilder sb, PropertyInfo prop)
+    /// <param name="byteArrayPropertyName">byte[] 类型属性的名称，如果没有则为 null</param>
+    private void GenerateFilePropertyAddCode(StringBuilder sb, PropertyInfo prop, string? byteArrayPropertyName)
     {
         var propertyName = prop.Name;
         var jsonName = prop.JsonName;
 
         sb.AppendLine($"        if (!string.IsNullOrEmpty({propertyName}))");
         sb.AppendLine("        {");
-        sb.AppendLine($"            var fileContent = await HttpClientExtensions.GetByteArrayContentAsync({propertyName});");
+
+        if (!string.IsNullOrEmpty(byteArrayPropertyName))
+        {
+            // 如果有 byte[] 属性，使用 CreateFileContent 方法
+            sb.AppendLine($"            var fileContent = HttpClientExtensions.CreateFileContent({propertyName}, {byteArrayPropertyName});");
+        }
+        else
+        {
+            // 否则使用异步方法读取文件
+            sb.AppendLine($"            var fileContent = await HttpClientExtensions.GetByteArrayContentAsync({propertyName});");
+        }
+
         sb.AppendLine($"            formData.Add(fileContent, \"{jsonName}\", Path.GetFileName({propertyName}));");
         sb.AppendLine("        }");
     }
