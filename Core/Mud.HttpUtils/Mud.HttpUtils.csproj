@@ -1,28 +1,60 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
+		<TargetFrameworks>netstandard2.0;net6.0;net8.0;net10.0</TargetFrameworks>
 		<PackageId>Mud.HttpUtils</PackageId>
-		<Description>Mud HttpUtils Code Generator</Description>
+		<Description>Mud HttpUtils 代码生成器是一个基于 Roslyn 的源代码生成器，自动为标记了 [HttpClientApi] 特性的接口生成 HttpClient 实现类。</Description>
 		<Product>Mud Http Utils Code Generator</Product>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<DocumentationFile>$(OutputPath)$(AssemblyName).xml</DocumentationFile>
 		<AssemblyName>Mud.HttpUtils</AssemblyName>
-		<Description>Mud HttpUtils 代码生成器是一个基于 Roslyn 的源代码生成器，自动为标记了 [HttpClientApi] 特性的接口生成 HttpClient 实现类。</Description>
+
+		<!-- 双重用途配置 -->
+		<IncludeBuildOutput>true</IncludeBuildOutput>
+		<IsRoslynComponent>true</IsRoslynComponent>
+		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 	</PropertyGroup>
-	
-	<!--开发调试阶段-->
+
+	<!-- 作为公共库的DLL打包 -->
 	<ItemGroup>
-		<!-- Package the generator in the analyzer directory of the nuget package -->
+		<!-- 主程序集打包到lib目录 -->
+		<None Include="$(OutputPath)\netstandard2.0\$(AssemblyName).dll" Pack="true" PackagePath="lib\netstandard2.0\" Visible="false" />
+		<None Include="$(OutputPath)\net6.0\$(AssemblyName).dll" Pack="true" PackagePath="lib\net6.0\" Visible="false" />
+		<None Include="$(OutputPath)\net8.0\$(AssemblyName).dll" Pack="true" PackagePath="lib\net8.0\" Visible="false" />
+		<None Include="$(OutputPath)\net10.0\$(AssemblyName).dll" Pack="true" PackagePath="lib\net10.0\" Visible="false" />
+	</ItemGroup>
+
+	<!-- 作为源代码生成器的DLL打包 -->
+	<ItemGroup>
+		<!-- 将源代码生成器打包到analyzer目录 -->
 		<None Include="$(OutputPath)\netstandard2.0\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+		<None Include="$(OutputPath)\net6.0\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+		<None Include="$(OutputPath)\net8.0\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+		<None Include="$(OutputPath)\net10.0\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+
+		<!-- 将公共库部分复制到analyzer目录以供生成器使用 -->
+		<None Include="$(OutputPath)\netstandard2.0\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs/lib/netstandard2.0/" Visible="false" />
+		<None Include="$(OutputPath)\net6.0\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs/lib/net6.0/" Visible="false" />
+		<None Include="$(OutputPath)\net8.0\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs/lib/net8.0/" Visible="false" />
+		<None Include="$(OutputPath)\net10.0\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs/lib/net10.0/" Visible="false" />
+	</ItemGroup>
+
+	<!-- 文档和资源文件 -->
+	<ItemGroup>
 		<None Include="README.md" Pack="true" PackagePath="\" />
 		<None Include="..\Icon.png" Pack="true" PackagePath="\" />
 	</ItemGroup>
-	
-	<ItemGroup>
-		<PackageReference Update="Microsoft.CodeAnalysis.Analyzers" Version="4.14.0" />
-		<PackageReference Update="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
+
+	<!-- 公共库依赖（公开） -->
+	<ItemGroup Condition="'$(TargetFramework)' == 'net10.0' or '$(TargetFramework)' == 'net9.0' or '$(TargetFramework)' == 'net8.0'">
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.4" />
 	</ItemGroup>
-	
+	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0'or '$(TargetFramework)' == 'netstandard2.0'">
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.3" />
+		<PackageReference Include="System.Text.Json" Version="10.0.2" />
+	</ItemGroup>
+
+	<!-- 共享代码 -->
 	<Import Project="..\Mud.CodeGenerator\Mud.CodeGenerator.projitems" Label="Shared" />
 </Project>
