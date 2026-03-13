@@ -5,6 +5,7 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
+using System.Collections.Generic;
 using System.Collections.Immutable;
 
 namespace Mud.HttpUtils;
@@ -68,6 +69,9 @@ internal class FormContentGenerator : TransitiveCodeGenerator
         if (formContentClasses.IsDefaultOrEmpty)
             return;
 
+        // 用于跟踪已处理的类，避免重复生成
+        var processedClasses = new HashSet<string>();
+
         foreach (var classDecl in formContentClasses)
         {
             if (classDecl == null)
@@ -79,6 +83,13 @@ internal class FormContentGenerator : TransitiveCodeGenerator
                 var classSymbol = semanticModel.GetDeclaredSymbol(classDecl);
 
                 if (classSymbol == null)
+                    continue;
+
+                // 创建类的唯一标识符（包含完整限定名）
+                var classKey = classSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+                // 如果已经处理过这个类，则跳过
+                if (!processedClasses.Add(classKey))
                     continue;
 
                 // 获取所有标记了 [JsonPropertyName] 的属性
