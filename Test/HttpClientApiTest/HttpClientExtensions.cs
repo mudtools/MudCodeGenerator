@@ -30,10 +30,45 @@ internal static class HttpClientExtensions
 #else
         var fileBytes = await File.ReadAllBytesAsync(filePath, cancellationToken);
 #endif
+        return CreateFileContent(filePath, fileBytes);
+    }
 
+    /// <summary>
+    /// 创建包含文件数据的 ByteArrayContent 对象，并设置适当的内容类型头
+    /// </summary>
+    /// <param name="fileName">文件名，用于确定内容类型</param>
+    /// <param name="fileBytes">文件二进制数据</param>
+    /// <returns>配置好的 ByteArrayContent 对象</returns>
+    /// <exception cref="ArgumentNullException">当 fileName 或 fileBytes 为 null 或空字符串时抛出</exception>
+    public static ByteArrayContent CreateFileContent(string fileName, byte[] fileBytes)
+    {
+        // 参数验证 - 使用更精确的异常消息
+        if (string.IsNullOrWhiteSpace(fileName))
+            throw new ArgumentNullException(nameof(fileName), "文件名不能为空或仅包含空白字符。");
+
+        if (fileBytes == null || fileBytes.Length == 0)
+            throw new ArgumentNullException(nameof(fileBytes), "文件数据不能为 null 或空数组。");
+
+        // 创建 ByteArrayContent 对象
         var fileContent = new ByteArrayContent(fileBytes);
-        var contentType = GetContentType(filePath);
-        fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
+
+        try
+        {
+            // 获取文件的内容类型并设置到头部
+            string contentType = GetContentType(fileName);
+
+            // 验证内容类型是否有效
+            if (string.IsNullOrWhiteSpace(contentType))
+                throw new InvalidOperationException($"无法为文件 '{fileName}' 确定有效的内容类型。");
+
+            // 解析并设置 Content-Type 头
+            fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
+        }
+        catch (FormatException ex)
+        {
+            // 处理内容类型格式错误的情况
+            throw new InvalidOperationException($"内容类型格式无效: {GetContentType(fileName)}", ex);
+        }
 
         return fileContent;
     }
