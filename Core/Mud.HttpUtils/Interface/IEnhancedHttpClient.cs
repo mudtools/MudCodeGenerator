@@ -9,12 +9,12 @@ namespace Mud.HttpUtils;
 
 
 /// <summary>
-/// 增强的HTTP客户端接口，用于发送各种WebAPI相关的HTTP请求
+/// 增强的HTTP客户端接口，用于发送各种HTTP请求
 /// </summary>
 public interface IEnhancedHttpClient
 {
     /// <summary>
-    /// 发送请求并返回指定类型的结果
+    /// 发送请求并返回指定类型的结果（JSON格式）
     /// </summary>
     /// <typeparam name="TResult">期望的返回结果类型</typeparam>
     /// <param name="request">要发送的HTTP请求消息</param>
@@ -85,6 +85,41 @@ public interface IEnhancedHttpClient
     /// <param name="cancellationToken">用于取消操作的取消令牌</param>
     /// <returns>返回类型为TResult的异步任务，可能为null</returns>
     Task<TResult?> GetXmlAsync<TResult>(string requestUri, Encoding? encoding = null, CancellationToken cancellationToken = default);
+
+    #endregion
+
+    #region JSON 辅助方法
+
+    /// <summary>
+    /// 发送简单的GET请求并返回JSON反序列化后的结果
+    /// </summary>
+    /// <typeparam name="TResult">期望的返回结果类型</typeparam>
+    /// <param name="requestUri">请求URI</param>
+    /// <param name="cancellationToken">用于取消操作的取消令牌</param>
+    /// <returns>返回类型为TResult的异步任务，可能为null</returns>
+    Task<TResult?> GetAsync<TResult>(string requestUri, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 发送JSON格式的POST请求并反序列化响应
+    /// </summary>
+    /// <typeparam name="TRequest">请求数据类型</typeparam>
+    /// <typeparam name="TResult">响应数据类型</typeparam>
+    /// <param name="requestUri">请求URI</param>
+    /// <param name="requestData">要序列化为JSON的请求数据</param>
+    /// <param name="cancellationToken">用于取消操作的取消令牌</param>
+    /// <returns>返回类型为TResult的异步任务，可能为null</returns>
+    Task<TResult?> PostAsJsonAsync<TRequest, TResult>(string requestUri, TRequest requestData, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 发送JSON格式的PUT请求并反序列化响应
+    /// </summary>
+    /// <typeparam name="TRequest">请求数据类型</typeparam>
+    /// <typeparam name="TResult">响应数据类型</typeparam>
+    /// <param name="requestUri">请求URI</param>
+    /// <param name="requestData">要序列化为JSON的请求数据</param>
+    /// <param name="cancellationToken">用于取消操作的取消令牌</param>
+    /// <returns>返回类型为TResult的异步任务，可能为null</returns>
+    Task<TResult?> PutAsJsonAsync<TRequest, TResult>(string requestUri, TRequest requestData, CancellationToken cancellationToken = default);
 
     #endregion
 }

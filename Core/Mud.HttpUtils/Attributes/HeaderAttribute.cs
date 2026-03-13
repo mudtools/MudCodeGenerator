@@ -51,7 +51,7 @@ public sealed class HeaderAttribute : Attribute
     /// <remarks>该属性优先级低于 <see cref="AliasAs" /> 属性设置的值。</remarks>
     public string? Name { get; set; }
 
-    private object? field;
+    private object? _field;
 
     /// <summary>
     ///     请求标头的值
@@ -59,10 +59,10 @@ public sealed class HeaderAttribute : Attribute
     /// <remarks>当特性作用于参数时，表示默认值。</remarks>
     public object? Value
     {
-        get => field;
+        get => _field;
         set
         {
-            field = value;
+            _field = value;
             HasSetValue = true;
         }
     }
