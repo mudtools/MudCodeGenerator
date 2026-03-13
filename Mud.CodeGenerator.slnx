@@ -2,6 +2,7 @@
   <Folder Name="/Src/">
     <Project Path="Core/Mud.CodeGenerator/Mud.CodeGenerator.shproj" />
     <Project Path="Core/Mud.EntityCodeGenerator/Mud.EntityCodeGenerator.csproj" />
+    <Project Path="Core/Mud.HttpUtils.Generator/Mud.HttpUtils.Generator.csproj" Id="27e93a32-3a7e-4396-b5cd-e36ca5f67b6d" />
     <Project Path="Core/Mud.HttpUtils/Mud.HttpUtils.csproj" />
     <Project Path="Core/Mud.ServiceCodeGenerator/Mud.ServiceCodeGenerator.csproj" />
   </Folder>
