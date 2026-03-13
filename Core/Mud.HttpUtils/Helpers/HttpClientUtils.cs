@@ -5,11 +5,7 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using Mud.HttpUtils.Attributes;
-using System.Globalization;
 using System.Net.Http.Headers;
-using System.Reflection;
-using System.Text.Json.Serialization;
 
 namespace Mud.HttpUtils;
 
@@ -35,7 +31,8 @@ public sealed class HttpClientUtils
 #if NETSTANDARD2_0
         var fileBytes = File.ReadAllBytes(filePath);
 #else
-        var fileBytes = await File.ReadAllBytesAsync(filePath, cancellationToken);
+        var fileBytes = await File.ReadAllBytesAsync(filePath, cancellationToken)
+                                  .ConfigureAwait(false);
 #endif
         return CreateFileContent(filePath, fileBytes);
     }
@@ -78,63 +75,6 @@ public sealed class HttpClientUtils
         }
 
         return fileContent;
-    }
-
-    /// <summary>
-    /// 根据请求对象异步构建MultipartFormDataContent，支持文件路径属性自动添加文件内容
-    /// </summary>
-    public static async Task<MultipartFormDataContent> GetFormDataContentAsync(object requestBoey, CancellationToken cancellationToken = default)
-    {
-        var formData = new MultipartFormDataContent();
-        var properties = requestBoey.GetType().GetProperties();
-
-        foreach (var property in properties)
-        {
-            var value = property.GetValue(requestBoey);
-            if (value == null) continue;
-
-            var jsonPropertyName = property.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name;
-            var filePathAttr = property.GetCustomAttribute<FilePathAttribute>();
-            var fieldName = jsonPropertyName ?? property.Name.ToLower();
-
-            string stringValue = value switch
-            {
-                string s => s,
-                int i => i.ToString(),
-                long l => l.ToString(),
-                double d => d.ToString(CultureInfo.InvariantCulture),
-                decimal m => m.ToString(CultureInfo.InvariantCulture),
-                float f => f.ToString(CultureInfo.InvariantCulture),
-                bool b => b.ToString().ToLower(),
-                DateTime dt => dt.ToString("yyyy-MM-dd HH:mm:ss"),
-                _ => value.ToString() ?? string.Empty
-            };
-
-            if (filePathAttr != null)
-            {
-                if (!File.Exists(stringValue))
-                    throw new FileNotFoundException($"文件未找到: {stringValue}");
-
-
-#if NETSTANDARD2_0
-                var fileBytes = File.ReadAllBytes(stringValue);
-#else
-                // 异步读取文件
-                var fileBytes = await File.ReadAllBytesAsync(stringValue, cancellationToken);
-#endif
-                var fileContent = new ByteArrayContent(fileBytes);
-                var contentType = GetContentType(stringValue);
-                fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
-                formData.Add(fileContent, fieldName, Path.GetFileName(stringValue));
-            }
-            else
-            {
-                if (!string.IsNullOrEmpty(stringValue))
-                    formData.Add(new StringContent(stringValue), fieldName);
-            }
-        }
-
-        return formData;
     }
 
     private static readonly Dictionary<string, string> ContentTypeMappings = new(StringComparer.OrdinalIgnoreCase)

@@ -55,7 +55,7 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
             var result = await SendRequestAsync<TResult>(
                 request,
                 jsonSerializerOptions: GetJsonSerializerOptions(),
-                cancellationToken: cancellationToken);
+                cancellationToken: cancellationToken).ConfigureAwait(false);
 
             LogRequestComplete("JSON请求完成", uri);
             return result;
@@ -81,7 +81,7 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
 
             var result = await DownloadFileAsync(
                 request,
-                cancellationToken: cancellationToken);
+                cancellationToken: cancellationToken).ConfigureAwait(false);
 
             LogRequestComplete("文件下载完成", uri);
             return result;
@@ -114,7 +114,7 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
                 request,
                 filePath,
                 overwrite: overwrite,
-                cancellationToken: cancellationToken);
+                cancellationToken: cancellationToken).ConfigureAwait(false);
 
             LogRequestComplete($"大文件下载完成: {filePath}", uri);
             return fileInfo;
@@ -144,9 +144,9 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
             LogRequestStart("发送XML请求", uri);
 
             var result = await SendXmlRequestAsync<TResult>(
-                request,
-                encoding,
-                cancellationToken);
+                                request,
+                                encoding,
+                                cancellationToken).ConfigureAwait(false);
 
             LogRequestComplete("XML请求完成", uri);
             return result;
@@ -177,7 +177,7 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
                 Content = new StringContent(xmlContent, encoding ?? Encoding.UTF8, "application/xml")
             };
 
-            var result = await SendXmlRequestAsync<TResult>(request, encoding, cancellationToken);
+            var result = await SendXmlRequestAsync<TResult>(request, encoding, cancellationToken).ConfigureAwait(false);
 
             LogRequestComplete("XML POST请求完成", requestUri);
             return result;
@@ -208,7 +208,7 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
                 Content = new StringContent(xmlContent, encoding ?? Encoding.UTF8, "application/xml")
             };
 
-            var result = await SendXmlRequestAsync<TResult>(request, encoding, cancellationToken);
+            var result = await SendXmlRequestAsync<TResult>(request, encoding, cancellationToken).ConfigureAwait(false);
 
             LogRequestComplete("XML PUT请求完成", requestUri);
             return result;
@@ -232,7 +232,7 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
             LogRequestStart("发送XML GET请求", requestUri);
 
             using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
-            var result = await SendXmlRequestAsync<TResult>(request, encoding, cancellationToken);
+            var result = await SendXmlRequestAsync<TResult>(request, encoding, cancellationToken).ConfigureAwait(false);
 
             LogRequestComplete("XML GET请求完成", requestUri);
             return result;
@@ -262,7 +262,7 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
             var result = await SendRequestAsync<TResult>(
                 request,
                 jsonSerializerOptions: GetJsonSerializerOptions(),
-                cancellationToken: cancellationToken);
+                cancellationToken: cancellationToken).ConfigureAwait(false);
 
             LogRequestComplete("JSON GET请求完成", requestUri);
             return result;
@@ -295,7 +295,7 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
             var result = await SendRequestAsync<TResult>(
                 request,
                 jsonSerializerOptions: GetJsonSerializerOptions(),
-                cancellationToken: cancellationToken);
+                cancellationToken: cancellationToken).ConfigureAwait(false);
 
             LogRequestComplete("JSON POST请求完成", requestUri);
             return result;
@@ -328,7 +328,7 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
             var result = await SendRequestAsync<TResult>(
                 request,
                 jsonSerializerOptions: GetJsonSerializerOptions(),
-                cancellationToken: cancellationToken);
+                cancellationToken: cancellationToken).ConfigureAwait(false);
 
             LogRequestComplete("JSON PUT请求完成", requestUri);
             return result;
@@ -365,10 +365,10 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
         try
         {
             using var response = await _httpClient.SendAsync(httpRequestMessage,
-                HttpCompletionOption.ResponseHeadersRead,
-                cancellationToken);
+                                            HttpCompletionOption.ResponseHeadersRead,
+                                            cancellationToken).ConfigureAwait(false);
 
-            await EnsureSuccessStatusCodeAsync(response, cancellationToken);
+            await EnsureSuccessStatusCodeAsync(response, cancellationToken).ConfigureAwait(false);
 
             var contentLength = response.Content.Headers.ContentLength;
             if (contentLength == 0)
@@ -378,9 +378,9 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
             }
 
 #if NETSTANDARD2_0
-            using var stream = await response.Content.ReadAsStreamAsync();
+            using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 #else
-            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
 #endif
 
             var options = jsonSerializerOptions ?? GetDefaultJsonSerializerOptions();
@@ -390,7 +390,7 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
                 // 调试模式下，复制流以便记录原始响应
                 var memoryStream = new MemoryStream();
 #if NETSTANDARD2_0
-                await stream.CopyToAsync(memoryStream);
+                await stream.CopyToAsync(memoryStream).ConfigureAwait(false);
 #else
                 await stream.CopyToAsync(memoryStream, cancellationToken).ConfigureAwait(false);
 #endif
@@ -409,7 +409,7 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
 
                 try
                 {
-                    var result = await JsonSerializer.DeserializeAsync<TResult>(memoryStream, options, cancellationToken);
+                    var result = await JsonSerializer.DeserializeAsync<TResult>(memoryStream, options, cancellationToken).ConfigureAwait(false);
                     _logger.LogDebug("JSON反序列化成功: {Url}, 类型: {Type}", requestUri, typeof(TResult).Name);
                     return result;
                 }
@@ -425,7 +425,7 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
             {
                 try
                 {
-                    return await JsonSerializer.DeserializeAsync<TResult>(stream, options, cancellationToken);
+                    return await JsonSerializer.DeserializeAsync<TResult>(stream, options, cancellationToken).ConfigureAwait(false);
                 }
                 catch (JsonException jsonEx)
                 {
@@ -489,10 +489,10 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
         try
         {
             using var response = await _httpClient.SendAsync(httpRequestMessage,
-                HttpCompletionOption.ResponseHeadersRead,
-                cancellationToken);
+                                        HttpCompletionOption.ResponseHeadersRead,
+                                        cancellationToken).ConfigureAwait(false);
 
-            await EnsureSuccessStatusCodeAsync(response, cancellationToken);
+            await EnsureSuccessStatusCodeAsync(response, cancellationToken).ConfigureAwait(false);
 
             var contentLength = response.Content.Headers.ContentLength;
             if (contentLength == 0)
@@ -502,9 +502,9 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
             }
 
 #if NETSTANDARD2_0
-            var xmlContent = await response.Content.ReadAsStringAsync();
+            var xmlContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 #else
-            var xmlContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            var xmlContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 #endif
 
             if (_enableLogging && _logger.IsEnabled(LogLevel.Debug))
@@ -582,9 +582,9 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
         {
             using var response = await _httpClient.SendAsync(httpRequestMessage,
                 HttpCompletionOption.ResponseHeadersRead,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
-            await EnsureSuccessStatusCodeAsync(response, cancellationToken);
+            await EnsureSuccessStatusCodeAsync(response, cancellationToken).ConfigureAwait(false);
 
             var contentLength = response.Content.Headers.ContentLength;
             if (contentLength > 10 * 1024 * 1024) // 10MB警告
@@ -653,9 +653,9 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
 
             using var response = await _httpClient.SendAsync(httpRequestMessage,
                 HttpCompletionOption.ResponseHeadersRead,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
-            await EnsureSuccessStatusCodeAsync(response, cancellationToken);
+            await EnsureSuccessStatusCodeAsync(response, cancellationToken).ConfigureAwait(false);
 
             var contentLength = response.Content.Headers.ContentLength;
             _logger.LogInformation("开始下载文件: {Url}, 大小: {Size}MB, 保存到: {FilePath}",
@@ -683,8 +683,8 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
                 useAsync: true);
 #endif
 
-            await contentStream.CopyToAsync(fileStream, bufferSize, cancellationToken);
-            await fileStream.FlushAsync(cancellationToken);
+            await contentStream.CopyToAsync(fileStream, bufferSize, cancellationToken).ConfigureAwait(false);
+            await fileStream.FlushAsync(cancellationToken).ConfigureAwait(false);
 
             var fileInfo = new FileInfo(filePath);
             _logger.LogInformation("文件下载完成: {FilePath}, 大小: {Size}MB",

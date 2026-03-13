@@ -12,6 +12,8 @@ namespace Mud.HttpUtils;
 /// </summary>
 public interface IAppContextSwitcher
 {
+
+
     /// <summary>
     /// 切换到指定的飞书应用上下文
     /// </summary>
