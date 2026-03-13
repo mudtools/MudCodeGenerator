@@ -60,3 +60,4 @@
 /Test/CommonClassLibrary/bin/Debug
 /Test/CommonClassLibrary/obj
 /Core/Mud.ServiceCodeGenerator/Exceptions
+/Core/Mud.HttpUtils.Generator/obj
