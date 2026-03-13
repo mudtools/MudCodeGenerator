@@ -28,7 +28,8 @@ internal class FormContentGenerator : TransitiveCodeGenerator
             "System.IO",
             "System.Net.Http",
             "System.Threading",
-            "System.Threading.Tasks"
+            "System.Threading.Tasks",
+            "Mud.HttpUtils"
         ];
     }
 

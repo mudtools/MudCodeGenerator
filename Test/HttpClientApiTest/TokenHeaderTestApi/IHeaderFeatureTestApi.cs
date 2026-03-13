@@ -6,7 +6,7 @@ namespace HttpClientApiTest.TokenHeaderTestApi;
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "HeaderFeature")]
 [Header("Authorization")]
 [Token(TokenType.TenantAccessToken)]
-public interface IHeaderFeatureTestApi : IMudHttpClientService
+public interface IHeaderFeatureTestApi : IAppContextSwitcher
 {
     /// <summary>
     /// 测试：单个Header参数

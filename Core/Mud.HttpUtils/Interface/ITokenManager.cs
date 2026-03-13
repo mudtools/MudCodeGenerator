@@ -5,12 +5,17 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-namespace Mud.Common.CodeGenerator;
+namespace Mud.HttpUtils;
 
 /// <summary>
-/// 忽略代码生成。
+/// 通用的Token管理器接口
 /// </summary>
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Method, AllowMultiple = false)]
-public sealed class IgnoreGeneratorAttribute : Attribute
+public interface ITokenManager
 {
+    /// <summary>
+    /// 获取访问令牌
+    /// </summary>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>访问令牌字符串</returns>
+    Task<string> GetTokenAsync(CancellationToken cancellationToken = default);
 }

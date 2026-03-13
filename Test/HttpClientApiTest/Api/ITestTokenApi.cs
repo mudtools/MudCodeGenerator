@@ -4,7 +4,7 @@ namespace HttpClientApiTest.Api;
 /// 抽象基类，定义了通用的Token测试方法
 /// </summary>
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
-public interface ITestBaseTokenApi : IMudHttpClientService
+public interface ITestBaseTokenApi : IAppContextSwitcher
 {
     /// <summary>
     /// 测试：基类接口中获取用户信息

@@ -1,5 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-	<PropertyGroup>	
+	<PropertyGroup>
+		<TargetFrameworks>netstandard2.0</TargetFrameworks>
 		<PackageId>Mud.EntityCodeGenerator</PackageId>
 		<Description>Mud.EntityCodeGenerator</Description>
 		<Product>Mud Entity Code Generator</Product>

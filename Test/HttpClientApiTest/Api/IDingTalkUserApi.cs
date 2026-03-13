@@ -4,7 +4,7 @@ namespace HttpClientApiTest.Api;
 /// 测试各种用户相关的API功能，包括不同Token类型、参数位置、数组查询等场景
 /// </summary>
 [HttpClientApi("https://api.dingtalk.com", Timeout = 60, TokenManage = "IFeishuAppManager", RegistryGroupName = "Dingtalk")]
-public interface IDingTalkUserApi : IMudHttpClientService
+public interface IDingTalkUserApi : IAppContextSwitcher
 {
     /// <summary>
     /// 测试：根据用户ID获取用户信息（默认值路径参数）
