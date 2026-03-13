@@ -19,6 +19,68 @@ namespace Mud.HttpUtils;
 public sealed class HttpClientUtils
 {
     /// <summary>
+    /// 根据文件路径异步获取 ByteArrayContent 对象
+    /// </summary>
+    /// <param name="filePath">文件路径</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>包含文件内容的 ByteArrayContent 对象</returns>
+    public static async Task<ByteArrayContent> GetByteArrayContentAsync(string filePath, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrEmpty(filePath))
+            throw new ArgumentNullException(nameof(filePath));
+
+        if (!File.Exists(filePath))
+            throw new FileNotFoundException($"文件未找到: {filePath}");
+
+#if NETSTANDARD2_0
+        var fileBytes = File.ReadAllBytes(filePath);
+#else
+        var fileBytes = await File.ReadAllBytesAsync(filePath, cancellationToken);
+#endif
+        return CreateFileContent(filePath, fileBytes);
+    }
+
+    /// <summary>
+    /// 创建包含文件数据的 ByteArrayContent 对象，并设置适当的内容类型头
+    /// </summary>
+    /// <param name="fileName">文件名，用于确定内容类型</param>
+    /// <param name="fileBytes">文件二进制数据</param>
+    /// <returns>配置好的 ByteArrayContent 对象</returns>
+    /// <exception cref="ArgumentNullException">当 fileName 或 fileBytes 为 null 或空字符串时抛出</exception>
+    public static ByteArrayContent CreateFileContent(string fileName, byte[] fileBytes)
+    {
+        // 参数验证 - 使用更精确的异常消息
+        if (string.IsNullOrWhiteSpace(fileName))
+            throw new ArgumentNullException(nameof(fileName), "文件名不能为空或仅包含空白字符。");
+
+        if (fileBytes == null || fileBytes.Length == 0)
+            throw new ArgumentNullException(nameof(fileBytes), "文件数据不能为 null 或空数组。");
+
+        // 创建 ByteArrayContent 对象
+        var fileContent = new ByteArrayContent(fileBytes);
+
+        try
+        {
+            // 获取文件的内容类型并设置到头部
+            string contentType = GetContentType(fileName);
+
+            // 验证内容类型是否有效
+            if (string.IsNullOrWhiteSpace(contentType))
+                throw new InvalidOperationException($"无法为文件 '{fileName}' 确定有效的内容类型。");
+
+            // 解析并设置 Content-Type 头
+            fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
+        }
+        catch (FormatException ex)
+        {
+            // 处理内容类型格式错误的情况
+            throw new InvalidOperationException($"内容类型格式无效: {GetContentType(fileName)}", ex);
+        }
+
+        return fileContent;
+    }
+
+    /// <summary>
     /// 根据请求对象异步构建MultipartFormDataContent，支持文件路径属性自动添加文件内容
     /// </summary>
     public static async Task<MultipartFormDataContent> GetFormDataContentAsync(object requestBoey, CancellationToken cancellationToken = default)
@@ -50,7 +112,19 @@ public sealed class HttpClientUtils
 
             if (filePathAttr != null)
             {
-                var fileContent = await GetByteArrayContentAsync(stringValue, cancellationToken);
+                if (!File.Exists(stringValue))
+                    throw new FileNotFoundException($"文件未找到: {stringValue}");
+
+
+#if NETSTANDARD2_0
+                var fileBytes = File.ReadAllBytes(stringValue);
+#else
+                // 异步读取文件
+                var fileBytes = await File.ReadAllBytesAsync(stringValue, cancellationToken);
+#endif
+                var fileContent = new ByteArrayContent(fileBytes);
+                var contentType = GetContentType(stringValue);
+                fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
                 formData.Add(fileContent, fieldName, Path.GetFileName(stringValue));
             }
             else
@@ -61,153 +135,6 @@ public sealed class HttpClientUtils
         }
 
         return formData;
-    }
-
-    /// <summary>
-    /// 根据文件路径异步获取 ByteArrayContent 对象（读取整个文件）
-    /// </summary>
-    public static async Task<ByteArrayContent> GetByteArrayContentAsync(
-        string filePath,
-        CancellationToken cancellationToken = default)
-    {
-        return await GetByteArrayContentAsync(filePath, 0, null, cancellationToken)
-            .ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// 根据文件路径异步获取 ByteArrayContent 对象（读取文件的指定部分）
-    /// </summary>
-    /// <param name="filePath">文件路径</param>
-    /// <param name="offset">读取的起始位置（字节）</param>
-    /// <param name="count">要读取的字节数</param>
-    /// <param name="cancellationToken">取消令牌</param>
-    /// <returns>包含文件指定部分内容的 ByteArrayContent 对象</returns>
-    public static async Task<ByteArrayContent> GetByteArrayContentAsync(
-        string filePath,
-        long offset,
-        int count,
-        CancellationToken cancellationToken = default)
-    {
-        return await GetByteArrayContentAsync(filePath, offset, (int?)count, cancellationToken)
-            .ConfigureAwait(false);
-    }
-
-    // 私有实现方法
-    private static async Task<ByteArrayContent> GetByteArrayContentAsync(
-        string filePath,
-        long offset,
-        int? count,
-        CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrEmpty(filePath))
-            throw new ArgumentNullException(nameof(filePath));
-
-        if (!File.Exists(filePath))
-            throw new FileNotFoundException($"文件未找到: {filePath}");
-
-        if (offset < 0)
-            throw new ArgumentOutOfRangeException(nameof(offset), "起始位置不能为负数");
-
-        if (count.HasValue && count.Value <= 0)
-            throw new ArgumentOutOfRangeException(nameof(count), "读取字节数必须大于0");
-
-        try
-        {
-            var fileInfo = new FileInfo(filePath);
-
-            // 验证 offset 是否有效
-            if (offset >= fileInfo.Length)
-                throw new ArgumentOutOfRangeException(nameof(offset),
-                    $"起始位置({offset})超出文件大小({fileInfo.Length})");
-
-            // 计算实际要读取的字节数
-            var bytesToRead = count.HasValue
-                ? (int)Math.Min(count.Value, fileInfo.Length - offset)
-                : (int)(fileInfo.Length - offset);
-
-            byte[] fileBytes;
-
-#if NETSTANDARD2_0
-            if (offset == 0 && bytesToRead == fileInfo.Length)
-            {
-                // 优化：读取整个文件
-                fileBytes = File.ReadAllBytes(filePath);
-            }
-            else
-            {
-                // 使用 FileStream 读取指定范围
-                using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                fileStream.Seek(offset, SeekOrigin.Begin);
-                fileBytes = new byte[bytesToRead];
-                var totalBytesRead = 0;
-
-                while (totalBytesRead < bytesToRead)
-                {
-                    var bytesRead = fileStream.Read(
-                        fileBytes,
-                        totalBytesRead,
-                        bytesToRead - totalBytesRead);
-
-                    if (bytesRead == 0) break; // 到达文件末尾
-                    totalBytesRead += bytesRead;
-                }
-
-                // 如果实际读取的字节数少于请求的，调整数组大小
-                if (totalBytesRead < bytesToRead)
-                {
-                    Array.Resize(ref fileBytes, totalBytesRead);
-                }
-            }
-#else
-            using (var fileStream = new FileStream(
-                filePath,
-                FileMode.Open,
-                FileAccess.Read,
-                FileShare.Read,
-                bufferSize: 4096,
-                useAsync: true))
-            {
-                if (offset > 0)
-                {
-                    fileStream.Seek(offset, SeekOrigin.Begin);
-                }
-
-                fileBytes = new byte[bytesToRead];
-                var totalBytesRead = 0;
-
-                while (totalBytesRead < bytesToRead)
-                {
-                    var bytesRead = await fileStream.ReadAsync(fileBytes.AsMemory(totalBytesRead, bytesToRead - totalBytesRead), cancellationToken)
-                        .ConfigureAwait(false);
-
-                    if (bytesRead == 0) break; // 到达文件末尾
-                    totalBytesRead += bytesRead;
-                }
-
-                // 如果实际读取的字节数少于请求的，调整数组大小
-                if (totalBytesRead < bytesToRead)
-                {
-                    Array.Resize(ref fileBytes, totalBytesRead);
-                }
-            }
-#endif
-
-            var fileContent = new ByteArrayContent(fileBytes);
-            var contentType = GetContentType(filePath);
-            fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
-
-            return fileContent;
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex) when (ex is IOException ||
-                                   ex is UnauthorizedAccessException ||
-                                   ex is PathTooLongException)
-        {
-            throw new InvalidOperationException($"读取文件失败: {filePath}", ex);
-        }
     }
 
     private static readonly Dictionary<string, string> ContentTypeMappings = new(StringComparer.OrdinalIgnoreCase)

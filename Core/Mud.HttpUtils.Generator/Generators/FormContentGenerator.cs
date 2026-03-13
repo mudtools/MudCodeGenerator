@@ -395,12 +395,12 @@ internal class FormContentGenerator : TransitiveCodeGenerator
         if (!string.IsNullOrEmpty(byteArrayPropertyName))
         {
             // 如果有 byte[] 属性，使用 CreateFileContent 方法
-            sb.AppendLine($"            var fileContent = HttpClientExtensions.CreateFileContent({propertyName}, {byteArrayPropertyName});");
+            sb.AppendLine($"            var fileContent = HttpClientUtils.CreateFileContent({propertyName}, {byteArrayPropertyName});");
         }
         else
         {
             // 否则使用异步方法读取文件
-            sb.AppendLine($"            var fileContent = await HttpClientExtensions.GetByteArrayContentAsync({propertyName});");
+            sb.AppendLine($"            var fileContent = await HttpClientUtils.GetByteArrayContentAsync({propertyName});");
         }
 
         sb.AppendLine($"            formData.Add(fileContent, \"{jsonName}\", Path.GetFileName({propertyName}));");

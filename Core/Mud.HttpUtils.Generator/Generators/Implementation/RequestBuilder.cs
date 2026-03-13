@@ -5,8 +5,6 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using Mud.HttpUtils.Models;
-
 namespace Mud.HttpUtils.Generators.Implementation;
 
 /// <summary>
@@ -220,7 +218,7 @@ internal class RequestBuilder
         var cancellationTokenParam = methodInfo.Parameters.FirstOrDefault(p => p.Type.Contains("CancellationToken"));
         var cancellationTokenArg = cancellationTokenParam?.Name ?? "default";
 
-        codeBuilder.AppendLine($"            using var formData = await HttpClientExtensions.GetFormDataContentAsync({formContentParam.Name}, {cancellationTokenArg});");
+        codeBuilder.AppendLine($"            using var formData = await {formContentParam.Name}.GetFormDataContentAsync({cancellationTokenArg});");
         codeBuilder.AppendLine($"            request.Content = formData;");
     }
 

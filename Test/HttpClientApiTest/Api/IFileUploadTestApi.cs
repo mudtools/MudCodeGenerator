@@ -67,24 +67,34 @@ public interface IFileUploadTestApi
     /// <summary>
     /// 图片上传结果
     /// </summary>
-    public class ImageUpdateResult
+    [FormContent]
+    public partial class ImageUpdateResult
     {
         /// <summary>
         /// 图片key
         /// </summary>
         [JsonPropertyName("image_key")]
         public string? ImageKey { get; set; }
+
+        /// <summary>
+        /// 图片文件的本地路径（标记为 [FilePath] 会自动读取文件内容）
+        /// </summary>
+        [FilePath]
+        [JsonPropertyName("file")]
+        public string? ImagePath { get; set; }
     }
 
     /// <summary>
     /// 上传图片请求对象
     /// </summary>
-    public class UploadImageRequest
+    [FormContent]
+    public partial class UploadImageRequest
     {
         /// <summary>
         /// 图片文件的本地路径（标记为 [FilePath] 会自动读取文件内容）
         /// </summary>
         [FilePath]
+        [JsonPropertyName("file")]
         public string? ImagePath { get; set; }
 
         /// <summary>
