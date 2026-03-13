@@ -7,6 +7,7 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+		<DocumentationFile>$(OutputPath)$(AssemblyName).xml</DocumentationFile>
 		<AssemblyName>Mud.HttpUtils.Generator</AssemblyName>
 	</PropertyGroup>
 	<!--开发调试阶段-->

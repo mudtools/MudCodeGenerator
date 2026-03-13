@@ -4,6 +4,7 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+		<DocumentationFile>$(OutputPath)$(AssemblyName).xml</DocumentationFile>
 		<Description>Mud HttpUtils 运行时库，提供 HttpClient API 的基础功能和特性定义。</Description>
 		<Product>Mud Http Utils</Product>
 		<PackageId>Mud.HttpUtils</PackageId>
