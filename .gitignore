@@ -62,3 +62,4 @@
 /Core/Mud.ServiceCodeGenerator/Exceptions
 /Core/Mud.HttpUtils.Generator/obj
 /Core/Mud.HttpUtils.Generator/bin/Debug/netstandard2.0
+/Core/Mud.HttpUtils.Packager/obj
