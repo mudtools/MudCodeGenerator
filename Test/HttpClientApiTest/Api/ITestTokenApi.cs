@@ -1,9 +1,13 @@
+using HttpClientApiTest.Api.Internal;
+using Mud.HttpUtils.TokenManager;
+
 namespace HttpClientApiTest.Api;
 /// <summary>
 /// Token测试基类接口
 /// 抽象基类，定义了通用的Token测试方法
 /// </summary>
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), IsAbstract = true)]
+[Header("Authorization")]
 public interface ITestBaseTokenApi : IAppContextSwitcher
 {
     /// <summary>
@@ -124,9 +128,28 @@ public interface ITestTokenApi : ITestBaseTokenApi
 /// Query Authorization测试接口
 /// 测试通过Query参数传递Token的场景
 /// </summary>
+[HttpClientApi(TokenManage = nameof(IFeishuAppManager), InheritedFrom = nameof(TestBaseTokenApi))]
+[Query("Authorization", AliasAs = "X-Token")]
+[Token(TokenType = TokenType.UserAccessToken)]
+public interface ITestUserTokenQueryApi : ICurrentUserId, ITestBaseTokenApi
+{
+    /// <summary>
+    /// 测试：获取用户信息（Query参数传递Token）
+    /// 接口：GET api/users/{id}
+    /// 特点：通过Query参数传递Authorization
+    /// </summary>
+    [Get("api/users/{id}")]
+    Task<UserInfo> GetUserAsync([Path] string id, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// Query Authorization测试接口
+/// 测试通过Query参数传递Token的场景
+/// </summary>
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager))]
 [Query("Authorization", AliasAs = "X-Token")]
-public interface ITestTokenQueryApi
+[Token(TokenType = TokenType.UserAccessToken)]
+public interface ITestTokenQueryApi : ICurrentUserId, IAppContextSwitcher
 {
     /// <summary>
     /// 测试：获取用户信息（Query参数传递Token）

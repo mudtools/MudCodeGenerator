@@ -34,6 +34,20 @@ internal class GeneratorContext
 
     public bool HasTokenType => !string.IsNullOrEmpty(Configuration.TokenType);
 
+    /// <summary>
+    /// 接口是否有继承其他接口
+    /// </summary>
+    public bool HasBaseInterfaces => InterfaceSymbol.Interfaces.Length > 0;
+
+    /// <summary>
+    /// 根据 InheritedFrom 属性值获取 GetTokenAsync 方法的访问修饰符
+    /// - 有值（继承自指定类）：public override
+    /// - 无值：public virtual
+    /// </summary>
+    public string GetTokenAsyncAccessibility => string.IsNullOrEmpty(Configuration.InheritedFrom)
+        ? "public virtual"
+        : "public override";
+
     public string FieldAccessibility { get; }
 
     public string LoggerType { get; }

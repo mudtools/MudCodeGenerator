@@ -245,9 +245,46 @@
             生成配置
             </summary>
         </member>
+        <member name="P:Mud.HttpUtils.Generators.Context.GenerationConfiguration.IsUserAccessToken">
+            <summary>
+            是否为用户访问令牌 (UserAccessToken)
+            </summary>
+        </member>
         <member name="T:Mud.HttpUtils.Generators.Context.GeneratorContext">
             <summary>
             生成上下文
+            </summary>
+        </member>
+        <member name="P:Mud.HttpUtils.Generators.Context.GeneratorContext.HasBaseInterfaces">
+            <summary>
+            接口是否有继承其他接口
+            </summary>
+        </member>
+        <member name="P:Mud.HttpUtils.Generators.Context.GeneratorContext.GetTokenAsyncAccessibility">
+            <summary>
+            根据 InheritedFrom 属性值获取 GetTokenAsync 方法的访问修饰符
+            - 有值（继承自指定类）：public override
+            - 无值：public virtual
+            </summary>
+        </member>
+        <member name="T:Mud.HttpUtils.Generators.Implementation.AccessTokenGenerator">
+            <summary>
+            访问令牌生成器，用于生成用户令牌相关的属性和方法
+            </summary>
+        </member>
+        <member name="M:Mud.HttpUtils.Generators.Implementation.AccessTokenGenerator.Generate(System.Text.StringBuilder,Mud.HttpUtils.Generators.Context.GeneratorContext)">
+            <summary>
+            生成用户访问令牌相关的属性和方法
+            </summary>
+        </member>
+        <member name="M:Mud.HttpUtils.Generators.Implementation.AccessTokenGenerator.GenerateCurrentUserIdProperty(System.Text.StringBuilder)">
+            <summary>
+            生成 CurrentUserId 公共属性
+            </summary>
+        </member>
+        <member name="M:Mud.HttpUtils.Generators.Implementation.AccessTokenGenerator.GenerateGetTokenAsyncMethod(System.Text.StringBuilder)">
+            <summary>
+            生成 GetTokenAsync 方法（用户令牌版本）
             </summary>
         </member>
         <member name="T:Mud.HttpUtils.Generators.Implementation.ClassStructureGenerator">
@@ -293,6 +330,11 @@
         <member name="M:Mud.HttpUtils.Generators.Implementation.ConstructorGenerator.GenerateGetMediaTypeMethod(System.Text.StringBuilder)">
             <summary>
             生成 GetMediaType 方法
+            </summary>
+        </member>
+        <member name="M:Mud.HttpUtils.Generators.Implementation.ConstructorGenerator.GenerateGetTokenAsyncMethod(System.Text.StringBuilder)">
+            <summary>
+            生成通用的 GetTokenAsync 方法（租户令牌、应用令牌）
             </summary>
         </member>
         <member name="T:Mud.HttpUtils.Generators.Implementation.InterfaceImplementationGenerator">

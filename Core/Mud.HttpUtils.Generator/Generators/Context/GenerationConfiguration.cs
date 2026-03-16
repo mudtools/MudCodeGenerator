@@ -33,4 +33,9 @@ internal class GenerationConfiguration
     public string? TokenManagerType { get; set; }
 
     public string? TokenType { get; set; }
+
+    /// <summary>
+    /// 是否为用户访问令牌 (UserAccessToken)
+    /// </summary>
+    public bool IsUserAccessToken { get; set; }
 }

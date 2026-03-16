@@ -7,7 +7,7 @@ public interface IFeishuAppManager
 {
     IMudAppContext GetDefaultApp();
 
-    ITokenManage GetTokenManager(TokenType tokenType);
+    ITokenManager GetTokenManager(TokenType tokenType);
 
     IEnhancedHttpClient GetHttpClient();
 

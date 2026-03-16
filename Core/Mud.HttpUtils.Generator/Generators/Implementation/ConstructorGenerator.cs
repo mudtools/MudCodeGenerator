@@ -243,11 +243,23 @@ internal class ConstructorGenerator : ICodeFragmentGenerator
         codeBuilder.AppendLine("        }");
         codeBuilder.AppendLine();
 
+        // 用户令牌由 AccessTokenGenerator 生成，其他令牌在这里生成通用版本
+        if (_context.Configuration.IsUserAccessToken)
+            return;
+
+        GenerateGetTokenAsyncMethod(codeBuilder);
+    }
+
+    /// <summary>
+    /// 生成通用的 GetTokenAsync 方法（租户令牌、应用令牌）
+    /// </summary>
+    private void GenerateGetTokenAsyncMethod(StringBuilder codeBuilder)
+    {
         codeBuilder.AppendLine("        /// <summary>");
         codeBuilder.AppendLine("        /// 获取当前应用的访问令牌。");
         codeBuilder.AppendLine("        /// </summary>");
         codeBuilder.AppendLine("        /// <returns>返回当前应用的访问令牌。</returns>");
-        codeBuilder.AppendLine($"        protected virtual async Task<string> GetTokenAsync()");
+        codeBuilder.AppendLine($"        {_context.GetTokenAsyncAccessibility} async Task<string> GetTokenAsync()");
         codeBuilder.AppendLine("        {");
         codeBuilder.AppendLine("            if(_appContext == null)");
         codeBuilder.AppendLine("                throw new InvalidOperationException($\"无法找到当前服务的应用上下文。\");");

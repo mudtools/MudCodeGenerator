@@ -12,8 +12,6 @@ namespace Mud.HttpUtils;
 /// </summary>
 public interface IAppContextSwitcher
 {
-
-
     /// <summary>
     /// 切换到指定的飞书应用上下文
     /// </summary>
@@ -43,4 +41,10 @@ public interface IAppContextSwitcher
     /// <exception cref="KeyNotFoundException">当指定的应用键不存在时抛出</exception>
     /// <exception cref="InvalidOperationException">当应用上下文切换失败时抛出</exception>
     IMudAppContext UseDefaultApp();
+
+    /// <summary>
+    /// 获取当前应用的访问令牌。
+    /// </summary>
+    /// <returns>返回当前应用的访问令牌。</returns>
+    Task<string> GetTokenAsync();
 }

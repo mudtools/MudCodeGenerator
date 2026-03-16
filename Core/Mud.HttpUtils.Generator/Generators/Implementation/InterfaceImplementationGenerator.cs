@@ -78,12 +78,20 @@ internal class InterfaceImplementationGenerator
     /// </summary>
     private IEnumerable<ICodeFragmentGenerator> InitializeGenerators(GeneratorContext context)
     {
-        return new List<ICodeFragmentGenerator>
+        var generators = new List<ICodeFragmentGenerator>
         {
             new ClassStructureGenerator(_interfaceSymbol),
             new ConstructorGenerator(context),
             new MethodGenerator()
         };
+
+        // 只有用户令牌才添加 AccessTokenGenerator
+        if (context.Configuration.IsUserAccessToken)
+        {
+            generators.Add(new AccessTokenGenerator(context));
+        }
+
+        return generators;
     }
 
     /// <summary>
@@ -147,7 +155,8 @@ internal class InterfaceImplementationGenerator
             TokenManagerType = !string.IsNullOrEmpty(tokenManage)
                 ? TypeSymbolHelper.GetTypeAllDisplayString(_compilation, tokenManage!)
                 : null,
-            TokenType = GetInterfaceTokenType()
+            TokenType = GetInterfaceTokenType(),
+            IsUserAccessToken = GetInterfaceTokenType() == "UserAccessToken"
         };
     }
 
