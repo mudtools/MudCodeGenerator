@@ -119,7 +119,11 @@ internal class MethodGenerator : ICodeFragmentGenerator
         codeBuilder.AppendLine($"        /// </summary>");
         codeBuilder.AppendLine($"        {GeneratedCodeConsts.GeneratedCodeAttribute}");
         var asyncKeyword = methodInfo.IsAsyncMethod ? "async " : "";
-        var returnType = methodSymbol.ReturnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        var returnTypeFormat = SymbolDisplayFormat.FullyQualifiedFormat
+            .WithMiscellaneousOptions(
+                SymbolDisplayMiscellaneousOptions.UseSpecialTypes |
+                SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
+        var returnType = methodSymbol.ReturnType.ToDisplayString(returnTypeFormat);
         codeBuilder.AppendLine($"        public {asyncKeyword}{returnType} {methodSymbol.Name}({TypeSymbolHelper.GetParameterList(methodSymbol)})" );
         codeBuilder.AppendLine("        {");
 
