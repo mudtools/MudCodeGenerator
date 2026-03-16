@@ -61,6 +61,7 @@ internal static class MethodAnalyzer
 
         var methodContentType = GetHttpContentTypeFromSymbol(methodSymbol);
         var parameters = ParameterAnalyzer.AnalyzeParameters(methodSymbol);
+        var bodyContentType = GetBodyContentTypeFromParameters(parameters);
         var (interfaceAttributes, interfaceHeaderAttributes, interfaceContentType) = AnalyzeInterfaceAttributes(
             compilation, 
             interfaceDecl, 
@@ -83,7 +84,8 @@ internal static class MethodAnalyzer
             InterfaceAttributes = interfaceAttributes,
             InterfaceHeaderAttributes = interfaceHeaderAttributes,
             InterfaceContentType = interfaceContentType,
-            MethodContentType = methodContentType
+            MethodContentType = methodContentType,
+            BodyContentType = bodyContentType
         };
     }
 
@@ -187,6 +189,27 @@ internal static class MethodAnalyzer
         }
 
         return AttributeDataHelper.GetStringValueFromAttribute(httpContentTypeAttr, ["ContentType"]);
+    }
+
+    /// <summary>
+    /// 从参数列表中提取Body参数的ContentType值
+    /// </summary>
+    private static string? GetBodyContentTypeFromParameters(IReadOnlyList<ParameterInfo> parameters)
+    {
+        var bodyParam = parameters.FirstOrDefault(p => 
+            p.Attributes.Any(attr => attr.Name == HttpClientGeneratorConstants.BodyAttribute));
+
+        if (bodyParam == null)
+            return null;
+
+        var bodyAttr = bodyParam.Attributes.First(attr => attr.Name == HttpClientGeneratorConstants.BodyAttribute);
+        
+        if (bodyAttr.NamedArguments.TryGetValue("ContentType", out var contentTypeValue))
+        {
+            return contentTypeValue?.ToString();
+        }
+
+        return null;
     }
 
     /// <summary>

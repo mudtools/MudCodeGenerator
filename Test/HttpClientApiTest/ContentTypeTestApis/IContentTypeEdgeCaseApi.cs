@@ -2,7 +2,6 @@ namespace HttpClientApiTest.HttpClientApiTestApis;
 
 
 using HttpClientApiTest.Models;
-using Mud.Common.CodeGenerator;
 
 
 /// <summary>
@@ -34,8 +33,16 @@ public interface IContentTypeEdgeCaseApi
     /// 测试完整的内容类型字符串
     /// </summary>
     [Post("/api/edge/full")]
-    [HttpContentType("application/xml; version=1.0; charset=utf-8")]
+    [HttpContentType("application/xml")]
     Task<TestResponse> TestFullContentTypeAsync([Body] TestData data);
+
+    /// <summary>
+    /// 测试3：带额外参数的内容类型
+    /// 测试完整的内容类型字符串
+    /// </summary>
+    [Post("/api/edge/full")]
+    [HttpContentType("application/xml")]
+    Task<TestResponse> TestFullContentTypeAsync([Body] TestData data, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 测试4：空接口，方法指定ContentType

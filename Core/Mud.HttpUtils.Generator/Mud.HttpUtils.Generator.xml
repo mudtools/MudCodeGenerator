@@ -49,6 +49,11 @@
             从符号获取HttpContentType特性的ContentType值
             </summary>
         </member>
+        <member name="M:Mud.HttpUtils.Analyzers.MethodAnalyzer.GetBodyContentTypeFromParameters(System.Collections.Generic.IReadOnlyList{Mud.HttpUtils.Models.Analysis.ParameterInfo})">
+            <summary>
+            从参数列表中提取Body参数的ContentType值
+            </summary>
+        </member>
         <member name="M:Mud.HttpUtils.Analyzers.MethodAnalyzer.FindMethodSyntax(Microsoft.CodeAnalysis.Compilation,Microsoft.CodeAnalysis.IMethodSymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.SemanticModel)">
             <summary>
             查询方法的语法对象
@@ -446,6 +451,13 @@
             <summary>
             生成请求执行
             </summary>
+        </member>
+        <member name="M:Mud.HttpUtils.Generators.Implementation.RequestBuilder.IsXmlContentType(System.String)">
+            <summary>
+            检查内容类型是否为XML
+            </summary>
+            <param name="contentType">内容类型字符串</param>
+            <returns>如果是XML类型返回true，否则返回false</returns>
         </member>
         <member name="T:Mud.HttpUtils.Generators.Utils.CodeBuilderExtensions">
             <summary>
@@ -956,11 +968,16 @@
             方法级别的内容类型（从方法的[HttpContentType]特性获取）
             </summary>
         </member>
+        <member name="P:Mud.HttpUtils.Models.Analysis.MethodAnalysisResult.BodyContentType">
+            <summary>
+            Body参数级别的内容类型（从[Body]特性的ContentType参数获取）
+            </summary>
+        </member>
         <member name="M:Mud.HttpUtils.Models.Analysis.MethodAnalysisResult.GetEffectiveContentType">
             <summary>
-            获取最终的内容类型（方法级优先于接口级）
+            获取最终的内容类型（Body参数级 > 方法级 > 接口级）
             </summary>
-            <returns>内容类型字符串，如果方法级和接口级都未定义则返回null</returns>
+            <returns>内容类型字符串，如果都未定义则返回null</returns>
         </member>
         <member name="P:Mud.HttpUtils.Models.Analysis.MethodAnalysisResult.Invalid">
             <summary>

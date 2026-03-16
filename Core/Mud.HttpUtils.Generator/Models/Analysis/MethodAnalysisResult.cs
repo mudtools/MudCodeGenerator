@@ -96,12 +96,17 @@ internal class MethodAnalysisResult
     public string? MethodContentType { get; set; }
 
     /// <summary>
-    /// 获取最终的内容类型（方法级优先于接口级）
+    /// Body参数级别的内容类型（从[Body]特性的ContentType参数获取）
     /// </summary>
-    /// <returns>内容类型字符串，如果方法级和接口级都未定义则返回null</returns>
+    public string? BodyContentType { get; set; }
+
+    /// <summary>
+    /// 获取最终的内容类型（Body参数级 > 方法级 > 接口级）
+    /// </summary>
+    /// <returns>内容类型字符串，如果都未定义则返回null</returns>
     public string? GetEffectiveContentType()
     {
-        return MethodContentType ?? InterfaceContentType;
+        return BodyContentType ?? MethodContentType ?? InterfaceContentType;
     }
 
     /// <summary>

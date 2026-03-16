@@ -186,24 +186,36 @@ internal class RequestBuilder
 
         // 获取有效的内容类型（方法级 > 接口级 > Body参数级 > 默认值）
         string contentTypeExpression;
+        string? effectiveContentType = null;
         if (hasExplicitContentType)
         {
             contentTypeExpression = $"\"{contentType}\"";
+            effectiveContentType = contentType;
         }
         else
         {
-            var effectiveContentType = methodInfo.GetEffectiveContentType();
+            effectiveContentType = methodInfo.GetEffectiveContentType();
             contentTypeExpression = !string.IsNullOrEmpty(effectiveContentType)
                 ? $"\"{effectiveContentType}\""
                 : "GetMediaType(_defaultContentType)";
         }
 
+        // 检查是否为XML内容类型
+        var isXmlContentType = IsXmlContentType(effectiveContentType ?? contentType);
+
         if (useStringContent)
         {
             codeBuilder.AppendLine($"            request.Content = new StringContent({bodyParam.Name}.ToString() ?? \"\", Encoding.UTF8, {contentTypeExpression});");
         }
+        else if (isXmlContentType)
+        {
+            // XML序列化
+            codeBuilder.AppendLine($"            var xmlContent = XmlSerialize.Serialize({bodyParam.Name});");
+            codeBuilder.AppendLine($"            request.Content = new StringContent(xmlContent, Encoding.UTF8, {contentTypeExpression});");
+        }
         else
         {
+            // JSON序列化（默认）
             codeBuilder.AppendLine($"            var jsonContent = JsonSerializer.Serialize({bodyParam.Name}, _jsonSerializerOptions);");
             codeBuilder.AppendLine($"            request.Content = new StringContent(jsonContent, Encoding.UTF8, {contentTypeExpression});");
         }
@@ -232,6 +244,10 @@ internal class RequestBuilder
         var deserializeType = methodInfo.IsAsyncMethod ? methodInfo.AsyncInnerReturnType : methodInfo.ReturnType;
         codeBuilder.AppendLine();
 
+        // 检查是否为XML内容类型
+        var effectiveContentType = methodInfo.GetEffectiveContentType();
+        var isXmlContentType = IsXmlContentType(effectiveContentType);
+
         codeBuilder.AppendLine($"            var httpClient = _appContext.HttpClient;");
         if (filePathParam != null)
         {
@@ -242,6 +258,11 @@ internal class RequestBuilder
             if (TypeDetectionHelper.IsByteArrayType(deserializeType))
             {
                 codeBuilder.AppendLine($"            return await httpClient.DownloadAsync(request{cancellationTokenArg});");
+            }
+            else if (isXmlContentType)
+            {
+                // XML响应使用SendXmlAsync
+                codeBuilder.AppendLine($"            return await httpClient.SendXmlAsync<{deserializeType}>(request, null{cancellationTokenArg});");
             }
             else
             {
@@ -418,6 +439,20 @@ internal class RequestBuilder
     {
         return bodyAttr.NamedArguments.TryGetValue("UseStringContent", out var useStringContentArg)
             && bool.Parse(useStringContentArg?.ToString() ?? "false");
+    }
+
+    /// <summary>
+    /// 检查内容类型是否为XML
+    /// </summary>
+    /// <param name="contentType">内容类型字符串</param>
+    /// <returns>如果是XML类型返回true，否则返回false</returns>
+    private bool IsXmlContentType(string? contentType)
+    {
+        if (string.IsNullOrEmpty(contentType))
+            return false;
+
+        // 检查是否包含xml（不区分大小写）
+        return contentType.IndexOf("xml", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     #endregion
