@@ -18,9 +18,9 @@ internal static class MethodAnalyzer
     /// 分析函数符号，并返回 MethodAnalysisResult 分析结果
     /// </summary>
     public static MethodAnalysisResult AnalyzeMethod(
-        Compilation compilation, 
-        IMethodSymbol methodSymbol, 
-        InterfaceDeclarationSyntax interfaceDecl, 
+        Compilation compilation,
+        IMethodSymbol methodSymbol,
+        InterfaceDeclarationSyntax interfaceDecl,
         SemanticModel? semanticModel = null)
     {
         ArgumentNullExceptionExtensions.ThrowIfNull(compilation);
@@ -55,7 +55,7 @@ internal static class MethodAnalyzer
         var httpMethodAttributeName = httpMethodAttributeData.AttributeClass?.Name ?? "";
         var httpMethod = ExtractHttpMethodName(httpMethodAttributeName);
         var urlTemplate = GetAttributeArgumentValueFromAttributeData(httpMethodAttributeData, 0)?.ToString().Trim('"') ?? "";
-        
+
         if (string.IsNullOrEmpty(httpMethod) || string.IsNullOrEmpty(urlTemplate))
             return MethodAnalysisResult.Invalid;
 
@@ -63,8 +63,8 @@ internal static class MethodAnalyzer
         var parameters = ParameterAnalyzer.AnalyzeParameters(methodSymbol);
         var bodyContentType = GetBodyContentTypeFromParameters(parameters);
         var (interfaceAttributes, interfaceHeaderAttributes, interfaceContentType) = AnalyzeInterfaceAttributes(
-            compilation, 
-            interfaceDecl, 
+            compilation,
+            interfaceDecl,
             semanticModel);
 
         return new MethodAnalysisResult
@@ -196,14 +196,14 @@ internal static class MethodAnalyzer
     /// </summary>
     private static string? GetBodyContentTypeFromParameters(IReadOnlyList<ParameterInfo> parameters)
     {
-        var bodyParam = parameters.FirstOrDefault(p => 
+        var bodyParam = parameters.FirstOrDefault(p =>
             p.Attributes.Any(attr => attr.Name == HttpClientGeneratorConstants.BodyAttribute));
 
         if (bodyParam == null)
             return null;
 
         var bodyAttr = bodyParam.Attributes.First(attr => attr.Name == HttpClientGeneratorConstants.BodyAttribute);
-        
+
         if (bodyAttr.NamedArguments.TryGetValue("ContentType", out var contentTypeValue))
         {
             return contentTypeValue?.ToString();
@@ -216,9 +216,9 @@ internal static class MethodAnalyzer
     /// 查询方法的语法对象
     /// </summary>
     public static MethodDeclarationSyntax? FindMethodSyntax(
-        Compilation compilation, 
-        IMethodSymbol methodSymbol, 
-        InterfaceDeclarationSyntax interfaceDecl, 
+        Compilation compilation,
+        IMethodSymbol methodSymbol,
+        InterfaceDeclarationSyntax interfaceDecl,
         SemanticModel? semanticModel = null)
     {
         if (interfaceDecl == null || methodSymbol == null || compilation == null)
@@ -246,8 +246,8 @@ internal static class MethodAnalyzer
                     catch
                     {
                     }
-                    
-                    return m.Identifier.Text == methodSymbol.Name && 
+
+                    return m.Identifier.Text == methodSymbol.Name &&
                            m.ParameterList.Parameters.Count == methodSymbol.Parameters.Length;
                 });
 
@@ -262,8 +262,8 @@ internal static class MethodAnalyzer
     /// 获取接口及其所有基接口的语法节点
     /// </summary>
     public static IEnumerable<InterfaceDeclarationSyntax> GetAllBaseInterfaceSyntaxNodes(
-        Compilation compilation, 
-        InterfaceDeclarationSyntax interfaceDecl, 
+        Compilation compilation,
+        InterfaceDeclarationSyntax interfaceDecl,
         SemanticModel? semanticModel = null)
     {
         yield return interfaceDecl;
@@ -294,7 +294,7 @@ internal static class MethodAnalyzer
     /// 获取接口声明语法节点
     /// </summary>
     private static InterfaceDeclarationSyntax? GetInterfaceDeclarationSyntax(
-        Compilation compilation, 
+        Compilation compilation,
         INamedTypeSymbol interfaceSymbol)
     {
         foreach (var syntaxReference in interfaceSymbol.DeclaringSyntaxReferences)
@@ -331,7 +331,7 @@ internal static class MethodAnalyzer
     /// <summary>
     /// 分析接口特性
     /// </summary>
-    private static (HashSet<string> interfaceAttributes, List<InterfaceHeaderAttributeInfo> interfaceHeaderAttributes, string? interfaceContentType) 
+    private static (HashSet<string> interfaceAttributes, List<InterfaceHeaderAttributeInfo> interfaceHeaderAttributes, string? interfaceContentType)
         AnalyzeInterfaceAttributes(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl, SemanticModel? semanticModel)
     {
         var model = semanticModel ?? SemanticModelCache.GetOrCreate(compilation, interfaceDecl.SyntaxTree);

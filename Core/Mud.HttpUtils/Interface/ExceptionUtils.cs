@@ -9,6 +9,15 @@ namespace Mud.HttpUtils;
 
 internal static class ExceptionUtils
 {
+    /// <summary>
+    /// 如果对象为null则抛出ArgumentNullException
+    /// </summary>
+    public static void ThrowIfNull<T>(this T? obj, string? paramName = null) where T : class
+    {
+        if (obj is null)
+            throw new ArgumentNullException(paramName ?? nameof(obj));
+    }
+
     public static void ThrowIfNull(this object? argument, string? paramName = null)
     {
         if (argument == null)

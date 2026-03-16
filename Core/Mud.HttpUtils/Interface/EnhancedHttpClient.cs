@@ -373,7 +373,7 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
             var contentLength = response.Content.Headers.ContentLength;
             if (contentLength == 0)
             {
-                _logger.LogDebug("JSON响应内容为空，返回默认值: {Url}", requestUri);
+                _logger.JsonResponseBodyEmpty(requestUri);
                 return default;
             }
 
@@ -403,21 +403,19 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
                 using var reader = new StreamReader(memoryStream, Encoding.UTF8, leaveOpen: true);
                 var rawResponse = await reader.ReadToEndAsync().ConfigureAwait(false);
 #endif
-                _logger.LogDebug("原始JSON响应内容: {Url}\n{Response}", requestUri, rawResponse);
+                _logger.JsonResponseBodyRaw(requestUri, rawResponse);
 
                 memoryStream.Position = 0;
 
                 try
                 {
                     var result = await JsonSerializer.DeserializeAsync<TResult>(memoryStream, options, cancellationToken).ConfigureAwait(false);
-                    _logger.LogDebug("JSON反序列化成功: {Url}, 类型: {Type}", requestUri, typeof(TResult).Name);
+                    _logger.JsonDeserializeSuccess(requestUri, typeof(TResult).Name);
                     return result;
                 }
                 catch (JsonException jsonEx)
                 {
-                    _logger.LogError(jsonEx,
-                        "JSON反序列化失败: {Url}\n期望类型: {ExpectedType}\n原始响应: {RawResponse}\n错误位置: {Path}",
-                        requestUri, typeof(TResult).Name, rawResponse, jsonEx.Path);
+                    _logger.JsonDeserializeFailedDetailed(requestUri, typeof(TResult).Name, rawResponse, jsonEx.Path, jsonEx);
                     throw new JsonException($"反序列化到类型 {typeof(TResult).Name} 失败: {jsonEx.Message}", jsonEx);
                 }
             }
@@ -429,9 +427,7 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
                 }
                 catch (JsonException jsonEx)
                 {
-                    _logger.LogError(jsonEx,
-                        "JSON反序列化失败: {Url}\n期望类型: {ExpectedType}",
-                        requestUri, typeof(TResult).Name);
+                    _logger.JsonDeserializeFailedSimple(requestUri, typeof(TResult).Name, jsonEx);
                     throw new JsonException($"反序列化到类型 {typeof(TResult).Name} 失败: {jsonEx.Message}", jsonEx);
                 }
             }
@@ -440,27 +436,25 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
         {
 #if !NETSTANDARD2_0
             var statusCode = ex.StatusCode.HasValue ? (int)ex.StatusCode.Value : 0;
-            _logger.LogError(ex, "HTTP请求处理异常: {Url}, StatusCode: {StatusCode}", requestUri, statusCode);
+            _logger.HttpRequestFailedWithStatusCode(requestUri, statusCode, ex);
 #else
-            _logger.LogError(ex, "HTTP请求处理异常: {Url}", requestUri);
+            _logger.HttpRequestFailedSimple(requestUri, ex);
 #endif
             throw;
         }
         catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
-            _logger.LogError(ex, "HTTP请求超时: {Url}, Timeout: {Timeout}秒",
-                requestUri, _httpClient.Timeout.TotalSeconds);
+            _logger.HttpRequestTimeout(requestUri, _httpClient.Timeout.TotalSeconds, ex);
             throw new HttpRequestException($"请求超时: {requestUri}", ex);
         }
         catch (TaskCanceledException ex)
         {
-            _logger.LogWarning(ex, "HTTP请求被取消: {Url}", requestUri);
+            _logger.HttpRequestCancelled(requestUri, ex);
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "HTTP请求处理异常: {Url}, ExceptionType: {ExceptionType}",
-                requestUri, ex.GetType().Name);
+            _logger.HttpRequestFailedWithExceptionType(requestUri, ex.GetType().Name, ex);
             throw new HttpRequestException($"HTTP请求处理失败: {ex.Message}", ex);
         }
     }
@@ -497,7 +491,7 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
             var contentLength = response.Content.Headers.ContentLength;
             if (contentLength == 0)
             {
-                _logger.LogDebug("XML响应内容为空，返回默认值: {Url}", requestUri);
+                _logger.XmlResponseBodyEmpty(requestUri);
                 return default;
             }
 
@@ -509,26 +503,24 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
 
             if (_enableLogging && _logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogDebug("原始XML响应内容: {Url}\n{XmlResponse}", requestUri, xmlContent);
+                _logger.XmlResponseBodyRaw(requestUri, xmlContent);
             }
 
             if (string.IsNullOrWhiteSpace(xmlContent))
             {
-                _logger.LogDebug("XML响应内容为空，返回默认值: {Url}", requestUri);
+                _logger.XmlResponseBodyEmpty(requestUri);
                 return default;
             }
 
             try
             {
                 var result = DeserializeFromXml<TResult>(xmlContent, encoding);
-                _logger.LogDebug("XML反序列化成功: {Url}, 类型: {Type}", requestUri, typeof(TResult).Name);
+                _logger.XmlDeserializeSuccess(requestUri, typeof(TResult).Name);
                 return result;
             }
             catch (InvalidOperationException xmlEx)
             {
-                _logger.LogError(xmlEx,
-                    "XML反序列化失败: {Url}\n期望类型: {ExpectedType}\n原始XML响应: {XmlResponse}",
-                    requestUri, typeof(TResult).Name, xmlContent);
+                _logger.XmlDeserializeFailed(requestUri, typeof(TResult).Name, xmlContent, xmlEx);
                 throw new InvalidOperationException($"XML反序列化到类型 {typeof(TResult).Name} 失败: {xmlEx.Message}", xmlEx);
             }
         }
@@ -536,27 +528,25 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
         {
 #if !NETSTANDARD2_0
             var statusCode = ex.StatusCode.HasValue ? (int)ex.StatusCode.Value : 0;
-            _logger.LogError(ex, "HTTP请求处理异常: {Url}, StatusCode: {StatusCode}", requestUri, statusCode);
+            _logger.HttpRequestFailedWithStatusCode(requestUri, statusCode, ex);
 #else
-            _logger.LogError(ex, "HTTP请求处理异常: {Url}", requestUri);
+            _logger.HttpRequestFailedSimple(requestUri, ex);
 #endif
             throw;
         }
         catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
-            _logger.LogError(ex, "HTTP请求超时: {Url}, Timeout: {Timeout}秒",
-                requestUri, _httpClient.Timeout.TotalSeconds);
+            _logger.HttpRequestTimeout(requestUri, _httpClient.Timeout.TotalSeconds, ex);
             throw new HttpRequestException($"请求超时: {requestUri}", ex);
         }
         catch (TaskCanceledException ex)
         {
-            _logger.LogWarning(ex, "HTTP请求被取消: {Url}", requestUri);
+            _logger.HttpRequestCancelled(requestUri, ex);
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "HTTP请求处理异常: {Url}, ExceptionType: {ExceptionType}",
-                requestUri, ex.GetType().Name);
+            _logger.HttpRequestFailedWithExceptionType(requestUri, ex.GetType().Name, ex);
             throw new HttpRequestException($"HTTP请求处理失败: {ex.Message}", ex);
         }
     }
@@ -589,8 +579,7 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
             var contentLength = response.Content.Headers.ContentLength;
             if (contentLength > 10 * 1024 * 1024) // 10MB警告
             {
-                _logger.LogWarning("下载文件较大: {Url}, 大小: {Size}MB",
-                    requestUri, contentLength / (1024.0 * 1024.0));
+                _logger.DownloadFileLarge(requestUri, contentLength.GetValueOrDefault() / (1024.0 * 1024.0));
             }
 
 #if NETSTANDARD2_0
@@ -601,12 +590,12 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "文件下载异常: {Url}", requestUri);
+            _logger.FileDownloadFailed(requestUri, ex);
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "文件下载异常: {Url}", requestUri);
+            _logger.FileDownloadFailed(requestUri, ex);
             throw new HttpRequestException($"文件下载失败: {ex.Message}", ex);
         }
     }
@@ -643,7 +632,7 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
             {
                 if (overwrite)
                 {
-                    _logger.LogInformation("文件已存在，将被覆盖: {FilePath}", filePath);
+                    _logger.FileExistsWillOverwrite(filePath);
                 }
                 else
                 {
@@ -658,9 +647,9 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
             await EnsureSuccessStatusCodeAsync(response, cancellationToken).ConfigureAwait(false);
 
             var contentLength = response.Content.Headers.ContentLength;
-            _logger.LogInformation("开始下载文件: {Url}, 大小: {Size}MB, 保存到: {FilePath}",
+            _logger.DownloadFileStarted(
                 requestUri,
-                contentLength.HasValue ? contentLength.Value / (1024.0 * 1024.0) : "未知",
+                contentLength.HasValue ? contentLength.Value / (1024.0 * 1024.0) : 0.0,
                 filePath);
 
 #if NETSTANDARD2_0
@@ -687,8 +676,7 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
             await fileStream.FlushAsync(cancellationToken).ConfigureAwait(false);
 
             var fileInfo = new FileInfo(filePath);
-            _logger.LogInformation("文件下载完成: {FilePath}, 大小: {Size}MB",
-                filePath, fileInfo.Length / (1024.0 * 1024.0));
+            _logger.DownloadFileCompleted(filePath, fileInfo.Length / (1024.0 * 1024.0));
 
             return fileInfo;
         }
@@ -702,10 +690,10 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
             }
             catch (Exception cleanupEx)
             {
-                _logger.LogWarning(cleanupEx, "清理部分下载的文件失败: {FilePath}", filePath);
+                _logger.CleanupPartialFileFailed(filePath, cleanupEx);
             }
 
-            _logger.LogError(ex, "大文件下载异常: {Url}, 文件路径: {FilePath}", requestUri, filePath);
+            _logger.LargeFileDownloadFailed(requestUri, filePath, ex);
 
             if (ex is HttpRequestException)
                 throw;
@@ -776,7 +764,7 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "读取错误响应内容失败");
+            _logger.ReadErrorResponseFailed(ex);
             errorContent = "[无法读取错误内容]";
         }
 
@@ -784,7 +772,7 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
             ? MessageSanitizer.Sanitize(errorContent, maxLength: 200)
             : "[日志未启用]";
 
-        _logger.LogError("HTTP请求失败: {StatusCode}, 响应（已脱敏）: {Response}", statusCode, sanitizedContent);
+        _logger.HttpRequestFailedWithResponse(statusCode, sanitizedContent);
 
         response.Content.Dispose();
 
@@ -855,7 +843,7 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
     {
         if (_enableLogging && _logger.IsEnabled(LogLevel.Debug))
         {
-            _logger.LogDebug("[HttpClient] {Operation}: {Uri}", operation, uri);
+            _logger.HttpClientOperation(operation, uri);
         }
     }
 
@@ -863,7 +851,7 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
     {
         if (_enableLogging && _logger.IsEnabled(LogLevel.Debug))
         {
-            _logger.LogDebug("[HttpClient] {Operation}: {Uri}", operation, uri);
+            _logger.HttpClientOperation(operation, uri);
         }
     }
 
@@ -871,25 +859,10 @@ public abstract class EnhancedHttpClient : IEnhancedHttpClient
     {
         if (_enableLogging && _logger.IsEnabled(LogLevel.Error))
         {
-            _logger.LogError(ex, "[HttpClient] {ErrorMessage}: {Uri}", errorMessage, uri);
+            _logger.HttpClientError(errorMessage, uri, ex);
         }
         return false; // 始终返回false，异常会被重新抛出
     }
 
     #endregion
-}
-
-/// <summary>
-/// 对象扩展方法
-/// </summary>
-internal static class ObjectExtensions
-{
-    /// <summary>
-    /// 如果对象为null则抛出ArgumentNullException
-    /// </summary>
-    public static void ThrowIfNull<T>(this T? obj, string? paramName = null) where T : class
-    {
-        if (obj is null)
-            throw new ArgumentNullException(paramName ?? nameof(obj));
-    }
 }
