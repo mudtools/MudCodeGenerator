@@ -33,7 +33,7 @@ public interface IContentTypeEdgeCaseApi
     /// 测试完整的内容类型字符串
     /// </summary>
     [Post("/api/edge/full")]
-    [HttpContentType("application/xml")]
+    [HttpContentType("application/xml; version=1.0; charset=utf-8")]
     Task<TestResponse> TestFullContentTypeAsync([Body] TestData data);
 
     /// <summary>
