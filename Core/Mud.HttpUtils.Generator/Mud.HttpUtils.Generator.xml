@@ -617,13 +617,15 @@
             </summary>
             <param name="context">初始化上下文</param>
         </member>
+        <member name="T:Mud.HttpUtils.HttpInvokeBaseSourceGenerator.InterfaceInfo">
+            <summary>
+            接口信息结构，包含语法节点和符号
+            </summary>
+        </member>
         <member name="M:Mud.HttpUtils.HttpInvokeBaseSourceGenerator.GetInterfaceDeclarationProvider(Microsoft.CodeAnalysis.IncrementalGeneratorInitializationContext,System.String[])">
             <summary>
-            获取所有需要生成代码的接口声明，包括直接标记了特性的接口和继承了这些接口的接口
+            获取所有需要生成代码的接口声明（已弃用，保留兼容性）
             </summary>
-            <param name="context">初始化上下文</param>
-            <param name="attributeNames">需要查找的特性名称数组</param>
-            <returns>接口声明数组</returns>
         </member>
         <member name="M:Mud.HttpUtils.HttpInvokeBaseSourceGenerator.HasTargetAttributeSyntax(Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,System.String[])">
             <summary>

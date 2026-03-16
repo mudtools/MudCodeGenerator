@@ -48,3 +48,9 @@ public interface IAppContextSwitcher
     /// <returns>返回当前应用的访问令牌。</returns>
     Task<string> GetTokenAsync();
 }
+
+
+public interface IUserAppContextSwitcher : IAppContextSwitcher, ICurrentUserId
+{
+
+}

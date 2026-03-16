@@ -23,11 +23,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Core\Mud.HttpUtils.Generator\Mud.HttpUtils.Generator.csproj" OutputItemType="Analyzer"/>
+    <ProjectReference Include="..\..\Core\Mud.HttpUtils.Generator\Mud.HttpUtils.Generator.csproj" OutputItemType="Analyzer" />
     <ProjectReference Include="..\CommonClassLibrary\CommonClassLibrary.csproj" />
     <ProjectReference Include="..\Mud.Common.CodeGenerator\Mud.Common.CodeGenerator.csproj" />
     <ProjectReference Include="..\CodeBaseTest\CodeBaseTest.csproj" />
-    <ProjectReference Include="..\..\Core\Mud.HttpUtils\Mud.HttpUtils.csproj"  />
+    <ProjectReference Include="..\..\Core\Mud.HttpUtils\Mud.HttpUtils.csproj" />
   </ItemGroup>
 
 </Project>

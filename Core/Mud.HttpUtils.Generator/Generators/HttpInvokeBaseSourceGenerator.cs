@@ -53,39 +53,54 @@ internal abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     /// <param name="context">初始化上下文</param>
     public override void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        // 查找标记了[HttpClientApi]的接口声明（包括继承的接口）
-        var httpClientApiInterfaces = GetInterfaceDeclarationProvider(context, ApiWrapAttributeNames());
+        // 使用 SyntaxProvider 作为主要触发源
+        // 不做任何过滤，让所有接口声明都通过，在 ExecuteGenerator 中再进行过滤
+        var httpClientApiInterfaces = context.SyntaxProvider
+            .CreateSyntaxProvider(
+                predicate: (node, c) => node is InterfaceDeclarationSyntax,
+                transform: (ctx, c) => (InterfaceDeclarationSyntax?)ctx.Node)
+            .Collect();
 
-        // 获取编译信息和分析器配置选项
-        var compilationWithOptions = context.CompilationProvider
+        // 组合 Compilation 和 AnalyzerConfigOptions
+        var compilationAndOptions = context.CompilationProvider
             .Combine(context.AnalyzerConfigOptionsProvider);
 
-        // 组合所有需要的数据：编译信息、接口声明、配置选项
-        var completeDataProvider = compilationWithOptions.Combine(httpClientApiInterfaces);
+        // 将接口列表与编译信息组合
+        var completeData = httpClientApiInterfaces.Combine(compilationAndOptions);
 
         // 注册源代码生成器
-        context.RegisterSourceOutput(completeDataProvider,
+        context.RegisterSourceOutput(completeData,
             (ctx, provider) => ExecuteGenerator(
-                compilation: provider.Left.Left,
-                interfaces: provider.Right,
+                compilation: provider.Right.Left,
+                interfaces: provider.Left,
                 context: ctx,
-                configOptionsProvider: provider.Left.Right));
+                configOptionsProvider: provider.Right.Right));
     }
 
     /// <summary>
-    /// 获取所有需要生成代码的接口声明，包括直接标记了特性的接口和继承了这些接口的接口
+    /// 接口信息结构，包含语法节点和符号
     /// </summary>
-    /// <param name="context">初始化上下文</param>
-    /// <param name="attributeNames">需要查找的特性名称数组</param>
-    /// <returns>接口声明数组</returns>
+    protected readonly struct InterfaceInfo
+    {
+        public readonly InterfaceDeclarationSyntax Syntax;
+        public readonly INamedTypeSymbol Symbol;
+
+        public InterfaceInfo(InterfaceDeclarationSyntax syntax, INamedTypeSymbol symbol)
+        {
+            Syntax = syntax;
+            Symbol = symbol;
+        }
+    }
+
+    /// <summary>
+    /// 获取所有需要生成代码的接口声明（已弃用，保留兼容性）
+    /// </summary>
+    [Obsolete("Use SyntaxProvider directly in Initialize instead")]
     protected IncrementalValueProvider<ImmutableArray<InterfaceDeclarationSyntax?>> GetInterfaceDeclarationProvider(
-        IncrementalGeneratorInitializationContext context, 
+        IncrementalGeneratorInitializationContext context,
         string[] attributeNames)
     {
-        // 组合使用 SyntaxProvider 和 CompilationProvider
-        // SyntaxProvider: 用于编辑模式下检测当前项目中的接口
-        // CompilationProvider: 用于编译时和跨程序集场景
-        
+        // 主要使用 SyntaxProvider 进行接口检测（编辑模式下立即响应）
         var syntaxInterfaces = context.SyntaxProvider
             .CreateSyntaxProvider(
                 predicate: (node, c) =>
@@ -93,13 +108,13 @@ internal abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
                     // 基础检查：是否为带特性的接口
                     if (node is not InterfaceDeclarationSyntax interfaceDecl)
                         return false;
-                    
+
                     return interfaceDecl.AttributeLists.Count > 0;
                 },
                 transform: (ctx, c) =>
                 {
                     var interfaceNode = (InterfaceDeclarationSyntax)ctx.Node;
-                    
+
                     // 语法级别检查（编辑模式下最可靠）
                     if (HasTargetAttributeSyntax(interfaceNode, attributeNames))
                     {
@@ -108,95 +123,17 @@ internal abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
 
                     return null;
                 })
-            .Where(static s => s is not null);
+            .Where(static s => s is not null)
+            .Collect();
 
-        // 使用 CompilationProvider 捕获所有需要生成代码的接口（包括跨程序集继承）
-        var compilationInterfaces = context.CompilationProvider
-            .Select((compilation, ct) =>
-            {
-                var result = new List<InterfaceDeclarationSyntax>();
-
-                try
-                {
-                    // 遍历所有语法树（包括引用的程序集）
-                    foreach (var syntaxTree in compilation.SyntaxTrees)
-                    {
-                        if (ct.IsCancellationRequested)
-                            break;
-
-                        var root = syntaxTree.GetRoot(ct);
-                        var semanticModel = compilation.GetSemanticModel(syntaxTree);
-
-                        // 查找所有接口声明
-                        var interfaceDecls = root.DescendantNodes()
-                            .OfType<InterfaceDeclarationSyntax>();
-
-                        foreach (var interfaceDecl in interfaceDecls)
-                        {
-                            if (ct.IsCancellationRequested)
-                                break;
-
-                            // 首先进行语法检查
-                            if (!HasTargetAttributeSyntax(interfaceDecl, attributeNames))
-                                continue;
-
-                            // 获取符号进行验证
-                            var symbol = semanticModel.GetDeclaredSymbol(interfaceDecl, ct);
-                            if (symbol == null)
-                            {
-                                // 符号解析失败，但语法检查通过，仍然包含
-                                result.Add(interfaceDecl);
-                                continue;
-                            }
-
-                            // 验证是否应该生成代码
-                            if (ShouldGenerateForInterface(symbol, attributeNames))
-                            {
-                                result.Add(interfaceDecl);
-                            }
-                        }
-                    }
-                }
-                catch
-                {
-                    // 忽略错误，返回已收集的接口
-                }
-
-                return result.ToImmutableArray();
-            });
-
-        // 合并两个来源的接口，去重
-        return syntaxInterfaces.Collect().Combine(compilationInterfaces)
-            .Select((pair, ct) =>
-            {
-                var syntaxList = pair.Left;
-                var compilationList = pair.Right;
-                
-                // 使用字典去重（基于语法树和位置）
-                var uniqueInterfaces = new Dictionary<string, InterfaceDeclarationSyntax>();
-                
-                foreach (var iface in syntaxList)
-                {
-                    if (iface == null) continue;
-                    var key = $"{iface.SyntaxTree.FilePath}:{iface.SpanStart}";
-                    uniqueInterfaces[key] = iface;
-                }
-                
-                foreach (var iface in compilationList)
-                {
-                    if (iface == null) continue;
-                    var key = $"{iface.SyntaxTree.FilePath}:{iface.SpanStart}";
-                    uniqueInterfaces[key] = iface;
-                }
-                
-                return uniqueInterfaces.Values.ToImmutableArray();
-            });
+        // 返回 SyntaxProvider 的结果，作为主要的触发源
+        return syntaxInterfaces;
     }
 
     /// <summary>
     /// 在语法级别检查接口是否有目标特性（不依赖语义模型，编辑模式下更可靠）
     /// </summary>
-    private bool HasTargetAttributeSyntax(InterfaceDeclarationSyntax interfaceNode, string[] attributeNames)
+    protected bool HasTargetAttributeSyntax(InterfaceDeclarationSyntax interfaceNode, string[] attributeNames)
     {
         foreach (var attributeList in interfaceNode.AttributeLists)
         {
@@ -205,20 +142,20 @@ internal abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
                 // 获取特性名称，处理限定名（如 Mud.Common.CodeGenerator.HttpClientApi）
                 var attributeName = attribute.Name.ToString();
                 var originalName = attributeName;
-                
+
                 // 处理命名空间前缀（取最后一部分）
                 var lastDotIndex = attributeName.LastIndexOf('.');
                 if (lastDotIndex >= 0)
                 {
                     attributeName = attributeName.Substring(lastDotIndex + 1);
                 }
-                
+
                 // 移除Attribute后缀进行比较
                 if (attributeName.EndsWith("Attribute"))
                 {
                     attributeName = attributeName.Substring(0, attributeName.Length - 9);
                 }
-                
+
                 foreach (var targetName in attributeNames)
                 {
                     var cleanTargetName = targetName;
@@ -226,7 +163,7 @@ internal abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
                     {
                         cleanTargetName = cleanTargetName.Substring(0, cleanTargetName.Length - 9);
                     }
-                    
+
                     if (attributeName.Equals(cleanTargetName, StringComparison.OrdinalIgnoreCase))
                     {
                         return true;

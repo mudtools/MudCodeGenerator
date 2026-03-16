@@ -37,12 +37,25 @@ internal partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGene
             if (interfaceDecl == null)
                 continue;
 
-            // 使用缓存的语义模型获取符号，提高性能并确保一致性
-            var semanticModel = GetOrCreateSemanticModel(compilation, interfaceDecl.SyntaxTree);
-            if (semanticModel.GetDeclaredSymbol(interfaceDecl) is not INamedTypeSymbol interfaceSymbol)
+            // 检查是否有 HttpClientApi 特性（语法级别检查）
+            if (!HasTargetAttributeSyntax(interfaceDecl, ApiWrapAttributeNames()))
                 continue;
 
-            ProcessInterface(compilation, interfaceDecl, interfaceSymbol, semanticModel, context, httpClientOptionsName);
+            // 使用 Compilation 获取语义模型和符号（比 SyntaxProvider 的 SemanticModel 更可靠）
+            var semanticModel = GetOrCreateSemanticModel(compilation, interfaceDecl.SyntaxTree);
+            if (semanticModel.GetDeclaredSymbol(interfaceDecl) is not INamedTypeSymbol interfaceSymbol)
+            {
+                continue;
+            }
+
+            try
+            {
+                ProcessInterface(compilation, interfaceDecl, interfaceSymbol, semanticModel, context, httpClientOptionsName);
+            }
+            catch (Exception ex)
+            {
+                HandleInterfaceProcessingException(ex, interfaceDecl, context);
+            }
         }
     }
 
