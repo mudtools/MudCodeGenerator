@@ -53,12 +53,30 @@ internal abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
     /// <param name="context">初始化上下文</param>
     public override void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        // 使用 SyntaxProvider 作为主要触发源
-        // 不做任何过滤，让所有接口声明都通过，在 ExecuteGenerator 中再进行过滤
-        var httpClientApiInterfaces = context.SyntaxProvider
+        // 使用 SyntaxProvider 进行接口检测（编辑模式下立即响应）
+        var syntaxInterfaces = context.SyntaxProvider
             .CreateSyntaxProvider(
-                predicate: (node, c) => node is InterfaceDeclarationSyntax,
-                transform: (ctx, c) => (InterfaceDeclarationSyntax?)ctx.Node)
+                predicate: (node, c) =>
+                {
+                    // 基础检查：是否为带特性的接口
+                    if (node is not InterfaceDeclarationSyntax interfaceDecl)
+                        return false;
+
+                    return interfaceDecl.AttributeLists.Count > 0;
+                },
+                transform: (ctx, c) =>
+                {
+                    var interfaceNode = (InterfaceDeclarationSyntax)ctx.Node;
+
+                    // 语法级别检查（编辑模式下最可靠）
+                    if (HasTargetAttributeSyntax(interfaceNode, ApiWrapAttributeNames()))
+                    {
+                        return interfaceNode;
+                    }
+
+                    return null;
+                })
+            .Where(static s => s is not null)
             .Collect();
 
         // 组合 Compilation 和 AnalyzerConfigOptions
@@ -66,7 +84,7 @@ internal abstract class HttpInvokeBaseSourceGenerator : TransitiveCodeGenerator
             .Combine(context.AnalyzerConfigOptionsProvider);
 
         // 将接口列表与编译信息组合
-        var completeData = httpClientApiInterfaces.Combine(compilationAndOptions);
+        var completeData = syntaxInterfaces.Combine(compilationAndOptions);
 
         // 注册源代码生成器
         context.RegisterSourceOutput(completeData,

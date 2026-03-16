@@ -8,7 +8,7 @@
 namespace Mud.HttpUtils;
 
 /// <summary>
-/// 所有HTTP客户端服务的标记接口
+/// 需要支持多应用切换的HTTP客户端服务的标记接口
 /// </summary>
 public interface IAppContextSwitcher
 {
@@ -47,10 +47,4 @@ public interface IAppContextSwitcher
     /// </summary>
     /// <returns>返回当前应用的访问令牌。</returns>
     Task<string> GetTokenAsync();
-}
-
-
-public interface IUserAppContextSwitcher : IAppContextSwitcher, ICurrentUserId
-{
-
 }
