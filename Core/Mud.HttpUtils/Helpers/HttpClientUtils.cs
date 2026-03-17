@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
 //  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
 //  Mud.CodeGenerator 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
 //  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
@@ -20,7 +20,7 @@ public sealed class HttpClientUtils
     /// <param name="filePath">文件路径</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>包含文件内容的 ByteArrayContent 对象</returns>
-    public static async Task<ByteArrayContent> GetByteArrayContentAsync(string filePath, CancellationToken cancellationToken = default)
+    public static async Task<ByteArrayContent> GetByteArrayContentAsync(string? filePath, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(filePath))
             throw new ArgumentNullException(nameof(filePath));
@@ -44,7 +44,7 @@ public sealed class HttpClientUtils
     /// <param name="fileBytes">文件二进制数据</param>
     /// <returns>配置好的 ByteArrayContent 对象</returns>
     /// <exception cref="ArgumentNullException">当 fileName 或 fileBytes 为 null 或空字符串时抛出</exception>
-    public static ByteArrayContent CreateFileContent(string fileName, byte[] fileBytes)
+    public static ByteArrayContent CreateFileContent(string? fileName, byte[] fileBytes)
     {
         // 参数验证 - 使用更精确的异常消息
         if (string.IsNullOrWhiteSpace(fileName))
