@@ -80,4 +80,6 @@ public class CredentialToken
     /// 本次请求所获得的 access_token 所具备的权限列表，以空格分隔。
     /// </remarks>
     public string? Scope { get; set; }
+
+
 }

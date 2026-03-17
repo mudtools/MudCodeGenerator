@@ -15,5 +15,5 @@ public interface ICurrentUserId
     /// <summary>
     /// 当前用户ID，用于用户令牌认证。
     /// </summary>
-    public string CurrentUserId { get; set; }
+    public string? CurrentUserId { get; set; }
 }

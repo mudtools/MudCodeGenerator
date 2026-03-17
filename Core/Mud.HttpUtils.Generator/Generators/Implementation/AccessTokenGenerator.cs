@@ -42,7 +42,7 @@ internal class AccessTokenGenerator : ICodeFragmentGenerator
         codeBuilder.AppendLine("        /// <summary>");
         codeBuilder.AppendLine("        /// 当前用户ID，用于用户令牌认证");
         codeBuilder.AppendLine("        /// </summary>");
-        codeBuilder.AppendLine("        public string CurrentUserId { get; set; }");
+        codeBuilder.AppendLine("        public string? CurrentUserId { get; set; }");
         codeBuilder.AppendLine();
     }
 

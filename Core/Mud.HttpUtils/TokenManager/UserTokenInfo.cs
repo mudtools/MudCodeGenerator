@@ -66,6 +66,22 @@ public class UserTokenInfo
     public DateTime? LastRefreshedAt { get; set; }
 
     /// <summary>
+    /// 响应消息
+    /// </summary>
+    /// <remarks>
+    /// API返回的错误消息或成功消息，null表示无消息。
+    /// </remarks>
+    public string? Msg { get; set; }
+
+    /// <summary>
+    /// 响应状态码
+    /// </summary>
+    /// <remarks>
+    /// 0表示成功，非0表示错误状态码。
+    /// </remarks>
+    public int Code { get; set; }
+
+    /// <summary>
     /// 检查访问令牌是否有效（未过期）
     /// </summary>
     /// <param name="thresholdSeconds">提前过期的阈值（秒），默认300秒（5分钟）</param>
@@ -108,7 +124,30 @@ public class UserTokenInfo
             RefreshToken = token.RefreshToken,
             RefreshTokenExpireTime = token.RefreshTokenExpire,
             Scope = token.Scope,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            Code = token.Code,
+            Msg = token.Msg,
+        };
+    }
+
+    /// <summary>
+    /// 从 CredentialToken 创建 UserTokenInfo
+    /// </summary>
+    public static UserTokenInfo FromCredentialToken(UserTokenInfo token, string userId, string? openId = null, string? unionId = null)
+    {
+        return new UserTokenInfo
+        {
+            UserId = userId,
+            OpenId = openId,
+            UnionId = unionId,
+            AccessToken = token?.AccessToken,
+            AccessTokenExpireTime = token.AccessTokenExpireTime,
+            RefreshToken = token.RefreshToken,
+            RefreshTokenExpireTime = token.RefreshTokenExpireTime,
+            Scope = token.Scope,
+            CreatedAt = DateTime.UtcNow,
+            Code = token.Code,
+            Msg = token.Msg,
         };
     }
 
@@ -123,6 +162,25 @@ public class UserTokenInfo
         {
             RefreshToken = token.RefreshToken;
             RefreshTokenExpireTime = token.RefreshTokenExpire;
+        }
+        if (!string.IsNullOrEmpty(token.Scope))
+        {
+            Scope = token.Scope;
+        }
+        LastRefreshedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// 使用新的令牌信息更新当前实例
+    /// </summary>
+    public void UpdateFromCredentialToken(UserTokenInfo token)
+    {
+        AccessToken = token?.AccessToken;
+        AccessTokenExpireTime = token.AccessTokenExpireTime;
+        if (!string.IsNullOrEmpty(token.RefreshToken))
+        {
+            RefreshToken = token.RefreshToken;
+            RefreshTokenExpireTime = token.RefreshTokenExpireTime;
         }
         if (!string.IsNullOrEmpty(token.Scope))
         {

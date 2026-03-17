@@ -54,7 +54,7 @@ public interface IUserTokenManager : ITokenManager
     /// 需要先引导用户到飞书授权页面，用户授权后会获得授权码。
     /// 获取到的令牌会自动缓存，包含访问令牌和刷新令牌。
     /// </remarks>
-    Task<CredentialToken?> GetUserTokenWithCodeAsync(
+    Task<UserTokenInfo?> GetUserTokenWithCodeAsync(
         string code,
         string redirectUri,
         CancellationToken cancellationToken = default);
@@ -70,7 +70,7 @@ public interface IUserTokenManager : ITokenManager
     /// 刷新后的令牌会自动更新到缓存中。
     /// 此方法通常由 GetTokenAsync 自动调用，一般不需要手动调用。
     /// </remarks>
-    Task<CredentialToken?> RefreshUserTokenAsync(
+    Task<UserTokenInfo?> RefreshUserTokenAsync(
         string userId,
         CancellationToken cancellationToken = default);
 
