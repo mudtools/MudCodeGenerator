@@ -59,12 +59,15 @@ internal class AccessTokenGenerator : ICodeFragmentGenerator
         codeBuilder.AppendLine("        {");
         codeBuilder.AppendLine("            if(_appContext == null)");
         codeBuilder.AppendLine("                throw new InvalidOperationException($\"无法找到当前服务的应用上下文。\");");
-        codeBuilder.AppendLine("            if(string.IsNullOrEmpty(CurrentUserId))");
-        codeBuilder.AppendLine("                throw new InvalidOperationException($\"调用当前函数前请设置当前'CurrentUserId'当前用户ID值。\");");
         codeBuilder.AppendLine("            var tokenType = GetTokeType();");
         codeBuilder.AppendLine("            var tokenManager = _appContext.GetTokenManager(tokenType);");
         codeBuilder.AppendLine("            if(tokenManager == null)");
         codeBuilder.AppendLine("                throw new InvalidOperationException($\"无法找到当前服务的令牌管理器，TokenType: {tokenType}\");");
+        codeBuilder.AppendLine("            if(string.IsNullOrEmpty(CurrentUserId))");
+        codeBuilder.AppendLine("            {");
+        codeBuilder.AppendLine("                var token = await tokenManager.GetTokenAsync();");
+        codeBuilder.AppendLine("                return token;");
+        codeBuilder.AppendLine("            }");
         codeBuilder.AppendLine("            if(tokenManager is IUserTokenManager userTokenManager)");
         codeBuilder.AppendLine("            {");
         codeBuilder.AppendLine("                var token = await userTokenManager.GetTokenAsync(CurrentUserId);");
