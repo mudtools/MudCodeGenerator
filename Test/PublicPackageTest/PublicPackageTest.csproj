@@ -58,8 +58,8 @@
 
 	<ItemGroup>
 		<PackageReference Include="Mud.EntityCodeGenerator" Version="1.5.4" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-		<PackageReference Include="Mud.HttpUtils" Version="1.6.1" />
-		<PackageReference Include="Mud.HttpUtils.Generator" Version="1.6.1" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<PackageReference Include="Mud.HttpUtils" Version="1.6.2" />
+		<PackageReference Include="Mud.HttpUtils.Generator" Version="1.6.2" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 		<PackageReference Include="Mud.ServiceCodeGenerator" Version="1.5.4" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
