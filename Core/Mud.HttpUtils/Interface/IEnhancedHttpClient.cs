@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
 //  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
 //  Mud.CodeGenerator 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
 //  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
@@ -122,4 +122,28 @@ public interface IEnhancedHttpClient
     Task<TResult?> PutAsJsonAsync<TRequest, TResult>(string requestUri, TRequest requestData, CancellationToken cancellationToken = default);
 
     #endregion
+
+    /// <summary>
+    /// 将指定内容进行加密处理，并返回加密后的字符串。默认使用JSON序列化方式，可以选择XML序列化。
+    /// </summary>
+    /// <param name="content">需要进行加密处理的对象。</param>
+    /// <param name="propertyName">加密后的属性名。</param>
+    /// <param name="serializeType">对象的序列化类型。</param>
+    /// <returns></returns>
+    string EncryptContent(object content, string propertyName = "data", SerializeType serializeType = SerializeType.Json);
+}
+
+/// <summary>
+/// 序列化类型。
+/// </summary>
+public enum SerializeType
+{
+    /// <summary>
+    ///  JSON序列化，使用System.Text.Json进行序列化和反序列化
+    /// </summary>
+    Json,
+    /// <summary>
+    /// XML序列化，使用System.Xml.Serialization进行序列化和反序列化
+    /// </summary>
+    Xml
 }
