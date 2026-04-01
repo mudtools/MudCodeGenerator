@@ -7,22 +7,21 @@
 
 namespace Mud.HttpUtils;
 
-
 /// <summary>
-/// 飞书Token类型。
+/// 常用的Token令牌类型。
 /// </summary>
 public enum TokenType
 {
     /// <summary>
-    /// 使用应用Token调用函数。
+    /// 使用租户级Token调用函数。
     /// </summary>
     TenantAccessToken = 0,
     /// <summary>
-    /// 使用用户Token调用函数。
+    /// 使用用户级Token调用函数。
     /// </summary>
     UserAccessToken = 1,
     /// <summary>
-    /// 使用用户Token调用函数。
+    /// 使用应用级Token调用函数。
     /// </summary>
     AppAccessToken = 2,
 }
