@@ -4,6 +4,7 @@ namespace HttpClientApiTest.Api;
 /// 测试飞书用户相关的API功能，包括相对路径和绝对路径的使用
 /// </summary>
 [HttpClientApi(TokenManage = "IFeishuAppManager", Timeout = 120)]
+[Header("Token")]
 [Token(TokenType.AppAccessToken)]
 public interface IFeishuUserApi
 {

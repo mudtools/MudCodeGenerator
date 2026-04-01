@@ -61,7 +61,10 @@ internal class RequestBuilder
         // 检查接口是否有[Query("Authorization")]特性（支持AliasAs）
         var hasAuthorizationQuery = methodInfo.InterfaceAttributes?.Any(attr => attr.StartsWith("Query:", StringComparison.Ordinal)) == true;
 
-        if (!queryParams.Any() && !arrayQueryParams.Any() && !hasAuthorizationQuery)
+        // 检查接口是否有[QueryToken]特性
+        var hasQueryToken = methodInfo.InterfaceAttributes?.Any(attr => attr.StartsWith("QueryToken:", StringComparison.Ordinal)) == true;
+
+        if (!queryParams.Any() && !arrayQueryParams.Any() && !hasAuthorizationQuery && !hasQueryToken)
             return;
 
         codeBuilder.AppendLine($"            var queryParams = HttpUtility.ParseQueryString(string.Empty);");
@@ -93,6 +96,23 @@ internal class RequestBuilder
             codeBuilder.AppendLine($"            queryParams.Add(\"{queryName}\", access_token);");
         }
 
+        // 添加QueryToken参数（如微信access_token）
+        if (hasQueryToken)
+        {
+            // 从接口特性中获取实际的query参数名称
+            var tokenName = "access_token";
+            if (methodInfo.InterfaceAttributes?.Any() == true)
+            {
+                var queryTokenAttr = methodInfo.InterfaceAttributes.FirstOrDefault(attr => attr.StartsWith("QueryToken:", StringComparison.Ordinal));
+                if (!string.IsNullOrEmpty(queryTokenAttr))
+                {
+                    tokenName = queryTokenAttr.Substring(11); // 去掉"QueryToken:"前缀
+                }
+            }
+            codeBuilder.AppendLine($"            // 添加QueryToken参数 as {tokenName}");
+            codeBuilder.AppendLine($"            queryParams.Add(\"{tokenName}\", access_token);");
+        }
+
         codeBuilder.AppendLine("            if (queryParams.Count > 0)");
         codeBuilder.AppendLine("            {");
         codeBuilder.AppendLine("                url += \"?\" + queryParams.ToString();");
@@ -108,14 +128,14 @@ internal class RequestBuilder
         {
             codeBuilder.AppendLine("#if NETSTANDARD2_0");
             codeBuilder.AppendLine("            HttpMethod httpMethod = new HttpMethod(\"PATCH\");");
-            codeBuilder.AppendLine($"            using var request = new HttpRequestMessage(httpMethod, url);");
+            codeBuilder.AppendLine($"            using var httpRequest = new HttpRequestMessage(httpMethod, url);");
             codeBuilder.AppendLine("#else");
-            codeBuilder.AppendLine($"            using var request = new HttpRequestMessage(HttpMethod.{methodInfo.HttpMethod}, url);");
+            codeBuilder.AppendLine($"            using var httpRequest = new HttpRequestMessage(HttpMethod.{methodInfo.HttpMethod}, url);");
             codeBuilder.AppendLine("#endif");
         }
         else
         {
-            codeBuilder.AppendLine($"            using var request = new HttpRequestMessage(HttpMethod.{methodInfo.HttpMethod}, url);");
+            codeBuilder.AppendLine($"            using var httpRequest = new HttpRequestMessage(HttpMethod.{methodInfo.HttpMethod}, url);");
         }
     }
 
@@ -152,7 +172,7 @@ internal class RequestBuilder
             }
 
             codeBuilder.AppendLine($"            if (!string.IsNullOrEmpty({param.Name}))");
-            codeBuilder.AppendLine($"                request.Headers.Add(\"{headerName}\", {param.Name});");
+            codeBuilder.AppendLine($"                httpRequest.Headers.Add(\"{headerName}\", {param.Name});");
         }
     }
 
@@ -205,19 +225,19 @@ internal class RequestBuilder
 
         if (useStringContent)
         {
-            codeBuilder.AppendLine($"            request.Content = new StringContent({bodyParam.Name}.ToString() ?? \"\", Encoding.UTF8, {contentTypeExpression});");
+            codeBuilder.AppendLine($"            httpRequest.Content = new StringContent({bodyParam.Name}.ToString() ?? \"\", Encoding.UTF8, {contentTypeExpression});");
         }
         else if (isXmlContentType)
         {
             // XML序列化
             codeBuilder.AppendLine($"            var xmlContent = XmlSerialize.Serialize({bodyParam.Name});");
-            codeBuilder.AppendLine($"            request.Content = new StringContent(xmlContent, Encoding.UTF8, {contentTypeExpression});");
+            codeBuilder.AppendLine($"            httpRequest.Content = new StringContent(xmlContent, Encoding.UTF8, {contentTypeExpression});");
         }
         else
         {
             // JSON序列化（默认）
             codeBuilder.AppendLine($"            var jsonContent = JsonSerializer.Serialize({bodyParam.Name}, _jsonSerializerOptions);");
-            codeBuilder.AppendLine($"            request.Content = new StringContent(jsonContent, Encoding.UTF8, {contentTypeExpression});");
+            codeBuilder.AppendLine($"            httpRequest.Content = new StringContent(jsonContent, Encoding.UTF8, {contentTypeExpression});");
         }
     }
 
@@ -231,7 +251,7 @@ internal class RequestBuilder
         var cancellationTokenArg = cancellationTokenParam?.Name ?? "default";
 
         codeBuilder.AppendLine($"            using var formData = await {formContentParam.Name}.GetFormDataContentAsync({cancellationTokenArg});");
-        codeBuilder.AppendLine($"            request.Content = formData;");
+        codeBuilder.AppendLine($"            httpRequest.Content = formData;");
     }
 
     /// <summary>
@@ -251,22 +271,22 @@ internal class RequestBuilder
         codeBuilder.AppendLine($"            var httpClient = _appContext.HttpClient;");
         if (filePathParam != null)
         {
-            codeBuilder.AppendLine($"            await httpClient.DownloadLargeAsync(request, {filePathParam.Name}{cancellationTokenArg});");
+            codeBuilder.AppendLine($"            await httpClient.DownloadLargeAsync(httpRequest, {filePathParam.Name}{cancellationTokenArg});");
         }
         else
         {
             if (TypeDetectionHelper.IsByteArrayType(deserializeType))
             {
-                codeBuilder.AppendLine($"            return await httpClient.DownloadAsync(request{cancellationTokenArg});");
+                codeBuilder.AppendLine($"            return await httpClient.DownloadAsync(httpRequest{cancellationTokenArg});");
             }
             else if (isXmlContentType)
             {
                 // XML响应使用SendXmlAsync
-                codeBuilder.AppendLine($"            return await httpClient.SendXmlAsync<{deserializeType}>(request, null{cancellationTokenArg});");
+                codeBuilder.AppendLine($"            return await httpClient.SendXmlAsync<{deserializeType}>(httpRequest, null{cancellationTokenArg});");
             }
             else
             {
-                codeBuilder.AppendLine($"            return await httpClient.SendAsync<{deserializeType}>(request{cancellationTokenArg});");
+                codeBuilder.AppendLine($"            return await httpClient.SendAsync<{deserializeType}>(httpRequest{cancellationTokenArg});");
             }
         }
     }

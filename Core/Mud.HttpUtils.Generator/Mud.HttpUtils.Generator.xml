@@ -89,6 +89,11 @@
             获取Header特性的Replace设置
             </summary>
         </member>
+        <member name="M:Mud.HttpUtils.Analyzers.MethodAnalyzer.GetQueryTokenName(Microsoft.CodeAnalysis.AttributeData)">
+            <summary>
+            获取QueryToken特性的名称
+            </summary>
+        </member>
         <member name="T:Mud.HttpUtils.Analyzers.MethodHelperLegacy">
             <summary>
             函数帮助类（遗留代码，已过时）
@@ -2356,6 +2361,14 @@
             <param name="interfaceSymbol">接口符号</param>
             <param name="attributeType">特性类型</param>
             <param name="attributeValue">特性值</param>
+            <returns>如果接口具有指定特性返回true，否则返回false</returns>
+        </member>
+        <member name="M:Mud.CodeGenerator.TypeSymbolHelper.HasPropertyAttribute(Microsoft.CodeAnalysis.INamedTypeSymbol,System.String)">
+            <summary>
+            检查接口是否具有指定的特性（不检查特性值）
+            </summary>
+            <param name="interfaceSymbol">接口符号</param>
+            <param name="attributeType">特性类型</param>
             <returns>如果接口具有指定特性返回true，否则返回false</returns>
         </member>
         <member name="M:Mud.CodeGenerator.TypeSymbolHelper.HasPropertyAttribute(Microsoft.CodeAnalysis.IPropertySymbol,System.String)">

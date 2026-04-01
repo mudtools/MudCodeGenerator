@@ -112,6 +112,8 @@ internal class MethodGenerator : ICodeFragmentGenerator
             context.InterfaceSymbol!, "Header", "Authorization");
         var hasAuthorizationQuery = TypeSymbolHelper.HasPropertyAttribute(
             context.InterfaceSymbol!, "Query", "Authorization");
+        var hasQueryToken = TypeSymbolHelper.HasPropertyAttribute(
+            context.InterfaceSymbol!, "QueryToken");
 
         codeBuilder.AppendLine();
         codeBuilder.AppendLine($"        /// <summary>");
@@ -127,7 +129,7 @@ internal class MethodGenerator : ICodeFragmentGenerator
         codeBuilder.AppendLine($"        public {asyncKeyword}{returnType} {methodSymbol.Name}({TypeSymbolHelper.GetParameterList(methodSymbol)})" );
         codeBuilder.AppendLine("        {");
 
-        if (hasTokenManager && (hasAuthorizationHeader || hasAuthorizationQuery))
+        if (hasTokenManager && (hasAuthorizationHeader || hasAuthorizationQuery || hasQueryToken))
         {
             codeBuilder.AppendLine($"            var access_token = await GetTokenAsync();");
             codeBuilder.AppendLine();
@@ -159,7 +161,7 @@ internal class MethodGenerator : ICodeFragmentGenerator
                 }
             }
 
-            codeBuilder.AppendLine($"            request.Headers.Add(\"{headerName}\", access_token);");
+            codeBuilder.AppendLine($"            httpRequest.Headers.Add(\"{headerName}\", access_token);");
         }
 
         if (methodInfo.InterfaceHeaderAttributes?.Any() == true)
@@ -219,14 +221,14 @@ internal class MethodGenerator : ICodeFragmentGenerator
             if (interfaceHeader.Replace)
             {
                 codeBuilder.AppendLine($"            // 替换接口定义的Header: {interfaceHeader.Name}");
-                codeBuilder.AppendLine($"            if (request.Headers.Contains(\"{interfaceHeader.Name}\"))");
-                codeBuilder.AppendLine($"                request.Headers.Remove(\"{interfaceHeader.Name}\");");
-                codeBuilder.AppendLine($"            request.Headers.Add(\"{interfaceHeader.Name}\", \"{headerValue}\");");
+                codeBuilder.AppendLine($"            if (httpRequest.Headers.Contains(\"{interfaceHeader.Name}\"))");
+                codeBuilder.AppendLine($"                httpRequest.Headers.Remove(\"{interfaceHeader.Name}\");");
+                codeBuilder.AppendLine($"            httpRequest.Headers.Add(\"{interfaceHeader.Name}\", \"{headerValue}\");");
             }
             else
             {
                 codeBuilder.AppendLine($"            // 添加接口定义的Header: {interfaceHeader.Name}");
-                codeBuilder.AppendLine($"            request.Headers.Add(\"{interfaceHeader.Name}\", \"{headerValue}\");");
+                codeBuilder.AppendLine($"            httpRequest.Headers.Add(\"{interfaceHeader.Name}\", \"{headerValue}\");");
             }
         }
     }

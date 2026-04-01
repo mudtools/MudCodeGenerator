@@ -377,6 +377,19 @@ internal static class MethodAnalyzer
                 var queryName = string.IsNullOrEmpty(aliasAs) ? "Authorization" : aliasAs;
                 interfaceAttributes.Add($"Query:{queryName}");
             }
+
+            // 处理 QueryToken 特性
+            var queryTokenAttributes = interfaceSymbol.GetAttributes()
+                .Where(attr => attr.AttributeClass?.Name == "QueryTokenAttribute" || attr.AttributeClass?.Name == "QueryToken");
+
+            foreach (var queryTokenAttr in queryTokenAttributes)
+            {
+                var tokenName = GetQueryTokenName(queryTokenAttr);
+                if (!string.IsNullOrEmpty(tokenName))
+                {
+                    interfaceAttributes.Add($"QueryToken:{tokenName}");
+                }
+            }
         }
 
         return (interfaceAttributes, interfaceHeaderAttributes, interfaceContentType);
@@ -413,5 +426,13 @@ internal static class MethodAnalyzer
     private static bool GetHeaderReplace(AttributeData headerAttr)
     {
         return AttributeDataHelper.GetBoolValueFromAttribute(headerAttr, "Replace", false);
+    }
+
+    /// <summary>
+    /// 获取QueryToken特性的名称
+    /// </summary>
+    private static string? GetQueryTokenName(AttributeData queryTokenAttr)
+    {
+        return AttributeDataHelper.GetStringValueFromAttribute(queryTokenAttr, ["AliasAs", "Name"], 0);
     }
 }

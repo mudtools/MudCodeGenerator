@@ -1,1151 +1,951 @@
 <?xml version="1.0"?>
 <doc>
     <assembly>
-        <name>Mud.ServiceCodeGenerator</name>
+        <name>Mud.EntityCodeGenerator</name>
     </assembly>
     <members>
-        <member name="T:Mud.ServiceCodeGenerator.CodeInject.AutoRegisterSourceGenerator">
+        <member name="T:Mud.EntityCodeGenerator.TransitiveBoGenerator">
             <summary>
-            自动注册服务代码生成器
+            BO对象生成。
+            </summary>
+            <param name="generateNotPrimary">是否生成非主键属性</param>
+            <param name="generatePrimary">是否生成主键属性</param>
+        </member>
+        <member name="F:Mud.EntityCodeGenerator.TransitiveBoGenerator._generatePrimary">
+            <summary>
+            是否生成主键属性。
             </summary>
         </member>
-        <member name="M:Mud.ServiceCodeGenerator.CodeInject.AutoRegisterSourceGenerator.Initialize(Microsoft.CodeAnalysis.IncrementalGeneratorInitializationContext)">
+        <member name="F:Mud.EntityCodeGenerator.TransitiveBoGenerator._generateNotPrimary">
+            <summary>
+            是否生成非主键属性。
+            </summary>
+        </member>
+        <member name="P:Mud.EntityCodeGenerator.TransitiveBoGenerator.GeneratorName">
             <inheritdoc/>
         </member>
-        <member name="M:Mud.ServiceCodeGenerator.CodeInject.AutoRegisterSourceGenerator.ExtractAutoRegisterMetadata(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax,Microsoft.CodeAnalysis.Compilation)">
-            <summary>
-            从类声明中提取AutoRegister元数据
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.CodeInject.AutoRegisterSourceGenerator.DetermineInjectType(System.String)">
-            <summary>
-            判断特性类型
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.CodeInject.AutoRegisterSourceGenerator.DetermineInjectType(Microsoft.CodeAnalysis.CSharp.Syntax.AttributeSyntax)">
-            <summary>
-            判断特性类型（基于AttributeSyntax）
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.CodeInject.AutoRegisterSourceGenerator.ExtractBaseTypeName(Microsoft.CodeAnalysis.CSharp.Syntax.AttributeSyntax,Mud.ServiceCodeGenerator.CodeInject.AutoRegisterSourceGenerator.InjectAttributeType)">
-            <summary>
-            提取基类型名称
-            </summary>
-        </member>
-        <member name="P:Mud.ServiceCodeGenerator.CodeInject.AutoRegisterSourceGenerator.AutoRegisterMetadata.Key">
-            <summary>
-            针对Microsoft.Extensions.DependencyInjection 8.0以上的Keyed Service,默认为NULL
-            </summary>
-        </member>
-        <member name="T:Mud.ServiceCodeGenerator.CodeInject.CodeInjectGeneratorConstants">
-            <summary>
-            代码注入生成器常量定义
-            </summary>
-        </member>
-        <!-- Badly formed XML comment ignored for member "M:Mud.ServiceCodeGenerator.CodeInject.CodeInjectGeneratorConstants.MatchesAttribute(System.String,System.String,System.String,System.String)" -->
-        <member name="T:Mud.ServiceCodeGenerator.CodeInject.CodeInjectGenerator">
-            <summary>
-            字段注入、日志注入、缓存注入、用户注入代码生成器。
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.CodeInject.CodeInjectGenerator.Initialize(Microsoft.CodeAnalysis.IncrementalGeneratorInitializationContext)">
+        <member name="M:Mud.EntityCodeGenerator.TransitiveBoGenerator.GetGeneratorPropertyName">
             <inheritdoc/>
         </member>
-        <member name="M:Mud.ServiceCodeGenerator.CodeInject.CodeInjectGenerator.BaseInjector.ShouldAddField(Mud.ServiceCodeGenerator.CodeInject.CodeInjectGenerator.InjectionContext,System.String)">
-            <summary>
-            检查字段是否应该被添加
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.CodeInject.CodeInjectGenerator.ConstructorInjector.AddParameterWithTypeSyntax(Mud.ServiceCodeGenerator.CodeInject.CodeInjectGenerator.InjectionContext,Microsoft.CodeAnalysis.CSharp.Syntax.TypeSyntax,System.String)">
-            <summary>
-            使用TypeSyntax直接添加参数，避免泛型类型信息丢失
-            </summary>
-        </member>
-        <member name="T:Mud.ServiceCodeGenerator.ComWrap.ComCollectionWrapGenerator">
-            <summary>
-            COM集合对象包装源代码生成器
-            </summary>
-            <remarks>
-            为标记了ComCollectionWrap特性的接口生成COM对象包装类，提供类型安全的COM对象访问
-            </remarks>
-        </member>
-        <member name="T:Mud.ServiceCodeGenerator.ComWrap.ComCollectionWrapGenerator.ElementTypeInfo">
-            <summary>
-            元素类型信息封装
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComCollectionWrapGenerator.ComWrapAttributeNames">
-            <summary>
-            获取COM对象包装特性名称数组
-            </summary>
-            <returns>特性名称数组</returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComCollectionWrapGenerator.GenerateExtraImplementations(System.Text.StringBuilder,Microsoft.CodeAnalysis.INamedTypeSymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax)">
-            <summary>
-            重写 GenerateExtraImplementations，生成 IEnumerable 实现
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComCollectionWrapGenerator.GetCollectionElementType(Microsoft.CodeAnalysis.INamedTypeSymbol)">
-            <summary>
-            获取集合元素类型
-            </summary>
-            <param name="interfaceSymbol">接口符号</param>
-            <returns>元素类型，如果无法确定则返回null</returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComCollectionWrapGenerator.CreateElementTypeInfo(Microsoft.CodeAnalysis.ITypeSymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax)">
-            <summary>
-            创建元素类型信息
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComCollectionWrapGenerator.GenerateEnumerableImplementation(System.Text.StringBuilder,Microsoft.CodeAnalysis.INamedTypeSymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax)">
-            <summary>
-            生成 IEnumerable 实现
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComCollectionWrapGenerator.GenerateIndexerBasedEnumerator(System.Text.StringBuilder,Mud.ServiceCodeGenerator.ComWrap.ComCollectionWrapGenerator.ElementTypeInfo,Microsoft.CodeAnalysis.INamedTypeSymbol)">
-            <summary>
-            生成索引器模式的枚举器
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComCollectionWrapGenerator.GenerateCollectionBasedEnumerator(System.Text.StringBuilder,Mud.ServiceCodeGenerator.ComWrap.ComCollectionWrapGenerator.ElementTypeInfo,System.String,System.String)">
-            <summary>
-            生成集合遍历模式的枚举器
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComCollectionWrapGenerator.GenerateBasicOrEnumElementConversion(System.Text.StringBuilder,Mud.ServiceCodeGenerator.ComWrap.ComCollectionWrapGenerator.ElementTypeInfo,System.String)">
-            <summary>
-            生成基本类型或枚举类型的元素转换（用于通过 object? 中转的场景）
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComCollectionWrapGenerator.GenerateBasicTypeConvertCode(Microsoft.CodeAnalysis.ITypeSymbol,System.String)">
-            <summary>
-            生成基本类型转换代码
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComCollectionWrapGenerator.GenerateComplexElementConversion(System.Text.StringBuilder,Mud.ServiceCodeGenerator.ComWrap.ComCollectionWrapGenerator.ElementTypeInfo,System.String,System.String)">
-            <summary>
-            生成复杂对象类型的元素转换
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComCollectionWrapGenerator.GenerateEnumerableWarning(System.Text.StringBuilder)">
-            <summary>
-            生成警告注释（当无法确定元素类型时）
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComCollectionWrapGenerator.GenerateEnumerableWarning(System.Text.StringBuilder,System.String)">
-            <summary>
-            生成警告注释（自定义消息）
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GetFileUsingNameSpaces">
+        <member name="M:Mud.EntityCodeGenerator.TransitiveBoGenerator.CreatePropertyGenerator">
             <inheritdoc/>
         </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.ComWrapAttributeNames">
-            <summary>
-            获取COM对象包装特性名称数组
-            </summary>
-            <returns>特性名称数组</returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.Initialize(Microsoft.CodeAnalysis.IncrementalGeneratorInitializationContext)">
+        <member name="M:Mud.EntityCodeGenerator.TransitiveBoGenerator.CreateFieldGenerator">
             <inheritdoc/>
         </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.HasComWrapAttributes(Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,System.String[])">
-            <summary>
-            检查接口声明是否有 COM 包装特性
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.HasComWrapAttributes(Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax)">
-            <summary>
-            检查接口声明是否有 COM 包装特性（使用生成器的特性名称）
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GetSemanticTargetForGeneration(Microsoft.CodeAnalysis.GeneratorSyntaxContext)">
-            <summary>
-            获取语义目标用于代码生成
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.ExecuteGenerator(Microsoft.CodeAnalysis.Compilation,System.Collections.Immutable.ImmutableArray{Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax},Microsoft.CodeAnalysis.SourceProductionContext)">
-            <summary>
-            执行源代码生成逻辑
-            </summary>
-            <param name="compilation">编译信息</param>
-            <param name="interfaces">接口声明数组</param>
-            <param name="context">源代码生成上下文</param>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateHintName(System.String)">
-            <summary>
-            生成包含命名空间的安全文件名
-            </summary>
-            <param name="interfaceName">接口名称</param>
-            <returns>生成的文件名</returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateImplementationClass(Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.INamedTypeSymbol)">
-            <summary>
-            生成COM对象包装实现类
-            </summary>
-            <param name="interfaceDeclaration">接口声明语法</param>
-            <param name="interfaceSymbol">接口符号</param>
-            <returns>生成的源代码</returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateExtraImplementations(System.Text.StringBuilder,Microsoft.CodeAnalysis.INamedTypeSymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax)">
-            <summary>
-            生成额外的实现内容（钩子方法，子类可重写）
-            </summary>
-            <param name="sb">字符串构建器</param>
-            <param name="interfaceSymbol">接口符号</param>
-            <param name="interfaceDeclaration">接口声明语法</param>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateFields(System.Text.StringBuilder,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.INamedTypeSymbol)">
-            <summary>
-            生成私有字段
-            </summary>
-            <param name="sb">字符串构建器</param>
-            <param name="interfaceDeclaration">接口声明语法</param>
-            <param name="interfaceSymbol">接口符号</param>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateConstructor(System.Text.StringBuilder,System.String,Microsoft.CodeAnalysis.INamedTypeSymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax)">
-            <summary>
-            生成构造函数 />
-            </summary>
-            <param name="sb">字符串构建器</param>
-            <param name="className">类名</param>
-            <param name="interfaceDeclaration">接口声明语法</param>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateOutParameterVariable(System.Text.StringBuilder,Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext)">
-            <summary>
-            生成out参数变量声明
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateBasicOutParameterVariable(System.Text.StringBuilder,Microsoft.CodeAnalysis.IParameterSymbol,System.String)">
-            <summary>
-            生成基本类型的out参数变量声明
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateParameterObject(System.Text.StringBuilder,Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext)">
-            <summary>
-            生成参数对象处理逻辑
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateNullableParameterObject(System.Text.StringBuilder,Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext)">
-            <summary>
-            生成可空参数对象处理逻辑
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateNonNullableParameterObject(System.Text.StringBuilder,Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext)">
-            <summary>
-            生成非可空参数对象处理逻辑
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GetComTypeNameForOutParameter(System.String)">
-            <summary>
-            获取out参数的COM类型名称
-            </summary>
-            <param name="interfaceTypeName">接口类型名称</param>
-            <returns>对应的COM类型名称</returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.ConvertEnumToComNamespace(System.String,System.String)">
-            <summary>
-            将枚举值路径转换为 COM 命名空间的路径
-            </summary>
-            <param name="enumValuePath">枚举值路径，如 "ComObjectWrapTest.WdSaveOptions.wdPromptToSaveChanges"</param>
-            <param name="comNamespace">COM 命名空间，如 "MsWord"</param>
-            <returns>COM 命名空间的枚举路径，如 "MsWord.WdSaveOptions.wdPromptToSaveChanges"</returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.ConvertEnumTypeToComNamespace(System.String,System.String)">
-            <summary>
-            将枚举类型路径转换为 COM 命名空间的类型路径
-            </summary>
-            <param name="enumTypePath">枚举类型路径，如 "MudTools.OfficeInterop.Vbe.vbext_ProcKind"</param>
-            <param name="comNamespace">COM 命名空间，如 "MsVb"</param>
-            <returns>COM 命名空间的枚举类型路径，如 "MsVb.vbext_ProcKind"</returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateMethods(System.Text.StringBuilder,Microsoft.CodeAnalysis.INamedTypeSymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax)">
-            <summary>
-            生成方法实现
-            </summary>
-            <param name="sb">字符串构建器</param>
-            <param name="interfaceSymbol">接口符号</param>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateMethod(System.Text.StringBuilder,Microsoft.CodeAnalysis.IMethodSymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.INamedTypeSymbol)">
-            <summary>
-            生成单个方法实现
-            </summary>
-            <param name="sb">字符串构建器</param>
-            <param name="methodSymbol">方法符号</param>
-            <param name="interfaceDeclaration">接口声明语法</param>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateMethodSignature(System.Text.StringBuilder,Microsoft.CodeAnalysis.IMethodSymbol)">
-            <summary>
-            生成方法签名
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateMethodBody(System.Text.StringBuilder,Microsoft.CodeAnalysis.IMethodSymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.INamedTypeSymbol)">
-            <summary>
-            生成方法体
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateParameterPreprocessing(System.Text.StringBuilder,Microsoft.CodeAnalysis.IMethodSymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.INamedTypeSymbol)">
-            <summary>
-            生成参数预处理逻辑
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateMethodCallWithExceptionHandling(System.Text.StringBuilder,Microsoft.CodeAnalysis.IMethodSymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.INamedTypeSymbol,System.Boolean)">
-            <summary>
-            生成带有异常处理的方法调用
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateCallParameters(Microsoft.CodeAnalysis.IMethodSymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.INamedTypeSymbol)">
-            <summary>
-            生成方法调用参数
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateOutParameterAssignment(System.Text.StringBuilder,Microsoft.CodeAnalysis.IMethodSymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.INamedTypeSymbol)">
-            <summary>
-            生成out参数的返回值赋值
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.HasConvertTriStateAttribute(Microsoft.CodeAnalysis.IParameterSymbol)">
-            <summary>
-            检查参数是否有 [ConvertTriState] 特性
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GetParameterDefaultValue(Microsoft.CodeAnalysis.IParameterSymbol)">
-            <summary>
-            获取参数的默认值
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateExceptionHandling(System.Text.StringBuilder,System.String,Microsoft.CodeAnalysis.INamedTypeSymbol)">
-            <summary>
-            生成异常处理逻辑
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateComExceptionHandling(System.Text.StringBuilder,System.String,System.String,System.String)">
-            <summary>
-            生成统一的 COM 异常处理代码块
-            </summary>
-            <param name="sb">字符串构建器</param>
-            <param name="errorDescription">错误描述</param>
-            <param name="indent">缩进级别（默认4个空格）</param>
-            <param name="exceptionTypeName">异常类型名称（默认使用默认异常类型）</param>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GetOrdinalComType(System.String)">
-            <summary>
-            获取COM类名的Ordinal类型（移除接口前缀）
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateIndexerImplementation(System.Text.StringBuilder,Microsoft.CodeAnalysis.IPropertySymbol,Microsoft.CodeAnalysis.INamedTypeSymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax)">
-            <summary>
-            生成索引器实现
-            </summary>
-            <param name="sb">字符串构建器</param>
-            <param name="indexerSymbol">索引器符号</param>
-            <param name="interfaceDeclaration">接口声明语法</param>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateSingleParameterIndexer(System.Text.StringBuilder,Microsoft.CodeAnalysis.IPropertySymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.INamedTypeSymbol,System.String,System.String,System.Boolean,System.String)">
-            <summary>
-            生成单参数索引器实现
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateIndexerSignature(System.Text.StringBuilder,System.String,System.String,System.String)">
-            <summary>
-            生成索引器签名
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateIndexerSignature(System.Text.StringBuilder,System.String,System.String[],System.String[])">
-            <summary>
-            生成索引器签名（多参数重载）
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateIndexerGetBody(System.Text.StringBuilder,Microsoft.CodeAnalysis.IPropertySymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.INamedTypeSymbol,System.Boolean,System.String,System.String,Microsoft.CodeAnalysis.IParameterSymbol[],System.String[])">
-            <summary>
-            生成索引器get方法体
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateIndexerSetBody(System.Text.StringBuilder,Microsoft.CodeAnalysis.IPropertySymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.INamedTypeSymbol,System.Boolean,System.String,System.String,Microsoft.CodeAnalysis.IParameterSymbol[],System.String[])">
-            <summary>
-            生成索引器set方法体
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateTwoParameterIndexer(System.Text.StringBuilder,Microsoft.CodeAnalysis.IPropertySymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.INamedTypeSymbol,System.String,System.String,System.Boolean,System.String)">
-            <summary>
-            生成双参数索引器实现
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateParameterValidationAndProcessing(System.Text.StringBuilder,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.INamedTypeSymbol,Microsoft.CodeAnalysis.IParameterSymbol[],System.String[],System.String,System.Boolean)">
-            <summary>
-            生成参数验证和预处理逻辑
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateParameterTypeValidation(System.Text.StringBuilder,System.String,System.String,System.Boolean,System.Int32,System.Boolean)">
-            <summary>
-            生成参数类型特定的验证逻辑
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.ProcessParameter(System.Text.StringBuilder,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.INamedTypeSymbol,Microsoft.CodeAnalysis.IParameterSymbol,System.String,System.Boolean)">
-            <summary>
-            处理单个参数的转换
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateSingleParameterGetLogic(System.Text.StringBuilder,Microsoft.CodeAnalysis.IPropertySymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.INamedTypeSymbol,System.Boolean,System.String,System.String,System.String)">
-            <summary>
-            生成单参数获取逻辑
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateSingleParameterSetLogic(System.Text.StringBuilder,Microsoft.CodeAnalysis.IPropertySymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,System.Boolean,System.String,System.String,System.String)">
-            <summary>
-            生成单参数设置逻辑
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.CommonMultiParameterSetLogic(System.Text.StringBuilder,Microsoft.CodeAnalysis.IPropertySymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,System.Boolean,System.String,System.String,System.String[])">
-            <summary>
-            通用多参数设置逻辑
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.CommonTwoParameterGetLogic(System.Text.StringBuilder,Microsoft.CodeAnalysis.IPropertySymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.INamedTypeSymbol,System.Boolean,System.String,System.String,System.String,System.String)">
-            <summary>
-            两个参数索引器的通用获取逻辑
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.AddSetExceptionHandling(System.Text.StringBuilder,System.String,System.String)">
-            <summary>
-            添加设置操作的异常处理
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateDisposedCheck(System.Text.StringBuilder,System.String)">
-            <summary>
-            生成对象已释放检查代码
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateDisposedCheckWithIndent(System.Text.StringBuilder,System.String,System.String)">
-            <summary>
-            生成对象已释放检查代码（带缩进）
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateProperties(System.Text.StringBuilder,Microsoft.CodeAnalysis.INamedTypeSymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax)">
-            <summary>
-            生成集合属性和索引器实现
-            </summary>
-            <param name="sb">字符串构建器</param>
-            <param name="interfaceSymbol">接口符号</param>
-            <param name="interfaceDeclaration">接口声明语法</param>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateProperty(System.Text.StringBuilder,Microsoft.CodeAnalysis.IPropertySymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.INamedTypeSymbol)">
-            <summary>
-            生成单个属性实现
-            </summary>
-            <param name="sb">字符串构建器</param>
-            <param name="propertySymbol">属性符号</param>
-            <param name="interfaceDeclaration">接口声明语法</param>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateObjectProperty(System.Text.StringBuilder,Microsoft.CodeAnalysis.IPropertySymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,System.Boolean,System.String)">
-            <summary>
-            生成普通对象属性实现
-            </summary>
-            <param name="sb">字符串构建器</param>
-            <param name="propertySymbol">属性符号</param>
-            <param name="interfaceDeclaration">接口声明语法</param>
-            <param name="comClassName">COM类名</param>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateComObjectProperty(System.Text.StringBuilder,Microsoft.CodeAnalysis.IPropertySymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.INamedTypeSymbol,System.Boolean,System.String)">
-            <summary>
-            生成COM对象属性实现
-            </summary>
-            <param name="sb">字符串构建器</param>
-            <param name="propertySymbol">属性符号</param>
-            <param name="interfaceDeclaration">接口声明语法</param>
-            <param name="comClassName">COM类名</param>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateEnumProperty(System.Text.StringBuilder,Microsoft.CodeAnalysis.IPropertySymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.INamedTypeSymbol)">
-            <summary>
-            生成枚举属性实现
-            </summary>
-            <param name="sb">字符串构建器</param>
-            <param name="propertySymbol">属性符号</param>
-            <param name="interfaceDeclaration">接口声明语法</param>
-            <param name="defaultValue">默认值</param>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.NoneConstructor(Microsoft.CodeAnalysis.INamedTypeSymbol)">
-            <summary>
-            是否需要需要生成构造函数。
-            </summary>
-            <param name="interfaceSymbol"></param>
-            <returns></returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.NoneDisposed(Microsoft.CodeAnalysis.INamedTypeSymbol)">
-            <summary>
-            是否需要需要生成释放资源函数。
-            </summary>
-            <param name="interfaceSymbol"></param>
-            <returns></returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GetPropertyComNamespace(Microsoft.CodeAnalysis.IPropertySymbol)">
-            <summary>
-            获取属性所在的COM命名空间。
-            </summary>
-            <param name="propertySymbol"></param>
-            <returns></returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.IsNeedConvert(Microsoft.CodeAnalysis.IPropertySymbol)">
-            <summary>
-            是否需要转换。
-            </summary>
-            <param name="propertySymbol"></param>
-            <returns></returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.IsNeeDispose(Microsoft.CodeAnalysis.IPropertySymbol)">
-            <summary>
-            是否需要释放资源
-            </summary>
-            <param name="propertySymbol"></param>
-            <returns></returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.IsMethod(Microsoft.CodeAnalysis.IPropertySymbol)">
-            <summary>
-            属性是否采用get、set方法进行访问。
-            </summary>
-            <param name="propertySymbol"></param>
-            <returns></returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GetDefaultValue(Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.ISymbol,Microsoft.CodeAnalysis.ITypeSymbol)">
-            <summary>
-            获取属性的默认值
-            </summary>
-            <param name="interfaceDeclaration">接口声明语法</param>
-            <param name="propertySymbol">属性符号</param>
-            <param name="typeSymbol">类型符号</param>
-            <returns>默认值字符串</returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.InferDefaultValue(Microsoft.CodeAnalysis.ITypeSymbol)">
-            <summary>
-            基于类型推断合理的默认值
-            </summary>
-            <param name="typeSymbol">类型符号</param>
-            <returns>推断的默认值字符串</returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GetComNamespace(Microsoft.CodeAnalysis.INamedTypeSymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax)">
-            <summary>
-            从ComObjectWrap特性中获取COM命名空间（使用语义符号）
-            </summary>
-            <param name="interfaceSymbol">接口符号</param>
-            <param name="interfaceDeclaration">接口声明语法（可选，用于降级处理）</param>
-            <returns>COM命名空间</returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GetComNamespace(Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax)">
-            <summary>
-            从ComObjectWrap特性中获取COM命名空间（仅使用语法树）
-            </summary>
-            <param name="interfaceDeclaration">接口声明语法</param>
-            <returns>COM命名空间</returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GetComClassName(Microsoft.CodeAnalysis.INamedTypeSymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax)">
-            <summary>
-            从ComObjectWrap特性中获取COM类名（使用语义符号）
-            </summary>
-            <param name="interfaceSymbol">接口符号</param>
-            <param name="interfaceDeclaration">接口声明语法（可选，用于降级处理）</param>
-            <returns>COM类名</returns>
-            <remarks>
-            支持字符串字面量和nameof()表达式两种形式
-            </remarks>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GetComClassName(Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax)">
-            <summary>
-            从ComObjectWrap特性中获取COM类名（仅使用语法树）
-            </summary>
-            <param name="interfaceDeclaration">接口声明语法</param>
-            <returns>COM类名</returns>
-            <remarks>
-            支持字符串字面量和nameof()表达式两种形式
-            </remarks>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GenerateIDisposableImplementation(System.Text.StringBuilder,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.INamedTypeSymbol)">
-            <summary>
-            生成IDisposable接口实现
-            </summary>
-            <param name="sb">字符串构建器</param>
-            <param name="interfaceDeclaration">接口声明语法</param>
-            <param name="interfaceSymbol">接口符号</param>
-            <param name="includeAdditionalDisposables">是否包含额外的可释放对象处理</param>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapBaseGenerator.GetEnumValueWithoutNamespace(System.String)">
-            <summary>
-            从枚举值字符串中提取不带命名空间的枚举值名称
-            </summary>
-            <param name="enumValue">可能包含命名空间的枚举值字符串</param>
-            <returns>去掉命名空间的枚举值名称</returns>
-        </member>
-        <member name="T:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapGenerator">
-            <summary>
-            COM对象包装源代码生成器
-            </summary>
-            <remarks>
-            为标记了ComObjectWrap特性的接口生成COM对象包装类，提供类型安全的COM对象访问
-            </remarks>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ComObjectWrapGenerator.ComWrapAttributeNames">
-            <summary>
-            获取COM对象包装特性名称数组
-            </summary>
-            <returns>特性名称数组</returns>
-        </member>
-        <member name="T:Mud.ServiceCodeGenerator.ComWrap.ComWrapConstants">
-            <summary>
-            COM对象包装生成器常量配置
-            </summary>
-        </member>
-        <member name="F:Mud.ServiceCodeGenerator.ComWrap.ComWrapConstants.ComObjectWrapAttributeNames">
-            <summary>
-            ComObjectWrap特性名称数组
-            </summary>
-        </member>
-        <member name="F:Mud.ServiceCodeGenerator.ComWrap.ComWrapConstants.ComCollectionWrapAttributeNames">
-            <summary>
-            ComCollectionWrap特性名称数组
-            </summary>
-        </member>
-        <member name="F:Mud.ServiceCodeGenerator.ComWrap.ComWrapConstants.ComPropertyWrapAttributeNames">
-            <summary>
-            ComPropertyWrap特性名称数组
-            </summary>
-        </member>
-        <member name="F:Mud.ServiceCodeGenerator.ComWrap.ComWrapConstants.ItemIndexAttributeNames">
-            <summary>
-            ItemIndex特性名称数组
-            </summary>
-        </member>
-        <member name="F:Mud.ServiceCodeGenerator.ComWrap.ComWrapConstants.MethodIndexAttributes">
-            <summary>
-            标记方法的访问采用索引方式
-            </summary>
-        </member>
-        <member name="F:Mud.ServiceCodeGenerator.ComWrap.ComWrapConstants.NoneEnumerableAttributes">
-            <summary>
-            指示当前COM组件不能进行枚举取值
-            </summary>
-        </member>
-        <member name="F:Mud.ServiceCodeGenerator.ComWrap.ComWrapConstants.ConvertIntAttributeNames">
-            <summary>
-            转换为整数特性名称数组
-            </summary>
-        </member>
-        <member name="F:Mud.ServiceCodeGenerator.ComWrap.ComWrapConstants.ValueConvertAttributes">
-            <summary>
-            用于标注方法或属性的值是否需要转换
-            </summary>
-        </member>
-        <member name="F:Mud.ServiceCodeGenerator.ComWrap.ComWrapConstants.MethodNameAttributes">
-            <summary>
-            标记方法的COM方法名
-            </summary>
-        </member>
-        <member name="F:Mud.ServiceCodeGenerator.ComWrap.ComWrapConstants.ComNamespaceAttributes">
-            <summary>
-            用于标识COM组件所在的命名空间。
-            </summary>
-        </member>
-        <member name="F:Mud.ServiceCodeGenerator.ComWrap.ComWrapConstants.ComNamespaceProperty">
-            <summary>
-            获取COM命名空间属性名称
-            </summary>
-        </member>
-        <member name="F:Mud.ServiceCodeGenerator.ComWrap.ComWrapConstants.NeedConvertProperty">
-            <summary>
-            是否需要转换属性名称
-            </summary>
-        </member>
-        <member name="F:Mud.ServiceCodeGenerator.ComWrap.ComWrapConstants.NeedDisposeProperty">
-            <summary>
-            是否需要释放属性名称
-            </summary>
-        </member>
-        <member name="F:Mud.ServiceCodeGenerator.ComWrap.ComWrapConstants.NoneConstructorProperty">
-            <summary>
-            不生成构造函数属性名称
-            </summary>
-        </member>
-        <member name="F:Mud.ServiceCodeGenerator.ComWrap.ComWrapConstants.NoneDisposedProperty">
-            <summary>
-            不生成资源释放函数属性名称
-            </summary>
-        </member>
-        <member name="F:Mud.ServiceCodeGenerator.ComWrap.ComWrapConstants.IsMethodProperty">
-            <summary>
-            标记该属性采用get、set方法进行访问。
-            </summary>
-        </member>
-        <member name="F:Mud.ServiceCodeGenerator.ComWrap.ComWrapConstants.PropertyNameProperty">
-            <summary>
-            获取或设置属性名，默认为空（即原始属性名。）
-            </summary>
-        </member>
-        <member name="F:Mud.ServiceCodeGenerator.ComWrap.ComWrapConstants.DefaultComNamespace">
-            <summary>
-            默认COM命名空间
-            </summary>
-        </member>
-        <member name="F:Mud.ServiceCodeGenerator.ComWrap.ComWrapConstants.DefaultComClassName">
-            <summary>
-            默认COM类名
-            </summary>
-        </member>
-        <member name="F:Mud.ServiceCodeGenerator.ComWrap.ComWrapConstants.KnownPrefixes">
-            <summary>
-            已知的COM接口前缀列表（用于自动识别COM类名）
-            </summary>
-        </member>
-        <member name="F:Mud.ServiceCodeGenerator.ComWrap.ComWrapConstants.KnownImpPrefixes">
-            <summary>
-            已知的实现类前缀列表（用于自动识别）
-            </summary>
-        </member>
-        <member name="F:Mud.ServiceCodeGenerator.ComWrap.ComWrapConstants.DefaultExceptionTypeName">
-            <summary>
-            默认的异常类型名称
-            </summary>
-        </member>
-        <member name="F:Mud.ServiceCodeGenerator.ComWrap.ComWrapConstants.ExceptionMessageTemplate">
-            <summary>
-            异常消息模板
-            </summary>
-        </member>
-        <member name="T:Mud.ServiceCodeGenerator.ComWrap.ExceptionHandlingConfig">
-            <summary>
-            异常处理配置
-            </summary>
-        </member>
-        <member name="P:Mud.ServiceCodeGenerator.ComWrap.ExceptionHandlingConfig.ExceptionTypeName">
-            <summary>
-            异常类型名称
-            </summary>
-        </member>
-        <member name="P:Mud.ServiceCodeGenerator.ComWrap.ExceptionHandlingConfig.IncludeOriginalMessage">
-            <summary>
-            是否包含原始异常消息
-            </summary>
-        </member>
-        <member name="P:Mud.ServiceCodeGenerator.ComWrap.ExceptionHandlingConfig.MessagePrefix">
-            <summary>
-            消息前缀
-            </summary>
-        </member>
-        <member name="T:Mud.ServiceCodeGenerator.ComWrap.ExceptionHandlingConfigProvider">
-            <summary>
-            异常处理配置提供器
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ExceptionHandlingConfigProvider.GetConfig(Microsoft.CodeAnalysis.INamedTypeSymbol)">
-            <summary>
-            获取异常处理配置
-            </summary>
-            <param name="interfaceSymbol">接口符号</param>
-            <returns>异常处理配置</returns>
-        </member>
-        <member name="T:Mud.ServiceCodeGenerator.ComWrap.GeneratorMessages">
-            <summary>
-            COM包装器代码生成器消息资源类
-            </summary>
-        </member>
-        <member name="P:Mud.ServiceCodeGenerator.ComWrap.GeneratorMessages.EnumerateCollectionElementFailed">
-            <summary>
-            枚举集合元素失败
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.GeneratorMessages.EnumerateCollectionElementFailedWithDetails(System.String)">
-            <summary>
-            枚举集合元素失败（带详细信息）
-            </summary>
-            <param name="details">错误详情</param>
-            <returns>错误消息</returns>
-        </member>
-        <member name="P:Mud.ServiceCodeGenerator.ComWrap.GeneratorMessages.ConvertCollectionElementFailed">
-            <summary>
-            转换集合元素失败
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.GeneratorMessages.ConvertCollectionElementFailedWithDetails(System.String)">
-            <summary>
-            转换集合元素失败（带详细信息）
-            </summary>
-            <param name="details">错误详情</param>
-            <returns>错误消息</returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.GeneratorMessages.OperationFailed(System.String)">
-            <summary>
-            执行操作失败（通用）
-            </summary>
-            <param name="operationName">操作名称</param>
-            <returns>错误消息</returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.GeneratorMessages.OperationFailedWithDetails(System.String,System.String)">
-            <summary>
-            执行操作失败（带详细信息）
-            </summary>
-            <param name="operationName">操作名称</param>
-            <param name="details">错误详情</param>
-            <returns>错误消息</returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.GeneratorMessages.GetOperationDescription(System.String)">
-            <summary>
-            获取操作描述（用于生成友好的错误消息）
-            </summary>
-            <param name="methodName">方法名称</param>
-            <returns>操作描述</returns>
-        </member>
-        <member name="P:Mud.ServiceCodeGenerator.ComWrap.GeneratorMessages.GetObjectByIndexFailed">
-            <summary>
-            根据索引获取对象失败
-            </summary>
-        </member>
-        <member name="P:Mud.ServiceCodeGenerator.ComWrap.GeneratorMessages.SetObjectByIndexFailed">
-            <summary>
-            根据索引设置对象失败
-            </summary>
-        </member>
-        <member name="P:Mud.ServiceCodeGenerator.ComWrap.GeneratorMessages.GetObjectByFieldNameFailed">
-            <summary>
-            根据字段名称获取对象失败
-            </summary>
-        </member>
-        <member name="P:Mud.ServiceCodeGenerator.ComWrap.GeneratorMessages.SetObjectByFieldNameFailed">
-            <summary>
-            根据字段名称设置对象失败
-            </summary>
-        </member>
-        <member name="P:Mud.ServiceCodeGenerator.ComWrap.GeneratorMessages.MissingCountProperty">
-            <summary>
-            集合接口缺少Count属性
-            </summary>
-        </member>
-        <member name="P:Mud.ServiceCodeGenerator.ComWrap.GeneratorMessages.CannotDetermineCollectionElementType">
-            <summary>
-            无法确定集合元素类型
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.GeneratorMessages.IndexParameterMustBePositive(System.String)">
-            <summary>
-            索引参数不能少于1
-            </summary>
-            <param name="parameterDescription">参数描述（如"第一个"、"第二个"）</param>
-            <returns>错误消息</returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.GeneratorMessages.ParameterCannotBeNull(System.String)">
-            <summary>
-            参数不能为空
-            </summary>
-            <param name="parameterName">参数名称</param>
-            <returns>错误消息</returns>
-        </member>
-        <member name="T:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext">
-            <summary>
-            参数处理上下文类，封装参数处理所需的全部信息
-            </summary>
-        </member>
-        <member name="P:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.Parameter">
-            <summary>
-            参数符号
-            </summary>
-        </member>
-        <member name="P:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.ParameterType">
-            <summary>
-            参数类型完整名称
-            </summary>
-        </member>
-        <member name="P:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.IsEnumType">
-            <summary>
-            是否为枚举类型
-            </summary>
-        </member>
-        <member name="P:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.IsObjectType">
-            <summary>
-            是否为复杂对象类型（需要包装的类型）
-            </summary>
-        </member>
-        <member name="P:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.HasConvertTriState">
-            <summary>
-            是否有 ConvertTriState 特性
-            </summary>
-        </member>
-        <member name="P:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.ConvertToInteger">
-            <summary>
-            是否需要转换为整数
-            </summary>
-        </member>
-        <member name="P:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.ComNamespace">
-            <summary>
-            COM 命名空间
-            </summary>
-        </member>
-        <member name="P:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.EnumValueName">
-            <summary>
-            枚举默认值名称
-            </summary>
-        </member>
-        <member name="P:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.ConstructType">
-            <summary>
-            实现类类型名称
-            </summary>
-        </member>
-        <member name="P:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.IsOut">
-            <summary>
-            是否为 out 参数
-            </summary>
-        </member>
-        <member name="P:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.IsRef">
-            <summary>
-            是否为 ref 参数
-            </summary>
-        </member>
-        <member name="P:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.IsNullable">
-            <summary>
-            是否为可空类型
-            </summary>
-        </member>
-        <member name="P:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.DefaultValueLiteral">
-            <summary>
-            默认值字面量
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.CreateForMethodParameter(Microsoft.CodeAnalysis.IParameterSymbol,Microsoft.CodeAnalysis.INamedTypeSymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,System.Func{Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.ISymbol,Microsoft.CodeAnalysis.ITypeSymbol,System.String})">
-            <summary>
-            为方法参数创建处理上下文
-            </summary>
-            <param name="parameter">参数符号</param>
-            <param name="interfaceSymbol">接口符号</param>
-            <param name="interfaceDeclaration">接口声明</param>
-            <param name="getDefaultValueFunc">获取默认值的函数</param>
-            <returns>参数处理上下文</returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.CreateForMethodParameter(Microsoft.CodeAnalysis.IParameterSymbol,Microsoft.CodeAnalysis.INamedTypeSymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax)">
-            <summary>
-            为方法参数创建处理上下文（简化版，使用内置GetDefaultValue逻辑）
-            </summary>
-            <param name="parameter">参数符号</param>
-            <param name="interfaceSymbol">接口符号</param>
-            <param name="interfaceDeclaration">接口声明</param>
-            <returns>参数处理上下文</returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.GetDefaultValue(Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.ISymbol,Microsoft.CodeAnalysis.ITypeSymbol)">
-            <summary>
-            获取参数的默认值（兼容基类实现）
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.GetDefaultValueFromAttribute(Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.ISymbol)">
-            <summary>
-            从特性中获取默认值
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.InferDefaultValue(Microsoft.CodeAnalysis.ITypeSymbol)">
-            <summary>
-            基于类型推断合理的默认值
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.InferEnumDefaultValue(Microsoft.CodeAnalysis.ITypeSymbol)">
-            <summary>
-            推断枚举类型的默认值
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.HasConvertTriStateAttribute(Microsoft.CodeAnalysis.IParameterSymbol)">
-            <summary>
-            检查参数是否有 [ConvertTriState] 特性
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.GetComNamespace(Microsoft.CodeAnalysis.IParameterSymbol,Microsoft.CodeAnalysis.INamedTypeSymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax)">
-            <summary>
-            获取 COM 命名空间（支持参数级别的覆盖）
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.GetEnumValueWithoutNamespace(System.String)">
-            <summary>
-            从枚举值中移除命名空间
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.GetParameterDefaultValueLiteral(Microsoft.CodeAnalysis.IParameterSymbol)">
-            <summary>
-            获取参数默认值的字面量表示
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.HandleNullableDefaultValue(System.String,System.Object)">
-            <summary>
-            处理可空类型的默认值
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.EscapeString(System.String)">
-            <summary>
-            转义字符串中的特殊字符
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.GetParameterDefaultValue(Microsoft.CodeAnalysis.IParameterSymbol)">
-            <summary>
-            获取参数的默认值
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.GetImplementationType(System.String)">
-            <summary>
-            获取实现类类型名称（移除接口前缀并添加Imps命名空间）
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.ParameterProcessingContext.GetDefaultValueStatic(Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.ISymbol,Microsoft.CodeAnalysis.ITypeSymbol)">
-            <summary>
-            公开的静态方法，用于获取默认值（供外部调用）
-            </summary>
-        </member>
-        <member name="T:Mud.ServiceCodeGenerator.ComWrap.TypeConversionGenerator">
-            <summary>
-            类型转换代码生成器
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.TypeConversionGenerator.GenerateConversionCode(Microsoft.CodeAnalysis.ITypeSymbol,System.String,System.Boolean,System.String)">
-            <summary>
-            生成类型转换代码
-            </summary>
-            <param name="targetType">目标类型</param>
-            <param name="sourceExpression">源表达式</param>
-            <param name="needConvert">是否需要转换</param>
-            <param name="comNamespace">COM命名空间</param>
-            <returns>转换代码</returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.TypeConversionGenerator.GenerateNullableConversionCode(Microsoft.CodeAnalysis.ITypeSymbol,System.String)">
-            <summary>
-            生成可空类型转换代码
-            </summary>
-            <param name="actualType">实际类型</param>
-            <param name="fieldName">字段名</param>
-            <returns>转换代码</returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.TypeConversionGenerator.GenerateEnumConversionCode(Microsoft.CodeAnalysis.ITypeSymbol,System.String,System.String)">
-            <summary>
-            生成枚举转换代码
-            </summary>
-            <param name="enumType">枚举类型</param>
-            <param name="sourceExpression">源表达式</param>
-            <param name="defaultValue">默认值</param>
-            <returns>转换代码</returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ComWrap.TypeConversionGenerator.GenerateComObjectConversionCode(System.String,System.String,System.String,System.String,System.Boolean)">
-            <summary>
-            生成 COM 对象转换代码
-            </summary>
-            <param name="sourceExpression">源表达式</param>
-            <param name="comNamespace">COM命名空间</param>
-            <param name="comType">COM类型</param>
-            <param name="constructType">构造类型</param>
-            <param name="needConvert">是否需要转换</param>
-            <returns>转换代码</returns>
-        </member>
-        <member name="T:Mud.ServiceCodeGenerator.ServiceCodeBaseGenerator">
-            <summary>
-            服务类代码生成器基类。
-            </summary>
-        </member>
-        <member name="F:Mud.ServiceCodeGenerator.ServiceCodeBaseGenerator.ServiceGeneratorAttributeName">
-            <summary>
-            服务类生成特性。
-            </summary>
-        </member>
-        <member name="F:Mud.ServiceCodeGenerator.ServiceCodeBaseGenerator.IsServiceGenerator">
-            <summary>
-            是否生成服务端代码。
-            </summary>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ServiceCodeBaseGenerator.Initialize(Microsoft.CodeAnalysis.IncrementalGeneratorInitializationContext)">
+        <member name="M:Mud.EntityCodeGenerator.TransitiveBoGenerator.GetPropertyAttributes">
             <inheritdoc/>
         </member>
-        <member name="M:Mud.ServiceCodeGenerator.ServiceCodeBaseGenerator.GenerateCode(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
+        <member name="M:Mud.EntityCodeGenerator.TransitiveBoGenerator.GetFailureDescriptor">
+            <inheritdoc/>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveBoGenerator.GetErrorDescriptor">
+            <inheritdoc/>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveBoGenerator.CreateSafePropertyGenerator">
+            <inheritdoc/>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveBoGenerator.CreateSafeFieldGenerator">
+            <inheritdoc/>
+        </member>
+        <member name="T:Mud.EntityCodeGenerator.TransitiveCrInputGenerator">
             <summary>
-            自动生成服务类代码。
+            生成业务数据新增操作CrInput类。
             </summary>
         </member>
-        <member name="M:Mud.ServiceCodeGenerator.ServiceCodeBaseGenerator.WriteFile(System.String,System.String,Microsoft.CodeAnalysis.CSharp.Syntax.CompilationUnitSyntax)">
-            <summary>
-            写入生成的代码到文件
-            </summary>
-            <param name="rootPath">根路径</param>
-            <param name="className">类名</param>
-            <param name="compilationUnit">编译单元</param>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveCrInputGenerator.GetConfiguredClassSuffix">
+            <inheritdoc/>
         </member>
-        <member name="M:Mud.ServiceCodeGenerator.ServiceCodeBaseGenerator.IsIgnoreGenerator(Microsoft.CodeAnalysis.CSharp.Syntax.PropertyDeclarationSyntax)">
+        <member name="T:Mud.EntityCodeGenerator.TransitiveQueryInputGenerator">
             <summary>
-            是否忽略生成属性。
+            生成业务数据查询类
             </summary>
-            <param name="propertyDeclaration"></param>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveQueryInputGenerator.GetConfiguredClassSuffix">
+            <inheritdoc/>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveQueryInputGenerator.GetInheritClass(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
+            <inheritdoc/>
+        </member>
+        <member name="T:Mud.EntityCodeGenerator.TransitiveUpInputGenerator">
+            <summary>
+            生成业务数据更新操作UpInput类。
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveUpInputGenerator.GetConfiguredClassSuffix">
+            <inheritdoc/>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveUpInputGenerator.GetInheritClass(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
+            <inheritdoc/>
+        </member>
+        <member name="T:Mud.EntityCodeGenerator.BuilderGenerator">
+            <summary>
+            生成实体类的建造者模式代码。
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.BuilderGenerator.#ctor">
+            <summary>
+            BuilderGenerator构造函数
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.BuilderGenerator.GenerateCode(Microsoft.CodeAnalysis.SourceProductionContext,Microsoft.CodeAnalysis.Compilation,Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.BuilderGenerator.BuildBuilderClass(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax,Microsoft.CodeAnalysis.Compilation,System.String,System.String)">
+            <summary>
+            构建扩展类，包含所有映射方法
+            </summary>    
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.BuilderGenerator.GeneratePropertyMappings``1(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax,System.Text.StringBuilder,Microsoft.CodeAnalysis.Compilation,System.Func{System.String,System.String,System.String,System.String})">
+            <summary>
+            生成属性映射代码
+            </summary>
+        </member>
+        <member name="T:Mud.EntityCodeGenerator.EntityMappingGenerator">
+            <summary>
+            实体扩展类生成器，用于生成实体与其他DTO类型之间的映射扩展方法。
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.EntityMappingGenerator.#ctor">
+            <summary>
+            EntityMappingGenerator构造函数
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.EntityMappingGenerator.GenerateCode(Microsoft.CodeAnalysis.SourceProductionContext,Microsoft.CodeAnalysis.Compilation,Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.EntityMappingGenerator.BuildExtensionClass(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax,Microsoft.CodeAnalysis.Compilation,System.String,System.String)">
+            <summary>
+            构建扩展类，包含所有映射方法
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.EntityMappingGenerator.GenerateMapToEntityFromCrInputMethod(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax,Microsoft.CodeAnalysis.Compilation,System.String)">
+            <summary>
+            生成从CrInput映射到实体的扩展方法
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.EntityMappingGenerator.GenerateMapToEntityFromUpInputMethod(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax,Microsoft.CodeAnalysis.Compilation,System.String)">
+            <summary>
+            生成从UpInput映射到实体的扩展方法
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.EntityMappingGenerator.GenerateBuildQueryWhereMethod(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax,System.String)">
+            <summary>
+            生成BuildQueryWhere方法，用于构建查询条件
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.EntityMappingGenerator.GenerateMapToCrInputMethod(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax,Microsoft.CodeAnalysis.Compilation,System.String)">
+            <summary>
+            生成从实体映射到CrInput的扩展方法
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.EntityMappingGenerator.GenerateMapToUpInputMethod(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax,Microsoft.CodeAnalysis.Compilation,System.String)">
+            <summary>
+            生成从实体映射到UpInput的扩展方法
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.EntityMappingGenerator.GenerateMapToListOutputMethod(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax,Microsoft.CodeAnalysis.Compilation,System.String)">
+            <summary>
+            生成从实体映射到ListOutput(VO)的扩展方法
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.EntityMappingGenerator.GenerateMapToInfoOutputMethod(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax,Microsoft.CodeAnalysis.Compilation,System.String)">
+            <summary>
+            生成从实体映射到InfoOutput(VO)的扩展方法
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.EntityMappingGenerator.GenerateMapToListOutputCollectionMethod(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax,System.String)">
+            <summary>
+            生成从实体集合映射到ListOutput集合的扩展方法
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.EntityMappingGenerator.GenerateMapToInfoOutputCollectionMethod(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax,System.String)">
+            <summary>
+            生成从实体集合映射到InfoOutput集合的扩展方法
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.EntityMappingGenerator.GenerateMappingLines``1(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax,Microsoft.CodeAnalysis.Compilation,System.Collections.Generic.HashSet{System.String},System.Func{System.String,System.String,System.String},System.Nullable{System.Boolean})">
+            <summary>
+            生成映射行列表
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.EntityMappingGenerator.GenerateQueryConditions``1(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax,System.Text.StringBuilder)">
+            <summary>
+            生成查询条件代码
+            </summary>
+        </member>
+        <member name="T:Mud.EntityCodeGenerator.EntityPropertyGenerator">
+            <summary>
+            生成私有字段的公共属性。
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.EntityPropertyGenerator.#ctor">
+            <summary>
+            EntityPropertyGenerator构造函数
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.EntityPropertyGenerator.GetFileUsingNameSpaces">
+            <inheritdoc/>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.EntityPropertyGenerator.GenerateCode(Microsoft.CodeAnalysis.SourceProductionContext,Microsoft.CodeAnalysis.Compilation,Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.EntityPropertyGenerator.BuildProperty(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax,Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
+            <summary>
+            根据字段生成属性。
+            </summary>
+            <param name="localClass">需要生成的类。</param>
+            <param name="orgClassDeclaration">原始列。</param>
             <returns></returns>
         </member>
-        <member name="M:Mud.ServiceCodeGenerator.ServiceCodeBaseGenerator.GetOrderByAttribute(Microsoft.CodeAnalysis.CSharp.Syntax.PropertyDeclarationSyntax)">
+        <member name="T:Mud.EntityCodeGenerator.Helper.BaseDtoGenerator">
             <summary>
-            获取实体的排序属性。
-            </summary>
-            <param name="propertyDeclaration"></param>
-            <returns></returns>
-        </member>
-        <member name="T:Mud.ServiceCodeGenerator.ServiceCodeBaseGenerator.OrderBy">
-            <summary>
-            排序属性。
+            DTO代码生成器抽象基类
             </summary>
         </member>
-        <member name="P:Mud.ServiceCodeGenerator.ServiceCodeBaseGenerator.OrderBy.PropertyName">
+        <member name="P:Mud.EntityCodeGenerator.Helper.BaseDtoGenerator.GeneratorName">
             <summary>
-            排序属性名
+            生成器名称
             </summary>
         </member>
-        <member name="P:Mud.ServiceCodeGenerator.ServiceCodeBaseGenerator.OrderBy.IsAsc">
+        <member name="M:Mud.EntityCodeGenerator.Helper.BaseDtoGenerator.ShouldGenerate(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
             <summary>
-            是否为升序查询。
+            是否应该生成代码
             </summary>
+            <param name="classDeclaration">类声明语法</param>
+            <returns>是否应该生成</returns>
         </member>
-        <member name="P:Mud.ServiceCodeGenerator.ServiceCodeBaseGenerator.OrderBy.OrderNum">
+        <member name="M:Mud.EntityCodeGenerator.Helper.BaseDtoGenerator.GetGeneratedClassName(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
             <summary>
-            多个排序字段顺序。
+            获取生成的类名
             </summary>
+            <param name="classDeclaration">原始类声明</param>
+            <returns>生成的类名</returns>
         </member>
-        <member name="M:Mud.ServiceCodeGenerator.ServiceCodeBaseGenerator.GenerateCommonCode(System.Text.StringBuilder,Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
+        <member name="M:Mud.EntityCodeGenerator.Helper.BaseDtoGenerator.GetGeneratedNamespace(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
             <summary>
-            生成公共代码。
+            获取生成的命名空间
             </summary>
-            <param name="sb"></param>
-            <param name="classNode"></param>
+            <param name="classDeclaration">原始类声明</param>
+            <returns>生成的命名空间</returns>
         </member>
-        <member name="M:Mud.ServiceCodeGenerator.ServiceCodeBaseGenerator.GetPropertyName(Microsoft.CodeAnalysis.CSharp.Syntax.PropertyDeclarationSyntax)">
+        <member name="M:Mud.EntityCodeGenerator.Helper.BaseDtoGenerator.GetGeneratorAttributeName">
             <summary>
-            获取属性名称
+            获取生成器特性名称
             </summary>
-            <param name="propertyDeclaration">属性声明</param>
+            <returns>特性名称</returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.BaseDtoGenerator.GetGeneratorPropertyName">
+            <summary>
+            获取生成器属性名称
+            </summary>
             <returns>属性名称</returns>
         </member>
-        <member name="T:Mud.ServiceCodeGenerator.ServiceImpCodeGenerator">
+        <member name="M:Mud.EntityCodeGenerator.Helper.BaseDtoGenerator.GetDefaultGenerationValue">
             <summary>
-            数据仓库实现代码生成器
+            获取默认生成值
+            </summary>
+            <returns>默认值</returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.BaseDtoGenerator.GenerateCode(Microsoft.CodeAnalysis.SourceProductionContext,Microsoft.CodeAnalysis.Compilation,Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
+            <summary>
+            生成代码的核心方法
+            </summary>
+            <param name="context">源码生成上下文</param>
+            <param name="compilation">编译对象</param>
+            <param name="classDeclaration">类声明语法</param>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.BaseDtoGenerator.CreatePropertyGenerator">
+            <summary>
+            创建属性生成器
+            </summary>
+            <returns>属性生成委托</returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.BaseDtoGenerator.CreateFieldGenerator">
+            <summary>
+            创建字段生成器
+            </summary>
+            <returns>字段生成委托</returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.BaseDtoGenerator.CreateSafePropertyGenerator">
+            <summary>
+            创建安全的属性生成器
+            </summary>
+            <returns>属性生成委托</returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.BaseDtoGenerator.CreateSafeFieldGenerator">
+            <summary>
+            创建安全的字段生成器
+            </summary>
+            <returns>字段生成委托</returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.BaseDtoGenerator.GetFailureDescriptor">
+            <summary>
+            获取失败描述符
+            </summary>
+            <returns>诊断描述符</returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.BaseDtoGenerator.GetErrorDescriptor">
+            <summary>
+            获取错误描述符
+            </summary>
+            <returns>诊断描述符</returns>
+        </member>
+        <member name="T:Mud.EntityCodeGenerator.Helper.CodeGenerationHelper">
+            <summary>
+            代码生成辅助工具类，提供通用的代码生成功能
             </summary>
         </member>
-        <member name="M:Mud.ServiceCodeGenerator.ServiceImpCodeGenerator.GenerateCode(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
+        <member name="M:Mud.EntityCodeGenerator.Helper.CodeGenerationHelper.GenerateMethod(System.String,System.String,System.Collections.Generic.List{System.ValueTuple{System.String,System.String,System.String}},System.Boolean,System.Boolean,System.String,System.String)">
+            <summary>
+            生成方法声明
+            </summary>
+            <param name="methodName">方法名</param>
+            <param name="returnType">返回类型</param>
+            <param name="parameters">参数列表</param>
+            <param name="isStatic">是否为静态方法</param>
+            <param name="isExtension">是否为扩展方法</param>
+            <param name="methodBody">方法体</param>
+            <param name="summary">方法说明</param>
+            <returns>方法声明语法</returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.CodeGenerationHelper.GenerateXmlComment(System.String,System.Collections.Generic.List{System.ValueTuple{System.String,System.String,System.String}})">
+            <summary>
+            生成XML注释
+            </summary>
+            <param name="summary">方法说明</param>
+            <param name="parameters">参数列表</param>
+            <returns>XML注释语法</returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.CodeGenerationHelper.GenerateClass(System.String,System.String,System.Boolean,System.Collections.Generic.List{System.String})">
+            <summary>
+            生成类声明
+            </summary>
+            <param name="className">类名</param>
+            <param name="namespaceName">命名空间</param>
+            <param name="isStatic">是否为静态类</param>
+            <param name="baseTypes">基类或接口列表</param>
+            <returns>编译单元语法</returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.CodeGenerationHelper.GenerateProperty(System.String,System.String,System.Boolean,System.Boolean,System.String)">
+            <summary>
+            生成属性声明
+            </summary>
+            <param name="propertyName">属性名</param>
+            <param name="propertyType">属性类型</param>
+            <param name="hasGetter">是否有getter</param>
+            <param name="hasSetter">是否有setter</param>
+            <param name="initialValue">初始值</param>
+            <returns>属性声明语法</returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.CodeGenerationHelper.GenerateMappingMethodTemplate(System.String,System.String,System.Collections.Generic.List{System.String},System.Boolean)">
+            <summary>
+            生成映射方法的标准模板
+            </summary>
+            <param name="sourceType">源类型</param>
+            <param name="targetType">目标类型</param>
+            <param name="mappingLines">映射行列表</param>
+            <param name="isExtension">是否为扩展方法</param>
+            <returns>方法代码字符串</returns>
+        </member>
+        <member name="T:Mud.EntityCodeGenerator.Helper.ConfigurationManager">
+            <summary>
+            配置管理器，统一管理代码生成器的配置
+            </summary>
+        </member>
+        <member name="P:Mud.EntityCodeGenerator.Helper.ConfigurationManager.Instance">
+            <summary>
+            获取配置管理器实例
+            </summary>
+        </member>
+        <member name="P:Mud.EntityCodeGenerator.Helper.ConfigurationManager.Configuration">
+            <summary>
+            获取当前配置
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.ConfigurationManager.Initialize(Microsoft.CodeAnalysis.Diagnostics.AnalyzerConfigOptions)">
+            <summary>
+            初始化配置
+            </summary>
+            <param name="options">分析器配置选项</param>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.ConfigurationManager.GetClassSuffix(System.String)">
+            <summary>
+            获取类后缀配置
+            </summary>
+            <param name="generatorType">生成器类型</param>
+            <returns>类后缀</returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.ConfigurationManager.GetPropertyAttributes(System.String)">
+            <summary>
+            获取属性配置
+            </summary>
+            <param name="generatorType">生成器类型</param>
+            <returns>属性配置数组</returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.ConfigurationManager.MergePropertyAttributes(System.String[],System.String)">
+            <summary>
+            合并默认属性和配置属性
+            </summary>
+            <param name="defaultAttributes">默认属性</param>
+            <param name="generatorType">生成器类型</param>
+            <returns>合并后的属性数组</returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.ConfigurationManager.IsValid">
+            <summary>
+            检查配置是否有效
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.ConfigurationManager.Reset">
+            <summary>
+            重置配置（主要用于测试）
+            </summary>
+        </member>
+        <member name="T:Mud.EntityCodeGenerator.Helper.GeneratorConfiguration">
+            <summary>
+            代码生成器配置管理器
+            </summary>
+        </member>
+        <member name="P:Mud.EntityCodeGenerator.Helper.GeneratorConfiguration.UsingNameSpaces">
+            <summary>
+            生成的实体DTO类中需要添加的引用的命名空间。
+            </summary>
+        </member>
+        <member name="P:Mud.EntityCodeGenerator.Helper.GeneratorConfiguration.EntityAttachAttributes">
+            <summary>
+            在实体类上绑定的特性。
+            </summary>
+        </member>
+        <member name="P:Mud.EntityCodeGenerator.Helper.GeneratorConfiguration.VoAttributes">
+            <summary>
+            VO类属性配置。
+            </summary>
+        </member>
+        <member name="P:Mud.EntityCodeGenerator.Helper.GeneratorConfiguration.BoAttributes">
+            <summary>
+            BO类属性配置。
+            </summary>
+        </member>
+        <member name="P:Mud.EntityCodeGenerator.Helper.GeneratorConfiguration.EntityPrefix">
+            <summary>
+            实体前缀配置
+            </summary>
+        </member>
+        <member name="P:Mud.EntityCodeGenerator.Helper.GeneratorConfiguration.VoSuffix">
+            <summary>
+            VO类后缀配置
+            </summary>
+        </member>
+        <member name="P:Mud.EntityCodeGenerator.Helper.GeneratorConfiguration.InfoOutputSuffix">
+            <summary>
+            InfoOutput类后缀配置
+            </summary>
+        </member>
+        <member name="P:Mud.EntityCodeGenerator.Helper.GeneratorConfiguration.BoSuffix">
+            <summary>
+            BO类后缀配置
+            </summary>
+        </member>
+        <member name="P:Mud.EntityCodeGenerator.Helper.GeneratorConfiguration.QueryInputSuffix">
+            <summary>
+            QueryInput类后缀配置
+            </summary>
+        </member>
+        <member name="P:Mud.EntityCodeGenerator.Helper.GeneratorConfiguration.CrInputSuffix">
+            <summary>
+            CrInput类后缀配置
+            </summary>
+        </member>
+        <member name="P:Mud.EntityCodeGenerator.Helper.GeneratorConfiguration.UpInputSuffix">
+            <summary>
+            UpInput类后缀配置
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.GeneratorConfiguration.ReadFromOptions(Microsoft.CodeAnalysis.Diagnostics.AnalyzerConfigOptions)">
+            <summary>
+            从分析器配置选项读取配置
+            </summary>
+            <param name="options">分析器配置选项</param>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.GeneratorConfiguration.GetPropertyAttributes(System.String)">
+            <summary>
+            获取属性配置
+            </summary>
+            <param name="generatorType">生成器类型</param>
+            <returns>属性配置数组</returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.GeneratorConfiguration.MergePropertyAttributes(System.String[],System.String)">
+            <summary>
+            合并默认属性和配置属性
+            </summary>
+            <param name="defaultAttributes">默认属性</param>
+            <param name="generatorType">生成器类型</param>
+            <returns>合并后的属性数组</returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.GeneratorConfiguration.IsValid">
+            <summary>
+            检查配置是否有效
+            </summary>
+        </member>
+        <member name="T:Mud.EntityCodeGenerator.Helper.ICodeGenerator">
+            <summary>
+            代码生成器接口
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.ICodeGenerator.GenerateCode(Microsoft.CodeAnalysis.SourceProductionContext,Microsoft.CodeAnalysis.Compilation,Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
+            <summary>
+            生成代码
+            </summary>
+            <param name="context">源码生成上下文</param>
+            <param name="compilation">编译对象</param>
+            <param name="classDeclaration">类声明语法</param>
+        </member>
+        <member name="P:Mud.EntityCodeGenerator.Helper.ICodeGenerator.GeneratorName">
+            <summary>
+            获取生成器名称
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.ICodeGenerator.ShouldGenerate(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
+            <summary>
+            检查是否应该生成代码
+            </summary>
+            <param name="classDeclaration">类声明语法</param>
+            <returns>是否应该生成</returns>
+        </member>
+        <member name="T:Mud.EntityCodeGenerator.Helper.IDtoGenerator">
+            <summary>
+            DTO代码生成器接口
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.IDtoGenerator.GetGeneratedClassName(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
+            <summary>
+            获取生成的类名
+            </summary>
+            <param name="classDeclaration">原始类声明</param>
+            <returns>生成的类名</returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.IDtoGenerator.GetGeneratedNamespace(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
+            <summary>
+            获取生成的命名空间
+            </summary>
+            <param name="classDeclaration">原始类声明</param>
+            <returns>生成的命名空间</returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.IDtoGenerator.GetPropertyAttributes">
+            <summary>
+            获取属性配置
+            </summary>
+            <returns>属性配置数组</returns>
+        </member>
+        <member name="T:Mud.EntityCodeGenerator.Helper.MappingGenerator">
+            <summary>
+            映射生成器，提供通用的映射方法生成功能
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.MappingGenerator.GenerateEntityToDtoMapping(System.String,System.String,System.Collections.Generic.List{System.String},System.String)">
+            <summary>
+            生成实体到DTO的映射方法
+            </summary>
+            <param name="entityClassName">实体类名</param>
+            <param name="dtoClassName">DTO类名</param>
+            <param name="mappingLines">映射行列表</param>
+            <param name="methodName">方法名（可选）</param>
+            <returns>映射方法代码</returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.MappingGenerator.GenerateDtoToEntityMapping(System.String,System.String,System.Collections.Generic.List{System.String},System.String)">
+            <summary>
+            生成DTO到实体的映射方法
+            </summary>
+            <param name="dtoClassName">DTO类名</param>
+            <param name="entityClassName">实体类名</param>
+            <param name="mappingLines">映射行列表</param>
+            <param name="methodName">方法名（可选）</param>
+            <returns>映射方法代码</returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.MappingGenerator.GenerateCollectionMapping(System.String,System.String,System.String,System.String)">
+            <summary>
+            生成集合映射方法
+            </summary>
+            <param name="sourceType">源类型</param>
+            <param name="targetType">目标类型</param>
+            <param name="mappingMethodName">单个映射方法名</param>
+            <param name="methodName">集合方法名（可选）</param>
+            <returns>集合映射方法代码</returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.MappingGenerator.GeneratePropertyMappingLine(System.String,System.String,System.String,System.String)">
+            <summary>
+            生成简单的属性映射行
+            </summary>
+            <param name="sourceProperty">源属性名</param>
+            <param name="targetProperty">目标属性名</param>
+            <param name="sourceObject">源对象名</param>
+            <param name="targetObject">目标对象名</param>
+            <returns>映射行代码</returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.MappingGenerator.GeneratePropertyMappingLineWithConversion(System.String,System.String,System.String,System.String,System.String)">
+            <summary>
+            生成带转换的属性映射行
+            </summary>
+            <param name="sourceProperty">源属性名</param>
+            <param name="targetProperty">目标属性名</param>
+            <param name="conversion">转换表达式</param>
+            <param name="sourceObject">源对象名</param>
+            <param name="targetObject">目标对象名</param>
+            <returns>映射行代码</returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.MappingGenerator.GeneratePropertyMappingLineWithNullCheck(System.String,System.String,System.String,System.String,System.String)">
+            <summary>
+            生成空值检查的属性映射行
+            </summary>
+            <param name="sourceProperty">源属性名</param>
+            <param name="targetProperty">目标属性名</param>
+            <param name="nullCheck">空值检查条件</param>
+            <param name="sourceObject">源对象名</param>
+            <param name="targetObject">目标对象名</param>
+            <returns>映射行代码</returns>
+        </member>
+        <member name="T:Mud.EntityCodeGenerator.Helper.MemberProcessor">
+            <summary>
+            通用成员处理器，提供统一的成员处理和属性映射功能
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.MemberProcessor.ProcessMembers``1(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax,Microsoft.CodeAnalysis.Compilation,System.Action{``0,System.String,System.String,System.String},System.Nullable{System.Boolean},System.Func{``0,System.Boolean},System.Func{``0,System.Boolean},System.Func{``0,System.ValueTuple{System.String,System.String}},System.Func{``0,System.String})">
+            <summary>
+            处理类成员并执行指定的操作
+            </summary>
+            <typeparam name="T">成员类型</typeparam>
+            <param name="orgClassDeclaration">原始类的语法对象</param>
+            <param name="compilation">编译上下文</param>
+            <param name="memberProcessor">成员处理委托</param>
+            <param name="primaryKeyOnly">是否只处理主键属性</param>
+            <param name="isIgnoreGenerator">忽略生成器检查委托</param>
+            <param name="isPrimary">主键检查委托</param>
+            <param name="getPropertyNames">获取属性名委托</param>
+            <param name="getPropertyType">获取属性类型委托</param>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.MemberProcessor.GeneratePropertyMappings``1(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax,System.Text.StringBuilder,Microsoft.CodeAnalysis.Compilation,System.Func{System.String,System.String,System.String},System.Nullable{System.Boolean},System.Func{``0,System.Boolean},System.Func{``0,System.Boolean},System.Func{``0,System.ValueTuple{System.String,System.String}},System.Func{``0,System.String})">
+            <summary>
+            生成属性映射代码
+            </summary>
+            <typeparam name="T">成员类型</typeparam>
+            <param name="orgClassDeclaration">原始类的语法对象</param>
+            <param name="sb">字符串构建器</param>
+            <param name="compilation">编译上下文</param>
+            <param name="generateMappingLine">生成映射行委托</param>
+            <param name="primaryKeyOnly">是否只处理主键属性</param>
+            <param name="isIgnoreGenerator">忽略生成器检查委托</param>
+            <param name="isPrimary">主键检查委托</param>
+            <param name="getPropertyNames">获取属性名委托</param>
+            <param name="getPropertyType">获取属性类型委托</param>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.Helper.MemberProcessor.GeneratePropertyMappings``1(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax,System.Text.StringBuilder,Microsoft.CodeAnalysis.Compilation,System.Func{System.String,System.String,System.String,System.String},System.Func{``0,System.Boolean},System.Func{``0,System.Boolean},System.Func{``0,System.ValueTuple{System.String,System.String}},System.Func{``0,System.String})">
+            <summary>
+            生成属性映射代码（包含属性类型）
+            </summary>
+            <typeparam name="T">成员类型</typeparam>
+            <param name="orgClassDeclaration">原始类的语法对象</param>
+            <param name="sb">字符串构建器</param>
+            <param name="compilation">编译上下文</param>
+            <param name="generateSetMethod">生成设置方法委托</param>
+            <param name="isIgnoreGenerator">忽略生成器检查委托</param>
+            <param name="isPrimary">主键检查委托</param>
+            <param name="getPropertyNames">获取属性名委托</param>
+            <param name="getPropertyType">获取属性类型委托</param>
+        </member>
+        <member name="T:Mud.EntityCodeGenerator.TransitiveDtoGenerator">
+            <summary>
+            DTO代码生成基类。
+            </summary>
+        </member>
+        <member name="F:Mud.EntityCodeGenerator.TransitiveDtoGenerator.DtoGeneratorAttributeName">
+            <summary>
+            DTO生成特性。
+            </summary>
+        </member>
+        <member name="F:Mud.EntityCodeGenerator.TransitiveDtoGenerator.DtoGeneratorAttributeGenMapMethod">
+            <summary>
+            是否生成实体类映射方法属性。
+            </summary>
+        </member>
+        <member name="F:Mud.EntityCodeGenerator.TransitiveDtoGenerator.DtoGeneratorAttributeGenVoClass">
+            <summary>
+            是否生成VO类属性。
+            </summary>
+        </member>
+        <member name="F:Mud.EntityCodeGenerator.TransitiveDtoGenerator.DtoGeneratorAttributeGenQueryInputClass">
+            <summary>
+            是否生成QueryInput类属性。
+            </summary>
+        </member>
+        <member name="F:Mud.EntityCodeGenerator.TransitiveDtoGenerator.DtoGeneratorAttributeGenBoClass">
+            <summary>
+            是否生成BO类属性。
+            </summary>
+        </member>
+        <member name="F:Mud.EntityCodeGenerator.TransitiveDtoGenerator.DtoGeneratorAttributeDtoNamespace">
+            <summary>
+            DTO生成的命名空间。
+            </summary>
+        </member>
+        <member name="F:Mud.EntityCodeGenerator.TransitiveDtoGenerator.PrimaryAttributes">
+            <summary>
+            识别实体主键特性。
+            </summary>
+        </member>
+        <member name="P:Mud.EntityCodeGenerator.TransitiveDtoGenerator.ClassSuffix">
+            <summary>
+            获取类后缀
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.GetConfiguredClassSuffix">
+            <summary>
+            获取配置的类后缀
+            </summary>
+            <returns>配置的后缀名</returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.GetInheritClass(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
+            <summary>
+            获取生成类的继承类。
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.GetPropertyAttributes">
+            <summary>
+            获取用户生成实体的属性。
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.GetVoPropertyAttributes">
+            <summary>
+            获取VO类属性配置。
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.GetBoPropertyAttributes">
+            <summary>
+            获取BO类属性配置。
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.Initialize(Microsoft.CodeAnalysis.IncrementalGeneratorInitializationContext)">
             <inheritdoc/>
         </member>
-        <member name="M:Mud.ServiceCodeGenerator.ServiceImpCodeGenerator.GenerateBuildQuerySelect(System.Text.StringBuilder,Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax,System.String)">
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.GenerateCode(Microsoft.CodeAnalysis.SourceProductionContext,Microsoft.CodeAnalysis.Compilation,Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
             <summary>
-            生成BuildQuerySelect函数。
+            自动生成DTO类代码。
             </summary>
-            <param name="sb"></param>
+            <param name="context"><see cref="T:Microsoft.CodeAnalysis.SourceProductionContext"/>对象</param>
+            <param name="compilation"><see cref="T:Microsoft.CodeAnalysis.Compilation"/>对象</param>
+            <param name="orgClassDeclaration">原始的类声明语法<see cref="T:Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax"/>对象。</param>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.ReadConfigurationOptions(Microsoft.CodeAnalysis.Diagnostics.AnalyzerConfigOptions)">
+            <summary>
+            读取项目配置选项并初始化内部字段。
+            </summary>
+            <param name="options">分析器配置选项</param>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.GetDtoNamespaceName(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
+            <summary>
+            获取生成DTO类所在的命名空间。
+            </summary>
+            <param name="orgClassDeclaration">原始的类声明语法<see cref="T:Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax"/>对象。</param>
+            <returns></returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.BuildLocalClass(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
+            <summary>
+            构建需要生成的类对象、命名空间名及类名。
+            </summary>
+            <param name="orgClassDeclaration">原始类的语法对象。</param>
+            <returns></returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.ProcessMembers``1(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax,Microsoft.CodeAnalysis.Compilation,System.Action{``0,System.String,System.String},System.Nullable{System.Boolean})">
+            <summary>
+            通用成员处理器，用于处理类成员并执行指定的操作
+            </summary>
+            <typeparam name="T">成员类型</typeparam>
+            <param name="orgClassDeclaration">原始类的语法对象</param>
+            <param name="compilation">编译上下文</param>
+            <param name="memberProcessor">成员处理委托</param>
+            <param name="primaryKeyOnly">是否只处理主键属性</param>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.ProcessMembers``1(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax,Microsoft.CodeAnalysis.Compilation,System.Action{``0,System.String,System.String,System.String},System.Nullable{System.Boolean})">
+            <summary>
+            通用成员处理器（包含属性类型），用于处理类成员并执行指定的操作
+            </summary>
+            <typeparam name="T">成员类型</typeparam>
+            <param name="orgClassDeclaration">原始类的语法对象</param>
+            <param name="compilation">编译上下文</param>
+            <param name="memberProcessor">成员处理委托</param>
+            <param name="primaryKeyOnly">是否只处理主键属性</param>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.GetPropertyNames``1(``0)">
+            <summary>
+            获取属性的原始名称和生成器名称
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.BuildLocalClassProperty``1(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax,Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax,Microsoft.CodeAnalysis.Compilation,System.Collections.Generic.HashSet{System.String},System.Func{``0,Microsoft.CodeAnalysis.CSharp.Syntax.PropertyDeclarationSyntax},System.Func{``0,Microsoft.CodeAnalysis.CSharp.Syntax.PropertyDeclarationSyntax})">
+            <summary>
+            类代码生成操作核心方法（依据<see cref="T:Microsoft.CodeAnalysis.CSharp.Syntax.FieldDeclarationSyntax"/>生成）。
+            </summary>
+            <param name="orgClassDeclaration">原始类的语法对象。</param>
+            <param name="localClass">本地类的语法对象。</param>
+            <param name="genAttributeFunc">属性生成委托函数。</param>
+            <param name="genExtAttributeFunc">扩展属性生成委托函数。</param>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.BuildLocalClass(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax,System.String,System.Boolean)">
+            <summary>
+            生成本地类，也就是需要生成的类。
+            </summary>
+            <param name="localClassName">生成的类名。</param>
+            <param name="orgClassDeclaration">原始类的语法<see cref="T:Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax"/>对象。</param>
+            <param name="isAttachAttribute">类上是否绑定默认注解</param>
+            <returns></returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.GetAttributes``1(``0,System.String[])">
+            <summary>
+            获取属性上注解内容。
+            </summary>
+            <param name="propertyDeclaration">属性声明语法节点</param>
+            <param name="attributes">要查找的特性名称数组</param>
+            <returns>匹配的特性语法节点只读集合</returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.IsRequiredAttribute(Microsoft.CodeAnalysis.CSharp.Syntax.AttributeSyntax,System.String[])">
+            <summary>
+            检查是否为所需的字段特性（带有property目标的特性）
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.IsPropertyAttribute(Microsoft.CodeAnalysis.CSharp.Syntax.AttributeSyntax,System.String[])">
+            <summary>
+            检查是否为所需的属性特性
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.IsAttributeNameMatch(Microsoft.CodeAnalysis.CSharp.Syntax.AttributeSyntax,System.String[])">
+            <summary>
+            检查特性名称是否匹配给定的特性名称数组
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.IsPrimary``1(``0)">
+            <summary>
+            判断属性是否为主键属性。
+            </summary>
+            <param name="memberDeclaration"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.GetGeneratorClassName(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax,System.String)">
+            <summary>
+            获取需要生成类名。
+            </summary>
             <param name="classNode"></param>
-            <param name="entityType"></param>
+            <param name="classSuffix">类的后缀</param>
+            <returns></returns>
         </member>
-        <member name="M:Mud.ServiceCodeGenerator.ServiceImpCodeGenerator.IsLikeGenerator(Microsoft.CodeAnalysis.CSharp.Syntax.PropertyDeclarationSyntax)">
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.GetBuilderPropertyNames``1(``0)">
             <summary>
-            检查属性是否为模糊查询
-            </summary>
-            <param name="propertyDeclaration">属性声明</param>
-            <returns>是否为模糊查询</returns>
-        </member>
-        <member name="M:Mud.ServiceCodeGenerator.ServiceImpCodeGenerator.GetNamespaceName(Microsoft.CodeAnalysis.CSharp.Syntax.TypeDeclarationSyntax)">
-            <inheritdoc/>
-        </member>
-        <member name="T:Mud.ServiceCodeGenerator.ServiceInterfaceCodeGenerator">
-            <summary>
-            数据仓库接口代码生成器。
+            获取属性的原始名称（首字母大写）
             </summary>
         </member>
-        <member name="M:Mud.ServiceCodeGenerator.ServiceInterfaceCodeGenerator.GenerateCode(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.BuildProperty(Microsoft.CodeAnalysis.CSharp.Syntax.FieldDeclarationSyntax,System.Boolean)">
+            <summary>
+            根据原始的<see cref="T:Microsoft.CodeAnalysis.CSharp.Syntax.FieldDeclarationSyntax"/>对象生成新的属性对象。
+            </summary>
+            <param name="member"></param>
+            <param name="methBody">是否生成set、get方法体</param>
+            <returns></returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.BuildProperty(Microsoft.CodeAnalysis.CSharp.Syntax.PropertyDeclarationSyntax)">
+            <summary>
+            根据原始的<see cref="T:Microsoft.CodeAnalysis.CSharp.Syntax.PropertyDeclarationSyntax"/>对象生成新的属性对象。
+            </summary>
+            <param name="member"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.BuildProperty(System.String,System.String)">
+            <summary>
+            根据属性名及属性类型生成<see cref="T:Microsoft.CodeAnalysis.CSharp.Syntax.PropertyDeclarationSyntax"/>属性。
+            </summary>
+            <param name="propertyName">属性名。</param>
+            <param name="propertyType">属性类型。</param>
+            <returns></returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.BuildProperty(System.String,System.String,System.String)">
+            <summary>
+            根据属性名、属性类型及私有字段生成<see cref="T:Microsoft.CodeAnalysis.CSharp.Syntax.PropertyDeclarationSyntax"/>属性。
+            </summary>
+            <param name="propertyName">属性名。</param>
+            <param name="propertyType">属性类型。</param>
+            <param name="priFieldName">私有字段</param>
+            <returns></returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveDtoGenerator.GetPropertyType``1(``0)">
+            <summary>
+            获取成员的类型
+            </summary>
+        </member>
+        <member name="T:Mud.EntityCodeGenerator.TransitiveInfoOutputGenerator">
+            <summary>
+            生成业务数据VO InfoOutput类。
+            </summary>
+        </member>
+        <member name="T:Mud.EntityCodeGenerator.TransitiveListOutputGenerator">
+            <summary>
+            生成业务数据VO ListOutput类。
+            </summary>
+        </member>
+        <member name="T:Mud.EntityCodeGenerator.TransitiveVoGenerator">
+            <summary>
+            生成业务数据VO类。
+            </summary>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveVoGenerator.GetConfiguredClassSuffix">
             <inheritdoc/>
         </member>
-        <member name="M:Mud.ServiceCodeGenerator.ServiceInterfaceCodeGenerator.GetNamespaceName(Microsoft.CodeAnalysis.CSharp.Syntax.TypeDeclarationSyntax)">
+        <member name="M:Mud.EntityCodeGenerator.TransitiveVoGenerator.GetPropertyAttributes">
+            <inheritdoc/>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveVoGenerator.GenAttributeFunc(Microsoft.CodeAnalysis.CSharp.Syntax.PropertyDeclarationSyntax)">
+            <summary>
+            生成属性。
+            </summary>
+            <param name="member"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveVoGenerator.GenAttributeFunc(Microsoft.CodeAnalysis.CSharp.Syntax.FieldDeclarationSyntax)">
+            <summary>
+            生成属性。
+            </summary>
+            <param name="member"></param>
+            <returns></returns>
+        </member>
+        <member name="P:Mud.EntityCodeGenerator.TransitiveVoGenerator.GeneratorName">
+            <inheritdoc/>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveVoGenerator.ShouldGenerate(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveVoGenerator.GetGeneratedClassName(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveVoGenerator.GetGeneratedNamespace(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveVoGenerator.GetGeneratorPropertyName">
+            <inheritdoc/>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveVoGenerator.CreatePropertyGenerator">
+            <inheritdoc/>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveVoGenerator.CreateFieldGenerator">
+            <inheritdoc/>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveVoGenerator.CreateSafePropertyGenerator">
+            <inheritdoc/>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveVoGenerator.CreateSafeFieldGenerator">
+            <inheritdoc/>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveVoGenerator.GetFailureDescriptor">
+            <inheritdoc/>
+        </member>
+        <member name="M:Mud.EntityCodeGenerator.TransitiveVoGenerator.GetErrorDescriptor">
             <inheritdoc/>
         </member>
         <member name="T:Mud.CodeGenerator.HttpClientGeneratorConstants">

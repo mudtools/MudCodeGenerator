@@ -40,6 +40,7 @@ internal static class HttpClientGeneratorConstants
     public static readonly string[] PathAttributes = ["PathAttribute", "Path", "RouteAttribute", "Route"];
     public const string QueryAttribute = "QueryAttribute";
     public const string ArrayQueryAttribute = "ArrayQueryAttribute";
+    public const string QueryTokenAttribute = "QueryTokenAttribute";
     public const string HeaderAttribute = "HeaderAttribute";
     public const string BodyAttribute = "BodyAttribute";
     public const string FormContentAttribute = "FormContentAttribute";

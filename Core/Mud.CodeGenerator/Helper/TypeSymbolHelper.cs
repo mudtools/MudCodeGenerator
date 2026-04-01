@@ -176,6 +176,27 @@ internal static class TypeSymbolHelper
                                   attr.ConstructorArguments[0].Value?.ToString() == attributeValue);
     }
 
+    /// <summary>
+    /// 检查接口是否具有指定的特性（不检查特性值）
+    /// </summary>
+    /// <param name="interfaceSymbol">接口符号</param>
+    /// <param name="attributeType">特性类型</param>
+    /// <returns>如果接口具有指定特性返回true，否则返回false</returns>
+    public static bool HasPropertyAttribute(INamedTypeSymbol interfaceSymbol, string attributeType)
+    {
+        if (interfaceSymbol == null)
+            return false;
+
+        var attributeName = attributeType.EndsWith("Attribute", StringComparison.Ordinal)
+            ? attributeType
+            : attributeType + "Attribute";
+
+        return interfaceSymbol.GetAttributes()
+                              .Any(attr =>
+                                  attr.AttributeClass?.Name == attributeName ||
+                                  attr.AttributeClass?.Name == attributeType);
+    }
+
 
     /// <summary>
     /// 判断属性是否具有特定特性
