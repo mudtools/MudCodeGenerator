@@ -44,9 +44,9 @@
             检查方法是否具有指定的特性
             </summary>
         </member>
-        <member name="M:Mud.HttpUtils.Analyzers.MethodAnalyzer.GetHttpContentTypeFromSymbol(Microsoft.CodeAnalysis.ISymbol)">
+        <member name="M:Mud.HttpUtils.Analyzers.MethodAnalyzer.GetMethodContentTypeFromHttpMethodAttribute(Microsoft.CodeAnalysis.IMethodSymbol)">
             <summary>
-            从符号获取HttpContentType特性的ContentType值
+            从HTTP方法特性获取ContentType值（请求内容类型）
             </summary>
         </member>
         <member name="M:Mud.HttpUtils.Analyzers.MethodAnalyzer.GetBodyInfoFromParameters(System.Collections.Generic.IReadOnlyList{Mud.HttpUtils.Models.Analysis.ParameterInfo})">
@@ -853,11 +853,11 @@
             <param name="headerAttr">Header特性</param>
             <returns>Header值</returns>
         </member>
-        <member name="M:Mud.HttpUtils.Helpers.MethodHelper.GetHttpContentTypeFromSymbol(Microsoft.CodeAnalysis.ISymbol)">
+        <member name="M:Mud.HttpUtils.Helpers.MethodHelper.GetMethodContentTypeFromHttpMethodAttribute(Microsoft.CodeAnalysis.AttributeData)">
             <summary>
-            从符号获取HttpContentType特性的ContentType值
+            从HTTP方法特性获取ContentType属性值
             </summary>
-            <param name="symbol">符号（方法或接口）</param>
+            <param name="httpMethodAttributeData">HTTP方法特性数据</param>
             <returns>Content-Type值，如果未定义则返回null</returns>
         </member>
         <member name="M:Mud.HttpUtils.Helpers.MethodHelper.FindMethodSyntax(Microsoft.CodeAnalysis.Compilation,Microsoft.CodeAnalysis.IMethodSymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.SemanticModel)">
@@ -988,14 +988,9 @@
             接口Header特性列表（用于存储所有Header特性的名称和值）
             </summary>
         </member>
-        <member name="P:Mud.HttpUtils.Models.Analysis.MethodAnalysisResult.InterfaceContentType">
-            <summary>
-            接口级别的内容类型（从接口的[HttpContentType]特性获取）
-            </summary>
-        </member>
         <member name="P:Mud.HttpUtils.Models.Analysis.MethodAnalysisResult.MethodContentType">
             <summary>
-            方法级别的内容类型（从方法的[HttpContentType]特性获取）
+            方法级别的内容类型（从HTTP方法特性的ContentType属性获取，如 [Post(ContentType = "application/xml")]）
             </summary>
         </member>
         <member name="P:Mud.HttpUtils.Models.Analysis.MethodAnalysisResult.BodyContentType">
@@ -1040,7 +1035,8 @@
         </member>
         <member name="M:Mud.HttpUtils.Models.Analysis.MethodAnalysisResult.GetEffectiveContentType">
             <summary>
-            获取最终的内容类型（Body参数级 > 方法级 > 接口级）
+            获取最终的内容类型（Body参数级 > 方法级）
+            <para>如果都未定义则返回null，调用方应使用接口级默认值（从HttpClientApi特性获取）</para>
             </summary>
             <returns>内容类型字符串，如果都未定义则返回null</returns>
         </member>

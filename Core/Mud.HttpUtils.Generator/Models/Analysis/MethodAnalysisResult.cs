@@ -86,12 +86,7 @@ internal class MethodAnalysisResult
     public List<InterfaceHeaderAttributeInfo> InterfaceHeaderAttributes { get; set; } = [];
 
     /// <summary>
-    /// 接口级别的内容类型（从接口的[HttpContentType]特性获取）
-    /// </summary>
-    public string? InterfaceContentType { get; set; }
-
-    /// <summary>
-    /// 方法级别的内容类型（从方法的[HttpContentType]特性获取）
+    /// 方法级别的内容类型（从HTTP方法特性的ContentType属性获取，如 [Post(ContentType = "application/xml")]）
     /// </summary>
     public string? MethodContentType { get; set; }
 
@@ -136,12 +131,13 @@ internal class MethodAnalysisResult
     public string? InterfaceTokenName { get; set; }
 
     /// <summary>
-    /// 获取最终的内容类型（Body参数级 > 方法级 > 接口级）
+    /// 获取最终的内容类型（Body参数级 > 方法级）
+    /// <para>如果都未定义则返回null，调用方应使用接口级默认值（从HttpClientApi特性获取）</para>
     /// </summary>
     /// <returns>内容类型字符串，如果都未定义则返回null</returns>
     public string? GetEffectiveContentType()
     {
-        return BodyContentType ?? MethodContentType ?? InterfaceContentType;
+        return BodyContentType ?? MethodContentType;
     }
 
     /// <summary>

@@ -28,6 +28,14 @@ public class HttpMethodAttribute : Attribute
     public string? RequestUri { get; set; }
 
     /// <summary>
+    /// 请求内容类型（用于序列化请求体）
+    /// <para>默认: 从接口或全局配置继承</para>
+    /// <para>示例: "application/json", "application/xml", "text/plain"</para>
+    /// <para>优先级: Body参数ContentType > 方法级ContentType > 接口级ContentType</para>
+    /// </summary>
+    public string? ContentType { get; set; }
+
+    /// <summary>
     /// 响应内容类型（用于反序列化）
     /// <para>默认: 从接口或全局配置继承</para>
     /// <para>示例: "application/json", "application/xml", "text/plain"</para>

@@ -59,12 +59,12 @@ internal static class MethodAnalyzer
         if (string.IsNullOrEmpty(httpMethod) || string.IsNullOrEmpty(urlTemplate))
             return MethodAnalysisResult.Invalid;
 
-        var methodContentType = GetHttpContentTypeFromSymbol(methodSymbol);
+        var methodContentType = GetMethodContentTypeFromHttpMethodAttribute(methodSymbol);
         var responseContentType = GetResponseContentTypeFromSymbol(methodSymbol);
         var responseEnableDecrypt = GetResponseEnableDecryptFromSymbol(methodSymbol);
         var parameters = ParameterAnalyzer.AnalyzeParameters(methodSymbol);
         var (bodyContentType, bodyEnableEncrypt, bodyEncryptSerializeType, bodyEncryptPropertyName) = GetBodyInfoFromParameters(parameters);
-        var (interfaceAttributes, interfaceHeaderAttributes, interfaceContentType, interfaceTokenInjectionMode, interfaceTokenName) = AnalyzeInterfaceAttributes(
+        var (interfaceAttributes, interfaceHeaderAttributes, interfaceTokenInjectionMode, interfaceTokenName) = AnalyzeInterfaceAttributes(
             compilation,
             interfaceDecl,
             semanticModel);
@@ -85,7 +85,6 @@ internal static class MethodAnalyzer
             IgnoreWrapInterface = HasMethodAttribute(methodSymbol, HttpClientGeneratorConstants.IgnoreWrapInterfaceAttributeNames),
             InterfaceAttributes = interfaceAttributes,
             InterfaceHeaderAttributes = interfaceHeaderAttributes,
-            InterfaceContentType = interfaceContentType,
             MethodContentType = methodContentType,
             BodyContentType = bodyContentType,
             ResponseContentType = responseContentType,
@@ -176,28 +175,20 @@ internal static class MethodAnalyzer
     }
 
     /// <summary>
-    /// 从符号获取HttpContentType特性的ContentType值
+    /// 从HTTP方法特性获取ContentType值（请求内容类型）
     /// </summary>
-    public static string? GetHttpContentTypeFromSymbol(ISymbol symbol)
+    public static string? GetMethodContentTypeFromHttpMethodAttribute(IMethodSymbol methodSymbol)
     {
-        if (symbol == null)
+        if (methodSymbol == null)
             return null;
 
-        var httpContentTypeAttr = AttributeDataHelper.GetAttributeDataFromSymbol(
-            symbol,
-            HttpClientGeneratorConstants.HttpContentTypeAttributeNames);
+        var httpMethodAttr = methodSymbol.GetAttributes()
+            .FirstOrDefault(attr => HttpClientGeneratorConstants.SupportedHttpMethods.Contains(attr.AttributeClass?.Name));
 
-        if (httpContentTypeAttr == null)
+        if (httpMethodAttr == null)
             return null;
 
-        if (httpContentTypeAttr.ConstructorArguments.Length > 0)
-        {
-            var constructorArg = httpContentTypeAttr.ConstructorArguments[0].Value?.ToString();
-            if (!string.IsNullOrEmpty(constructorArg))
-                return constructorArg;
-        }
-
-        return AttributeDataHelper.GetStringValueFromAttribute(httpContentTypeAttr, ["ContentType"]);
+        return AttributeDataHelper.GetStringValueFromAttribute(httpMethodAttr, [HttpClientGeneratorConstants.HttpMethodContentTypeProperty]);
     }
 
     /// <summary>
@@ -219,6 +210,11 @@ internal static class MethodAnalyzer
         string? encryptSerializeType = null;
         string? encryptPropertyName = null;
 
+        // 先检查构造函数参数（如 [Body("application/xml")]）
+        if (bodyAttr.Arguments.Length > 0)
+            contentType = bodyAttr.Arguments[0]?.ToString();
+
+        // 再检查命名参数（如 [Body(ContentType = "application/xml")]）
         if (bodyAttr.NamedArguments.TryGetValue("ContentType", out var ctValue))
             contentType = ctValue?.ToString();
 
@@ -450,21 +446,18 @@ internal static class MethodAnalyzer
     /// <summary>
     /// 分析接口特性
     /// </summary>
-    private static (HashSet<string> interfaceAttributes, List<InterfaceHeaderAttributeInfo> interfaceHeaderAttributes, string? interfaceContentType, string? interfaceTokenInjectionMode, string? interfaceTokenName)
+    private static (HashSet<string> interfaceAttributes, List<InterfaceHeaderAttributeInfo> interfaceHeaderAttributes, string? interfaceTokenInjectionMode, string? interfaceTokenName)
         AnalyzeInterfaceAttributes(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl, SemanticModel? semanticModel)
     {
         var model = semanticModel ?? SemanticModelCache.GetOrCreate(compilation, interfaceDecl.SyntaxTree);
         var interfaceSymbol = model.GetDeclaredSymbol(interfaceDecl) as INamedTypeSymbol;
         var interfaceAttributes = new HashSet<string>();
         var interfaceHeaderAttributes = new List<InterfaceHeaderAttributeInfo>();
-        string? interfaceContentType = null;
         string? interfaceTokenInjectionMode = null;
         string? interfaceTokenName = null;
 
         if (interfaceSymbol != null)
         {
-            interfaceContentType = GetHttpContentTypeFromSymbol(interfaceSymbol);
-
             var headerAttributes = interfaceSymbol.GetAttributes()
                 .Where(attr => attr.AttributeClass?.Name == "HeaderAttribute" || attr.AttributeClass?.Name == "Header");
 
@@ -516,7 +509,7 @@ internal static class MethodAnalyzer
             }
         }
 
-        return (interfaceAttributes, interfaceHeaderAttributes, interfaceContentType, interfaceTokenInjectionMode, interfaceTokenName);
+        return (interfaceAttributes, interfaceHeaderAttributes, interfaceTokenInjectionMode, interfaceTokenName);
     }
 
     /// <summary>

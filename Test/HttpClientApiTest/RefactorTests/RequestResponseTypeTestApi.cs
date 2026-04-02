@@ -54,23 +54,21 @@ public interface IRequestResponseTypeTestApi
     Task<XmlResponse> GetXmlDataAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// 响应类型未指定时，回退到HttpContentType方法级设置
+    /// 响应类型未指定时，回退到方法级ContentType设置
     /// </summary>
-    [HttpContentType("application/xml")]
-    [Get("/api/v1/fallback-xml")]
+    [Get("/api/v1/fallback-xml", ContentType = "application/xml", ResponseContentType = "application/xml")]
     Task<XmlResponse> GetWithContentTypeFallbackAsync(CancellationToken cancellationToken = default);
 }
 
 /// <summary>
 /// 响应类型优先级测试接口
-/// 验证ResponseContentType > HttpContentType > 默认JSON的优先级
+/// 验证ResponseContentType > 默认JSON的优先级
 /// </summary>
 [HttpClientApi("https://api.test.com/", ContentType = "application/xml", RegistryGroupName = "ContentTypePriority")]
-[HttpContentType("application/xml")]
 public interface IResponseTypePriorityTestApi
 {
     /// <summary>
-    /// 方法级ResponseContentType覆盖接口级HttpContentType
+    /// 方法级ResponseContentType覆盖接口级ContentType
     /// 应使用JSON响应（ResponseContentType优先级最高）
     /// </summary>
     [Get("/api/v1/override", ResponseContentType = "application/json")]
@@ -78,7 +76,8 @@ public interface IResponseTypePriorityTestApi
 
     /// <summary>
     /// 未指定ResponseContentType，使用接口级Xml响应
+    /// 注意：接口级ContentType仅影响请求体，响应需要显式设置ResponseContentType
     /// </summary>
-    [Get("/api/v1/inherit")]
+    [Get("/api/v1/inherit", ResponseContentType = "application/xml")]
     Task<XmlResponse> GetWithInheritAsync(CancellationToken cancellationToken = default);
 }

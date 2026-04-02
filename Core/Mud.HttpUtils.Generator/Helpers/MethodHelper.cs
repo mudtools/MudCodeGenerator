@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
 //  作者：Mud Studio  版权所有 (c) Mud Studio 2025   
 //  Mud.CodeGenerator 项目的版权、商标、专利和其他相关权利均受相应法律法规的保护。使用本项目应遵守相关法律法规和许可证的要求。
 //  本项目主要遵循 MIT 许可证进行分发和使用。许可证位于源代码树根目录中的 LICENSE-MIT 文件。
@@ -71,8 +71,8 @@ internal sealed class MethodHelper
         if (string.IsNullOrEmpty(httpMethod) || string.IsNullOrEmpty(urlTemplate))
             return MethodAnalysisResult.Invalid;
 
-        // 获取方法级别的HttpContentType特性
-        var methodContentType = GetHttpContentTypeFromSymbol(methodSymbol);
+        // 从HTTP方法特性获取ContentType属性
+        var methodContentType = GetMethodContentTypeFromHttpMethodAttribute(httpMethodAttributeData);
 
         var parameters = methodSymbol.Parameters.Select(p =>
         {
@@ -105,13 +105,9 @@ internal sealed class MethodHelper
         var interfaceSymbol = model.GetDeclaredSymbol(interfaceDecl) as INamedTypeSymbol;
         var interfaceAttributes = new HashSet<string>();
         var interfaceHeaderAttributes = new List<InterfaceHeaderAttributeInfo>();
-        string? interfaceContentType = null;
 
         if (interfaceSymbol != null)
         {
-            // 获取接口级别的HttpContentType特性
-            interfaceContentType = GetHttpContentTypeFromSymbol(interfaceSymbol);
-
             // 检查并处理所有[Header]特性
             var headerAttributes = interfaceSymbol.GetAttributes()
                 .Where(attr => (attr.AttributeClass?.Name == "HeaderAttribute" || attr.AttributeClass?.Name == "Header"));
@@ -171,7 +167,6 @@ internal sealed class MethodHelper
             IgnoreWrapInterface = HasMethodAttribute(methodSymbol, HttpClientGeneratorConstants.IgnoreWrapInterfaceAttributeNames),
             InterfaceAttributes = interfaceAttributes,
             InterfaceHeaderAttributes = interfaceHeaderAttributes,
-            InterfaceContentType = interfaceContentType,
             MethodContentType = methodContentType
         };
     }
@@ -288,33 +283,16 @@ internal sealed class MethodHelper
 
 
     /// <summary>
-    /// 从符号获取HttpContentType特性的ContentType值
+    /// 从HTTP方法特性获取ContentType属性值
     /// </summary>
-    /// <param name="symbol">符号（方法或接口）</param>
+    /// <param name="httpMethodAttributeData">HTTP方法特性数据</param>
     /// <returns>Content-Type值，如果未定义则返回null</returns>
-    private static string? GetHttpContentTypeFromSymbol(ISymbol symbol)
+    private static string? GetMethodContentTypeFromHttpMethodAttribute(AttributeData? httpMethodAttributeData)
     {
-        if (symbol == null)
+        if (httpMethodAttributeData == null)
             return null;
 
-        // 查找HttpContentType特性
-        var httpContentTypeAttr = AttributeDataHelper.GetAttributeDataFromSymbol(
-            symbol,
-            HttpClientGeneratorConstants.HttpContentTypeAttributeNames);
-
-        if (httpContentTypeAttr == null)
-            return null;
-
-        // 优先从构造函数参数获取
-        if (httpContentTypeAttr.ConstructorArguments.Length > 0)
-        {
-            var constructorArg = httpContentTypeAttr.ConstructorArguments[0].Value?.ToString();
-            if (!string.IsNullOrEmpty(constructorArg))
-                return constructorArg;
-        }
-
-        // 从命名参数获取
-        return AttributeDataHelper.GetStringValueFromAttribute(httpContentTypeAttr, ["ContentType"]);
+        return AttributeDataHelper.GetStringValueFromAttribute(httpMethodAttributeData, [HttpClientGeneratorConstants.HttpMethodContentTypeProperty]);
     }
 
     /// <summary>

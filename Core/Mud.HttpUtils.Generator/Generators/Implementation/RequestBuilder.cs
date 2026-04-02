@@ -168,7 +168,7 @@ internal class RequestBuilder
         var bodyAttr = bodyParam.Attributes.First(a => a.Name == HttpClientGeneratorConstants.BodyAttribute);
         var useStringContent = GetUseStringContentFlag(bodyAttr);
         var contentType = GetBodyContentType(bodyAttr);
-        var hasExplicitContentType = bodyAttr.NamedArguments.ContainsKey("ContentType");
+        var hasExplicitContentType = bodyAttr.Arguments.Length > 0 || bodyAttr.NamedArguments.ContainsKey("ContentType");
 
         string contentTypeExpression;
         string? effectiveContentType = null;
@@ -246,7 +246,7 @@ internal class RequestBuilder
             }
             else
             {
-                var responseContentType = methodInfo.ResponseContentType ?? methodInfo.GetEffectiveContentType();
+                var responseContentType = methodInfo.ResponseContentType;
                 var isXmlResponse = IsXmlContentType(responseContentType);
 
                 if (isXmlResponse)
@@ -455,6 +455,15 @@ internal class RequestBuilder
 
     private string GetBodyContentType(ParameterAttributeInfo bodyAttr)
     {
+        // 先检查构造函数参数（如 [Body("application/xml")]）
+        if (bodyAttr.Arguments.Length > 0)
+        {
+            var ctorContentType = bodyAttr.Arguments[0]?.ToString();
+            if (!string.IsNullOrEmpty(ctorContentType))
+                return ctorContentType;
+        }
+
+        // 再检查命名参数（如 [Body(ContentType = "application/xml")]）
         return bodyAttr.NamedArguments.TryGetValue("ContentType", out var contentTypeArg)
             ? (contentTypeArg?.ToString() ?? "application/json")
             : "application/json";
