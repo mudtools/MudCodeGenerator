@@ -79,7 +79,7 @@ public interface ITestNullTokenApi : ITestBaseTokenApi
 [Header("Authorization", AliasAs = "X-Token")]
 [Header("xx1", "xxValue1")]
 [Header("xx2", "xxValue3")]
-[Token(TokenType = TokenType.TenantAccessToken)]
+[Token(TokenType = TokenType.TenantAccessToken, InjectionMode = TokenInjectionMode.Query)]
 public interface ITestTokenApi : ITestBaseTokenApi
 {
     /// <summary>
@@ -128,8 +128,7 @@ public interface ITestTokenApi : ITestBaseTokenApi
 /// 测试通过Query参数传递Token的场景
 /// </summary>
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), InheritedFrom = nameof(TestBaseTokenApi))]
-[Query("Authorization", AliasAs = "X-Token")]
-[Token(TokenType = TokenType.UserAccessToken)]
+[Token(TokenType = TokenType.UserAccessToken, Name = "Token", InjectionMode = TokenInjectionMode.Path)]
 public interface ITestUserTokenQueryApi : ICurrentUserId, ITestBaseTokenApi
 {
     /// <summary>
@@ -137,6 +136,6 @@ public interface ITestUserTokenQueryApi : ICurrentUserId, ITestBaseTokenApi
     /// 接口：GET api/users/{id}
     /// 特点：通过Query参数传递Authorization
     /// </summary>
-    [Get("api/users/{id}")]
+    [Get("api/users/{Token}/{id}")]
     Task<UserInfo> GetUserAsync([Path] string id, CancellationToken cancellationToken = default);
 }

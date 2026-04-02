@@ -101,6 +101,41 @@ internal class MethodAnalysisResult
     public string? BodyContentType { get; set; }
 
     /// <summary>
+    /// 响应内容类型（由HTTP方法特性的ResponseContentType指定）
+    /// </summary>
+    public string? ResponseContentType { get; set; }
+
+    /// <summary>
+    /// 响应是否启用解密
+    /// </summary>
+    public bool ResponseEnableDecrypt { get; set; }
+
+    /// <summary>
+    /// Body参数是否启用加密
+    /// </summary>
+    public bool BodyEnableEncrypt { get; set; }
+
+    /// <summary>
+    /// Body加密序列化类型（Json/Xml）
+    /// </summary>
+    public string? BodyEncryptSerializeType { get; set; }
+
+    /// <summary>
+    /// Body加密后数据包装属性名
+    /// </summary>
+    public string? BodyEncryptPropertyName { get; set; }
+
+    /// <summary>
+    /// 接口级Token注入模式（Header/Query/Path）
+    /// </summary>
+    public string? InterfaceTokenInjectionMode { get; set; }
+
+    /// <summary>
+    /// 接口级Token名称
+    /// </summary>
+    public string? InterfaceTokenName { get; set; }
+
+    /// <summary>
     /// 获取最终的内容类型（Body参数级 > 方法级 > 接口级）
     /// </summary>
     /// <returns>内容类型字符串，如果都未定义则返回null</returns>

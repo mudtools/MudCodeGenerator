@@ -8,8 +8,7 @@ using Mud.HttpUtils.Attributes;
 /// 示例URL: https://api.weixin.qq.com/cgi-bin/user/tag/get?access_token=ACCESS_TOKEN
 /// </summary>
 [HttpClientApi("https://api.weixin.qq.com", Timeout = 30, TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Weixin")]
-[QueryToken("provider_access_token")]
-[Token(TokenType = TokenType.TenantAccessToken)]
+[Token(TokenType = TokenType.UserAccessToken, Name = "provider_access_token", InjectionMode = TokenInjectionMode.Header)]
 public interface IWeixinApi
 {
     /// <summary>
@@ -26,7 +25,7 @@ public interface IWeixinApi
     /// 特点：使用QueryToken和Body参数
     /// </summary>
     [Post("/cgi-bin/tags/create")]
-    Task<WeixinTagResult?> CreateTagAsync([Body] WeixinTagCreateRequest tagCreateRequest);
+    Task<WeixinTagResult?> CreateTagAsync([Body(EnableEncrypt = true)] WeixinTagCreateRequest tagCreateRequest);
 
     /// <summary>
     /// 获取用户身上的标签列表

@@ -49,9 +49,29 @@
             从符号获取HttpContentType特性的ContentType值
             </summary>
         </member>
-        <member name="M:Mud.HttpUtils.Analyzers.MethodAnalyzer.GetBodyContentTypeFromParameters(System.Collections.Generic.IReadOnlyList{Mud.HttpUtils.Models.Analysis.ParameterInfo})">
+        <member name="M:Mud.HttpUtils.Analyzers.MethodAnalyzer.GetBodyInfoFromParameters(System.Collections.Generic.IReadOnlyList{Mud.HttpUtils.Models.Analysis.ParameterInfo})">
             <summary>
-            从参数列表中提取Body参数的ContentType值
+            从参数列表中提取Body参数的ContentType、加密配置等信息
+            </summary>
+        </member>
+        <member name="M:Mud.HttpUtils.Analyzers.MethodAnalyzer.GetEnumNameFromTypedConstant(System.Object,System.String)">
+            <summary>
+            从TypedConstant获取枚举名称，如果获取失败则返回默认值
+            </summary>
+        </member>
+        <member name="M:Mud.HttpUtils.Analyzers.MethodAnalyzer.GetTokenInjectionModeName(System.Object)">
+            <summary>
+            从TypedConstant获取TokenInjectionMode枚举名称
+            </summary>
+        </member>
+        <member name="M:Mud.HttpUtils.Analyzers.MethodAnalyzer.GetResponseContentTypeFromSymbol(Microsoft.CodeAnalysis.IMethodSymbol)">
+            <summary>
+            从方法符号获取HTTP方法特性的ResponseContentType值
+            </summary>
+        </member>
+        <member name="M:Mud.HttpUtils.Analyzers.MethodAnalyzer.GetResponseEnableDecryptFromSymbol(Microsoft.CodeAnalysis.IMethodSymbol)">
+            <summary>
+            从方法符号获取HTTP方法特性的ResponseEnableDecrypt值
             </summary>
         </member>
         <member name="M:Mud.HttpUtils.Analyzers.MethodAnalyzer.FindMethodSyntax(Microsoft.CodeAnalysis.Compilation,Microsoft.CodeAnalysis.IMethodSymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.SemanticModel)">
@@ -74,6 +94,16 @@
             分析接口特性
             </summary>
         </member>
+        <member name="M:Mud.HttpUtils.Analyzers.MethodAnalyzer.GetTokenInjectionMode(Microsoft.CodeAnalysis.AttributeData)">
+            <summary>
+            获取Token特性的InjectionMode值
+            </summary>
+        </member>
+        <member name="M:Mud.HttpUtils.Analyzers.MethodAnalyzer.GetTokenName(Microsoft.CodeAnalysis.AttributeData)">
+            <summary>
+            获取Token特性的Name值
+            </summary>
+        </member>
         <member name="M:Mud.HttpUtils.Analyzers.MethodAnalyzer.GetHeaderName(Microsoft.CodeAnalysis.AttributeData)">
             <summary>
             获取Header特性的名称
@@ -87,11 +117,6 @@
         <member name="M:Mud.HttpUtils.Analyzers.MethodAnalyzer.GetHeaderReplace(Microsoft.CodeAnalysis.AttributeData)">
             <summary>
             获取Header特性的Replace设置
-            </summary>
-        </member>
-        <member name="M:Mud.HttpUtils.Analyzers.MethodAnalyzer.GetQueryTokenName(Microsoft.CodeAnalysis.AttributeData)">
-            <summary>
-            获取QueryToken特性的名称
             </summary>
         </member>
         <member name="T:Mud.HttpUtils.Analyzers.MethodHelperLegacy">
@@ -976,6 +1001,41 @@
         <member name="P:Mud.HttpUtils.Models.Analysis.MethodAnalysisResult.BodyContentType">
             <summary>
             Body参数级别的内容类型（从[Body]特性的ContentType参数获取）
+            </summary>
+        </member>
+        <member name="P:Mud.HttpUtils.Models.Analysis.MethodAnalysisResult.ResponseContentType">
+            <summary>
+            响应内容类型（由HTTP方法特性的ResponseContentType指定）
+            </summary>
+        </member>
+        <member name="P:Mud.HttpUtils.Models.Analysis.MethodAnalysisResult.ResponseEnableDecrypt">
+            <summary>
+            响应是否启用解密
+            </summary>
+        </member>
+        <member name="P:Mud.HttpUtils.Models.Analysis.MethodAnalysisResult.BodyEnableEncrypt">
+            <summary>
+            Body参数是否启用加密
+            </summary>
+        </member>
+        <member name="P:Mud.HttpUtils.Models.Analysis.MethodAnalysisResult.BodyEncryptSerializeType">
+            <summary>
+            Body加密序列化类型（Json/Xml）
+            </summary>
+        </member>
+        <member name="P:Mud.HttpUtils.Models.Analysis.MethodAnalysisResult.BodyEncryptPropertyName">
+            <summary>
+            Body加密后数据包装属性名
+            </summary>
+        </member>
+        <member name="P:Mud.HttpUtils.Models.Analysis.MethodAnalysisResult.InterfaceTokenInjectionMode">
+            <summary>
+            接口级Token注入模式（Header/Query/Path）
+            </summary>
+        </member>
+        <member name="P:Mud.HttpUtils.Models.Analysis.MethodAnalysisResult.InterfaceTokenName">
+            <summary>
+            接口级Token名称
             </summary>
         </member>
         <member name="M:Mud.HttpUtils.Models.Analysis.MethodAnalysisResult.GetEffectiveContentType">

@@ -13,7 +13,9 @@ internal sealed class GeneratedCodeConsts
 {
     public const string CompilerGeneratedAttribute = "[global::System.Runtime.CompilerServices.CompilerGenerated]";
 
-    public static string GeneratedCodeAttribute => $"[global::System.CodeDom.Compiler.GeneratedCode(\"Mud.ServiceCodeGenerator\", \"{GetAssemblyVersion()}\")]";
+    public static string ServiceGeneratedCodeAttribute => $"[global::System.CodeDom.Compiler.GeneratedCode(\"Mud.ServiceCodeGenerator\", \"{GetAssemblyVersion()}\")]";
+
+    public static string HttpGeneratedCodeAttribute => $"[global::System.CodeDom.Compiler.GeneratedCode(\"Mud.HttpUtils.Generator\", \"{GetAssemblyVersion()}\")]";
 
     public static string IgnoreGeneratorAttribute = "IgnoreGeneratorAttribute";
     /// <summary>

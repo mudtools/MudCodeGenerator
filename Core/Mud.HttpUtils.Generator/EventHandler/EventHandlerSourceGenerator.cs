@@ -240,7 +240,7 @@ internal class EventHandlerSourceGenerator : TransitiveCodeGenerator
 
         // 类声明
         sb.AppendLine($"    {GeneratedCodeConsts.CompilerGeneratedAttribute}");
-        sb.AppendLine($"    {GeneratedCodeConsts.GeneratedCodeAttribute}");
+        sb.AppendLine($"    {GeneratedCodeConsts.HttpGeneratedCodeAttribute}");
         sb.AppendLine($"    public abstract partial class {generatedClassName}");
         sb.AppendLine($"        : {inheritedFrom}<{eventClass.Identifier.Text}>");
         sb.AppendLine("    {");
@@ -251,7 +251,7 @@ internal class EventHandlerSourceGenerator : TransitiveCodeGenerator
         sb.AppendLine("        /// </summary>");
         sb.AppendLine("        /// <param name=\"businessDeduplicator\">飞书事件去重服务接口</param>");
         sb.AppendLine("        /// <param name=\"logger\">日志记录对象。</param>");
-        sb.AppendLine($"        {GeneratedCodeConsts.GeneratedCodeAttribute}");
+        sb.AppendLine($"        {GeneratedCodeConsts.HttpGeneratedCodeAttribute}");
         sb.AppendLine($"        public {generatedClassName}(IFeishuEventDeduplicator businessDeduplicator, ILogger logger)");
         sb.AppendLine("            : base(businessDeduplicator,logger)");
         sb.AppendLine("        {");
@@ -265,7 +265,7 @@ internal class EventHandlerSourceGenerator : TransitiveCodeGenerator
             sb.AppendLine("        /// 支持的事件类型");
             sb.AppendLine("        /// </summary>");
             var eventTypeValue = NormalizeEventType(eventType);
-            sb.AppendLine($"        {GeneratedCodeConsts.GeneratedCodeAttribute}");
+            sb.AppendLine($"        {GeneratedCodeConsts.HttpGeneratedCodeAttribute}");
             sb.AppendLine($"        public override string SupportedEventType => {eventTypeValue};");
         }
 

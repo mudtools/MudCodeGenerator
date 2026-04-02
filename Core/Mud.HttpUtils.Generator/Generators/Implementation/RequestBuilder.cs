@@ -26,23 +26,34 @@ internal class RequestBuilder
             .ToList();
 
         var urlTemplate = methodInfo.UrlTemplate;
+        var interpolatedUrl = urlTemplate;
+        var hasPathParams = pathParams.Any();
+        var isTokenPathMode = methodInfo.InterfaceTokenInjectionMode == HttpClientGeneratorConstants.TokenInjectionModePath;
+
+        // 处理 Token Path 模式：将 URL 中的 {tokenName} 替换为 access_token
+        if (isTokenPathMode && !string.IsNullOrEmpty(methodInfo.InterfaceTokenName))
+        {
+            var tokenPlaceholder = $"{{{methodInfo.InterfaceTokenName}}}";
+            if (interpolatedUrl.Contains(tokenPlaceholder))
+            {
+                interpolatedUrl = interpolatedUrl.Replace(tokenPlaceholder, "{access_token}");
+            }
+        }
 
         // 处理路径参数插值
-        if (pathParams.Any())
+        if (hasPathParams)
         {
-            var interpolatedUrl = urlTemplate;
             foreach (var param in pathParams)
             {
-                if (urlTemplate.Contains($"{{{param.Name}}}"))
+                if (interpolatedUrl.Contains($"{{{param.Name}}}"))
                 {
                     var formatString = GetFormatString(param.Attributes.First(a => HttpClientGeneratorConstants.PathAttributes.Contains(a.Name)));
                     interpolatedUrl = FormatUrlParameter(interpolatedUrl, param.Name, formatString);
                 }
             }
-            return $"            var url = $\"{interpolatedUrl}\";";
         }
 
-        return $"            var url = $\"{urlTemplate}\";";
+        return $"            var url = $\"{interpolatedUrl}\";";
     }
 
     /// <summary>
@@ -58,13 +69,9 @@ internal class RequestBuilder
             .Where(p => p.Attributes.Any(attr => attr.Name == HttpClientGeneratorConstants.ArrayQueryAttribute))
             .ToList();
 
-        // 检查接口是否有[Query("Authorization")]特性（支持AliasAs）
-        var hasAuthorizationQuery = methodInfo.InterfaceAttributes?.Any(attr => attr.StartsWith("Query:", StringComparison.Ordinal)) == true;
+        var hasTokenQuery = ShouldGenerateTokenQuery(methodInfo);
 
-        // 检查接口是否有[QueryToken]特性
-        var hasQueryToken = methodInfo.InterfaceAttributes?.Any(attr => attr.StartsWith("QueryToken:", StringComparison.Ordinal)) == true;
-
-        if (!queryParams.Any() && !arrayQueryParams.Any() && !hasAuthorizationQuery && !hasQueryToken)
+        if (!queryParams.Any() && !arrayQueryParams.Any() && !hasTokenQuery)
             return;
 
         codeBuilder.AppendLine($"            var queryParams = HttpUtility.ParseQueryString(string.Empty);");
@@ -79,38 +86,10 @@ internal class RequestBuilder
             GenerateArrayQueryParameter(codeBuilder, param);
         }
 
-        // 添加Authorization query参数
-        if (hasAuthorizationQuery)
+        if (hasTokenQuery)
         {
-            // 从接口特性中获取实际的query参数名称
-            var queryName = "Authorization";
-            if (methodInfo.InterfaceAttributes?.Any() == true)
-            {
-                var queryAttr = methodInfo.InterfaceAttributes.FirstOrDefault(attr => attr.StartsWith("Query:", StringComparison.Ordinal));
-                if (!string.IsNullOrEmpty(queryAttr))
-                {
-                    queryName = queryAttr.Substring(6); // 去掉"Query:"前缀
-                }
-            }
-            codeBuilder.AppendLine($"            // 添加Authorization query参数 as {queryName}");
-            codeBuilder.AppendLine($"            queryParams.Add(\"{queryName}\", access_token);");
-        }
-
-        // 添加QueryToken参数（如微信access_token）
-        if (hasQueryToken)
-        {
-            // 从接口特性中获取实际的query参数名称
-            var tokenName = "access_token";
-            if (methodInfo.InterfaceAttributes?.Any() == true)
-            {
-                var queryTokenAttr = methodInfo.InterfaceAttributes.FirstOrDefault(attr => attr.StartsWith("QueryToken:", StringComparison.Ordinal));
-                if (!string.IsNullOrEmpty(queryTokenAttr))
-                {
-                    tokenName = queryTokenAttr.Substring(11); // 去掉"QueryToken:"前缀
-                }
-            }
-            codeBuilder.AppendLine($"            // 添加QueryToken参数 as {tokenName}");
-            codeBuilder.AppendLine($"            queryParams.Add(\"{tokenName}\", access_token);");
+            var tokenQueryName = GetTokenQueryName(methodInfo);
+            codeBuilder.AppendLine($"            queryParams.Add(\"{tokenQueryName}\", access_token);");
         }
 
         codeBuilder.AppendLine("            if (queryParams.Count > 0)");
@@ -148,23 +127,13 @@ internal class RequestBuilder
             .Where(p => p.Attributes.Any(attr => attr.Name == HttpClientGeneratorConstants.HeaderAttribute))
             .ToList();
 
-        // 获取接口级别的Header名称（用于覆盖Token参数的Header名称）
-        string? interfaceHeaderName = null;
-        if (methodInfo.InterfaceAttributes?.Any() == true)
-        {
-            var headerAttr = methodInfo.InterfaceAttributes.FirstOrDefault(attr => attr.StartsWith("Header:", StringComparison.Ordinal));
-            if (!string.IsNullOrEmpty(headerAttr))
-            {
-                interfaceHeaderName = headerAttr.Substring(7); // 去掉"Header:"前缀
-            }
-        }
+        string? interfaceHeaderName = GetTokenHeaderName(methodInfo);
 
         foreach (var param in headerParams)
         {
             var headerAttr = param.Attributes.First(a => a.Name == HttpClientGeneratorConstants.HeaderAttribute);
             var headerName = headerAttr.Arguments.FirstOrDefault()?.ToString() ?? param.Name;
 
-            // 如果参数是Token参数，并且接口级别有定义Header，则使用接口级别的Header名称
             var isTokenParam = param.Attributes.Any(attr => HttpClientGeneratorConstants.TokenAttributeNames.Contains(attr.Name));
             if (isTokenParam && !string.IsNullOrEmpty(interfaceHeaderName))
             {
@@ -187,7 +156,6 @@ internal class RequestBuilder
         var formContentParam = methodInfo.Parameters
             .FirstOrDefault(p => p.Attributes.Any(attr => attr.Name == HttpClientGeneratorConstants.FormContentAttribute));
 
-        // 优先处理 FormContent 参数
         if (formContentParam != null)
         {
             GenerateFormContentParameter(codeBuilder, formContentParam, methodInfo);
@@ -200,11 +168,8 @@ internal class RequestBuilder
         var bodyAttr = bodyParam.Attributes.First(a => a.Name == HttpClientGeneratorConstants.BodyAttribute);
         var useStringContent = GetUseStringContentFlag(bodyAttr);
         var contentType = GetBodyContentType(bodyAttr);
-
-        // 检查参数是否明确指定了ContentType
         var hasExplicitContentType = bodyAttr.NamedArguments.ContainsKey("ContentType");
 
-        // 获取有效的内容类型（方法级 > 接口级 > Body参数级 > 默认值）
         string contentTypeExpression;
         string? effectiveContentType = null;
         if (hasExplicitContentType)
@@ -220,22 +185,26 @@ internal class RequestBuilder
                 : "GetMediaType(_defaultContentType)";
         }
 
-        // 检查是否为XML内容类型
         var isXmlContentType = IsXmlContentType(effectiveContentType ?? contentType);
 
-        if (useStringContent)
+        if (methodInfo.BodyEnableEncrypt)
+        {
+            var propertyName = methodInfo.BodyEncryptPropertyName ?? "data";
+            var serializeType = methodInfo.BodyEncryptSerializeType ?? "Json";
+            codeBuilder.AppendLine($"            var encryptedContent = _appContext.HttpClient.EncryptContent({bodyParam.Name}, \"{propertyName}\", SerializeType.{serializeType});");
+            codeBuilder.AppendLine($"            httpRequest.Content = new StringContent(encryptedContent, Encoding.UTF8, {contentTypeExpression});");
+        }
+        else if (useStringContent)
         {
             codeBuilder.AppendLine($"            httpRequest.Content = new StringContent({bodyParam.Name}.ToString() ?? \"\", Encoding.UTF8, {contentTypeExpression});");
         }
         else if (isXmlContentType)
         {
-            // XML序列化
             codeBuilder.AppendLine($"            var xmlContent = XmlSerialize.Serialize({bodyParam.Name});");
             codeBuilder.AppendLine($"            httpRequest.Content = new StringContent(xmlContent, Encoding.UTF8, {contentTypeExpression});");
         }
         else
         {
-            // JSON序列化（默认）
             codeBuilder.AppendLine($"            var jsonContent = JsonSerializer.Serialize({bodyParam.Name}, _jsonSerializerOptions);");
             codeBuilder.AppendLine($"            httpRequest.Content = new StringContent(jsonContent, Encoding.UTF8, {contentTypeExpression});");
         }
@@ -264,10 +233,6 @@ internal class RequestBuilder
         var deserializeType = methodInfo.IsAsyncMethod ? methodInfo.AsyncInnerReturnType : methodInfo.ReturnType;
         codeBuilder.AppendLine();
 
-        // 检查是否为XML内容类型
-        var effectiveContentType = methodInfo.GetEffectiveContentType();
-        var isXmlContentType = IsXmlContentType(effectiveContentType);
-
         codeBuilder.AppendLine($"            var httpClient = _appContext.HttpClient;");
         if (filePathParam != null)
         {
@@ -279,19 +244,59 @@ internal class RequestBuilder
             {
                 codeBuilder.AppendLine($"            return await httpClient.DownloadAsync(httpRequest{cancellationTokenArg});");
             }
-            else if (isXmlContentType)
-            {
-                // XML响应使用SendXmlAsync
-                codeBuilder.AppendLine($"            return await httpClient.SendXmlAsync<{deserializeType}>(httpRequest, null{cancellationTokenArg});");
-            }
             else
             {
-                codeBuilder.AppendLine($"            return await httpClient.SendAsync<{deserializeType}>(httpRequest{cancellationTokenArg});");
+                var responseContentType = methodInfo.ResponseContentType ?? methodInfo.GetEffectiveContentType();
+                var isXmlResponse = IsXmlContentType(responseContentType);
+
+                if (isXmlResponse)
+                {
+                    codeBuilder.AppendLine($"            return await httpClient.SendXmlAsync<{deserializeType}>(httpRequest, null{cancellationTokenArg});");
+                }
+                else
+                {
+                    codeBuilder.AppendLine($"            return await httpClient.SendAsync<{deserializeType}>(httpRequest{cancellationTokenArg});");
+                }
             }
         }
     }
 
     #region 辅助方法
+
+    private bool ShouldGenerateTokenQuery(MethodAnalysisResult methodInfo)
+    {
+        if (!string.IsNullOrEmpty(methodInfo.InterfaceTokenInjectionMode) &&
+            methodInfo.InterfaceTokenInjectionMode == HttpClientGeneratorConstants.TokenInjectionModeQuery)
+            return true;
+
+        return methodInfo.InterfaceAttributes?.Any(attr => attr.StartsWith("Query:", StringComparison.Ordinal)) == true;
+    }
+
+    private string GetTokenQueryName(MethodAnalysisResult methodInfo)
+    {
+        if (!string.IsNullOrEmpty(methodInfo.InterfaceTokenName))
+            return methodInfo.InterfaceTokenName;
+
+        var queryAttr = methodInfo.InterfaceAttributes?.FirstOrDefault(attr => attr.StartsWith("Query:", StringComparison.Ordinal));
+        if (!string.IsNullOrEmpty(queryAttr))
+            return queryAttr.Substring(6);
+
+        return "access_token";
+    }
+
+    private string? GetTokenHeaderName(MethodAnalysisResult methodInfo)
+    {
+        if (!string.IsNullOrEmpty(methodInfo.InterfaceTokenInjectionMode) &&
+            methodInfo.InterfaceTokenInjectionMode == HttpClientGeneratorConstants.TokenInjectionModeHeader &&
+            !string.IsNullOrEmpty(methodInfo.InterfaceTokenName))
+            return methodInfo.InterfaceTokenName;
+
+        var headerAttr = methodInfo.InterfaceAttributes?.FirstOrDefault(attr => attr.StartsWith("Header:", StringComparison.Ordinal));
+        if (!string.IsNullOrEmpty(headerAttr))
+            return headerAttr.Substring(7);
+
+        return null;
+    }
 
     private string FormatUrlParameter(string url, string paramName, string? formatString)
     {

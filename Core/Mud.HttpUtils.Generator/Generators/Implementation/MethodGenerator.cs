@@ -8,7 +8,6 @@
 using Mud.HttpUtils.Analyzers;
 using Mud.HttpUtils.Generators.Base;
 using Mud.HttpUtils.Generators.Context;
-using Mud.HttpUtils.Models;
 
 namespace Mud.HttpUtils.Generators.Implementation;
 
@@ -85,9 +84,9 @@ internal class MethodGenerator : ICodeFragmentGenerator
     private void GenerateMethodImplementation(StringBuilder codeBuilder, GeneratorContext context, IMethodSymbol methodSymbol)
     {
         var methodInfo = MethodAnalyzer.AnalyzeMethod(
-            context.Compilation, 
-            methodSymbol, 
-            context.InterfaceDeclaration, 
+            context.Compilation,
+            methodSymbol,
+            context.InterfaceDeclaration,
             context.SemanticModel);
 
         if (!methodInfo.IsValid) return;
@@ -97,10 +96,10 @@ internal class MethodGenerator : ICodeFragmentGenerator
         {
             context.ProductionContext.ReportDiagnostic(
                 Diagnostic.Create(
-                    Diagnostics.HttpClientInvalidUrlTemplate, 
-                    context.InterfaceDeclaration.GetLocation(), 
-                    context.InterfaceDeclaration.Identifier.Text, 
-                    methodInfo.UrlTemplate, 
+                    Diagnostics.HttpClientInvalidUrlTemplate,
+                    context.InterfaceDeclaration.GetLocation(),
+                    context.InterfaceDeclaration.Identifier.Text,
+                    methodInfo.UrlTemplate,
                     urlError));
             return;
         }
@@ -108,28 +107,23 @@ internal class MethodGenerator : ICodeFragmentGenerator
         if (methodInfo.IgnoreImplement) return;
 
         var hasTokenManager = !string.IsNullOrEmpty(context.Configuration.TokenManager);
-        var hasAuthorizationHeader = TypeSymbolHelper.HasPropertyAttribute(
-            context.InterfaceSymbol!, "Header", "Authorization");
-        var hasAuthorizationQuery = TypeSymbolHelper.HasPropertyAttribute(
-            context.InterfaceSymbol!, "Query", "Authorization");
-        var hasQueryToken = TypeSymbolHelper.HasPropertyAttribute(
-            context.InterfaceSymbol!, "QueryToken");
+        var needsTokenInjection = ShouldInjectToken(methodInfo, hasTokenManager);
 
         codeBuilder.AppendLine();
         codeBuilder.AppendLine($"        /// <summary>");
         codeBuilder.AppendLine($"        /// <inheritdoc />");
         codeBuilder.AppendLine($"        /// </summary>");
-        codeBuilder.AppendLine($"        {GeneratedCodeConsts.GeneratedCodeAttribute}");
+        codeBuilder.AppendLine($"        {GeneratedCodeConsts.HttpGeneratedCodeAttribute}");
         var asyncKeyword = methodInfo.IsAsyncMethod ? "async " : "";
         var returnTypeFormat = SymbolDisplayFormat.FullyQualifiedFormat
             .WithMiscellaneousOptions(
                 SymbolDisplayMiscellaneousOptions.UseSpecialTypes |
                 SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
         var returnType = methodSymbol.ReturnType.ToDisplayString(returnTypeFormat);
-        codeBuilder.AppendLine($"        public {asyncKeyword}{returnType} {methodSymbol.Name}({TypeSymbolHelper.GetParameterList(methodSymbol)})" );
+        codeBuilder.AppendLine($"        public {asyncKeyword}{returnType} {methodSymbol.Name}({TypeSymbolHelper.GetParameterList(methodSymbol)})");
         codeBuilder.AppendLine("        {");
 
-        if (hasTokenManager && (hasAuthorizationHeader || hasAuthorizationQuery || hasQueryToken))
+        if (needsTokenInjection)
         {
             codeBuilder.AppendLine($"            var access_token = await GetTokenAsync();");
             codeBuilder.AppendLine();
@@ -148,19 +142,9 @@ internal class MethodGenerator : ICodeFragmentGenerator
         codeBuilder.AppendLine();
         _requestBuilder.GenerateBodyParameter(codeBuilder, methodInfo);
 
-        if (hasTokenManager && hasAuthorizationHeader)
+        if (needsTokenInjection && IsTokenHeaderMode(methodInfo))
         {
-            var headerName = "Authorization";
-            if (methodInfo.InterfaceAttributes?.Any() == true)
-            {
-                var headerAttr = methodInfo.InterfaceAttributes.FirstOrDefault(
-                    attr => attr.StartsWith("Header:", StringComparison.Ordinal));
-                if (!string.IsNullOrEmpty(headerAttr))
-                {
-                    headerName = headerAttr.Substring(7);
-                }
-            }
-
+            var headerName = GetTokenHeaderName(methodInfo);
             codeBuilder.AppendLine($"            httpRequest.Headers.Add(\"{headerName}\", access_token);");
         }
 
@@ -231,5 +215,38 @@ internal class MethodGenerator : ICodeFragmentGenerator
                 codeBuilder.AppendLine($"            httpRequest.Headers.Add(\"{interfaceHeader.Name}\", \"{headerValue}\");");
             }
         }
+    }
+
+    private bool ShouldInjectToken(MethodAnalysisResult methodInfo, bool hasTokenManager)
+    {
+        if (!hasTokenManager)
+            return false;
+
+        if (!string.IsNullOrEmpty(methodInfo.InterfaceTokenInjectionMode))
+            return true;
+
+        return methodInfo.InterfaceAttributes?.Any(attr =>
+            attr.StartsWith("Header:", StringComparison.Ordinal) ||
+            attr.StartsWith("Query:", StringComparison.Ordinal)) == true;
+    }
+
+    private bool IsTokenHeaderMode(MethodAnalysisResult methodInfo)
+    {
+        if (!string.IsNullOrEmpty(methodInfo.InterfaceTokenInjectionMode))
+            return methodInfo.InterfaceTokenInjectionMode == HttpClientGeneratorConstants.TokenInjectionModeHeader;
+
+        return methodInfo.InterfaceAttributes?.Any(attr => attr.StartsWith("Header:", StringComparison.Ordinal)) == true;
+    }
+
+    private string GetTokenHeaderName(MethodAnalysisResult methodInfo)
+    {
+        if (!string.IsNullOrEmpty(methodInfo.InterfaceTokenName))
+            return methodInfo.InterfaceTokenName;
+
+        var headerAttr = methodInfo.InterfaceAttributes?.FirstOrDefault(attr => attr.StartsWith("Header:", StringComparison.Ordinal));
+        if (!string.IsNullOrEmpty(headerAttr))
+            return headerAttr.Substring(7);
+
+        return "Authorization";
     }
 }

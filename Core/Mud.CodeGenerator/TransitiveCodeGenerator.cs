@@ -29,7 +29,7 @@ public abstract class TransitiveCodeGenerator : IIncrementalGenerator
     private const string LikeQueryAttributeName = "LikeQueryAttribute";
 
     protected const string CompilerGeneratedAttribute = GeneratedCodeConsts.CompilerGeneratedAttribute;
-    protected string GeneratedCodeAttribute => GeneratedCodeConsts.GeneratedCodeAttribute;
+    protected string GeneratedCodeAttribute => GeneratedCodeConsts.ServiceGeneratedCodeAttribute;
 
     /// <summary>
     /// 原始实体类的后缀名。

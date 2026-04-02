@@ -26,4 +26,17 @@ public class HttpMethodAttribute : Attribute
     ///     请求地址
     /// </summary>
     public string? RequestUri { get; set; }
+
+    /// <summary>
+    /// 响应内容类型（用于反序列化）
+    /// <para>默认: 从接口或全局配置继承</para>
+    /// <para>示例: "application/json", "application/xml", "text/plain"</para>
+    /// </summary>
+    public string? ResponseContentType { get; set; }
+
+    /// <summary>
+    /// 响应是否启用解密
+    /// <para>当API返回加密数据时设置为true</para>
+    /// </summary>
+    public bool ResponseEnableDecrypt { get; set; }
 }

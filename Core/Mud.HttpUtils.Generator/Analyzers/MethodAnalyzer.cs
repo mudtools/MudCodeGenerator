@@ -60,9 +60,11 @@ internal static class MethodAnalyzer
             return MethodAnalysisResult.Invalid;
 
         var methodContentType = GetHttpContentTypeFromSymbol(methodSymbol);
+        var responseContentType = GetResponseContentTypeFromSymbol(methodSymbol);
+        var responseEnableDecrypt = GetResponseEnableDecryptFromSymbol(methodSymbol);
         var parameters = ParameterAnalyzer.AnalyzeParameters(methodSymbol);
-        var bodyContentType = GetBodyContentTypeFromParameters(parameters);
-        var (interfaceAttributes, interfaceHeaderAttributes, interfaceContentType) = AnalyzeInterfaceAttributes(
+        var (bodyContentType, bodyEnableEncrypt, bodyEncryptSerializeType, bodyEncryptPropertyName) = GetBodyInfoFromParameters(parameters);
+        var (interfaceAttributes, interfaceHeaderAttributes, interfaceContentType, interfaceTokenInjectionMode, interfaceTokenName) = AnalyzeInterfaceAttributes(
             compilation,
             interfaceDecl,
             semanticModel);
@@ -85,7 +87,14 @@ internal static class MethodAnalyzer
             InterfaceHeaderAttributes = interfaceHeaderAttributes,
             InterfaceContentType = interfaceContentType,
             MethodContentType = methodContentType,
-            BodyContentType = bodyContentType
+            BodyContentType = bodyContentType,
+            ResponseContentType = responseContentType,
+            ResponseEnableDecrypt = responseEnableDecrypt,
+            BodyEnableEncrypt = bodyEnableEncrypt,
+            BodyEncryptSerializeType = bodyEncryptSerializeType,
+            BodyEncryptPropertyName = bodyEncryptPropertyName,
+            InterfaceTokenInjectionMode = interfaceTokenInjectionMode,
+            InterfaceTokenName = interfaceTokenName
         };
     }
 
@@ -192,24 +201,134 @@ internal static class MethodAnalyzer
     }
 
     /// <summary>
-    /// 从参数列表中提取Body参数的ContentType值
+    /// 从参数列表中提取Body参数的ContentType、加密配置等信息
     /// </summary>
-    private static string? GetBodyContentTypeFromParameters(IReadOnlyList<ParameterInfo> parameters)
+    private static (string? bodyContentType, bool bodyEnableEncrypt, string? bodyEncryptSerializeType, string? bodyEncryptPropertyName)
+        GetBodyInfoFromParameters(IReadOnlyList<ParameterInfo> parameters)
     {
         var bodyParam = parameters.FirstOrDefault(p =>
             p.Attributes.Any(attr => attr.Name == HttpClientGeneratorConstants.BodyAttribute));
 
         if (bodyParam == null)
-            return null;
+            return (null, false, null, null);
 
         var bodyAttr = bodyParam.Attributes.First(attr => attr.Name == HttpClientGeneratorConstants.BodyAttribute);
 
-        if (bodyAttr.NamedArguments.TryGetValue("ContentType", out var contentTypeValue))
+        string? contentType = null;
+        bool enableEncrypt = false;
+        string? encryptSerializeType = null;
+        string? encryptPropertyName = null;
+
+        if (bodyAttr.NamedArguments.TryGetValue("ContentType", out var ctValue))
+            contentType = ctValue?.ToString();
+
+        if (bodyAttr.NamedArguments.TryGetValue(HttpClientGeneratorConstants.BodyEnableEncryptProperty, out var encValue))
+            bool.TryParse(encValue?.ToString(), out enableEncrypt);
+
+        if (bodyAttr.NamedArguments.TryGetValue(HttpClientGeneratorConstants.BodyEncryptSerializeTypeProperty, out var estValue))
+            encryptSerializeType = GetEnumNameFromTypedConstant(estValue, "Json");
+
+        if (bodyAttr.NamedArguments.TryGetValue(HttpClientGeneratorConstants.BodyEncryptPropertyNameProperty, out var epnValue))
+            encryptPropertyName = epnValue?.ToString();
+
+        return (contentType, enableEncrypt, encryptSerializeType, encryptPropertyName);
+    }
+
+    /// <summary>
+    /// 从TypedConstant获取枚举名称，如果获取失败则返回默认值
+    /// </summary>
+    private static string GetEnumNameFromTypedConstant(object? value, string defaultValue)
+    {
+        if (value == null)
+            return defaultValue;
+
+        var str = value.ToString();
+        if (string.IsNullOrEmpty(str))
+            return defaultValue;
+
+        // 如果是数字，转换为枚举名称
+        if (int.TryParse(str, out var num))
         {
-            return contentTypeValue?.ToString();
+            return num switch
+            {
+                0 => "Json",
+                1 => "Xml",
+                _ => defaultValue
+            };
         }
 
-        return null;
+        // 已经是名称，移除命名空间前缀
+        var lastDot = str.LastIndexOf('.');
+        return lastDot >= 0 ? str.Substring(lastDot + 1) : str;
+    }
+
+    /// <summary>
+    /// 从TypedConstant获取TokenInjectionMode枚举名称
+    /// </summary>
+    private static string GetTokenInjectionModeName(object? value)
+    {
+        if (value == null)
+            return HttpClientGeneratorConstants.TokenInjectionModeHeader;
+
+        var str = value.ToString();
+        if (string.IsNullOrEmpty(str))
+            return HttpClientGeneratorConstants.TokenInjectionModeHeader;
+
+        if (int.TryParse(str, out var num))
+        {
+            return num switch
+            {
+                0 => HttpClientGeneratorConstants.TokenInjectionModeHeader,
+                1 => HttpClientGeneratorConstants.TokenInjectionModeQuery,
+                2 => HttpClientGeneratorConstants.TokenInjectionModePath,
+                _ => HttpClientGeneratorConstants.TokenInjectionModeHeader
+            };
+        }
+
+        var lastDot = str.LastIndexOf('.');
+        var name = lastDot >= 0 ? str.Substring(lastDot + 1) : str;
+
+        return name switch
+        {
+            "Header" => HttpClientGeneratorConstants.TokenInjectionModeHeader,
+            "Query" => HttpClientGeneratorConstants.TokenInjectionModeQuery,
+            "Path" => HttpClientGeneratorConstants.TokenInjectionModePath,
+            _ => HttpClientGeneratorConstants.TokenInjectionModeHeader
+        };
+    }
+
+    /// <summary>
+    /// 从方法符号获取HTTP方法特性的ResponseContentType值
+    /// </summary>
+    private static string? GetResponseContentTypeFromSymbol(IMethodSymbol methodSymbol)
+    {
+        if (methodSymbol == null)
+            return null;
+
+        var httpMethodAttr = methodSymbol.GetAttributes()
+            .FirstOrDefault(attr => HttpClientGeneratorConstants.SupportedHttpMethods.Contains(attr.AttributeClass?.Name));
+
+        if (httpMethodAttr == null)
+            return null;
+
+        return AttributeDataHelper.GetStringValueFromAttribute(httpMethodAttr, [HttpClientGeneratorConstants.HttpMethodResponseContentTypeProperty]);
+    }
+
+    /// <summary>
+    /// 从方法符号获取HTTP方法特性的ResponseEnableDecrypt值
+    /// </summary>
+    private static bool GetResponseEnableDecryptFromSymbol(IMethodSymbol methodSymbol)
+    {
+        if (methodSymbol == null)
+            return false;
+
+        var httpMethodAttr = methodSymbol.GetAttributes()
+            .FirstOrDefault(attr => HttpClientGeneratorConstants.SupportedHttpMethods.Contains(attr.AttributeClass?.Name));
+
+        if (httpMethodAttr == null)
+            return false;
+
+        return AttributeDataHelper.GetBoolValueFromAttribute(httpMethodAttr, HttpClientGeneratorConstants.HttpMethodResponseEnableDecryptProperty, false);
     }
 
     /// <summary>
@@ -331,7 +450,7 @@ internal static class MethodAnalyzer
     /// <summary>
     /// 分析接口特性
     /// </summary>
-    private static (HashSet<string> interfaceAttributes, List<InterfaceHeaderAttributeInfo> interfaceHeaderAttributes, string? interfaceContentType)
+    private static (HashSet<string> interfaceAttributes, List<InterfaceHeaderAttributeInfo> interfaceHeaderAttributes, string? interfaceContentType, string? interfaceTokenInjectionMode, string? interfaceTokenName)
         AnalyzeInterfaceAttributes(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl, SemanticModel? semanticModel)
     {
         var model = semanticModel ?? SemanticModelCache.GetOrCreate(compilation, interfaceDecl.SyntaxTree);
@@ -339,6 +458,8 @@ internal static class MethodAnalyzer
         var interfaceAttributes = new HashSet<string>();
         var interfaceHeaderAttributes = new List<InterfaceHeaderAttributeInfo>();
         string? interfaceContentType = null;
+        string? interfaceTokenInjectionMode = null;
+        string? interfaceTokenName = null;
 
         if (interfaceSymbol != null)
         {
@@ -378,21 +499,63 @@ internal static class MethodAnalyzer
                 interfaceAttributes.Add($"Query:{queryName}");
             }
 
-            // 处理 QueryToken 特性
-            var queryTokenAttributes = interfaceSymbol.GetAttributes()
-                .Where(attr => attr.AttributeClass?.Name == "QueryTokenAttribute" || attr.AttributeClass?.Name == "QueryToken");
+            // 处理 Token 特性的注入模式
+            var tokenAttributes = interfaceSymbol.GetAttributes()
+                .Where(attr => attr.AttributeClass?.Name == "TokenAttribute" || attr.AttributeClass?.Name == "Token");
 
-            foreach (var queryTokenAttr in queryTokenAttributes)
+            foreach (var tokenAttr in tokenAttributes)
             {
-                var tokenName = GetQueryTokenName(queryTokenAttr);
-                if (!string.IsNullOrEmpty(tokenName))
+                var injectionMode = GetTokenInjectionMode(tokenAttr);
+                var tokenName = GetTokenName(tokenAttr);
+                if (!string.IsNullOrEmpty(injectionMode))
                 {
-                    interfaceAttributes.Add($"QueryToken:{tokenName}");
+                    interfaceTokenInjectionMode = injectionMode;
+                    interfaceTokenName = tokenName;
+                    interfaceAttributes.Add($"Token:{injectionMode}:{tokenName}");
                 }
             }
         }
 
-        return (interfaceAttributes, interfaceHeaderAttributes, interfaceContentType);
+        return (interfaceAttributes, interfaceHeaderAttributes, interfaceContentType, interfaceTokenInjectionMode, interfaceTokenName);
+    }
+
+    /// <summary>
+    /// 获取Token特性的InjectionMode值
+    /// </summary>
+    private static string? GetTokenInjectionMode(AttributeData tokenAttr)
+    {
+        if (tokenAttr == null)
+            return HttpClientGeneratorConstants.TokenInjectionModeHeader;
+
+        // 先尝试从命名参数获取
+        foreach (var namedArg in tokenAttr.NamedArguments)
+        {
+            if (namedArg.Key == HttpClientGeneratorConstants.TokenInjectionModeProperty)
+            {
+                return GetTokenInjectionModeName(namedArg.Value.Value);
+            }
+        }
+
+        return HttpClientGeneratorConstants.TokenInjectionModeHeader;
+    }
+
+    /// <summary>
+    /// 获取Token特性的Name值
+    /// </summary>
+    private static string? GetTokenName(AttributeData tokenAttr)
+    {
+        if (tokenAttr == null)
+            return null;
+
+        foreach (var namedArg in tokenAttr.NamedArguments)
+        {
+            if (namedArg.Key == HttpClientGeneratorConstants.TokenNameProperty)
+            {
+                return namedArg.Value.Value?.ToString();
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -426,13 +589,5 @@ internal static class MethodAnalyzer
     private static bool GetHeaderReplace(AttributeData headerAttr)
     {
         return AttributeDataHelper.GetBoolValueFromAttribute(headerAttr, "Replace", false);
-    }
-
-    /// <summary>
-    /// 获取QueryToken特性的名称
-    /// </summary>
-    private static string? GetQueryTokenName(AttributeData queryTokenAttr)
-    {
-        return AttributeDataHelper.GetStringValueFromAttribute(queryTokenAttr, ["AliasAs", "Name"], 0);
     }
 }

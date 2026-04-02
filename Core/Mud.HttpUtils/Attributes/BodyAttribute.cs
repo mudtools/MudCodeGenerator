@@ -59,4 +59,22 @@ public sealed class BodyAttribute : Attribute
     ///     <para>当属性值设置为 <c>true</c> 时，将校验 <see cref="ContentType" /> 属性值是否为空，并且字符串内容将被双引号包围并发送，格式如下：<c>"内容"</c>。</para>
     /// </remarks>
     public bool RawString { get; set; }
+
+    /// <summary>
+    /// 是否启用请求体加密
+    /// <para>默认: false</para>
+    /// </summary>
+    public bool EnableEncrypt { get; set; } = false;
+
+    /// <summary>
+    /// 加密前的序列化类型
+    /// <para>默认: <see cref="SerializeType.Json"/></para>
+    /// </summary>
+    public SerializeType EncryptSerializeType { get; set; } = SerializeType.Json;
+
+    /// <summary>
+    /// 加密后数据包装属性名
+    /// <para>默认: "data"</para>
+    /// </summary>
+    public string? EncryptPropertyName { get; set; }
 }

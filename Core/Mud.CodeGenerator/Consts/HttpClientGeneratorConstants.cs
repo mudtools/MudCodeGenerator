@@ -40,12 +40,30 @@ internal static class HttpClientGeneratorConstants
     public static readonly string[] PathAttributes = ["PathAttribute", "Path", "RouteAttribute", "Route"];
     public const string QueryAttribute = "QueryAttribute";
     public const string ArrayQueryAttribute = "ArrayQueryAttribute";
-    public const string QueryTokenAttribute = "QueryTokenAttribute";
     public const string HeaderAttribute = "HeaderAttribute";
     public const string BodyAttribute = "BodyAttribute";
     public const string FormContentAttribute = "FormContentAttribute";
     public const string FilePathAttribute = "FilePathAttribute";
     public static readonly string[] HttpContentTypeAttributeNames = ["HttpContentTypeAttribute", "HttpContentType"];
+
+    // Token注入模式
+    public const string TokenInjectionModeHeader = "Header";
+    public const string TokenInjectionModeQuery = "Query";
+    public const string TokenInjectionModePath = "Path";
+
+    // Body加密相关命名参数
+    public const string BodyEnableEncryptProperty = "EnableEncrypt";
+    public const string BodyEncryptSerializeTypeProperty = "EncryptSerializeType";
+    public const string BodyEncryptPropertyNameProperty = "EncryptPropertyName";
+
+    // Token相关命名参数
+    public const string TokenInjectionModeProperty = "InjectionMode";
+    public const string TokenNameProperty = "Name";
+    public const string TokenReplaceProperty = "Replace";
+
+    // HttpMethod响应相关命名参数
+    public const string HttpMethodResponseContentTypeProperty = "ResponseContentType";
+    public const string HttpMethodResponseEnableDecryptProperty = "ResponseEnableDecrypt";
 
 
     public const string TimeoutProperty = "Timeout";
