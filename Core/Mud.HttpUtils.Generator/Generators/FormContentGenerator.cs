@@ -69,9 +69,6 @@ internal class FormContentGenerator : TransitiveCodeGenerator
         if (formContentClasses.IsDefaultOrEmpty)
             return;
 
-        // 用于跟踪已处理的类，避免重复生成
-        var processedClasses = new HashSet<string>();
-
         foreach (var classDecl in formContentClasses)
         {
             if (classDecl == null)
@@ -83,13 +80,6 @@ internal class FormContentGenerator : TransitiveCodeGenerator
                 var classSymbol = semanticModel.GetDeclaredSymbol(classDecl);
 
                 if (classSymbol == null)
-                    continue;
-
-                // 创建类的唯一标识符（包含完整限定名）
-                var classKey = classSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-
-                // 如果已经处理过这个类，则跳过
-                if (!processedClasses.Add(classKey))
                     continue;
 
                 // 获取所有标记了 [JsonPropertyName] 的属性
@@ -107,7 +97,10 @@ internal class FormContentGenerator : TransitiveCodeGenerator
 
                 if (!string.IsNullOrEmpty(generatedCode))
                 {
-                    var fileName = $"{classSymbol.Name}.FormContent.g.cs";
+                    var namespacePart = classSymbol.ContainingNamespace?.IsGlobalNamespace == true
+                        ? "global"
+                        : classSymbol.ContainingNamespace?.ToDisplayString().Replace(".", "_");
+                    var fileName = $"{namespacePart}_{classSymbol.Name}.FormContent.g.cs";
                     context.AddSource(fileName, generatedCode);
                 }
             }
@@ -136,13 +129,14 @@ internal class FormContentGenerator : TransitiveCodeGenerator
         SourceProductionContext context)
     {
         var filePathCount = properties.Count(p => p.HasFilePath);
+        var location = classSymbol.Locations.FirstOrDefault() ?? Location.None;
 
         if (filePathCount == 0)
         {
             // 没有找到 [FilePath] 属性
             context.ReportDiagnostic(Diagnostic.Create(
                 Diagnostics.FormContentNoFilePathAttribute,
-                Location.None,
+                location,
                 classSymbol.Name));
             return false;
         }
@@ -153,7 +147,7 @@ internal class FormContentGenerator : TransitiveCodeGenerator
             var filePathProperties = properties.Where(p => p.HasFilePath).Select(p => p.Name);
             context.ReportDiagnostic(Diagnostic.Create(
                 Diagnostics.FormContentMultipleFilePathAttributes,
-                Location.None,
+                location,
                 classSymbol.Name,
                 string.Join(", ", filePathProperties)));
             return false;
@@ -174,7 +168,9 @@ internal class FormContentGenerator : TransitiveCodeGenerator
         INamedTypeSymbol classSymbol,
         List<PropertyInfo> properties)
     {
-        var namespaceName = GetNamespace(classDecl);
+        var namespaceName = classSymbol.ContainingNamespace?.IsGlobalNamespace == true
+            ? null
+            : classSymbol.ContainingNamespace?.ToDisplayString();
         var className = classSymbol.Name;
 
         // 查找 byte[] 类型的属性名
@@ -186,8 +182,12 @@ internal class FormContentGenerator : TransitiveCodeGenerator
         GenerateFileHeader(sb);
 
         // 生成命名空间和类
-        sb.AppendLine($"namespace {namespaceName};");
-        sb.AppendLine();
+        if (!string.IsNullOrEmpty(namespaceName))
+        {
+            sb.AppendLine($"namespace {namespaceName};");
+            sb.AppendLine();
+        }
+
         sb.AppendLine($"public partial class {className}");
         sb.AppendLine("{");
 
@@ -200,26 +200,6 @@ internal class FormContentGenerator : TransitiveCodeGenerator
     }
 
     /// <summary>
-    /// 获取类的命名空间
-    /// </summary>
-    /// <param name="classDecl">类声明语法</param>
-    /// <returns>命名空间名称</returns>
-    private string GetNamespace(ClassDeclarationSyntax classDecl)
-    {
-        if (classDecl.Parent is NamespaceDeclarationSyntax namespaceDecl)
-        {
-            return namespaceDecl.Name.ToString();
-        }
-
-        if (classDecl.Parent is FileScopedNamespaceDeclarationSyntax fileScopedNamespace)
-        {
-            return fileScopedNamespace.Name.ToString();
-        }
-
-        return "Global";
-    }
-
-    /// <summary>
     /// 获取所有标记了 [JsonPropertyName] 的属性信息
     /// </summary>
     /// <param name="classSymbol">类符号</param>
@@ -228,15 +208,11 @@ internal class FormContentGenerator : TransitiveCodeGenerator
     {
         var properties = new List<PropertyInfo>();
 
-        foreach (var member in classSymbol.GetMembers())
+        foreach (var propertySymbol in classSymbol.GetMembers().OfType<IPropertySymbol>())
         {
-            if (member is not IPropertySymbol propertySymbol)
-                continue;
-
             // 查找 [JsonPropertyName] 特性
             var jsonPropertyAttr = propertySymbol.GetAttributes()
-                .FirstOrDefault(a => a.AttributeClass?.Name == JsonPropertyNameAttributeName ||
-                                     a.AttributeClass?.Name == "JsonPropertyName");
+                .FirstOrDefault(a => a.AttributeClass?.Name == JsonPropertyNameAttributeName);
 
             if (jsonPropertyAttr == null)
                 continue;
@@ -246,8 +222,7 @@ internal class FormContentGenerator : TransitiveCodeGenerator
 
             // 检查是否有 [FilePath] 特性
             var hasFilePathAttr = propertySymbol.GetAttributes()
-                .Any(a => a.AttributeClass?.Name == FilePathAttributeName ||
-                          a.AttributeClass?.Name == "FilePath");
+                .Any(a => a.AttributeClass?.Name == FilePathAttributeName);
 
             // 判断是否为可空类型
             var isNullable = propertySymbol.Type.NullableAnnotation == NullableAnnotation.Annotated;
@@ -270,11 +245,8 @@ internal class FormContentGenerator : TransitiveCodeGenerator
     /// <returns>byte[] 属性名，如果没有则返回 null</returns>
     private string? GetByteArrayPropertyName(INamedTypeSymbol classSymbol)
     {
-        foreach (var member in classSymbol.GetMembers())
+        foreach (var propertySymbol in classSymbol.GetMembers().OfType<IPropertySymbol>())
         {
-            if (member is not IPropertySymbol propertySymbol)
-                continue;
-
             // 判断是否为 byte[] 类型
             if (propertySymbol.Type is IArrayTypeSymbol arrayType &&
                 arrayType.ElementType.SpecialType == SpecialType.System_Byte)
@@ -325,28 +297,21 @@ internal class FormContentGenerator : TransitiveCodeGenerator
         sb.AppendLine();
 
         // 生成普通属性处理代码
-        foreach (var prop in properties.Where(p => !p.HasFilePath))
+        foreach (var prop in properties)
         {
-            GeneratePropertyAddCode(sb, prop);
-        }
-
-        // 生成文件属性处理代码
-        foreach (var prop in properties.Where(p => p.HasFilePath))
-        {
-            GenerateFilePropertyAddCode(sb, prop, byteArrayPropertyName);
+            if (prop.HasFilePath)
+            {
+                GenerateFilePropertyAddCode(sb, prop, byteArrayPropertyName);
+            }
+            else
+            {
+                GeneratePropertyAddCode(sb, prop);
+            }
         }
 
         sb.AppendLine();
 
-        // 如果有 byte[] 属性，使用 Task.FromResult 返回
-        if (!string.IsNullOrEmpty(byteArrayPropertyName))
-        {
-            sb.AppendLine("        return await Task.FromResult(formData);");
-        }
-        else
-        {
-            sb.AppendLine("        return formData;");
-        }
+        sb.AppendLine("        return formData;");
 
         sb.AppendLine("    }");
     }

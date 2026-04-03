@@ -579,13 +579,6 @@
             <param name="properties">属性信息列表</param>
             <returns>生成的代码</returns>
         </member>
-        <member name="M:Mud.HttpUtils.FormContentGenerator.GetNamespace(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
-            <summary>
-            获取类的命名空间
-            </summary>
-            <param name="classDecl">类声明语法</param>
-            <returns>命名空间名称</returns>
-        </member>
         <member name="M:Mud.HttpUtils.FormContentGenerator.GetJsonPropertyProperties(Microsoft.CodeAnalysis.INamedTypeSymbol)">
             <summary>
             获取所有标记了 [JsonPropertyName] 的属性信息
