@@ -67,6 +67,7 @@
 		<ProjectReference Include="..\..\Core\Mud.EntityCodeGenerator\Mud.EntityCodeGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\..\Core\Mud.ServiceCodeGenerator\Mud.ServiceCodeGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\CodeBaseTest\CodeBaseTest.csproj" />
+		<ProjectReference Include="..\CommonClassLibrary\CommonClassLibrary.csproj" />
 		<ProjectReference Include="..\Mud.Common.CodeGenerator\Mud.Common.CodeGenerator.csproj" />
 	</ItemGroup>
 
