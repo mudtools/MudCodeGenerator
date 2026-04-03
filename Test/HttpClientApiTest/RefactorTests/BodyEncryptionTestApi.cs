@@ -7,7 +7,7 @@ namespace HttpClientApiTest.RefactorTests;
 /// 测试BodyAttribute的EnableEncrypt、EncryptSerializeType、EncryptPropertyName属性
 /// </summary>
 [HttpClientApi("https://api.test.com/", TokenManage = "IFeishuAppManager", RegistryGroupName = "BodyEncryption")]
-[Token(TokenType.TenantAccessToken, InjectionMode = TokenInjectionMode.Header)]
+[Token("TenantAccessToken", InjectionMode = TokenInjectionMode.Header)]
 public interface IBodyEncryptionTestApi
 {
     /// <summary>

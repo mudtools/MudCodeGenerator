@@ -107,7 +107,8 @@ internal class MethodGenerator : ICodeFragmentGenerator
         if (methodInfo.IgnoreImplement) return;
 
         var hasTokenManager = !string.IsNullOrEmpty(context.Configuration.TokenManager);
-        var needsTokenInjection = ShouldInjectToken(methodInfo, hasTokenManager);
+        var hasHttpClient = !string.IsNullOrEmpty(context.Configuration.HttpClient);
+        var needsTokenInjection = ShouldInjectToken(methodInfo, hasTokenManager, hasHttpClient);
 
         codeBuilder.AppendLine();
         codeBuilder.AppendLine($"        /// <summary>");
@@ -140,7 +141,7 @@ internal class MethodGenerator : ICodeFragmentGenerator
         _requestBuilder.GenerateRequestSetup(codeBuilder, methodInfo);
         _requestBuilder.GenerateHeaderParameters(codeBuilder, methodInfo);
         codeBuilder.AppendLine();
-        _requestBuilder.GenerateBodyParameter(codeBuilder, methodInfo);
+        _requestBuilder.GenerateBodyParameter(codeBuilder, methodInfo, hasHttpClient);
 
         if (needsTokenInjection && IsTokenHeaderMode(methodInfo))
         {
@@ -154,7 +155,7 @@ internal class MethodGenerator : ICodeFragmentGenerator
         }
 
         var (cancellationTokenArg, _) = GetCancellationTokenParams(methodInfo);
-        _requestBuilder.GenerateRequestExecution(codeBuilder, methodInfo, cancellationTokenArg);
+        _requestBuilder.GenerateRequestExecution(codeBuilder, methodInfo, cancellationTokenArg, hasHttpClient);
 
         codeBuilder.AppendLine("        }");
         codeBuilder.AppendLine();
@@ -217,8 +218,12 @@ internal class MethodGenerator : ICodeFragmentGenerator
         }
     }
 
-    private bool ShouldInjectToken(MethodAnalysisResult methodInfo, bool hasTokenManager)
+    private bool ShouldInjectToken(MethodAnalysisResult methodInfo, bool hasTokenManager, bool hasHttpClient)
     {
+        // HttpClient 模式下不注入 Token
+        if (hasHttpClient)
+            return false;
+
         if (!hasTokenManager)
             return false;
 

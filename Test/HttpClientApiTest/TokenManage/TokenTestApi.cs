@@ -5,7 +5,7 @@ namespace HttpClientApiTest.Api;
 /// Token特性测试接口 - 使用 AppAccessToken
 /// </summary>
 [HttpClientApi("https://api.example.com")]
-[Token(TokenType.AppAccessToken)]
+[Token("AppAccessToken")]
 public interface IAppTokenService
 {
     [Get("/api/data")]

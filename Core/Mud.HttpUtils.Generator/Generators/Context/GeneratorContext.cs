@@ -30,6 +30,8 @@ internal class GeneratorContext
 
     public bool HasTokenManager => !string.IsNullOrEmpty(Configuration.TokenManager);
 
+    public bool HasHttpClient => !string.IsNullOrEmpty(Configuration.HttpClient);
+
     public bool HasInheritedFrom => !string.IsNullOrEmpty(Configuration.InheritedFrom);
 
     public bool HasTokenType => !string.IsNullOrEmpty(Configuration.TokenType);

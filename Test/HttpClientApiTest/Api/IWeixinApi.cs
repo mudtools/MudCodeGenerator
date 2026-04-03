@@ -8,7 +8,7 @@ using Mud.HttpUtils.Attributes;
 /// 示例URL: https://api.weixin.qq.com/cgi-bin/user/tag/get?access_token=ACCESS_TOKEN
 /// </summary>
 [HttpClientApi("https://api.weixin.qq.com", Timeout = 30, TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Weixin")]
-[Token(TokenType = TokenType.UserAccessToken, Name = "provider_access_token", InjectionMode = TokenInjectionMode.Header)]
+[Token(TokenType = "UserAccessToken", Name = "provider_access_token", InjectionMode = TokenInjectionMode.Header)]
 public interface IWeixinApi
 {
     /// <summary>

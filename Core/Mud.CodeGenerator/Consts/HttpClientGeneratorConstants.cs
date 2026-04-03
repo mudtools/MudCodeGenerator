@@ -69,6 +69,7 @@ internal static class HttpClientGeneratorConstants
     public const string TimeoutProperty = "Timeout";
     public const string RegistryGroupNameProperty = "RegistryGroupName";
     public const string TokenManageProperty = "TokenManage";
+    public const string HttpClientProperty = "HttpClient";
     public const string IsAbstractProperty = "IsAbstract";
     public const string InheritedFromProperty = "InheritedFrom";
     public const string BaseAddressProperty = "BaseAddress";

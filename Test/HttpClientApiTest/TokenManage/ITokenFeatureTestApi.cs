@@ -7,7 +7,7 @@ using Mud.Common.CodeGenerator;
 /// 用于测试[Token]特性在不同场景下的使用
 /// </summary>
 [HttpClientApi("https://api.mudtools.cn/", Timeout = 90, TokenManage = "IFeishuAppManager", RegistryGroupName = "TokenFeature")]
-[Token(TokenType.TenantAccessToken)]
+[Token("TenantAccessToken")]
 public interface ITokenFeatureTestApi
 {
     /// <summary>

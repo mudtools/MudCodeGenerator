@@ -7,7 +7,7 @@ namespace HttpClientApiTest.RefactorTests;
 /// 测试TokenAttribute的InjectionMode属性在Header、Query、Path三种模式下的代码生成
 /// </summary>
 [HttpClientApi("https://api.test.com/", TokenManage = "IFeishuAppManager", RegistryGroupName = "TokenInjectionMode")]
-[Token(TokenType.TenantAccessToken, InjectionMode = TokenInjectionMode.Header, Name = "Authorization")]
+[Token("TenantAccessToken", InjectionMode = TokenInjectionMode.Header, Name = "Authorization")]
 public interface ITokenHeaderModeTestApi
 {
     /// <summary>
@@ -30,7 +30,7 @@ public interface ITokenHeaderModeTestApi
 /// 测试Token写入URL查询参数的场景
 /// </summary>
 [HttpClientApi("https://api.test.com/", TokenManage = "IFeishuAppManager", RegistryGroupName = "TokenInjectionMode")]
-[Token(TokenType.TenantAccessToken, InjectionMode = TokenInjectionMode.Query, Name = "access_token")]
+[Token("TenantAccessToken", InjectionMode = TokenInjectionMode.Query, Name = "access_token")]
 public interface ITokenQueryModeTestApi
 {
     /// <summary>
@@ -52,7 +52,7 @@ public interface ITokenQueryModeTestApi
 /// 测试Token写入URL路径参数的场景
 /// </summary>
 [HttpClientApi("https://api.test.com/", TokenManage = "IFeishuAppManager", RegistryGroupName = "TokenInjectionMode")]
-[Token(TokenType.TenantAccessToken, InjectionMode = TokenInjectionMode.Path, Name = "token")]
+[Token("TenantAccessToken", InjectionMode = TokenInjectionMode.Path, Name = "token")]
 public interface ITokenPathModeTestApi
 {
     /// <summary>
@@ -74,7 +74,7 @@ public interface ITokenPathModeTestApi
 /// 测试TokenAttribute.Name属性的自定义值
 /// </summary>
 [HttpClientApi("https://api.test.com/", TokenManage = "IFeishuAppManager", RegistryGroupName = "TokenInjectionMode")]
-[Token(TokenType.UserAccessToken, InjectionMode = TokenInjectionMode.Header, Name = "X-Api-Key")]
+[Token("UserAccessToken", InjectionMode = TokenInjectionMode.Header, Name = "X-Api-Key")]
 public interface ITokenCustomNameTestApi
 {
     /// <summary>

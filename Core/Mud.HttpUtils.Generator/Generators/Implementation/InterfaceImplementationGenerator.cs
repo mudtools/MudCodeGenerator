@@ -134,9 +134,16 @@ internal class InterfaceImplementationGenerator
             httpClientApiAttribute,
             HttpClientGeneratorConstants.InheritedFromProperty);
 
+        var httpClient = AttributeDataHelper.GetStringValueFromAttribute(
+            httpClientApiAttribute,
+            HttpClientGeneratorConstants.HttpClientProperty);
+
         var tokenManage = AttributeDataHelper.GetStringValueFromAttribute(
             httpClientApiAttribute,
             HttpClientGeneratorConstants.TokenManageProperty);
+
+        // 互斥逻辑：HttpClient 优先
+        var effectiveTokenManage = !string.IsNullOrEmpty(httpClient) ? null : tokenManage;
 
         return new GenerationConfiguration
         {
@@ -151,9 +158,10 @@ internal class InterfaceImplementationGenerator
                 HttpClientGeneratorConstants.BaseAddressProperty),
             IsAbstract = isAbstract,
             InheritedFrom = inheritedFrom,
-            TokenManager = tokenManage,
-            TokenManagerType = !string.IsNullOrEmpty(tokenManage)
-                ? TypeSymbolHelper.GetTypeAllDisplayString(_compilation, tokenManage!)
+            HttpClient = httpClient,
+            TokenManager = effectiveTokenManage,
+            TokenManagerType = !string.IsNullOrEmpty(effectiveTokenManage)
+                ? TypeSymbolHelper.GetTypeAllDisplayString(_compilation, effectiveTokenManage!)
                 : null,
             TokenType = GetInterfaceTokenType(),
             IsUserAccessToken = GetInterfaceTokenType() == "UserAccessToken"

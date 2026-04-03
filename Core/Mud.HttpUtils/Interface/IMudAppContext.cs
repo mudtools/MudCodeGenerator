@@ -37,5 +37,5 @@ public interface IMudAppContext : IDisposable
     /// </summary>
     /// <param name="tokenType">令牌类型</param>
     /// <returns></returns>
-    ITokenManager GetTokenManager(TokenType tokenType);
+    ITokenManager GetTokenManager(string tokenType);
 }

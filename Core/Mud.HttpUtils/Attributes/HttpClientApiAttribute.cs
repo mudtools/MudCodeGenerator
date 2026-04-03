@@ -82,6 +82,12 @@ public sealed class HttpClientApiAttribute : Attribute
     public string TokenManage { get; set; }
 
     /// <summary>
+    /// 生成的客户端类用于获取HttpClient实例的接口类型。
+    /// <para>与 <see cref="TokenManage"/> 互斥，同时定义时此属性优先。</para>
+    /// </summary>
+    public string HttpClient { get; set; }
+
+    /// <summary>
     /// 生成的客户端类是否为抽象类
     /// </summary>
     public bool IsAbstract { get; set; }

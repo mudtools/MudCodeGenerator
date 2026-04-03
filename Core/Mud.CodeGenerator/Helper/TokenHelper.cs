@@ -41,22 +41,22 @@ internal static class TokenHelper
         if (tokenAttribute == null)
             return null;
 
-        // 检查命名参数 TokenType
+        // 检查命名参数 TokenType（现在是字符串）
         var namedTokenType = tokenAttribute.NamedArguments
             .FirstOrDefault(na => na.Key.Equals("TokenType", StringComparison.OrdinalIgnoreCase)).Value.Value;
 
         if (namedTokenType != null)
         {
-            return ConvertTokenEnumValueToString(Convert.ToInt32(namedTokenType, CultureInfo.InvariantCulture));
+            return namedTokenType.ToString();
         }
 
-        // 检查构造函数参数
+        // 检查构造函数参数（现在是字符串）
         if (tokenAttribute.ConstructorArguments.Length > 0)
         {
             var tokenTypeValue = tokenAttribute.ConstructorArguments[0].Value;
             if (tokenTypeValue != null)
             {
-                return ConvertTokenEnumValueToString(Convert.ToInt32(tokenTypeValue, CultureInfo.InvariantCulture));
+                return tokenTypeValue.ToString();
             }
         }
 

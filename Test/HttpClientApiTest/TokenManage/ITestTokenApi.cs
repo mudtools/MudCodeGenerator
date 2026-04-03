@@ -51,7 +51,7 @@ public interface ITestBaseTokenApi : IAppContextSwitcher
 [Header("Authorization", AliasAs = "X-Token")]
 [Header("xx1", "xxValue1")]
 [Header("xx2", "xxValue3")]
-[Token(TokenType.AppAccessToken)]
+[Token("AppAccessToken")]
 public interface ITestNullTokenApi : ITestBaseTokenApi
 {
     /// <summary>
@@ -79,7 +79,7 @@ public interface ITestNullTokenApi : ITestBaseTokenApi
 [Header("Authorization", AliasAs = "X-Token")]
 [Header("xx1", "xxValue1")]
 [Header("xx2", "xxValue3")]
-[Token(TokenType = TokenType.TenantAccessToken, InjectionMode = TokenInjectionMode.Query)]
+[Token(TokenType = "TenantAccessToken", InjectionMode = TokenInjectionMode.Query)]
 public interface ITestTokenApi : ITestBaseTokenApi
 {
     /// <summary>
@@ -128,7 +128,7 @@ public interface ITestTokenApi : ITestBaseTokenApi
 /// 测试通过Query参数传递Token的场景
 /// </summary>
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), InheritedFrom = nameof(TestBaseTokenApi))]
-[Token(TokenType = TokenType.UserAccessToken, Name = "Token", InjectionMode = TokenInjectionMode.Path)]
+[Token(TokenType = "UserAccessToken", Name = "Token", InjectionMode = TokenInjectionMode.Path)]
 public interface ITestUserTokenQueryApi : ICurrentUserId, ITestBaseTokenApi
 {
     /// <summary>

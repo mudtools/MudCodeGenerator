@@ -1,4 +1,4 @@
-﻿namespace HttpClientApiTest;
+namespace HttpClientApiTest;
 
 
 
@@ -18,7 +18,7 @@ public class FeishuAppContext : IMudAppContext
     /// </summary>
     /// <param name="tokenType">令牌类型</param>
     /// <returns></returns>
-    public ITokenManager GetTokenManager(TokenType tokenType) => throw new NotImplementedException();
+    public ITokenManager GetTokenManager(string tokenType) => throw new NotImplementedException();
 
     public void Dispose()
     {

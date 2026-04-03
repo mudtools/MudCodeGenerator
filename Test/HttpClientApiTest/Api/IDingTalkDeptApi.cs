@@ -17,7 +17,7 @@ public interface IDingTalkDeptApi
     /// </summary>
     [Get("/api/v2/dept/{id}")]
     [IgnoreImplement]
-    Task<SysDeptInfoOutput> GetDeptXXXAsync([Token(TokenType.TenantAccessToken)][Header("X-API-Key")] string apiKey, [Path] string? id);
+    Task<SysDeptInfoOutput> GetDeptXXXAsync([Token("TenantAccessToken")][Header("X-API-Key")] string apiKey, [Path] string? id);
 
     /// <summary>
     /// 测试：使用UserAccessToken类型的Token获取部门信息
@@ -25,7 +25,7 @@ public interface IDingTalkDeptApi
     /// 特点：使用UserAccessToken，API Key通过Header传递，包含tid查询参数
     /// </summary>
     [Get("/api/v2/dept/{id}")]
-    Task<SysDeptInfoOutput?> GetDeptAsync([Token(TokenType = TokenType.UserAccessToken)][Header("X-API-Key")] string apiKey, [Query] string tid, [Path] int id);
+    Task<SysDeptInfoOutput?> GetDeptAsync([Token(TokenType = "UserAccessToken")][Header("X-API-Key")] string apiKey, [Query] string tid, [Path] int id);
 
     /// <summary>
     /// 测试：使用默认Token类型获取部门信息

@@ -7,7 +7,7 @@ using Mud.Common.CodeGenerator;
 /// 测试各种API功能场景，包括路径参数格式化、查询参数命名、Token类型、文件下载等
 /// </summary>
 [HttpClientApi("https://api.dingtalk.com", Timeout = 60, TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "Test", ContentType = "application/xml")]
-[Token(TokenType.TenantAccessToken)]
+[Token("TenantAccessToken")]
 public interface ISingleTestApi
 {
     /// <summary>
@@ -19,7 +19,7 @@ public interface ISingleTestApi
     /// <param name="birthday">生日，格式化为yyyy-MM-dd</param>
     /// <returns></returns>
     [Get("https://api.eishu.com/api/v1/user/{birthday}")]
-    Task<SysUserInfoOutput?> GetUserAsync([Token(TokenType = TokenType.TenantAccessToken)][Header("x-token")] string token, [Path("yyyy-MM-dd")] DateTime birthday);
+    Task<SysUserInfoOutput?> GetUserAsync([Token(TokenType = "TenantAccessToken")][Header("x-token")] string token, [Path("yyyy-MM-dd")] DateTime birthday);
 
     /// <summary>
     /// 测试：获取用户信息（格式化字符串路径参数）
@@ -113,7 +113,7 @@ public interface ISingleTestApi
     /// <param name="token">令牌</param>
     /// <returns></returns>
     [Get("/api/v1/tenant/test")]
-    Task<SysUserInfoOutput> GetTenantTestAsync([Token(TokenType.TenantAccessToken)][Header("x-token")] string token);
+    Task<SysUserInfoOutput> GetTenantTestAsync([Token("TenantAccessToken")][Header("x-token")] string token);
 
     /// <summary>
     /// 测试：获取用户测试信息（UserAccessToken）
@@ -123,7 +123,7 @@ public interface ISingleTestApi
     /// <param name="token">令牌</param>
     /// <returns></returns>
     [Get("/api/v1/user/test")]
-    Task<SysUserInfoOutput> GetUserTestAsync([Token(TokenType.UserAccessToken)][Header("x-token")] string token);
+    Task<SysUserInfoOutput> GetUserTestAsync([Token("UserAccessToken")][Header("x-token")] string token);
 
     /// <summary>
     /// 测试：获取租户测试信息（TenantAccessToken带取消令牌）
@@ -134,7 +134,7 @@ public interface ISingleTestApi
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns></returns>
     [Get("/api/v1/tenant/test/cancel")]
-    Task<SysUserInfoOutput> GetTenantTestWithCancellationAsync([Token(TokenType.TenantAccessToken)][Header("x-token")] string token, CancellationToken cancellationToken = default);
+    Task<SysUserInfoOutput> GetTenantTestWithCancellationAsync([Token("TenantAccessToken")][Header("x-token")] string token, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 测试：获取用户测试信息（Both类型Token带取消令牌）
@@ -145,7 +145,7 @@ public interface ISingleTestApi
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns></returns>
     [Get("/api/v1/user/test/cancel")]
-    Task<SysUserInfoOutput> GetUserTestWithCancellationAsync([Token(TokenType.UserAccessToken)][Header("x-token")] string token, CancellationToken cancellationToken = default);
+    Task<SysUserInfoOutput> GetUserTestWithCancellationAsync([Token("UserAccessToken")][Header("x-token")] string token, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 测试：下载文件（字节数组返回）

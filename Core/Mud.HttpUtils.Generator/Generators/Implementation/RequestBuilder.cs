@@ -148,7 +148,7 @@ internal class RequestBuilder
     /// <summary>
     /// 生成 Body 参数
     /// </summary>
-    public void GenerateBodyParameter(StringBuilder codeBuilder, MethodAnalysisResult methodInfo)
+    public void GenerateBodyParameter(StringBuilder codeBuilder, MethodAnalysisResult methodInfo, bool hasHttpClient)
     {
         var bodyParam = methodInfo.Parameters
             .FirstOrDefault(p => p.Attributes.Any(attr => attr.Name == HttpClientGeneratorConstants.BodyAttribute));
@@ -191,7 +191,17 @@ internal class RequestBuilder
         {
             var propertyName = methodInfo.BodyEncryptPropertyName ?? "data";
             var serializeType = methodInfo.BodyEncryptSerializeType ?? "Json";
-            codeBuilder.AppendLine($"            var encryptedContent = _appContext.HttpClient.EncryptContent({bodyParam.Name}, \"{propertyName}\", SerializeType.{serializeType});");
+
+            if (hasHttpClient)
+            {
+                codeBuilder.AppendLine($"            var httpClient = _httpClient;");
+            }
+            else
+            {
+                codeBuilder.AppendLine($"            var httpClient = _appContext.HttpClient;");
+            }
+
+            codeBuilder.AppendLine($"            var encryptedContent = _httpClient.EncryptContent({bodyParam.Name}, \"{propertyName}\", SerializeType.{serializeType});");
             codeBuilder.AppendLine($"            httpRequest.Content = new StringContent(encryptedContent, Encoding.UTF8, {contentTypeExpression});");
         }
         else if (useStringContent)
@@ -226,14 +236,21 @@ internal class RequestBuilder
     /// <summary>
     /// 生成请求执行
     /// </summary>
-    public void GenerateRequestExecution(StringBuilder codeBuilder, MethodAnalysisResult methodInfo, string cancellationTokenArg)
+    public void GenerateRequestExecution(StringBuilder codeBuilder, MethodAnalysisResult methodInfo, string cancellationTokenArg, bool hasHttpClient)
     {
         var filePathParam = methodInfo.Parameters.Where(p => p.Attributes.Any(attr => attr.Name == HttpClientGeneratorConstants.FilePathAttribute)).FirstOrDefault();
 
         var deserializeType = methodInfo.IsAsyncMethod ? methodInfo.AsyncInnerReturnType : methodInfo.ReturnType;
         codeBuilder.AppendLine();
 
-        codeBuilder.AppendLine($"            var httpClient = _appContext.HttpClient;");
+        if (hasHttpClient)
+        {
+            codeBuilder.AppendLine($"            var httpClient = _httpClient;");
+        }
+        else
+        {
+            codeBuilder.AppendLine($"            var httpClient = _appContext.HttpClient;");
+        }
         if (filePathParam != null)
         {
             codeBuilder.AppendLine($"            await httpClient.DownloadLargeAsync(httpRequest, {filePathParam.Name}{cancellationTokenArg});");

@@ -280,6 +280,11 @@
             生成配置
             </summary>
         </member>
+        <member name="P:Mud.HttpUtils.Generators.Context.GenerationConfiguration.HttpClient">
+            <summary>
+            HttpClient接口类型（与TokenManager互斥，优先使用）
+            </summary>
+        </member>
         <member name="P:Mud.HttpUtils.Generators.Context.GenerationConfiguration.IsUserAccessToken">
             <summary>
             是否为用户访问令牌 (UserAccessToken)
@@ -467,7 +472,7 @@
             生成 Header 参数
             </summary>
         </member>
-        <member name="M:Mud.HttpUtils.Generators.Implementation.RequestBuilder.GenerateBodyParameter(System.Text.StringBuilder,Mud.HttpUtils.Models.Analysis.MethodAnalysisResult)">
+        <member name="M:Mud.HttpUtils.Generators.Implementation.RequestBuilder.GenerateBodyParameter(System.Text.StringBuilder,Mud.HttpUtils.Models.Analysis.MethodAnalysisResult,System.Boolean)">
             <summary>
             生成 Body 参数
             </summary>
@@ -477,7 +482,7 @@
             生成 FormContent 参数（用于 multipart/form-data）
             </summary>
         </member>
-        <member name="M:Mud.HttpUtils.Generators.Implementation.RequestBuilder.GenerateRequestExecution(System.Text.StringBuilder,Mud.HttpUtils.Models.Analysis.MethodAnalysisResult,System.String)">
+        <member name="M:Mud.HttpUtils.Generators.Implementation.RequestBuilder.GenerateRequestExecution(System.Text.StringBuilder,Mud.HttpUtils.Models.Analysis.MethodAnalysisResult,System.String,System.Boolean)">
             <summary>
             生成请求执行
             </summary>

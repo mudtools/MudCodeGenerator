@@ -32,6 +32,11 @@ internal class GenerationConfiguration
 
     public string? TokenManagerType { get; set; }
 
+    /// <summary>
+    /// HttpClient接口类型（与TokenManager互斥，优先使用）
+    /// </summary>
+    public string? HttpClient { get; set; }
+
     public string? TokenType { get; set; }
 
     /// <summary>

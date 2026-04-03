@@ -4,7 +4,7 @@ namespace HttpClientApiTest.TokenHeaderTestApi;
 /// 用于测试[Header]特性在不同场景下的使用
 /// </summary>
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager), RegistryGroupName = "HeaderFeature")]
-[Token(TokenType.TenantAccessToken)]
+[Token("TenantAccessToken")]
 public interface IHeaderFeatureTestApi : IAppContextSwitcher
 {
     /// <summary>

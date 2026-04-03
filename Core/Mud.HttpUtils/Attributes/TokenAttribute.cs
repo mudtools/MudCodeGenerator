@@ -16,15 +16,8 @@ public sealed class TokenAttribute : Attribute
     /// <summary>
     /// <inheritdoc cref="TokenAttribute" />
     /// </summary>
-    public TokenAttribute() : this(TokenType.TenantAccessToken)
-    {
-    }
-
-    /// <summary>
-    /// <inheritdoc cref="TokenAttribute" />
-    /// </summary>
     /// <param name="tokenType">Token类型</param>
-    public TokenAttribute(TokenType tokenType)
+    public TokenAttribute(string tokenType = "TenantAccessToken")
     {
         TokenType = tokenType;
     }
@@ -32,7 +25,7 @@ public sealed class TokenAttribute : Attribute
     /// <summary>
     /// Token类型
     /// </summary>
-    public TokenType TokenType { get; set; } = TokenType.TenantAccessToken;
+    public string TokenType { get; set; } = "TenantAccessToken";
 
     /// <summary>
     /// Token注入模式（Header/Query/Path）

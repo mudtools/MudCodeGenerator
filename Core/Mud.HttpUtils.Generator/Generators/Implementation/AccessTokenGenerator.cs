@@ -27,6 +27,10 @@ internal class AccessTokenGenerator : ICodeFragmentGenerator
     /// </summary>
     public void Generate(StringBuilder codeBuilder, GeneratorContext context)
     {
+        // HttpClient 模式下不生成任何 Token 相关代码
+        if (_context.HasHttpClient)
+            return;
+
         // 生成 CurrentUserId 属性
         GenerateCurrentUserIdProperty(codeBuilder);
 

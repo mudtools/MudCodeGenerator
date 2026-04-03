@@ -5,7 +5,7 @@ namespace HttpClientApiTest.Api;
 /// </summary>
 [HttpClientApi(TokenManage = "IFeishuAppManager", Timeout = 120)]
 [Header("Token")]
-[Token(TokenType.AppAccessToken)]
+[Token("AppAccessToken")]
 public interface IFeishuUserApi
 {
     /// <summary>

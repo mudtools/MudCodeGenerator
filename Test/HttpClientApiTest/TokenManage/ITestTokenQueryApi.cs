@@ -9,7 +9,7 @@ namespace HttpClientApiTest;
 /// </summary>
 [HttpClientApi(TokenManage = nameof(IFeishuAppManager))]
 [Query("Authorization", AliasAs = "X-Token")]
-[Token(TokenType = TokenType.UserAccessToken)]
+[Token(TokenType = "UserAccessToken")]
 public interface ITestTokenQueryApi : IAppContextSwitcher, ICurrentUserId
 {
     /// <summary>

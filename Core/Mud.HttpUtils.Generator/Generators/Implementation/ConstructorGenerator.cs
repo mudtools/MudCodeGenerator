@@ -40,7 +40,8 @@ internal class ConstructorGenerator : ICodeFragmentGenerator
     /// </summary>
     private void GenerateClassFields(StringBuilder codeBuilder)
     {
-        if (!string.IsNullOrEmpty(_context.Configuration.TokenType) || _context.HasTokenManager)
+        // HttpClient 模式下不生成 Token 相关字段
+        if (!_context.HasHttpClient && (!string.IsNullOrEmpty(_context.Configuration.TokenType) || _context.HasTokenManager))
         {
             var tokenType = string.IsNullOrEmpty(_context.Configuration.TokenType)
                 ? TokenHelper.GetDefaultTokenType()
@@ -48,15 +49,11 @@ internal class ConstructorGenerator : ICodeFragmentGenerator
             codeBuilder.AppendLine("        /// <summary>");
             codeBuilder.AppendLine("        /// Token类型，用于标识使用的Token类型。");
             codeBuilder.AppendLine("        /// </summary>");
-            codeBuilder.AppendLine($"        private readonly TokenType _tokenType = TokenType.{tokenType};");
+            codeBuilder.AppendLine($"        private readonly string _tokenType = \"{tokenType}\";");
         }
 
         if (_context.HasInheritedFrom) return;
 
-        codeBuilder.AppendLine("        /// <summary>");
-        codeBuilder.AppendLine("        /// 用于JSON内容序列化与反序列化操作的<see cref = \"JsonSerializerOptions\"/> 参数实例。");
-        codeBuilder.AppendLine("        /// </summary>");
-        codeBuilder.AppendLine($"        {_context.FieldAccessibility}IMudAppContext _appContext;");
 
         codeBuilder.AppendLine("        /// <summary>");
         codeBuilder.AppendLine("        /// 用于JSON内容序列化与反序列化操作的<see cref = \"JsonSerializerOptions\"/> 参数实例。");
@@ -66,9 +63,28 @@ internal class ConstructorGenerator : ICodeFragmentGenerator
         if (_context.HasTokenManager)
         {
             codeBuilder.AppendLine("        /// <summary>");
+            codeBuilder.AppendLine("        /// 应用上下文，用于获取HttpClient和Token管理器。");
+            codeBuilder.AppendLine("        /// </summary>");
+            codeBuilder.AppendLine($"        {_context.FieldAccessibility}IMudAppContext _appContext;");
+
+            codeBuilder.AppendLine("        /// <summary>");
             codeBuilder.AppendLine($"        /// 用于HttpClient客户端操作操作使用的的<see cref = \"{_context.Configuration.TokenManagerType}\"/> 令牌管理实例。");
             codeBuilder.AppendLine("        /// </summary>");
             codeBuilder.AppendLine($"        {_context.FieldAccessibility}readonly {_context.Configuration.TokenManagerType} _appManager;");
+        }
+        else if (_context.HasHttpClient)
+        {
+            codeBuilder.AppendLine("        /// <summary>");
+            codeBuilder.AppendLine($"        /// 用于HttpClient客户端操作的<see cref = \"{_context.Configuration.HttpClient}\"/> 实例。");
+            codeBuilder.AppendLine("        /// </summary>");
+            codeBuilder.AppendLine($"        {_context.FieldAccessibility}readonly {_context.Configuration.HttpClient} _httpClient;");
+        }
+        else
+        {
+            codeBuilder.AppendLine("        /// <summary>");
+            codeBuilder.AppendLine("        /// 应用上下文，用于获取HttpClient。");
+            codeBuilder.AppendLine("        /// </summary>");
+            codeBuilder.AppendLine($"        {_context.FieldAccessibility}IMudAppContext _appContext;");
         }
 
 
@@ -93,6 +109,14 @@ internal class ConstructorGenerator : ICodeFragmentGenerator
         {
             codeBuilder.AppendLine("        /// <param name=\"appManager\">应用令牌管理器</param>");
         }
+        else if (_context.HasHttpClient)
+        {
+            codeBuilder.AppendLine($"        /// <param name=\"httpClient\">HttpClient实例</param>");
+        }
+        else
+        {
+            codeBuilder.AppendLine("        /// <param name=\"appContext\">应用上下文</param>");
+        }
     }
 
     /// <summary>
@@ -109,6 +133,14 @@ internal class ConstructorGenerator : ICodeFragmentGenerator
         {
             parameters.Add($"{_context.Configuration.TokenManagerType} appManager");
         }
+        else if (_context.HasHttpClient)
+        {
+            parameters.Add($"{_context.Configuration.HttpClient} httpClient");
+        }
+        else
+        {
+            parameters.Add("IMudAppContext appContext");
+        }
 
         var signature = $"        public {className}({string.Join(", ", parameters)})";
         codeBuilder.Append(signature);
@@ -122,6 +154,14 @@ internal class ConstructorGenerator : ICodeFragmentGenerator
             if (_context.HasTokenManager)
             {
                 baseParameters.Add("appManager");
+            }
+            else if (_context.HasHttpClient)
+            {
+                baseParameters.Add("httpClient");
+            }
+            else
+            {
+                baseParameters.Add("appContext");
             }
             codeBuilder.AppendLine($" : base({string.Join(", ", baseParameters)})");
         }
@@ -146,6 +186,14 @@ internal class ConstructorGenerator : ICodeFragmentGenerator
             {
                 codeBuilder.AppendLine("            _appManager = appManager ?? throw new ArgumentNullException(nameof(appManager));");
                 codeBuilder.AppendLine("            _appContext = appManager.GetDefaultApp();");
+            }
+            else if (_context.HasHttpClient)
+            {
+                codeBuilder.AppendLine("            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));");
+            }
+            else
+            {
+                codeBuilder.AppendLine("            _appContext = appContext ?? throw new ArgumentNullException(nameof(appContext));");
             }
         }
 
@@ -197,6 +245,10 @@ internal class ConstructorGenerator : ICodeFragmentGenerator
 
     private void GenerateGetTokenTypeMethod(StringBuilder codeBuilder)
     {
+        // HttpClient 模式下不生成 Token 相关方法
+        if (_context.HasHttpClient)
+            return;
+
         if (string.IsNullOrEmpty(_context.Configuration.TokenType) && string.IsNullOrEmpty(_context.Configuration.TokenManager))
             return;
 
@@ -205,15 +257,19 @@ internal class ConstructorGenerator : ICodeFragmentGenerator
             accessibility = "virtual";
 
         codeBuilder.AppendLine("        /// <summary>");
-        codeBuilder.AppendLine("        /// 获取用于远程API访问的<see cref = \"TokenType\"/>令牌类型。");
+        codeBuilder.AppendLine("        /// 获取用于远程API访问的Token令牌类型。");
         codeBuilder.AppendLine("        /// </summary>");
-        codeBuilder.AppendLine("        /// <returns>返回<see cref = \"TokenType\"/>令牌类型。</returns>");
-        codeBuilder.AppendLine($"        protected {accessibility} TokenType GetTokeType() => _tokenType;");
+        codeBuilder.AppendLine("        /// <returns>返回Token令牌类型。</returns>");
+        codeBuilder.AppendLine($"        protected {accessibility} string GetTokeType() => _tokenType;");
         codeBuilder.AppendLine();
     }
 
     private void GenerateUseAppMethod(StringBuilder codeBuilder)
     {
+        // HttpClient 模式下不生成任何 Token 相关方法
+        if (_context.HasHttpClient)
+            return;
+
         if (!_context.HasTokenManager)
             return;
 
@@ -255,6 +311,10 @@ internal class ConstructorGenerator : ICodeFragmentGenerator
     /// </summary>
     private void GenerateGetTokenAsyncMethod(StringBuilder codeBuilder)
     {
+        // HttpClient 模式下不生成任何 Token 相关方法
+        if (_context.HasHttpClient)
+            return;
+
         codeBuilder.AppendLine("        /// <summary>");
         codeBuilder.AppendLine("        /// 获取当前应用的访问令牌。");
         codeBuilder.AppendLine("        /// </summary>");
