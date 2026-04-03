@@ -11,7 +11,8 @@ Mud.HttpUtils.Generator 是一个基于 Roslyn 的源代码生成器，自动为
 - **自动代码生成**：根据接口定义自动生成 HttpClient 实现
 - **HTTP 方法支持**：支持 GET、POST、PUT、DELETE、PATCH、HEAD、OPTIONS 等 HTTP 方法
 - **参数处理**：自动处理 Path、Query、Header、Body、FormContent 等参数类型
-- **Token 管理**：支持多种 Token 类型（TenantAccessToken、UserAccessToken、AppAccessToken、Both）
+- **Token 管理**：支持多种 Token 类型（TenantAccessToken、UserAccessToken、AppAccessToken），TokenType 使用字符串类型，解耦强绑定
+- **HttpClient 模式**：支持通过 `HttpClient` 属性直接注入 HttpClient 接口，与 `TokenManage` 互斥
 - **依赖注入**：自动生成服务注册扩展方法
 - **类型安全**：强类型的 API 调用，编译时检查
 
@@ -89,12 +90,15 @@ public class UserService
     ContentType = "application/json",        // 默认请求内容类型
     Timeout = 50,                            // 超时时间（秒）
     TokenManage = "ITokenManager",           // Token 管理器接口
+    HttpClient = "IMyHttpClient",            // HttpClient 接口（与 TokenManage 互斥，优先）
     RegistryGroupName = "Example",           // 注册组名称
     IsAbstract = false,                      // 是否生成抽象类
     InheritedFrom = "BaseClass"              // 继承的基类
 )]
 public interface IExampleApi { }
 ```
+
+> **注意**：`HttpClient` 与 `TokenManage` 属性互斥，同时定义时 `HttpClient` 优先。
 
 ### HTTP 方法特性
 
@@ -241,23 +245,66 @@ Task UploadAsync([FormContent] IFormContent formData);
 
 ### Token 认证
 
-支持多种 Token 类型：
+`TokenAttribute` 的 `TokenType` 属性使用字符串类型，支持以下值：
 
-```csharp
-public enum TokenType
-{
-    TenantAccessToken,  // 租户访问令牌
-    UserAccessToken,    // 用户访问令牌
-    AppAccessToken,     // 应用访问令牌
-    Both                // 两者都支持
-}
-```
+- `"TenantAccessToken"` - 租户访问令牌
+- `"UserAccessToken"` - 用户访问令牌
+- `"AppAccessToken"` - 应用访问令牌
 
 使用示例：
 
 ```csharp
+// 接口级设置 Token 类型
+[Token("TenantAccessToken")]
+public interface IMyApi { }
+
+// 参数级设置 Token 类型
 [Get("/users/{id}")]
-Task<User> GetUserAsync([Path] int id, [Token(TokenType.UserAccessToken)] string? token = null);
+Task<User> GetUserAsync([Path] int id, [Token("UserAccessToken")] string? token = null);
+
+// 使用命名参数
+[Token(TokenType = "AppAccessToken")]
+public interface IAppApi { }
+```
+
+#### Token 注入模式
+
+```csharp
+public enum TokenInjectionMode
+{
+    Header,  // 注入到 HTTP Header
+    Query,   // 注入到 URL Query 参数
+    Path     // 注入到 URL Path
+}
+```
+
+```csharp
+[Token("TenantAccessToken", InjectionMode = TokenInjectionMode.Header, Name = "Authorization")]
+```
+
+#### HttpClient 模式
+
+当 `HttpClientApiAttribute` 设置了 `HttpClient` 属性时，生成的代码不会包含 Token 相关的字段和方法，而是直接注入指定的 HttpClient 接口实例：
+
+```csharp
+[HttpClientApi(HttpClient = "IMyHttpClient")]
+public interface IMyApi
+{
+    [Get("/users")]
+    Task<List<User>> GetUsersAsync();
+}
+
+// 生成的代码大致结构：
+// internal partial class MyApi : IMyApi
+// {
+//     private readonly IMyHttpClient _httpClient;
+//     ...
+//     public MyApi(IOptions<JsonSerializerOptions> option, IMyHttpClient httpClient)
+//     {
+//         _httpClient = httpClient;
+//     }
+//     // 不生成 _tokenType、_appManager、GetTokenAsync 等 Token 相关代码
+// }
 ```
 
 ### 响应解密
@@ -295,6 +342,13 @@ Mud.HttpUtils.Generator/
 - Microsoft.CodeAnalysis.CSharp
 
 ## 版本历史
+
+### 1.7.0
+
+- `TokenAttribute.TokenType` 从枚举类型改为字符串类型，解耦强绑定
+- `HttpClientApiAttribute` 新增 `HttpClient` 属性，支持直接注入 HttpClient 接口
+- `HttpClient` 与 `TokenManage` 互斥，同时定义时 `HttpClient` 优先
+- HttpClient 模式下不生成 Token 相关的字段和方法
 
 ### 1.6.3
 

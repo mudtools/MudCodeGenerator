@@ -169,6 +169,8 @@ Task<byte[]> DownloadFileAsync(string fileId);
 
 #### Token管理集成
 
+`TokenAttribute` 的 `TokenType` 属性使用字符串类型（`"TenantAccessToken"`、`"UserAccessToken"`、`"AppAccessToken"`），解耦了枚举强绑定。
+
 ```csharp
 // 定义Token管理器
 public interface ITokenManager
@@ -179,12 +181,23 @@ public interface ITokenManager
 // 使用Header传递Token
 [HttpClientApi(TokenManage = nameof(ITokenManager))]
 [Header("Authorization")]
+[Token("TenantAccessToken")]
 public interface IProtectedApi
 {
     [Get("protected/data")]
     Task<Data> GetDataAsync();
 }
+
+// 使用 HttpClient 模式（与 TokenManage 互斥，优先）
+[HttpClientApi(HttpClient = "IMyHttpClient")]
+public interface IHttpClientApi
+{
+    [Get("protected/data")]
+    Task<Data> GetDataAsync();
+}
 ```
+
+> **注意**：`HttpClient` 与 `TokenManage` 属性互斥，同时定义时 `HttpClient` 优先。使用 `HttpClient` 模式时，生成的代码不包含 Token 相关字段和方法，直接注入指定的 HttpClient 接口实例。
 
 #### 按组注册功能
 
@@ -349,6 +362,7 @@ public interface IMyApi : BaseApiClient
 | ContentType | string | application/json | 默认内容类型 |
 | RegistryGroupName | string | null | 注册分组名称 |
 | TokenManage | string | null | Token管理器接口名 |
+| HttpClient | string | null | HttpClient接口名（与TokenManage互斥，优先） |
 | IsAbstract | bool | false | 是否生成抽象类 |
 | InheritedFrom | string | null | 继承的基类名 |
 

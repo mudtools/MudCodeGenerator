@@ -191,17 +191,13 @@ internal class RequestBuilder
         {
             var propertyName = methodInfo.BodyEncryptPropertyName ?? "data";
             var serializeType = methodInfo.BodyEncryptSerializeType ?? "Json";
-
+            string httpClient = "_appContext.HttpClient";
             if (hasHttpClient)
             {
-                codeBuilder.AppendLine($"            var httpClient = _httpClient;");
-            }
-            else
-            {
-                codeBuilder.AppendLine($"            var httpClient = _appContext.HttpClient;");
+                httpClient = "_httpClient";
             }
 
-            codeBuilder.AppendLine($"            var encryptedContent = _httpClient.EncryptContent({bodyParam.Name}, \"{propertyName}\", SerializeType.{serializeType});");
+            codeBuilder.AppendLine($"            var encryptedContent = {httpClient}.EncryptContent({bodyParam.Name}, \"{propertyName}\", SerializeType.{serializeType});");
             codeBuilder.AppendLine($"            httpRequest.Content = new StringContent(encryptedContent, Encoding.UTF8, {contentTypeExpression});");
         }
         else if (useStringContent)
@@ -242,24 +238,20 @@ internal class RequestBuilder
 
         var deserializeType = methodInfo.IsAsyncMethod ? methodInfo.AsyncInnerReturnType : methodInfo.ReturnType;
         codeBuilder.AppendLine();
-
+        string httpClient = "_appContext.HttpClient";
         if (hasHttpClient)
         {
-            codeBuilder.AppendLine($"            var httpClient = _httpClient;");
-        }
-        else
-        {
-            codeBuilder.AppendLine($"            var httpClient = _appContext.HttpClient;");
+            httpClient = "_httpClient";
         }
         if (filePathParam != null)
         {
-            codeBuilder.AppendLine($"            await httpClient.DownloadLargeAsync(httpRequest, {filePathParam.Name}{cancellationTokenArg});");
+            codeBuilder.AppendLine($"            await {httpClient}.DownloadLargeAsync(httpRequest, {filePathParam.Name}{cancellationTokenArg});");
         }
         else
         {
             if (TypeDetectionHelper.IsByteArrayType(deserializeType))
             {
-                codeBuilder.AppendLine($"            return await httpClient.DownloadAsync(httpRequest{cancellationTokenArg});");
+                codeBuilder.AppendLine($"            return await {httpClient}.DownloadAsync(httpRequest{cancellationTokenArg});");
             }
             else
             {
@@ -268,11 +260,11 @@ internal class RequestBuilder
 
                 if (isXmlResponse)
                 {
-                    codeBuilder.AppendLine($"            return await httpClient.SendXmlAsync<{deserializeType}>(httpRequest, null{cancellationTokenArg});");
+                    codeBuilder.AppendLine($"            return await {httpClient}.SendXmlAsync<{deserializeType}>(httpRequest, null{cancellationTokenArg});");
                 }
                 else
                 {
-                    codeBuilder.AppendLine($"            return await httpClient.SendAsync<{deserializeType}>(httpRequest{cancellationTokenArg});");
+                    codeBuilder.AppendLine($"            return await {httpClient}.SendAsync<{deserializeType}>(httpRequest{cancellationTokenArg});");
                 }
             }
         }

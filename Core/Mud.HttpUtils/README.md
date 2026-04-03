@@ -110,12 +110,15 @@ public class MyTokenManager : ITokenManager
     ContentType = "application/json",        // 默认请求内容类型
     Timeout = 50,                            // 超时时间（秒）
     TokenManage = "ITokenManager",           // Token 管理器接口
+    HttpClient = "IMyHttpClient",            // HttpClient 接口（与 TokenManage 互斥，优先）
     RegistryGroupName = "Example",           // 注册组名称
     IsAbstract = false,                      // 是否生成抽象类
     InheritedFrom = "BaseClass"              // 继承的基类
 )]
 public interface IExampleApi { }
 ```
+
+> **注意**：`HttpClient` 与 `TokenManage` 属性互斥，同时定义时 `HttpClient` 优先。使用 `HttpClient` 模式时，生成的代码不会包含 Token 相关的字段和方法，而是直接注入指定的 HttpClient 接口实例。
 
 ### HTTP 方法特性
 
@@ -212,14 +215,33 @@ Task UploadAsync([FormContent] IFormContent formData);
 
 ### Token 类型
 
+`TokenAttribute` 的 `TokenType` 属性使用字符串类型，支持以下值：
+
 ```csharp
-public enum TokenType
+public class TokenAttribute : Attribute
 {
-    TenantAccessToken,  // 租户访问令牌
-    UserAccessToken,    // 用户访问令牌
-    AppAccessToken,     // 应用访问令牌
-    Both                // 两者都支持
+    // 构造函数参数，默认 "TenantAccessToken"
+    public TokenAttribute(string tokenType = "TenantAccessToken") { }
+
+    // Token类型字符串
+    public string TokenType { get; set; } = "TenantAccessToken";
+
+    // 支持的TokenType值：
+    // "TenantAccessToken"  - 租户访问令牌
+    // "UserAccessToken"    - 用户访问令牌
+    // "AppAccessToken"     - 应用访问令牌
 }
+```
+
+使用示例：
+
+```csharp
+// 使用构造函数
+[Token("TenantAccessToken")]
+[Token("UserAccessToken")]
+
+// 使用命名参数
+[Token(TokenType = "UserAccessToken")]
 ```
 
 ### Token 注入模式
@@ -293,6 +315,12 @@ Mud.HttpUtils/
 | .NET 10.0 | Microsoft.Extensions.Logging.Abstractions (10.0.4) |
 
 ## 版本历史
+
+### 1.7.0
+- `TokenAttribute.TokenType` 从枚举类型改为字符串类型，解耦强绑定
+- `HttpClientApiAttribute` 新增 `HttpClient` 属性，支持直接注入 HttpClient 接口
+- `HttpClient` 与 `TokenManage` 互斥，同时定义时 `HttpClient` 优先
+- HttpClient 模式下不生成 Token 相关的字段和方法
 
 ### 1.6.3
 - 新增 HttpMethodAttribute.ContentType 属性

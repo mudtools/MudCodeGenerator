@@ -127,7 +127,6 @@ internal class MethodGenerator : ICodeFragmentGenerator
         if (needsTokenInjection)
         {
             codeBuilder.AppendLine($"            var access_token = await GetTokenAsync();");
-            codeBuilder.AppendLine();
         }
 
         ParameterValidationHelper.GenerateParameterValidation(codeBuilder, methodInfo.Parameters);
