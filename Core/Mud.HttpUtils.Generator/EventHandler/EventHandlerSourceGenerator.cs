@@ -6,7 +6,6 @@
 // -----------------------------------------------------------------------
 
 using System.Collections.Immutable;
-using System.Security.Cryptography;
 
 namespace Mud.HttpUtils;
 
@@ -17,57 +16,6 @@ namespace Mud.HttpUtils;
 internal class EventHandlerSourceGenerator : TransitiveCodeGenerator
 {
     private const string EventHandlerAttributeName = "GenerateEventHandlerAttribute";
-    private const int MaxSemanticModelCacheSize = 100;
-
-    /// <summary>
-    /// LRU缓存管理SemanticModel
-    /// </summary>
-    private sealed class SemanticModelCache
-    {
-        private readonly Dictionary<SyntaxTree, (SemanticModel Model, LinkedListNode<SyntaxTree> Node)> _cache;
-        private readonly LinkedList<SyntaxTree> _lruList;
-        private readonly int _maxSize;
-        private readonly object _lock = new();
-
-        public SemanticModelCache(int maxSize)
-        {
-            _cache = new Dictionary<SyntaxTree, (SemanticModel, LinkedListNode<SyntaxTree>)>();
-            _lruList = new LinkedList<SyntaxTree>();
-            _maxSize = maxSize;
-        }
-
-        public SemanticModel GetOrCreate(SyntaxTree syntaxTree, Compilation compilation)
-        {
-            lock (_lock)
-            {
-                if (_cache.TryGetValue(syntaxTree, out var cachedEntry))
-                {
-                    // 更新LRU: 移到链表头部
-                    _lruList.Remove(cachedEntry.Node);
-                    _lruList.AddFirst(cachedEntry.Node);
-                    return cachedEntry.Model;
-                }
-
-                // 创建新的SemanticModel
-                var model = compilation.GetSemanticModel(syntaxTree);
-                var node = _lruList.AddFirst(syntaxTree);
-                _cache[syntaxTree] = (model, node);
-
-                // 超出上限时淘汰最久未使用的项
-                if (_cache.Count > _maxSize)
-                {
-                    var last = _lruList.Last?.Value;
-                    if (last != null)
-                    {
-                        _lruList.RemoveLast();
-                        _cache.Remove(last);
-                    }
-                }
-
-                return model;
-            }
-        }
-    }
 
     /// <inheritdoc/>
     protected override Collection<string> GetFileUsingNameSpaces()
@@ -115,9 +63,6 @@ internal class EventHandlerSourceGenerator : TransitiveCodeGenerator
         if (eventHandlerClasses.IsDefaultOrEmpty)
             return;
 
-        // 使用 LRU 缓存管理 SemanticModel
-        var semanticModelCache = new SemanticModelCache(MaxSemanticModelCacheSize);
-
         foreach (var eventClass in eventHandlerClasses)
         {
             if (eventClass == null)
@@ -125,8 +70,7 @@ internal class EventHandlerSourceGenerator : TransitiveCodeGenerator
 
             try
             {
-                // 从缓存获取或创建 SemanticModel
-                var semanticModel = semanticModelCache.GetOrCreate(eventClass.SyntaxTree, compilation);
+                var semanticModel = HttpInvokeBaseSourceGenerator.GetOrCreateSemanticModel(compilation, eventClass.SyntaxTree);
 
                 var classSymbol = semanticModel.GetDeclaredSymbol(eventClass);
 
@@ -145,13 +89,7 @@ internal class EventHandlerSourceGenerator : TransitiveCodeGenerator
                 if (!string.IsNullOrEmpty(generatedCode))
                 {
                     var fileName = GenerateUniqueFileName(eventClass, classSymbol, eventHandlerAttribute);
-                    var contentHash = GenerateContentHash(generatedCode);
-
-                    // 添加哈希注释到生成代码
-                    var generatedCodeWithHash = generatedCode.TrimEnd() +
-                        $"\n// ContentHash: {contentHash}";
-
-                    context.AddSource(fileName, generatedCodeWithHash);
+                    context.AddSource(fileName, generatedCode);
                 }
             }
             catch (Exception ex)
@@ -186,10 +124,12 @@ internal class EventHandlerSourceGenerator : TransitiveCodeGenerator
         // 解析特性参数，使用AttributeDataHelper的已有功能
         var handlerNamespace = GetAttributeParameter(eventHandlerAttribute, "HandlerNamespace", "");
         var handlerClassName = GetAttributeParameter(eventHandlerAttribute, "HandlerClassName", "");
-        var eventType = AttributeDataHelper.GetStringValueFromAttributeConstructor(eventHandlerAttribute, "EventType")
-                   ?? AttributeDataHelper.GetStringValueFromAttribute(eventHandlerAttribute, "EventType", "")
+        var eventType = AttributeDataHelper.GetStringValueFromAttribute(eventHandlerAttribute, "EventType", "")
+                   ?? AttributeDataHelper.GetStringValueFromAttributeConstructor(eventHandlerAttribute, "EventType")
                    ?? "";
         var inheritedFrom = GetAttributeParameter(eventHandlerAttribute, "InheritedFrom", "IdempotentFeishuEventHandler");
+        var constructorParams = GetAttributeParameter(eventHandlerAttribute, "ConstructorParameters", "IFeishuEventDeduplicator businessDeduplicator,ILogger logger");
+        var constructorBaseCall = GetAttributeParameter(eventHandlerAttribute, "ConstructorBaseCall", "businessDeduplicator,logger");
 
         // 验证基类名合法性
         if (!ValidateBaseClassName(inheritedFrom, context, eventClass.GetLocation()))
@@ -210,13 +150,16 @@ internal class EventHandlerSourceGenerator : TransitiveCodeGenerator
         GenerateFileHeader(sb);
 
         // 添加自定义命名空间引用（如果需要的话）
-        if (!string.IsNullOrEmpty(inheritedFrom) && inheritedFrom.Contains("."))
+        if (!string.IsNullOrEmpty(inheritedFrom))
         {
-            var parts = inheritedFrom.Split('.');
-            var inheritedNamespace = string.Join(".", parts.Take(parts.Length - 1));
-            if (!GetFileUsingNameSpaces().Contains(inheritedNamespace))
+            var lastDotIndex = inheritedFrom.LastIndexOf('.');
+            if (lastDotIndex > 0)
             {
-                sb.AppendLine($"using {inheritedNamespace};");
+                var inheritedNamespace = inheritedFrom.Substring(0, lastDotIndex);
+                if (!GetFileUsingNameSpaces().Contains(inheritedNamespace))
+                {
+                    sb.AppendLine($"using {inheritedNamespace};");
+                }
             }
         }
 
@@ -246,17 +189,30 @@ internal class EventHandlerSourceGenerator : TransitiveCodeGenerator
         sb.AppendLine("    {");
 
         // 构造函数
-        sb.AppendLine("        /// <summary>");
-        sb.AppendLine("        /// 默认构造函数");
-        sb.AppendLine("        /// </summary>");
-        sb.AppendLine("        /// <param name=\"businessDeduplicator\">飞书事件去重服务接口</param>");
-        sb.AppendLine("        /// <param name=\"logger\">日志记录对象。</param>");
-        sb.AppendLine($"        {GeneratedCodeConsts.HttpGeneratedCodeAttribute}");
-        sb.AppendLine($"        public {generatedClassName}(IFeishuEventDeduplicator businessDeduplicator, ILogger logger)");
-        sb.AppendLine("            : base(businessDeduplicator,logger)");
-        sb.AppendLine("        {");
-        sb.AppendLine("        }");
-        sb.AppendLine();
+        if (!string.IsNullOrEmpty(constructorParams))
+        {
+            sb.AppendLine("        /// <summary>");
+            sb.AppendLine("        /// 默认构造函数");
+            sb.AppendLine("        /// </summary>");
+
+            var paramParts = constructorParams.Split(',');
+            foreach (var param in paramParts)
+            {
+                var trimmedParam = param.Trim();
+                var paramName = trimmedParam.Contains(' ') ? trimmedParam.Substring(trimmedParam.LastIndexOf(' ') + 1) : trimmedParam;
+                sb.AppendLine($"        /// <param name=\"{paramName}\">参数</param>");
+            }
+
+            sb.AppendLine($"        {GeneratedCodeConsts.HttpGeneratedCodeAttribute}");
+            sb.AppendLine($"        public {generatedClassName}({constructorParams.Trim()})");
+            if (!string.IsNullOrEmpty(constructorBaseCall))
+            {
+                sb.AppendLine($"            : base({constructorBaseCall.Trim()})");
+            }
+            sb.AppendLine("        {");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+        }
 
         // SupportedEventType属性
         if (!string.IsNullOrEmpty(eventType))
@@ -286,7 +242,7 @@ internal class EventHandlerSourceGenerator : TransitiveCodeGenerator
     {
         // 优先使用AttributeDataHelper的命名参数方法
         var namedValue = AttributeDataHelper.GetStringValueFromAttribute(attribute, parameterName, defaultValue);
-        if (!string.IsNullOrEmpty(namedValue) && namedValue != defaultValue)
+        if (!string.IsNullOrEmpty(namedValue))
         {
             return namedValue;
         }
@@ -456,18 +412,4 @@ internal class EventHandlerSourceGenerator : TransitiveCodeGenerator
         return $"{namespacePart}_{className}.g.cs";
     }
 
-    /// <summary>
-    /// 生成内容哈希，用于增量编译的幂等性校验
-    /// </summary>
-    /// <param name="content">生成的内容</param>
-    /// <returns>SHA256哈希值的前8位</returns>
-    private string GenerateContentHash(string content)
-    {
-        if (string.IsNullOrEmpty(content))
-            return string.Empty;
-
-        using var sha256 = SHA256.Create();
-        var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(content));
-        return BitConverter.ToString(hashBytes).Replace("-", "").Substring(0, 8);
-    }
 }

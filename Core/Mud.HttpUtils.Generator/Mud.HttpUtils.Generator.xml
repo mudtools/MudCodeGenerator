@@ -170,11 +170,6 @@
             事件处理器源代码生成器，用于为带有EventHandler特性的类生成对应的事件处理器抽象类。
             </summary>
         </member>
-        <member name="T:Mud.HttpUtils.EventHandlerSourceGenerator.SemanticModelCache">
-            <summary>
-            LRU缓存管理SemanticModel
-            </summary>
-        </member>
         <member name="M:Mud.HttpUtils.EventHandlerSourceGenerator.GetFileUsingNameSpaces">
             <inheritdoc/>
         </member>
@@ -255,13 +250,6 @@
             <param name="classSymbol">类符号</param>
             <param name="eventHandlerAttribute">特性数据</param>
             <returns>唯一的文件名</returns>
-        </member>
-        <member name="M:Mud.HttpUtils.EventHandlerSourceGenerator.GenerateContentHash(System.String)">
-            <summary>
-            生成内容哈希，用于增量编译的幂等性校验
-            </summary>
-            <param name="content">生成的内容</param>
-            <returns>SHA256哈希值的前8位</returns>
         </member>
         <member name="T:Mud.HttpUtils.Generators.Base.ICodeFragmentGenerator">
             <summary>

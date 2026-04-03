@@ -48,4 +48,18 @@ public sealed class GenerateEventHandlerAttribute : Attribute
     /// 事件处理器类型。
     /// </summary>
     public string? EventType { get; set; }
+
+    /// <summary>
+    /// 构造函数参数定义，格式："Type1 param1,Type2 param2"。
+    /// <para>示例: "IFeishuEventDeduplicator businessDeduplicator,ILogger logger"</para>
+    /// <para>默认值: "IFeishuEventDeduplicator businessDeduplicator,ILogger logger"</para>
+    /// </summary>
+    public string? ConstructorParameters { get; set; }
+
+    /// <summary>
+    /// 构造函数基类调用参数，格式："param1,param2"。
+    /// <para>示例: "businessDeduplicator,logger"</para>
+    /// <para>默认值: "businessDeduplicator,logger"</para>
+    /// </summary>
+    public string? ConstructorBaseCall { get; set; }
 }
