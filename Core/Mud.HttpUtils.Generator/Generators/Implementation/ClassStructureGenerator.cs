@@ -74,6 +74,7 @@ internal class ClassStructureGenerator : ICodeFragmentGenerator
             inheritance = $" : {_interfaceSymbol.Name}";
         }
 
+        codeBuilder.AppendLine($"    {GeneratedCodeConsts.HttpGeneratedCodeAttribute}");
         codeBuilder.AppendLine($"    internal {classKeyword} {context.ClassName}{inheritance}");
         codeBuilder.AppendLine("    {");
     }

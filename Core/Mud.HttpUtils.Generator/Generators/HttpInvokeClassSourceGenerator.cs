@@ -61,22 +61,15 @@ internal partial class HttpInvokeClassSourceGenerator : HttpInvokeBaseSourceGene
 
     private void ProcessInterface(Compilation compilation, InterfaceDeclarationSyntax interfaceDecl, INamedTypeSymbol interfaceSymbol, SemanticModel semanticModel, SourceProductionContext context, string httpClientOptionsName)
     {
-        try
-        {
-            var interfaceCodeGenerator = new InterfaceImplementationGenerator(
-                compilation,
-                interfaceDecl,
-                interfaceSymbol,
-                semanticModel,
-                context,
-                httpClientOptionsName);
+        var interfaceCodeGenerator = new InterfaceImplementationGenerator(
+            compilation,
+            interfaceDecl,
+            interfaceSymbol,
+            semanticModel,
+            context,
+            httpClientOptionsName);
 
-            interfaceCodeGenerator.GenerateCode();
-        }
-        catch (Exception ex)
-        {
-            HandleInterfaceProcessingException(ex, interfaceDecl, context);
-        }
+        interfaceCodeGenerator.GenerateCode();
     }
 
     private void HandleInterfaceProcessingException(Exception ex, InterfaceDeclarationSyntax interfaceDecl, SourceProductionContext context)

@@ -60,21 +60,7 @@ internal class MethodGenerator : ICodeFragmentGenerator
         }
         catch
         {
-            if (includeParentInterfaces)
-            {
-                try
-                {
-                    return TypeSymbolHelper.GetAllMethods(context.InterfaceSymbol, false);
-                }
-                catch
-                {
-                    return context.InterfaceSymbol.GetMembers().OfType<IMethodSymbol>();
-                }
-            }
-            else
-            {
-                return context.InterfaceSymbol.GetMembers().OfType<IMethodSymbol>();
-            }
+            return context.InterfaceSymbol.GetMembers().OfType<IMethodSymbol>();
         }
     }
 
@@ -153,7 +139,7 @@ internal class MethodGenerator : ICodeFragmentGenerator
             GenerateInterfaceHeaders(codeBuilder, context, methodInfo);
         }
 
-        var (cancellationTokenArg, _) = GetCancellationTokenParams(methodInfo);
+        var cancellationTokenArg = GetCancellationTokenParams(methodInfo);
         _requestBuilder.GenerateRequestExecution(codeBuilder, methodInfo, cancellationTokenArg, hasHttpClient);
 
         codeBuilder.AppendLine("        }");
@@ -163,16 +149,13 @@ internal class MethodGenerator : ICodeFragmentGenerator
     /// <summary>
     /// 获取 CancellationToken 参数
     /// </summary>
-    private (string withComma, string withoutComma) GetCancellationTokenParams(MethodAnalysisResult methodInfo)
+    private string GetCancellationTokenParams(MethodAnalysisResult methodInfo)
     {
         var cancellationTokenParam = methodInfo.Parameters.FirstOrDefault(
             p => p.Type.Contains("CancellationToken"));
         var paramValue = cancellationTokenParam?.Name;
 
-        return (
-            withComma: paramValue != null ? $", cancellationToken: {paramValue}" : "",
-            withoutComma: paramValue ?? ""
-        );
+        return paramValue != null ? $", cancellationToken: {paramValue}" : "";
     }
 
     /// <summary>
@@ -201,18 +184,19 @@ internal class MethodGenerator : ICodeFragmentGenerator
             }
 
             var headerValue = interfaceHeader.Value?.ToString() ?? "null";
+            var escapedHeaderValue = headerValue.Replace("\\", "\\\\").Replace("\"", "\\\"");
 
             if (interfaceHeader.Replace)
             {
                 codeBuilder.AppendLine($"            // 替换接口定义的Header: {interfaceHeader.Name}");
                 codeBuilder.AppendLine($"            if (httpRequest.Headers.Contains(\"{interfaceHeader.Name}\"))");
                 codeBuilder.AppendLine($"                httpRequest.Headers.Remove(\"{interfaceHeader.Name}\");");
-                codeBuilder.AppendLine($"            httpRequest.Headers.Add(\"{interfaceHeader.Name}\", \"{headerValue}\");");
+                codeBuilder.AppendLine($"            httpRequest.Headers.Add(\"{interfaceHeader.Name}\", \"{escapedHeaderValue}\");");
             }
             else
             {
                 codeBuilder.AppendLine($"            // 添加接口定义的Header: {interfaceHeader.Name}");
-                codeBuilder.AppendLine($"            httpRequest.Headers.Add(\"{interfaceHeader.Name}\", \"{headerValue}\");");
+                codeBuilder.AppendLine($"            httpRequest.Headers.Add(\"{interfaceHeader.Name}\", \"{escapedHeaderValue}\");");
             }
         }
     }

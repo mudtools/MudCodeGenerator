@@ -1,13 +1,10 @@
 namespace HttpClientApiTest.TokenHeaderTestApi;
-
-using Mud.Common.CodeGenerator;
-
 /// <summary>
 /// Token特性测试接口
 /// 用于测试[Token]特性在不同场景下的使用
 /// </summary>
 [HttpClientApi("https://api.mudtools.cn/", Timeout = 90, TokenManage = "IFeishuAppManager", RegistryGroupName = "TokenFeature")]
-[Token("TenantAccessToken")]
+[Token("UserAccessToken")]
 public interface ITokenFeatureTestApi
 {
     /// <summary>

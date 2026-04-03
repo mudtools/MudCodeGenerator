@@ -37,7 +37,7 @@ internal static class HttpClientGeneratorConstants
     /// </summary>
     public static readonly string[] SupportedHttpMethods = ["Get", "GetAttribute", "Post", "PostAttribute", "Put", "PutAttribute", "Delete", "DeleteAttribute", "Patch", "PatchAttribute", "Head", "HeadAttribute", "Options", "OptionsAttribute"];
 
-    public static readonly string[] PathAttributes = ["PathAttribute", "Path", "RouteAttribute", "Route"];
+    public static readonly HashSet<string> PathAttributes = new HashSet<string>(StringComparer.Ordinal) { "PathAttribute", "Path", "RouteAttribute", "Route" };
     public const string QueryAttribute = "QueryAttribute";
     public const string ArrayQueryAttribute = "ArrayQueryAttribute";
     public const string HeaderAttribute = "HeaderAttribute";

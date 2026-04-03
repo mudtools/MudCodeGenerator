@@ -12,9 +12,6 @@ namespace Mud.HttpUtils.Generators.Implementation;
 /// </summary>
 internal class RequestBuilder
 {
-    public RequestBuilder()
-    {
-    }
 
     /// <summary>
     /// 生成 URL 字符串
@@ -310,7 +307,7 @@ internal class RequestBuilder
     private string FormatUrlParameter(string url, string paramName, string? formatString)
     {
         return string.IsNullOrEmpty(formatString)
-            ? url.Replace($"{{{paramName}}}", $"{{{paramName}}}")
+            ? url
             : url.Replace($"{{{paramName}}}", $"{{{paramName}.ToString(\"{formatString}\")}}");
     }
 
@@ -336,7 +333,7 @@ internal class RequestBuilder
         var paramName = GetQueryParameterName(arrayQueryAttr, param.Name);
         var separator = GetArrayQuerySeparator(arrayQueryAttr);
 
-        codeBuilder.AppendLine($"            if ({param.Name} != null && {param.Name}.Length > 0)");
+        codeBuilder.AppendLine($"            if ({param.Name} != null && {param.Name}.Any())");
         codeBuilder.AppendLine("            {");
 
         if (string.IsNullOrEmpty(separator))
@@ -366,7 +363,7 @@ internal class RequestBuilder
         if (TypeDetectionHelper.IsArrayType(param.Type))
         {
             // 处理数组类型：使用默认分号分隔符格式
-            codeBuilder.AppendLine($"            if ({param.Name} != null && {param.Name}.Length > 0)");
+            codeBuilder.AppendLine($"            if ({param.Name} != null && {param.Name}.Any())");
             codeBuilder.AppendLine("            {");
             codeBuilder.AppendLine($"                var joinedValues = string.Join(\";\", {param.Name}.Where(item => item != null).Select(item => HttpUtility.UrlEncode(item.ToString())));");
             codeBuilder.AppendLine($"                queryParams.Add(\"{paramName}\", joinedValues);");
@@ -480,8 +477,10 @@ internal class RequestBuilder
 
     private bool GetUseStringContentFlag(ParameterAttributeInfo bodyAttr)
     {
-        return bodyAttr.NamedArguments.TryGetValue("UseStringContent", out var useStringContentArg)
-            && bool.Parse(useStringContentArg?.ToString() ?? "false");
+        if (!bodyAttr.NamedArguments.TryGetValue("UseStringContent", out var useStringContentArg))
+            return false;
+
+        return bool.TryParse(useStringContentArg?.ToString(), out var result) && result;
     }
 
     /// <summary>
