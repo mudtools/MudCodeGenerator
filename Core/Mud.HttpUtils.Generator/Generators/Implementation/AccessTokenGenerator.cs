@@ -70,14 +70,16 @@ internal class AccessTokenGenerator : ICodeFragmentGenerator
         codeBuilder.AppendLine("            if(string.IsNullOrEmpty(CurrentUserId))");
         codeBuilder.AppendLine("            {");
         codeBuilder.AppendLine("                var token = await tokenManager.GetTokenAsync();");
-        codeBuilder.AppendLine("                return token;");
+        codeBuilder.AppendLine("                if(string.IsNullOrEmpty(token))");
+        codeBuilder.AppendLine("                    throw new InvalidOperationException($\"无法获取到有效的访问令牌，TokenType: {tokenType}\");");
+        codeBuilder.AppendLine("                return token!;");
         codeBuilder.AppendLine("            }");
         codeBuilder.AppendLine("            if(tokenManager is IUserTokenManager userTokenManager)");
         codeBuilder.AppendLine("            {");
         codeBuilder.AppendLine("                var token = await userTokenManager.GetTokenAsync(CurrentUserId);");
         codeBuilder.AppendLine("                if(string.IsNullOrEmpty(token))");
         codeBuilder.AppendLine("                    throw new InvalidOperationException($\"无法获取到有效的访问令牌，TokenType: {tokenType}\");");
-        codeBuilder.AppendLine("                return token;");
+        codeBuilder.AppendLine("                return token!;");
         codeBuilder.AppendLine("            }");
         codeBuilder.AppendLine("            throw new InvalidOperationException($\"当前令牌管理器不是IUserTokenManager，获取用户令牌失败。\");");
         codeBuilder.AppendLine("        }");

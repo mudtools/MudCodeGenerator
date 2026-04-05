@@ -1,4 +1,4 @@
-﻿using Mud.HttpUtils.Attributes;
+using Mud.HttpUtils.Attributes;
 
 namespace PublicPackageTest.WebApi;
 
