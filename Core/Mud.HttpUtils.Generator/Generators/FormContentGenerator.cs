@@ -5,7 +5,6 @@
 //  不得利用本项目从事危害国家安全、扰乱社会秩序、侵犯他人合法权益等法律法规禁止的活动！任何基于本项目开发而产生的一切法律纠纷和责任，我们不承担任何责任！
 // -----------------------------------------------------------------------
 
-using System.Collections.Generic;
 using System.Collections.Immutable;
 
 namespace Mud.HttpUtils;
@@ -97,10 +96,10 @@ internal class FormContentGenerator : TransitiveCodeGenerator
 
                 if (!string.IsNullOrEmpty(generatedCode))
                 {
-                    var namespacePart = classSymbol.ContainingNamespace?.IsGlobalNamespace == true
-                        ? "global"
-                        : classSymbol.ContainingNamespace?.ToDisplayString().Replace(".", "_");
-                    var fileName = $"{namespacePart}_{classSymbol.Name}.FormContent.g.cs";
+                    //var namespacePart = classSymbol.ContainingNamespace?.IsGlobalNamespace == true
+                    //    ? "global"
+                    //    : classSymbol.ContainingNamespace?.ToDisplayString().Replace(".", "_");
+                    var fileName = $"{classSymbol.Name}.g.cs";
                     context.AddSource(fileName, generatedCode);
                 }
             }
@@ -311,7 +310,7 @@ internal class FormContentGenerator : TransitiveCodeGenerator
 
         sb.AppendLine();
 
-        sb.AppendLine("        return formData;");
+        sb.AppendLine("        return formData!;");
 
         sb.AppendLine("    }");
     }
@@ -334,7 +333,7 @@ internal class FormContentGenerator : TransitiveCodeGenerator
         var isNullableString = isString && prop.IsNullable;
 
         // 判断是否为值类型
-        var isValueType = type.IsValueType && !isString;
+        var isValueType = type.IsValueType && !isString && !prop.IsNullable;
 
         if (isString)
         {
@@ -351,7 +350,7 @@ internal class FormContentGenerator : TransitiveCodeGenerator
         {
             // 引用类型：添加 null 检查
             sb.AppendLine($"        if ({propertyName} != null)");
-            sb.AppendLine($"            formData.Add(new StringContent({propertyName}.ToString()), \"{jsonName}\");");
+            sb.AppendLine($"            formData.Add(new StringContent({propertyName}!.ToString()), \"{jsonName}\");");
         }
     }
 
@@ -377,10 +376,10 @@ internal class FormContentGenerator : TransitiveCodeGenerator
         else
         {
             // 否则使用异步方法读取文件
-            sb.AppendLine($"            var fileContent = await HttpClientUtils.GetByteArrayContentAsync({propertyName});");
+            sb.AppendLine($"            var fileContent = await HttpClientUtils.GetByteArrayContentAsync({propertyName}!);");
         }
 
-        sb.AppendLine($"            formData.Add(fileContent, \"{jsonName}\", Path.GetFileName({propertyName}));");
+        sb.AppendLine($"            formData.Add(fileContent, \"{jsonName}\", Path.GetFileName({propertyName}!));");
         sb.AppendLine("        }");
     }
 
