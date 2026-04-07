@@ -371,7 +371,7 @@ internal class FormContentGenerator : TransitiveCodeGenerator
         if (!string.IsNullOrEmpty(byteArrayPropertyName))
         {
             // 如果有 byte[] 属性，使用 CreateFileContent 方法
-            sb.AppendLine($"            var fileContent = HttpClientUtils.CreateFileContent({propertyName}, {byteArrayPropertyName});");
+            sb.AppendLine($"            var fileContent = HttpClientUtils.CreateFileContent({propertyName}!, {byteArrayPropertyName});");
         }
         else
         {
