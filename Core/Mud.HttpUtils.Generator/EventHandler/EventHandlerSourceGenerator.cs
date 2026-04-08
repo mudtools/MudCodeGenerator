@@ -128,7 +128,7 @@ internal class EventHandlerSourceGenerator : TransitiveCodeGenerator
                    ?? AttributeDataHelper.GetStringValueFromAttributeConstructor(eventHandlerAttribute, "EventType")
                    ?? "";
         var inheritedFrom = GetAttributeParameter(eventHandlerAttribute, "InheritedFrom", "IdempotentFeishuEventHandler");
-        var constructorParams = GetAttributeParameter(eventHandlerAttribute, "ConstructorParameters", "IFeishuEventDeduplicator businessDeduplicator, ILogger logger, IAppKeyAccessor? appKeyAccessor = null");
+        var constructorParams = GetAttributeParameter(eventHandlerAttribute, "ConstructorParameters", "IFeishuEventDeduplicator businessDeduplicator, ILogger logger, IAppKeyAccessor? appKeyAccessor");
         var constructorBaseCall = GetAttributeParameter(eventHandlerAttribute, "ConstructorBaseCall", "businessDeduplicator, logger, appKeyAccessor");
 
         // 验证基类名合法性
@@ -295,7 +295,6 @@ internal class EventHandlerSourceGenerator : TransitiveCodeGenerator
     /// 获取生成的事件处理器类名（用于文件名）
     /// </summary>
     /// <param name="eventClass">事件结果类声明</param>
-    /// <param name="classSymbol">类符号</param>
     /// <param name="eventHandlerAttribute">EventHandler特性</param>
     /// <returns>生成的类名</returns>
     private string GetGeneratedClassName(
