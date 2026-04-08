@@ -128,8 +128,8 @@ internal class EventHandlerSourceGenerator : TransitiveCodeGenerator
                    ?? AttributeDataHelper.GetStringValueFromAttributeConstructor(eventHandlerAttribute, "EventType")
                    ?? "";
         var inheritedFrom = GetAttributeParameter(eventHandlerAttribute, "InheritedFrom", "IdempotentFeishuEventHandler");
-        var constructorParams = GetAttributeParameter(eventHandlerAttribute, "ConstructorParameters", "IFeishuEventDeduplicator businessDeduplicator,ILogger logger");
-        var constructorBaseCall = GetAttributeParameter(eventHandlerAttribute, "ConstructorBaseCall", "businessDeduplicator,logger");
+        var constructorParams = GetAttributeParameter(eventHandlerAttribute, "ConstructorParameters", "IFeishuEventDeduplicator businessDeduplicator,ILogger logger,IAppKeyAccessor? appKeyAccessor = null");
+        var constructorBaseCall = GetAttributeParameter(eventHandlerAttribute, "ConstructorBaseCall", "businessDeduplicator,logger,appKeyAccessor");
 
         // 验证基类名合法性
         if (!ValidateBaseClassName(inheritedFrom, context, eventClass.GetLocation()))
