@@ -496,6 +496,35 @@ Mud.CodeGenerator
 └── README.md
 ```
 
+## CI/CD
+
+本项目已配置 GitHub Actions 实现自动化编译、测试、打包和发布功能。
+
+### 持续集成
+
+- **触发条件**: 推送到 `master`/`main` 分支或创建 Pull Request
+- **执行内容**: 在 .NET 8.0 和 9.0 环境下编译和测试
+- **查看状态**: [Actions 页面](../../actions)
+
+### 自动发布
+
+当推送版本标签时自动发布到 NuGet 和 GitHub Releases：
+
+```bash
+# 创建并推送版本标签
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+**发布流程:**
+1. 编译和测试代码
+2. 打包 NuGet 包
+3. 发布到 NuGet 官方仓库
+4. 创建 GitHub Release
+5. 自动生成变更日志
+
+> 📖 详细配置和使用说明请查看 [.github/README.md](.github/README.md)
+
 ## 维护者
 
 [倔强的泥巴](https://gitee.com/mudtools)

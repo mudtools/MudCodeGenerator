@@ -1,0 +1,130 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          8.0.x
+          9.0.x
+        
+    - name: Restore dependencies
+      run: dotnet restore
+        
+    - name: Build solution
+      run: dotnet build --configuration Release --no-restore --verbosity normal
+      
+    - name: Run tests
+      run: dotnet test --configuration Release --no-build --verbosity normal
+
+  pack-and-publish:
+    name: Pack and Publish to NuGet
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          8.0.x
+          9.0.x
+        
+    - name: Restore dependencies
+      run: dotnet restore
+        
+    - name: Build solution
+      run: dotnet build --configuration Release --no-restore
+        
+    - name: Get version from tag
+      id: get_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        
+    - name: Pack Mud.ServiceCodeGenerator
+      run: dotnet pack Core/Mud.ServiceCodeGenerator/Mud.ServiceCodeGenerator.csproj --configuration Release --no-build --output ./nupkgs -p:PackageVersion=${{ steps.get_version.outputs.VERSION }}
+        
+    - name: Pack Mud.EntityCodeGenerator
+      run: dotnet pack Core/Mud.EntityCodeGenerator/Mud.EntityCodeGenerator.csproj --configuration Release --no-build --output ./nupkgs -p:PackageVersion=${{ steps.get_version.outputs.VERSION }}
+        
+    - name: Publish to NuGet
+      run: dotnet nuget push ./nupkgs/*.nupkg --api-key ${{ secrets.MUDCODEGENERATOR }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+        
+    - name: Upload NuGet packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: nuget-packages
+        path: ./nupkgs/*.nupkg
+
+  create-release:
+    name: Create GitHub Release
+    needs: pack-and-publish
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Download NuGet packages
+      uses: actions/download-artifact@v4
+      with:
+        name: nuget-packages
+        path: ./nupkgs
+        
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # 获取上一个 tag
+        PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        
+        if [ -z "$PREVIOUS_TAG" ]; then
+          # 如果没有上一个 tag，获取所有提交
+          COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges)
+        else
+          # 获取两个 tag 之间的提交
+          COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges $PREVIOUS_TAG..HEAD)
+        fi
+        
+        # 保存 changelog 到文件
+        echo "## 变更内容" > CHANGELOG.md
+        echo "" >> CHANGELOG.md
+        echo "$COMMITS" >> CHANGELOG.md
+        
+        # 设置多行输出
+        {
+          echo 'CHANGELOG<<EOF'
+          cat CHANGELOG.md
+          echo 'EOF'
+        } >> $GITHUB_OUTPUT
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: ./nupkgs/*.nupkg
+        body: ${{ steps.changelog.outputs.CHANGELOG }}
+        draft: false
+        prerelease: ${{ contains(steps.get_version.outputs.VERSION, '-') }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
