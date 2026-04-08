@@ -128,8 +128,8 @@ internal class EventHandlerSourceGenerator : TransitiveCodeGenerator
                    ?? AttributeDataHelper.GetStringValueFromAttributeConstructor(eventHandlerAttribute, "EventType")
                    ?? "";
         var inheritedFrom = GetAttributeParameter(eventHandlerAttribute, "InheritedFrom", "IdempotentFeishuEventHandler");
-        var constructorParams = GetAttributeParameter(eventHandlerAttribute, "ConstructorParameters", "IFeishuEventDeduplicator businessDeduplicator,ILogger logger,IAppKeyAccessor? appKeyAccessor = null");
-        var constructorBaseCall = GetAttributeParameter(eventHandlerAttribute, "ConstructorBaseCall", "businessDeduplicator,logger,appKeyAccessor");
+        var constructorParams = GetAttributeParameter(eventHandlerAttribute, "ConstructorParameters", "IFeishuEventDeduplicator businessDeduplicator, ILogger logger, IAppKeyAccessor? appKeyAccessor = null");
+        var constructorBaseCall = GetAttributeParameter(eventHandlerAttribute, "ConstructorBaseCall", "businessDeduplicator, logger, appKeyAccessor");
 
         // 验证基类名合法性
         if (!ValidateBaseClassName(inheritedFrom, context, eventClass.GetLocation()))
@@ -400,16 +400,16 @@ internal class EventHandlerSourceGenerator : TransitiveCodeGenerator
         INamedTypeSymbol classSymbol,
         AttributeData eventHandlerAttribute)
     {
-        var handlerNamespace = GetAttributeParameter(eventHandlerAttribute, "HandlerNamespace", "");
-        var targetNamespace = !string.IsNullOrEmpty(handlerNamespace)
-            ? handlerNamespace
-            : GetDefaultNamespace(classSymbol);
+        //var handlerNamespace = GetAttributeParameter(eventHandlerAttribute, "HandlerNamespace", "");
+        //var targetNamespace = !string.IsNullOrEmpty(handlerNamespace)
+        //    ? handlerNamespace
+        //    : GetDefaultNamespace(classSymbol);
 
         var className = GetGeneratedClassName(eventClass, eventHandlerAttribute);
 
         // 使用命名空间和类名组合，替换点为下划线
-        var namespacePart = targetNamespace.Replace(".", "_");
-        return $"{namespacePart}_{className}.g.cs";
+        //var namespacePart = targetNamespace.Replace(".", "_");
+        return $"{className}.g.cs";
     }
 
 }
