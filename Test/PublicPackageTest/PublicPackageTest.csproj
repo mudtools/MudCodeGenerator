@@ -57,10 +57,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Mud.EntityCodeGenerator" Version="1.6.5" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-		<PackageReference Include="Mud.HttpUtils" Version="1.6.5" />
-		<PackageReference Include="Mud.HttpUtils.Generator" Version="1.6.5" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-		<PackageReference Include="Mud.ServiceCodeGenerator" Version="1.6.5" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<PackageReference Include="Mud.EntityCodeGenerator" Version="1.6.6" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<PackageReference Include="Mud.HttpUtils" Version="1.6.6" />
+		<PackageReference Include="Mud.HttpUtils.Generator" Version="1.6.6" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<PackageReference Include="Mud.ServiceCodeGenerator" Version="1.6.6" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
 	<ItemGroup>
