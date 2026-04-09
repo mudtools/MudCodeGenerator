@@ -33,6 +33,10 @@
 /Tests/Mud.HttpUtils.Tests/bin
 /Tests/Mud.HttpUtils.Generator.Tests/obj
 /Tests/Mud.HttpUtils.Generator.Tests/bin
+/Tests/Mud.EntityCodeGenerator.Tests/obj
+/Tests/Mud.EntityCodeGenerator.Tests/bin
+/Tests/Mud.ServiceCodeGenerator.Tests/obj
+/Tests/Mud.ServiceCodeGenerator.Tests/bin
 /Demos/PublicPackageTest/bin/Debug
 /Demos/PublicPackageTest/obj
 /bin/Release/netstandard2.0
