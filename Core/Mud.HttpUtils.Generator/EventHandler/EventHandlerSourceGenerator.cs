@@ -128,7 +128,7 @@ internal class EventHandlerSourceGenerator : TransitiveCodeGenerator
                    ?? AttributeDataHelper.GetStringValueFromAttributeConstructor(eventHandlerAttribute, "EventType")
                    ?? "";
         var inheritedFrom = GetAttributeParameter(eventHandlerAttribute, "InheritedFrom", "IdempotentFeishuEventHandler");
-        var constructorParams = GetAttributeParameter(eventHandlerAttribute, "ConstructorParameters", "IFeishuEventDeduplicator businessDeduplicator, ILogger logger, IAppKeyAccessor? appKeyAccessor");
+        var constructorParams = GetAttributeParameter(eventHandlerAttribute, "ConstructorParameters", "IFeishuEventDeduplicator businessDeduplicator, ILogger logger, IAppKeyAccessor? appKeyAccessor = null");
         var constructorBaseCall = GetAttributeParameter(eventHandlerAttribute, "ConstructorBaseCall", "businessDeduplicator, logger, appKeyAccessor");
 
         // 验证基类名合法性
@@ -199,6 +199,13 @@ internal class EventHandlerSourceGenerator : TransitiveCodeGenerator
             foreach (var param in paramParts)
             {
                 var trimmedParam = param.Trim();
+                // 先去除默认值部分（如果存在 = 符号）
+                var equalIndex = trimmedParam.IndexOf('=');
+                if (equalIndex >= 0)
+                {
+                    trimmedParam = trimmedParam.Substring(0, equalIndex).Trim();
+                }
+                // 提取参数名（最后一个单词）
                 var paramName = trimmedParam.Contains(' ') ? trimmedParam.Substring(trimmedParam.LastIndexOf(' ') + 1) : trimmedParam;
                 sb.AppendLine($"        /// <param name=\"{paramName}\">参数</param>");
             }
