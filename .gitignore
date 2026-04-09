@@ -29,7 +29,8 @@
 /Demos/TestBuilderGenerator/bin/Debug
 /Demos/DebugTest/bin/Debug
 /Demos/TestBuilderGenerator/obj
-/obj
+/Tests/Mud.HttpUtils.Tests/obj
+/Tests/Mud.HttpUtils.Tests/bin
 /Demos/PublicPackageTest/bin/Debug
 /Demos/PublicPackageTest/obj
 /bin/Release/netstandard2.0
