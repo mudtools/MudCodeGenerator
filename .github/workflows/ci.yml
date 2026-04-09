@@ -30,12 +30,21 @@ jobs:
     - name: Build solution
       run: dotnet build --configuration Release --no-restore --verbosity normal
       
-    - name: Run tests
-      run: dotnet test --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results-${{ matrix.dotnet-version }}.trx"
+    - name: Run Mud.HttpUtils.Tests
+      run: dotnet test Tests/Mud.HttpUtils.Tests/Mud.HttpUtils.Tests.csproj --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=httputils-test-results.trx" --results-directory TestResults/Mud.HttpUtils.Tests
+      
+    - name: Run Mud.HttpUtils.Generator.Tests
+      run: dotnet test Tests/Mud.HttpUtils.Generator.Tests/Mud.HttpUtils.Generator.Tests.csproj --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=httputils-generator-test-results.trx" --results-directory TestResults/Mud.HttpUtils.Generator.Tests
+      
+    - name: Run Mud.EntityCodeGenerator.Tests
+      run: dotnet test Tests/Mud.EntityCodeGenerator.Tests/Mud.EntityCodeGenerator.Tests.csproj --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=entity-generator-test-results.trx" --results-directory TestResults/Mud.EntityCodeGenerator.Tests
+      
+    - name: Run Mud.ServiceCodeGenerator.Tests
+      run: dotnet test Tests/Mud.ServiceCodeGenerator.Tests/Mud.ServiceCodeGenerator.Tests.csproj --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=service-generator-test-results.trx" --results-directory TestResults/Mud.ServiceCodeGenerator.Tests
       
     - name: Upload test results
       uses: actions/upload-artifact@v4
       if: always()
       with:
         name: test-results-${{ matrix.dotnet-version }}
-        path: Test/*/TestResults/test-results-${{ matrix.dotnet-version }}.trx
+        path: TestResults/**/*.trx
