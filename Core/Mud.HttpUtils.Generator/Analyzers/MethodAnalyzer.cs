@@ -405,7 +405,7 @@ internal static class MethodAnalyzer
         }
     }
 
-    private static readonly Dictionary<INamedTypeSymbol, InterfaceDeclarationSyntax?> _interfaceSyntaxCache = new(SymbolEqualityComparer.Default);
+    private static readonly ConditionalWeakTable<Compilation, Dictionary<INamedTypeSymbol, InterfaceDeclarationSyntax?>> _interfaceSyntaxCache = new();
 
     /// <summary>
     /// 获取接口声明语法节点
@@ -414,11 +414,12 @@ internal static class MethodAnalyzer
         Compilation compilation,
         INamedTypeSymbol interfaceSymbol)
     {
-        if (_interfaceSyntaxCache.TryGetValue(interfaceSymbol, out var cached))
+        var innerDict = _interfaceSyntaxCache.GetOrCreateValue(compilation);
+        if (innerDict.TryGetValue(interfaceSymbol, out var cached))
             return cached;
 
         var result = FindInterfaceDeclarationSyntax(compilation, interfaceSymbol);
-        _interfaceSyntaxCache[interfaceSymbol] = result;
+        innerDict[interfaceSymbol] = result;
         return result;
     }
 
