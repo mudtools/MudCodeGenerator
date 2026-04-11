@@ -28,35 +28,82 @@ internal class MethodGenerator : ICodeFragmentGenerator
     /// </summary>
     public void Generate(StringBuilder codeBuilder, GeneratorContext context)
     {
-        var includeParentInterfaces = GetIncludeParentInterfaces(context.Configuration);
-        IEnumerable<IMethodSymbol> methodsToGenerate = GetMethodsToGenerate(context, includeParentInterfaces);
+        IEnumerable<IMethodSymbol> methodsToGenerate = GetMethodsToGenerate(context);
+
+        var hasInheritedFrom = context.HasInheritedFrom;
+        var parentInterfaceMethods = hasInheritedFrom
+            ? GetParentInterfaceMethodNames(context.InterfaceSymbol)
+            : new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var methodSymbol in methodsToGenerate)
         {
-            GenerateMethodImplementation(codeBuilder, context, methodSymbol);
+            var isHttpMethod = MethodAnalyzer.FindHttpMethodAttributeFromSymbol(methodSymbol) != null;
+            if (!isHttpMethod)
+                continue;
+
+            if (context.Configuration.IsAbstract)
+            {
+                GenerateAbstractMethodDeclaration(codeBuilder, methodSymbol);
+            }
+            else
+            {
+                var needsOverride = hasInheritedFrom && parentInterfaceMethods.Contains(methodSymbol.Name);
+                GenerateMethodImplementation(codeBuilder, context, methodSymbol, needsOverride);
+            }
+        }
+    }
+
+    private HashSet<string> GetParentInterfaceMethodNames(INamedTypeSymbol interfaceSymbol)
+    {
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var parentInterface in interfaceSymbol.Interfaces)
+        {
+            CollectMethodNames(parentInterface, names);
+        }
+        return names;
+    }
+
+    private void CollectMethodNames(INamedTypeSymbol interfaceSymbol, HashSet<string> names)
+    {
+        foreach (var method in interfaceSymbol.GetMembers().OfType<IMethodSymbol>())
+        {
+            names.Add(method.Name);
+        }
+        foreach (var parent in interfaceSymbol.Interfaces)
+        {
+            CollectMethodNames(parent, names);
         }
     }
 
     /// <summary>
-    /// 判断是否包含父接口方法
+    /// 生成抽象方法声明
     /// </summary>
-    private bool GetIncludeParentInterfaces(GenerationConfiguration configuration)
+    private void GenerateAbstractMethodDeclaration(StringBuilder codeBuilder, IMethodSymbol methodSymbol)
     {
-        if (configuration.IsAbstract)
-            return false;
-        if (!string.IsNullOrEmpty(configuration.InheritedFrom))
-            return false;
-        return true;
+        var returnTypeFormat = SymbolDisplayFormat.FullyQualifiedFormat
+            .WithMiscellaneousOptions(
+                SymbolDisplayMiscellaneousOptions.UseSpecialTypes |
+                SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
+        var returnType = methodSymbol.ReturnType.ToDisplayString(returnTypeFormat);
+        var asyncKeyword = methodSymbol.IsAsync ? "async " : "";
+
+        codeBuilder.AppendLine();
+        codeBuilder.AppendLine($"        /// <summary>");
+        codeBuilder.AppendLine($"        /// <inheritdoc />");
+        codeBuilder.AppendLine($"        /// </summary>");
+        codeBuilder.AppendLine($"        {GeneratedCodeConsts.HttpGeneratedCodeAttribute}");
+        codeBuilder.AppendLine($"        public abstract {asyncKeyword}{returnType} {methodSymbol.Name}({TypeSymbolHelper.GetParameterList(methodSymbol)});");
+        codeBuilder.AppendLine();
     }
 
     /// <summary>
     /// 获取需要生成的方法列表
     /// </summary>
-    private IEnumerable<IMethodSymbol> GetMethodsToGenerate(GeneratorContext context, bool includeParentInterfaces)
+    private IEnumerable<IMethodSymbol> GetMethodsToGenerate(GeneratorContext context)
     {
         try
         {
-            return TypeSymbolHelper.GetAllMethods(context.InterfaceSymbol, includeParentInterfaces);
+            return TypeSymbolHelper.GetAllMethods(context.InterfaceSymbol, true);
         }
         catch
         {
@@ -67,7 +114,7 @@ internal class MethodGenerator : ICodeFragmentGenerator
     /// <summary>
     /// 生成单个方法的实现代码
     /// </summary>
-    private void GenerateMethodImplementation(StringBuilder codeBuilder, GeneratorContext context, IMethodSymbol methodSymbol)
+    private void GenerateMethodImplementation(StringBuilder codeBuilder, GeneratorContext context, IMethodSymbol methodSymbol, bool needsOverride)
     {
         var methodInfo = MethodAnalyzer.AnalyzeMethod(
             context.Compilation,
@@ -102,12 +149,13 @@ internal class MethodGenerator : ICodeFragmentGenerator
         codeBuilder.AppendLine($"        /// </summary>");
         codeBuilder.AppendLine($"        {GeneratedCodeConsts.HttpGeneratedCodeAttribute}");
         var asyncKeyword = methodInfo.IsAsyncMethod ? "async " : "";
+        var overrideKeyword = needsOverride ? "override " : "";
         var returnTypeFormat = SymbolDisplayFormat.FullyQualifiedFormat
             .WithMiscellaneousOptions(
                 SymbolDisplayMiscellaneousOptions.UseSpecialTypes |
                 SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
         var returnType = methodSymbol.ReturnType.ToDisplayString(returnTypeFormat);
-        codeBuilder.AppendLine($"        public {asyncKeyword}{returnType} {methodSymbol.Name}({TypeSymbolHelper.GetParameterList(methodSymbol)})");
+        codeBuilder.AppendLine($"        public {overrideKeyword}{asyncKeyword}{returnType} {methodSymbol.Name}({TypeSymbolHelper.GetParameterList(methodSymbol)})");
         codeBuilder.AppendLine("        {");
 
         if (needsTokenInjection)
@@ -228,13 +276,6 @@ internal class MethodGenerator : ICodeFragmentGenerator
 
     private string GetTokenHeaderName(MethodAnalysisResult methodInfo)
     {
-        if (!string.IsNullOrEmpty(methodInfo.InterfaceTokenName))
-            return methodInfo.InterfaceTokenName;
-
-        var headerAttr = methodInfo.InterfaceAttributes?.FirstOrDefault(attr => attr.StartsWith("Header:", StringComparison.Ordinal));
-        if (!string.IsNullOrEmpty(headerAttr))
-            return headerAttr.Substring(7);
-
-        return "Authorization";
+        return _requestBuilder.GetTokenHeaderName(methodInfo) ?? "Authorization";
     }
 }

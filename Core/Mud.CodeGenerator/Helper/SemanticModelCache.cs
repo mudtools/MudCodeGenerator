@@ -13,11 +13,12 @@ namespace Mud.CodeGenerator;
 /// 语义模型缓存管理器，提供线程安全的语义模型缓存功能
 /// </summary>
 /// <remarks>
-/// 使用 ConditionalWeakTable 实现缓存，自动管理内存，避免内存泄漏
+/// 使用嵌套 ConditionalWeakTable 实现缓存，以 Compilation 为主键确保 Compilation 变化时缓存自动失效，
+/// 避免增量编译场景下返回过期的 SemanticModel。当 Compilation 被 GC 回收时，关联的缓存也会自动释放。
 /// </remarks>
 internal static class SemanticModelCache
 {
-    private static readonly ConditionalWeakTable<SyntaxTree, SemanticModel> _cache = new();
+    private static readonly ConditionalWeakTable<Compilation, ConditionalWeakTable<SyntaxTree, SemanticModel>> _cache = new();
 
     /// <summary>
     /// 获取或创建语义模型
@@ -33,11 +34,13 @@ internal static class SemanticModelCache
         if (syntaxTree == null)
             throw new ArgumentNullException(nameof(syntaxTree));
 
-        if (_cache.TryGetValue(syntaxTree, out var model))
+        var innerTable = _cache.GetOrCreateValue(compilation);
+
+        if (innerTable.TryGetValue(syntaxTree, out var model))
             return model;
 
         var newModel = compilation.GetSemanticModel(syntaxTree);
-        _cache.Add(syntaxTree, newModel);
+        innerTable.Add(syntaxTree, newModel);
         return newModel;
     }
 

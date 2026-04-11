@@ -89,6 +89,11 @@
             获取接口声明语法节点
             </summary>
         </member>
+        <member name="M:Mud.HttpUtils.Analyzers.MethodAnalyzer.FindInterfaceDeclarationSyntax(Microsoft.CodeAnalysis.Compilation,Microsoft.CodeAnalysis.INamedTypeSymbol)">
+            <summary>
+            查找接口声明语法节点
+            </summary>
+        </member>
         <member name="M:Mud.HttpUtils.Analyzers.MethodAnalyzer.AnalyzeInterfaceAttributes(Microsoft.CodeAnalysis.Compilation,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.SemanticModel)">
             <summary>
             分析接口特性
@@ -118,17 +123,6 @@
             <summary>
             获取Header特性的Replace设置
             </summary>
-        </member>
-        <member name="T:Mud.HttpUtils.Analyzers.MethodHelperLegacy">
-            <summary>
-            函数帮助类（遗留代码，已过时）
-            </summary>
-            <remarks>
-            请使用新的分析器类替代：
-            <see cref="T:Mud.HttpUtils.Analyzers.MethodAnalyzer"/> - 方法分析
-            <see cref="T:Mud.HttpUtils.Analyzers.ParameterAnalyzer"/> - 参数分析
-            <see cref="T:Mud.HttpUtils.Analyzers.TypeConverter"/> - 类型转换
-            </remarks>
         </member>
         <member name="T:Mud.HttpUtils.Analyzers.ParameterAnalyzer">
             <summary>
@@ -409,17 +403,17 @@
             生成方法实现代码
             </summary>
         </member>
-        <member name="M:Mud.HttpUtils.Generators.Implementation.MethodGenerator.GetIncludeParentInterfaces(Mud.HttpUtils.Generators.Context.GenerationConfiguration)">
+        <member name="M:Mud.HttpUtils.Generators.Implementation.MethodGenerator.GenerateAbstractMethodDeclaration(System.Text.StringBuilder,Microsoft.CodeAnalysis.IMethodSymbol)">
             <summary>
-            判断是否包含父接口方法
+            生成抽象方法声明
             </summary>
         </member>
-        <member name="M:Mud.HttpUtils.Generators.Implementation.MethodGenerator.GetMethodsToGenerate(Mud.HttpUtils.Generators.Context.GeneratorContext,System.Boolean)">
+        <member name="M:Mud.HttpUtils.Generators.Implementation.MethodGenerator.GetMethodsToGenerate(Mud.HttpUtils.Generators.Context.GeneratorContext)">
             <summary>
             获取需要生成的方法列表
             </summary>
         </member>
-        <member name="M:Mud.HttpUtils.Generators.Implementation.MethodGenerator.GenerateMethodImplementation(System.Text.StringBuilder,Mud.HttpUtils.Generators.Context.GeneratorContext,Microsoft.CodeAnalysis.IMethodSymbol)">
+        <member name="M:Mud.HttpUtils.Generators.Implementation.MethodGenerator.GenerateMethodImplementation(System.Text.StringBuilder,Mud.HttpUtils.Generators.Context.GeneratorContext,Microsoft.CodeAnalysis.IMethodSymbol,System.Boolean)">
             <summary>
             生成单个方法的实现代码
             </summary>
@@ -649,72 +643,14 @@
             接口信息结构，包含语法节点和符号
             </summary>
         </member>
-        <member name="M:Mud.HttpUtils.HttpInvokeBaseSourceGenerator.GetInterfaceDeclarationProvider(Microsoft.CodeAnalysis.IncrementalGeneratorInitializationContext,System.String[])">
+        <member name="M:Mud.HttpUtils.HttpInvokeBaseSourceGenerator.ExecuteGenerator(Microsoft.CodeAnalysis.Compilation,System.Collections.Immutable.ImmutableArray{Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax},Microsoft.CodeAnalysis.SourceProductionContext,Microsoft.CodeAnalysis.Diagnostics.AnalyzerConfigOptionsProvider)">
             <summary>
-            获取所有需要生成代码的接口声明（已弃用，保留兼容性）
+            执行源代码生成逻辑
             </summary>
         </member>
         <member name="M:Mud.HttpUtils.HttpInvokeBaseSourceGenerator.HasTargetAttributeSyntax(Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,System.String[])">
             <summary>
             在语法级别检查接口是否有目标特性（不依赖语义模型，编辑模式下更可靠）
-            </summary>
-        </member>
-        <member name="M:Mud.HttpUtils.HttpInvokeBaseSourceGenerator.InheritsTargetInterface(Microsoft.CodeAnalysis.INamedTypeSymbol,System.String[])">
-            <summary>
-            检查接口是否继承了带有目标特性的接口（仅检查继承关系）
-            </summary>
-        </member>
-        <member name="M:Mud.HttpUtils.HttpInvokeBaseSourceGenerator.ShouldGenerateForInterface(Microsoft.CodeAnalysis.INamedTypeSymbol,System.String[])">
-            <summary>
-            判断是否应该为接口生成代码
-            条件：1. 接口直接标记了目标特性；2. 接口继承了标记了目标特性的接口
-            </summary>
-            <param name="interfaceSymbol">接口符号</param>
-            <param name="attributeNames">目标特性名称数组</param>
-            <returns>是否应该生成代码</returns>
-        </member>
-        <member name="M:Mud.HttpUtils.HttpInvokeBaseSourceGenerator.ExecuteGenerator(Microsoft.CodeAnalysis.Compilation,System.Collections.Immutable.ImmutableArray{Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax},Microsoft.CodeAnalysis.SourceProductionContext,Microsoft.CodeAnalysis.Diagnostics.AnalyzerConfigOptionsProvider)">
-            <summary>
-            执行源代码生成逻辑
-            </summary>
-            <param name="compilation">编译信息</param>
-            <param name="interfaces">接口声明数组</param>
-            <param name="context">源代码生成上下文</param>
-            <param name="configOptionsProvider">配置选项提供者</param>
-        </member>
-        <member name="M:Mud.HttpUtils.HttpInvokeBaseSourceGenerator.GetWrapInterfaceName(Microsoft.CodeAnalysis.INamedTypeSymbol,Microsoft.CodeAnalysis.AttributeData)">
-            <summary>
-            获取包装接口名称
-            </summary>
-        </member>
-        <member name="M:Mud.HttpUtils.HttpInvokeBaseSourceGenerator.IsValidMethod(Microsoft.CodeAnalysis.IMethodSymbol)">
-            <summary>
-            检查方法是否有效
-            </summary>
-        </member>
-        <member name="M:Mud.HttpUtils.HttpInvokeBaseSourceGenerator.FindHttpMethodAttribute(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax)">
-            <summary>
-            查找HTTP方法特性
-            </summary>
-        </member>
-        <member name="M:Mud.HttpUtils.HttpInvokeBaseSourceGenerator.HasAttribute(Mud.HttpUtils.Models.Analysis.ParameterInfo,System.String[])">
-            <summary>
-            检查参数是否具有指定的特性
-            </summary>
-        </member>
-        <member name="M:Mud.HttpUtils.HttpInvokeBaseSourceGenerator.FilterParametersByAttribute(System.Collections.Generic.IReadOnlyList{Mud.HttpUtils.Models.Analysis.ParameterInfo},System.String[],System.Boolean)">
-            <summary>
-            根据特性名称过滤参数
-            </summary>
-        </member>
-        <member name="M:Mud.HttpUtils.HttpInvokeBaseSourceGenerator.GenerateParameterList(System.Collections.Generic.IReadOnlyList{Mud.HttpUtils.Models.Analysis.ParameterInfo})">
-            <summary>
-            生成方法参数列表字符串
-            </summary>
-        </member>
-        <member name="M:Mud.HttpUtils.HttpInvokeBaseSourceGenerator.GenerateCorrectParameterCallList(System.Collections.Generic.IReadOnlyList{Mud.HttpUtils.Models.Analysis.ParameterInfo},System.Collections.Generic.IReadOnlyList{Mud.HttpUtils.Models.Analysis.ParameterInfo},System.String)">
-            <summary>
-            生成正确的参数调用列表，确保token参数替换掉原来标记了[Token]特性的参数位置
             </summary>
         </member>
         <member name="M:Mud.HttpUtils.HttpInvokeBaseSourceGenerator.GetOrCreateSemanticModel(Microsoft.CodeAnalysis.Compilation,Microsoft.CodeAnalysis.SyntaxTree)">
@@ -779,108 +715,6 @@
         <member name="M:Mud.HttpUtils.HttpInvokeRegistrationGenerator.GenerateGroupedRegistrationMethod``1(System.Text.StringBuilder,System.String,System.Collections.Generic.IEnumerable{``0},System.Action{System.Text.StringBuilder,``0},System.String,System.String,Microsoft.CodeAnalysis.SourceProductionContext)">
             <summary>
             生成单个分组注册方法
-            </summary>
-        </member>
-        <member name="T:Mud.HttpUtils.Helpers.MethodHelper">
-            <summary>
-            函数帮助类
-            </summary>
-        </member>
-        <member name="M:Mud.HttpUtils.Helpers.MethodHelper.AnalyzeMethod(Microsoft.CodeAnalysis.Compilation,Microsoft.CodeAnalysis.IMethodSymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.SemanticModel)">
-            <summary>
-            分析函数符号，并返回<see cref="T:Mud.HttpUtils.Models.Analysis.MethodAnalysisResult"/>分析结果。。
-            </summary>
-            <param name="compilation"></param>
-            <param name="methodSymbol"></param>
-            <param name="interfaceDecl"></param>
-            <param name="semanticModel">可选的语义模型，如果提供则使用</param>
-            <returns></returns>
-        </member>
-        <member name="M:Mud.HttpUtils.Helpers.MethodHelper.FindHttpMethodAttributeFromSymbol(Microsoft.CodeAnalysis.IMethodSymbol)">
-            <summary>
-            从方法符号查找HTTP方法特性
-            </summary>
-        </member>
-        <member name="M:Mud.HttpUtils.Helpers.MethodHelper.GetAttributeArgumentValueFromAttributeData(Microsoft.CodeAnalysis.AttributeData,System.Int32)">
-            <summary>
-            从AttributeData获取构造函数参数值
-            </summary>
-        </member>
-        <member name="M:Mud.HttpUtils.Helpers.MethodHelper.ExtractHttpMethodName(System.String)">
-            <summary>
-            从特性名称中提取HTTP方法名称
-            例如: "GetAttribute" -> "Get", "PostAttribute" -> "Post"
-            </summary>
-        </member>
-        <member name="M:Mud.HttpUtils.Helpers.MethodHelper.GetHeaderReplace(Microsoft.CodeAnalysis.AttributeData)">
-            <summary>
-            获取Header特性的Replace设置
-            </summary>
-            <param name="headerAttr">Header特性</param>
-            <returns>是否替换已存在的Header</returns>
-        </member>
-        <member name="M:Mud.HttpUtils.Helpers.MethodHelper.HasMethodAttribute(Microsoft.CodeAnalysis.IMethodSymbol,System.String[])">
-            <summary>
-            检查方法是否具有指定的特性
-            </summary>
-        </member>
-        <member name="M:Mud.HttpUtils.Helpers.MethodHelper.GetHeaderName(Microsoft.CodeAnalysis.AttributeData)">
-            <summary>
-            获取Header特性的名称
-            </summary>
-            <param name="headerAttr">Header特性</param>
-            <returns>Header名称</returns>
-        </member>
-        <member name="M:Mud.HttpUtils.Helpers.MethodHelper.GetHeaderValue(Microsoft.CodeAnalysis.AttributeData)">
-            <summary>
-            获取Header特性的值
-            </summary>
-            <param name="headerAttr">Header特性</param>
-            <returns>Header值</returns>
-        </member>
-        <member name="M:Mud.HttpUtils.Helpers.MethodHelper.GetMethodContentTypeFromHttpMethodAttribute(Microsoft.CodeAnalysis.AttributeData)">
-            <summary>
-            从HTTP方法特性获取ContentType属性值
-            </summary>
-            <param name="httpMethodAttributeData">HTTP方法特性数据</param>
-            <returns>Content-Type值，如果未定义则返回null</returns>
-        </member>
-        <member name="M:Mud.HttpUtils.Helpers.MethodHelper.FindMethodSyntax(Microsoft.CodeAnalysis.Compilation,Microsoft.CodeAnalysis.IMethodSymbol,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.SemanticModel)">
-            <summary>
-            查询方法的语法对象。
-            </summary>
-            <param name="compilation"></param>
-            <param name="methodSymbol"></param>
-            <param name="interfaceDecl"></param>
-            <param name="semanticModel">可选的语义模型，如果提供则使用</param>
-            <returns></returns>
-        </member>
-        <member name="M:Mud.HttpUtils.Helpers.MethodHelper.GetAllBaseInterfaceSyntaxNodes(Microsoft.CodeAnalysis.Compilation,Microsoft.CodeAnalysis.CSharp.Syntax.InterfaceDeclarationSyntax,Microsoft.CodeAnalysis.SemanticModel)">
-            <summary>
-            获取接口及其所有基接口的语法节点
-            </summary>
-        </member>
-        <member name="M:Mud.HttpUtils.Helpers.MethodHelper.GetTokenType(Microsoft.CodeAnalysis.IParameterSymbol)">
-            <summary>
-            获取参数的 Token 类型
-            </summary>
-        </member>
-        <member name="M:Mud.HttpUtils.Helpers.MethodHelper.GetDefaultValueLiteral(Microsoft.CodeAnalysis.ITypeSymbol,System.Object)">
-            <summary>
-            获取参数默认值的字面量表示
-            </summary>
-            <param name="parameterType">参数类型</param>
-            <param name="defaultValue">默认值</param>
-            <returns>默认值的字面量表示</returns>
-        </member>
-        <member name="M:Mud.HttpUtils.Helpers.MethodHelper.GetEnumLiteral(Microsoft.CodeAnalysis.INamedTypeSymbol,System.Object)">
-            <summary>
-            获取枚举值的字面量表示
-            </summary>
-        </member>
-        <member name="M:Mud.HttpUtils.Helpers.MethodHelper.GetOrCreateSemanticModel(Microsoft.CodeAnalysis.Compilation,Microsoft.CodeAnalysis.SyntaxTree)">
-            <summary>
-            获取或创建语义模型，使用共享缓存提高性能
             </summary>
         </member>
         <member name="T:Mud.HttpUtils.Models.Analysis.InterfaceHeaderAttributeInfo">
@@ -2602,7 +2436,8 @@
             语义模型缓存管理器，提供线程安全的语义模型缓存功能
             </summary>
             <remarks>
-            使用 ConditionalWeakTable 实现缓存，自动管理内存，避免内存泄漏
+            使用嵌套 ConditionalWeakTable 实现缓存，以 Compilation 为主键确保 Compilation 变化时缓存自动失效，
+            避免增量编译场景下返回过期的 SemanticModel。当 Compilation 被 GC 回收时，关联的缓存也会自动释放。
             </remarks>
         </member>
         <member name="M:Mud.CodeGenerator.SemanticModelCache.GetOrCreate(Microsoft.CodeAnalysis.Compilation,Microsoft.CodeAnalysis.SyntaxTree)">

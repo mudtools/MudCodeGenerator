@@ -78,6 +78,7 @@ internal static class HttpClientGeneratorConstants
     public const string DefaultTokenManageInterface = "ITokenManage";
     public const string DefaultWrapSuffix = "Wrap";
     public const string DefaultContentType = "application/json";
+    public const string ImplementationNamespaceSuffix = "Internal";
 
     // HTTP方法常量(分离特性名和方法名)
     public static readonly string[] HttpMethodAttributeNames =

@@ -181,9 +181,9 @@ internal class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
     /// <summary>
     /// 通用的默认注册函数生成方法
     /// </summary>
-    private void GenerateDefaultRegistrationMethodInternal<T>(StringBuilder codeBuilder, List<T> apis, Action<StringBuilder, T> registrationGenerator, string methodName)
+    private void GenerateDefaultRegistrationMethodInternal<T>(StringBuilder codeBuilder, List<T> apis, Action<StringBuilder, T> registrationGenerator, string methodName) where T : HttpClientApiInfoBase
     {
-        var ungroupedApis = apis.Where(api => string.IsNullOrEmpty((api as HttpClientApiInfoBase)?.RegistryGroupName)).ToList();
+        var ungroupedApis = apis.Where(api => string.IsNullOrEmpty(api.RegistryGroupName)).ToList();
 
         if (ungroupedApis.Count == 0)
             return;
@@ -237,11 +237,11 @@ internal class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
         Action<StringBuilder, T> registrationGenerator,
         string serviceType,
         string descriptionTemplate,
-        SourceProductionContext context)
+        SourceProductionContext context) where T : HttpClientApiInfoBase
     {
         var groupedApis = apiInfos
-            .Where(api => !string.IsNullOrEmpty((api as HttpClientApiInfoBase)?.RegistryGroupName))
-            .GroupBy(api => (api as HttpClientApiInfoBase)!.RegistryGroupName!)
+            .Where(api => !string.IsNullOrEmpty(api.RegistryGroupName))
+            .GroupBy(api => api.RegistryGroupName!)
             .ToList();
 
         foreach (var group in groupedApis)
@@ -267,7 +267,7 @@ internal class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
         Action<StringBuilder, T> registrationGenerator,
         string serviceType,
         string description,
-        SourceProductionContext context)
+        SourceProductionContext context) where T : HttpClientApiInfoBase
     {
         // 验证 RegistryGroupName 是否为合法的 C# 标识符
         if (!CSharpCodeValidator.IsValidCSharpIdentifier(groupName))
@@ -299,7 +299,7 @@ internal class HttpInvokeRegistrationGenerator : HttpInvokeBaseSourceGenerator
     private void GenerateHttpClientRegistration(StringBuilder codeBuilder, HttpClientApiInfo api)
     {
         var fullyQualifiedInterface = $"global::{api.Namespace}.{api.InterfaceName}";
-        var fullyQualifiedImplementation = $"global::{api.Namespace}.Internal.{api.ImplementationName}";
+        var fullyQualifiedImplementation = $"global::{api.Namespace}.{HttpClientGeneratorConstants.ImplementationNamespaceSuffix}.{api.ImplementationName}";
 
         codeBuilder.AppendLine($"            // 注册 {api.InterfaceName} 的 HttpClient 包装实现类（瞬时服务）");
         codeBuilder.AppendLine($"            services.AddTransient<{fullyQualifiedInterface}, {fullyQualifiedImplementation}>();");

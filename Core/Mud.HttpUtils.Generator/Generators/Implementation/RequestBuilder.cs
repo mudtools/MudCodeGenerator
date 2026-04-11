@@ -290,7 +290,7 @@ internal class RequestBuilder
         return "access_token";
     }
 
-    private string? GetTokenHeaderName(MethodAnalysisResult methodInfo)
+    internal string? GetTokenHeaderName(MethodAnalysisResult methodInfo)
     {
         if (!string.IsNullOrEmpty(methodInfo.InterfaceTokenInjectionMode) &&
             methodInfo.InterfaceTokenInjectionMode == HttpClientGeneratorConstants.TokenInjectionModeHeader &&

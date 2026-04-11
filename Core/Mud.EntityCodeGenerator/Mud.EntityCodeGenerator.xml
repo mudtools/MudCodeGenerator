@@ -2332,7 +2332,8 @@
             语义模型缓存管理器，提供线程安全的语义模型缓存功能
             </summary>
             <remarks>
-            使用 ConditionalWeakTable 实现缓存，自动管理内存，避免内存泄漏
+            使用嵌套 ConditionalWeakTable 实现缓存，以 Compilation 为主键确保 Compilation 变化时缓存自动失效，
+            避免增量编译场景下返回过期的 SemanticModel。当 Compilation 被 GC 回收时，关联的缓存也会自动释放。
             </remarks>
         </member>
         <member name="M:Mud.CodeGenerator.SemanticModelCache.GetOrCreate(Microsoft.CodeAnalysis.Compilation,Microsoft.CodeAnalysis.SyntaxTree)">

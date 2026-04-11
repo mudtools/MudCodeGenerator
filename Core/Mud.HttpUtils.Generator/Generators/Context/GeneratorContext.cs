@@ -76,7 +76,7 @@ internal class GeneratorContext
         Configuration = configuration;
 
         ClassName = TypeSymbolHelper.GetImplementationClassName(interfaceSymbol.Name);
-        NamespaceName = SyntaxHelper.GetNamespaceName(interfaceDeclaration, "Internal");
+        NamespaceName = SyntaxHelper.GetNamespaceName(interfaceDeclaration, HttpClientGeneratorConstants.ImplementationNamespaceSuffix);
         FieldAccessibility = configuration.IsAbstract ? "protected " : "private ";
         LoggerType = configuration.IsAbstract ? "ILogger" : $"ILogger<{ClassName}>";
         ConstructorLoggerType = configuration.IsAbstract ? "ILogger" : $"ILogger<{ClassName}>";

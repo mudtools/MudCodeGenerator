@@ -405,10 +405,27 @@ internal static class MethodAnalyzer
         }
     }
 
+    private static readonly Dictionary<INamedTypeSymbol, InterfaceDeclarationSyntax?> _interfaceSyntaxCache = new(SymbolEqualityComparer.Default);
+
     /// <summary>
     /// 获取接口声明语法节点
     /// </summary>
     private static InterfaceDeclarationSyntax? GetInterfaceDeclarationSyntax(
+        Compilation compilation,
+        INamedTypeSymbol interfaceSymbol)
+    {
+        if (_interfaceSyntaxCache.TryGetValue(interfaceSymbol, out var cached))
+            return cached;
+
+        var result = FindInterfaceDeclarationSyntax(compilation, interfaceSymbol);
+        _interfaceSyntaxCache[interfaceSymbol] = result;
+        return result;
+    }
+
+    /// <summary>
+    /// 查找接口声明语法节点
+    /// </summary>
+    private static InterfaceDeclarationSyntax? FindInterfaceDeclarationSyntax(
         Compilation compilation,
         INamedTypeSymbol interfaceSymbol)
     {

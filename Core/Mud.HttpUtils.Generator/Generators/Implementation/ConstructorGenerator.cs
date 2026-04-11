@@ -260,7 +260,7 @@ internal class ConstructorGenerator : ICodeFragmentGenerator
         codeBuilder.AppendLine("        /// 获取用于远程API访问的Token令牌类型。");
         codeBuilder.AppendLine("        /// </summary>");
         codeBuilder.AppendLine("        /// <returns>返回Token令牌类型。</returns>");
-        codeBuilder.AppendLine($"        protected {accessibility} string GetTokeType() => _tokenType;");
+        codeBuilder.AppendLine($"        protected {accessibility} string GetTokenType() => _tokenType;");
         codeBuilder.AppendLine();
     }
 
@@ -323,7 +323,7 @@ internal class ConstructorGenerator : ICodeFragmentGenerator
         codeBuilder.AppendLine("        {");
         codeBuilder.AppendLine("            if(_appContext == null)");
         codeBuilder.AppendLine("                throw new InvalidOperationException($\"无法找到当前服务的应用上下文。\");");
-        codeBuilder.AppendLine("            var tokenType = GetTokeType();");
+        codeBuilder.AppendLine("            var tokenType = GetTokenType();");
         codeBuilder.AppendLine("            var tokenManager = _appContext.GetTokenManager(tokenType);");
         codeBuilder.AppendLine("            if(tokenManager == null)");
         codeBuilder.AppendLine("                throw new InvalidOperationException($\"无法找到当前服务的令牌管理器，TokenType: {tokenType}\");");

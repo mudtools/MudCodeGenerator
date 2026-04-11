@@ -7,7 +7,6 @@
 
 using Mud.HttpUtils.Generators.Base;
 using Mud.HttpUtils.Generators.Context;
-using Mud.HttpUtils.Helpers;
 
 namespace Mud.HttpUtils.Generators.Implementation;
 
@@ -68,8 +67,9 @@ internal class InterfaceImplementationGenerator
         _codeBuilder.AppendLine("}");
         _codeBuilder.AppendLine();
 
+        var fileName = $"{generatorContext.NamespaceName}.{generatorContext.ClassName}.g.cs".Replace('.', '_');
         _context.AddSource(
-            $"{generatorContext.ClassName}.g.cs",
+            fileName,
             SourceText.From(_codeBuilder.ToString(), Encoding.UTF8));
     }
 

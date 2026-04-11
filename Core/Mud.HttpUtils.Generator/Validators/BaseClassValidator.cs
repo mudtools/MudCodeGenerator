@@ -29,7 +29,7 @@ internal static class BaseClassValidator
 
         // Internal 命名空间中的类可能是代码生成器生成的实现类
         // 如果带命名空间且包含 .Internal.，则可能是生成的
-        if (baseClassName.Contains(".Internal."))
+        if (baseClassName.Contains($".{HttpClientGeneratorConstants.ImplementationNamespaceSuffix}."))
             return true;
 
         return false;

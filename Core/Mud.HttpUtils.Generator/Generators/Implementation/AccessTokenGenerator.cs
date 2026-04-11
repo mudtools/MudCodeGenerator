@@ -63,7 +63,7 @@ internal class AccessTokenGenerator : ICodeFragmentGenerator
         codeBuilder.AppendLine("        {");
         codeBuilder.AppendLine("            if(_appContext == null)");
         codeBuilder.AppendLine("                throw new InvalidOperationException($\"无法找到当前服务的应用上下文。\");");
-        codeBuilder.AppendLine("            var tokenType = GetTokeType();");
+        codeBuilder.AppendLine("            var tokenType = GetTokenType();");
         codeBuilder.AppendLine("            var tokenManager = _appContext.GetTokenManager(tokenType);");
         codeBuilder.AppendLine("            if(tokenManager == null)");
         codeBuilder.AppendLine("                throw new InvalidOperationException($\"无法找到当前服务的令牌管理器，TokenType: {tokenType}\");");
