@@ -29,11 +29,7 @@ internal class MethodGenerator : ICodeFragmentGenerator
     public void Generate(StringBuilder codeBuilder, GeneratorContext context)
     {
         IEnumerable<IMethodSymbol> methodsToGenerate = GetMethodsToGenerate(context);
-
-        var hasInheritedFrom = context.HasInheritedFrom;
-        var parentInterfaceMethods = hasInheritedFrom
-            ? GetParentInterfaceMethodNames(context.InterfaceSymbol)
-            : new HashSet<string>(StringComparer.Ordinal);
+        var isAbstractClass = context.Configuration.IsAbstract;
 
         foreach (var methodSymbol in methodsToGenerate)
         {
@@ -41,66 +37,23 @@ internal class MethodGenerator : ICodeFragmentGenerator
             if (!isHttpMethod)
                 continue;
 
-            if (context.Configuration.IsAbstract)
-            {
-                GenerateAbstractMethodDeclaration(codeBuilder, methodSymbol);
-            }
-            else
-            {
-                var needsOverride = hasInheritedFrom && parentInterfaceMethods.Contains(methodSymbol.Name);
-                GenerateMethodImplementation(codeBuilder, context, methodSymbol, needsOverride);
-            }
+            GenerateMethodImplementation(codeBuilder, context, methodSymbol, isAbstractClass);
         }
-    }
-
-    private HashSet<string> GetParentInterfaceMethodNames(INamedTypeSymbol interfaceSymbol)
-    {
-        var names = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var parentInterface in interfaceSymbol.Interfaces)
-        {
-            CollectMethodNames(parentInterface, names);
-        }
-        return names;
-    }
-
-    private void CollectMethodNames(INamedTypeSymbol interfaceSymbol, HashSet<string> names)
-    {
-        foreach (var method in interfaceSymbol.GetMembers().OfType<IMethodSymbol>())
-        {
-            names.Add(method.Name);
-        }
-        foreach (var parent in interfaceSymbol.Interfaces)
-        {
-            CollectMethodNames(parent, names);
-        }
-    }
-
-    /// <summary>
-    /// 生成抽象方法声明
-    /// </summary>
-    private void GenerateAbstractMethodDeclaration(StringBuilder codeBuilder, IMethodSymbol methodSymbol)
-    {
-        var returnTypeFormat = SymbolDisplayFormat.FullyQualifiedFormat
-            .WithMiscellaneousOptions(
-                SymbolDisplayMiscellaneousOptions.UseSpecialTypes |
-                SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
-        var returnType = methodSymbol.ReturnType.ToDisplayString(returnTypeFormat);
-        var asyncKeyword = methodSymbol.IsAsync ? "async " : "";
-
-        codeBuilder.AppendLine();
-        codeBuilder.AppendLine($"        /// <summary>");
-        codeBuilder.AppendLine($"        /// <inheritdoc />");
-        codeBuilder.AppendLine($"        /// </summary>");
-        codeBuilder.AppendLine($"        {GeneratedCodeConsts.HttpGeneratedCodeAttribute}");
-        codeBuilder.AppendLine($"        public abstract {asyncKeyword}{returnType} {methodSymbol.Name}({TypeSymbolHelper.GetParameterList(methodSymbol)});");
-        codeBuilder.AppendLine();
     }
 
     /// <summary>
     /// 获取需要生成的方法列表
+    /// - 有 InheritedFrom：只获取当前接口自身定义的方法（父接口方法由基类生成）
+    /// - 无 InheritedFrom：获取当前接口及所有父接口的方法（需实现全部接口方法）
+    /// 函数在哪个接口定义就在哪个生成类中生成，InheritedFrom场景下父接口方法由基类负责
     /// </summary>
     private IEnumerable<IMethodSymbol> GetMethodsToGenerate(GeneratorContext context)
     {
+        if (context.HasInheritedFrom)
+        {
+            return context.InterfaceSymbol.GetMembers().OfType<IMethodSymbol>();
+        }
+
         try
         {
             return TypeSymbolHelper.GetAllMethods(context.InterfaceSymbol, true);
@@ -114,7 +67,7 @@ internal class MethodGenerator : ICodeFragmentGenerator
     /// <summary>
     /// 生成单个方法的实现代码
     /// </summary>
-    private void GenerateMethodImplementation(StringBuilder codeBuilder, GeneratorContext context, IMethodSymbol methodSymbol, bool needsOverride)
+    private void GenerateMethodImplementation(StringBuilder codeBuilder, GeneratorContext context, IMethodSymbol methodSymbol, bool isVirtual = false)
     {
         var methodInfo = MethodAnalyzer.AnalyzeMethod(
             context.Compilation,
@@ -149,13 +102,13 @@ internal class MethodGenerator : ICodeFragmentGenerator
         codeBuilder.AppendLine($"        /// </summary>");
         codeBuilder.AppendLine($"        {GeneratedCodeConsts.HttpGeneratedCodeAttribute}");
         var asyncKeyword = methodInfo.IsAsyncMethod ? "async " : "";
-        var overrideKeyword = needsOverride ? "override " : "";
+        var virtualKeyword = isVirtual ? "virtual " : "";
         var returnTypeFormat = SymbolDisplayFormat.FullyQualifiedFormat
             .WithMiscellaneousOptions(
                 SymbolDisplayMiscellaneousOptions.UseSpecialTypes |
                 SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
         var returnType = methodSymbol.ReturnType.ToDisplayString(returnTypeFormat);
-        codeBuilder.AppendLine($"        public {overrideKeyword}{asyncKeyword}{returnType} {methodSymbol.Name}({TypeSymbolHelper.GetParameterList(methodSymbol)})");
+        codeBuilder.AppendLine($"        public {virtualKeyword}{asyncKeyword}{returnType} {methodSymbol.Name}({TypeSymbolHelper.GetParameterList(methodSymbol)})");
         codeBuilder.AppendLine("        {");
 
         if (needsTokenInjection)

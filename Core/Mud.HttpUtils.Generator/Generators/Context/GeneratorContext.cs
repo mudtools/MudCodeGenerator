@@ -46,9 +46,9 @@ internal class GeneratorContext
     /// - 有值（继承自指定类）：public override
     /// - 无值：public virtual
     /// </summary>
-    public string GetTokenAsyncAccessibility => string.IsNullOrEmpty(Configuration.InheritedFrom)
-        ? "public virtual"
-        : "public override";
+    public string GetTokenAsyncAccessibility => HasInheritedFrom
+        ? "public override"
+        : "public virtual";
 
     public string FieldAccessibility { get; }
 
