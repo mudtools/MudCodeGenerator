@@ -62,4 +62,11 @@ public sealed class GenerateEventHandlerAttribute : Attribute
     /// <para>默认值: "businessDeduplicator,logger"</para>
     /// </summary>
     public string? ConstructorBaseCall { get; set; }
+
+    /// <summary>
+    /// 事件头类型。
+    /// <para>当设置此属性时，生成的类将继承自 IdempotentFeishuEventHandler&lt;TResult, THeader&gt;。</para>
+    /// <para>示例: "FeishuEventHeaderV2"</para>
+    /// </summary>
+    public string? HeaderType { get; set; }
 }

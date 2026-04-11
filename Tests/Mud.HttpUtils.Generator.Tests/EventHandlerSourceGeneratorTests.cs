@@ -170,6 +170,29 @@ namespace TestNamespace
         diagnostics.Should().BeEmpty();
     }
 
+    [Fact]
+    public void Generator_WithHeaderType_ShouldGenerateHandlerWithHeaderType()
+    {
+        var source = @"
+using Mud.HttpUtils;
+
+namespace TestNamespace
+{
+    [GenerateEventHandler(EventType = ""drive.file.edit"", HeaderType = ""FeishuEventHeaderV2"")]
+    public class DriveFileEditResult
+    {
+        public string FileId { get; set; }
+    }
+}";
+
+        var compilation = CreateCompilation(source);
+        var driver = CSharpGeneratorDriver.Create(new MockEventHandlerGenerator());
+
+        driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
+
+        diagnostics.Should().BeEmpty();
+    }
+
     private class MockEventHandlerGenerator : ISourceGenerator
     {
         public void Initialize(GeneratorInitializationContext context)

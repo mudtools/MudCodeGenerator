@@ -130,6 +130,7 @@ internal class EventHandlerSourceGenerator : TransitiveCodeGenerator
         var inheritedFrom = GetAttributeParameter(eventHandlerAttribute, "InheritedFrom", "IdempotentFeishuEventHandler");
         var constructorParams = GetAttributeParameter(eventHandlerAttribute, "ConstructorParameters", "IFeishuEventDeduplicator businessDeduplicator, ILogger logger, IAppKeyAccessor? appKeyAccessor = null");
         var constructorBaseCall = GetAttributeParameter(eventHandlerAttribute, "ConstructorBaseCall", "businessDeduplicator, logger, appKeyAccessor");
+        var headerType = GetAttributeParameter(eventHandlerAttribute, "HeaderType", "");
 
         // 验证基类名合法性
         if (!ValidateBaseClassName(inheritedFrom, context, eventClass.GetLocation()))
@@ -184,8 +185,13 @@ internal class EventHandlerSourceGenerator : TransitiveCodeGenerator
         // 类声明
         sb.AppendLine($"    {GeneratedCodeConsts.CompilerGeneratedAttribute}");
         sb.AppendLine($"    {GeneratedCodeConsts.HttpGeneratedCodeAttribute}");
+
+        var baseClassGeneric = string.IsNullOrEmpty(headerType)
+            ? $"{inheritedFrom}<{eventClass.Identifier.Text}>"
+            : $"{inheritedFrom}<{eventClass.Identifier.Text}, {headerType}>";
+
         sb.AppendLine($"    public abstract partial class {generatedClassName}");
-        sb.AppendLine($"        : {inheritedFrom}<{eventClass.Identifier.Text}>");
+        sb.AppendLine($"        : {baseClassGeneric}");
         sb.AppendLine("    {");
 
         // 构造函数

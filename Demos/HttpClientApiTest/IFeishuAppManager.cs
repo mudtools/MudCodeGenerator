@@ -53,3 +53,16 @@ public class FeishuAppContext : IMudAppContext
     public IUserTokenManager UserTokenManager { get; }
 
 }
+
+
+/// <summary>
+/// 应用Key访问器接口
+/// </summary>
+public interface IAppKeyAccessor
+{
+    /// <summary>
+    /// 获取应用Key
+    /// </summary>
+    /// <returns></returns>
+    string GetAppKey();
+}
